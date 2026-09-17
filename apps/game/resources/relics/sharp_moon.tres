@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_SHARP_MOON_NAME"
+description = "RELIC_SHARP_MOON_DESC"
+effect = 2
+amount = 1.18
+accent = Color(1, 0.86, 0.5, 1)

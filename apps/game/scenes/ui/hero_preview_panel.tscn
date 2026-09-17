@@ -1,0 +1,195 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/hero_preview_panel.gd" id="script"]
+[ext_resource type="Script" path="res://scripts/ui/hero_motion_preview.gd" id="motion_preview"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Multilingual.tres" id="font"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font_bold"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_body"]
+bg_color = Color(0.012, 0.022, 0.055, 0.94)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.52, 0.68, 0.9, 0.42)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="HeroPreviewPanel" type="Control"]
+process_mode = 3
+visible = false
+z_index = 100
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.006, 0.012, 0.035, 0.88)
+
+[node name="Frame" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(540, 252)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -270.0
+offset_top = -126.0
+offset_right = 270.0
+offset_bottom = 126.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="Frame"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 9
+
+[node name="Rows" type="VBoxContainer" parent="Frame/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Header" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="Portrait" type="TextureRect" parent="Frame/Margin/Rows/Header"]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+mouse_filter = 2
+texture_filter = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Copy" type="VBoxContainer" parent="Frame/Margin/Rows/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="Name" type="Label" parent="Frame/Margin/Rows/Header/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.82, 0.9, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 22
+text_overrun_behavior = 3
+vertical_alignment = 1
+
+[node name="State" type="Label" parent="Frame/Margin/Rows/Header/Copy"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.82, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+text_overrun_behavior = 3
+vertical_alignment = 1
+
+[node name="Rule" type="ColorRect" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.56, 0.7, 0.95, 0.28)
+
+[node name="Content" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 126)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="BodyStage" type="PanelContainer" parent="Frame/Margin/Rows/Content"]
+custom_minimum_size = Vector2(112, 126)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_body")
+
+[node name="Center" type="CenterContainer" parent="Frame/Margin/Rows/Content/BodyStage"]
+layout_mode = 2
+
+[node name="Body" type="TextureRect" parent="Frame/Margin/Rows/Content/BodyStage/Center"]
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+mouse_filter = 2
+texture_filter = 1
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Description" type="Label" parent="Frame/Margin/Rows/Content"]
+custom_minimum_size = Vector2(0, 104)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.9, 0.93, 1, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+vertical_alignment = 1
+
+[node name="MotionStage" type="PanelContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_body")
+
+[node name="MotionRows" type="VBoxContainer" parent="Frame/Margin/Rows/MotionStage"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="MotionName" type="Label" parent="Frame/Margin/Rows/MotionStage/MotionRows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 1, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 9
+horizontal_alignment = 1
+
+[node name="MotionTrack" type="Control" parent="Frame/Margin/Rows/MotionStage/MotionRows"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+script = ExtResource("motion_preview")
+
+[node name="Footer" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
+alignment = 1
+
+[node name="Close" type="Button" parent="Frame/Margin/Rows/Footer"]
+custom_minimum_size = Vector2(138, 25)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_CLOSE"
+
+[node name="AnimationTimer" type="Timer" parent="."]
+wait_time = 0.25

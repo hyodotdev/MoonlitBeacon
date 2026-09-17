@@ -1,0 +1,222 @@
+---
+sidebar_position: 10
+title: Lesson 10 · On-screen information
+---
+
+# Lesson 10 · On-screen information
+
+Lesson 9 gave us a run. But **nothing is visible.**
+How much health is left, how many beacons are lit, how much time has passed.
+
+This lesson puts that on screen. And it adds a **time limit.**
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-10-hud.mp4"
+  poster="img/chapter-10-hud-poster.jpg"
+  title="Pixel 10 — three heart slots · beacons 0/3 · time remaining in wood UI"
+  silent
+/>
+
+## 2. The HUD decides nothing
+
+This is the most important rule.
+
+```gdscript
+func set_health(value: int) -> void:
+	for i in _hearts.size():
+		_hearts[i].modulate.a = 1.0 if i < value else 0.24
+```
+
+The HUD **only draws the value it is given.** The arena decides that
+health 0 means the run is over.
+
+<Video
+  src="video/chapter-10-panel.mp4"
+  poster="img/chapter-10-panel-poster.jpg"
+  title="The arena decides the values; the HUD only draws (silent)"
+  silent
+  ratio="1212 / 120"
+/>
+
+> **What happens if the HUD decides**
+> If HUD code includes something like
+> `if value <= 0: get_tree().reload_current_scene()`,
+> the rule for **"when does the game end"** lives **in the file that draws
+> the screen.**
+>
+> When Lesson 14 adds score and Lesson 15 changes language, every time you
+> open that file you have to be careful with game rules.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Heads-up display` together.
+
+| Official docs | What we take |
+| --- | --- |
+| Heads-up display | UI on a `CanvasLayer` · values received through signals |
+| Using Containers | lining things up with `HBoxContainer` |
+| 9-patch (StyleBoxTexture) | any size of panel from one small image |
+
+## 4. 9-patch — any size from 16 pixels
+
+`panel_wood.png` is **16 × 16**. We make a 120-wide panel from it.
+
+A 9-patch splits the image into nine pieces, **leaves the four corners
+alone, and stretches only the edges and the center.** Border decoration
+does not stretch.
+
+```ini
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_wood"]
+texture = ExtResource("panel")
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+```
+
+:::warning Large margins leave nothing to stretch
+A 16px source with a margin of 5 leaves **only 6px** of stretchable center.
+A margin of 7 leaves 2px. A margin of 8 leaves 0 and the panel breaks.
+
+Use this panel at **12 × 12 or larger.**
+:::
+
+## 5. Implement it yourself
+
+### 5-1. Do not make two heart images
+
+The sheet has five frames, from an empty heart (0) to a full heart (4).
+It is tempting to put frame 0 in empty slots.
+
+**Only lower the opacity.**
+
+```gdscript
+	_hearts[i].modulate.a = 1.0 if i < value else 0.24
+```
+
+Swapping two images makes the slot jitter a little. Pixel art makes a 1px
+difference obvious. Fading the same image is quieter.
+
+### 5-2. Set every `mouse_filter` to Ignore
+
+The HUD is a `Control` that covers the whole screen. The same problem as
+Lesson 8 shows up.
+
+**Panels, containers, and labels all** stay at `mouse_filter = 2` (Ignore).
+Miss one and that piece eats the touch.
+
+:::danger The top-left panel blocks the stick
+You press the bottom-left to raise the stick, and the heart panel is
+top-**left**.
+Even so, the `Hud` root `Control` covers the whole screen, so
+**if that one node is `Stop`, the stick dies completely.**
+:::
+
+### 5-3. Time limit
+
+```gdscript
+const TIME_LIMIT: float = 90.0
+
+func _process(delta: float) -> void:
+	_player.set_move_input(_stick.get_value())
+
+	_time_left -= delta
+	_hud.set_time_left(_time_left)
+	if _time_left <= 0.0:
+		_finish(false)
+```
+
+The arena counts time. The HUD only turns the number it receives into
+`1:30`.
+
+```gdscript
+func set_time_left(seconds: float) -> void:
+	var whole: int = int(ceilf(maxf(seconds, 0.0)))
+	_time.text = "%d:%02d" % [whole / 60, whole % 60]
+```
+
+Use `ceilf`. With `floor`, **the clock shows 1:29 the instant the run
+starts** — 0.01 seconds past 90.0 already becomes 89.
+
+Without `maxf(seconds, 0.0)`, a negative number is printed when time runs out.
+
+### 5-4. Turn red when little time remains
+
+```gdscript
+const URGENT_SECONDS: float = 15.0
+
+	_time.add_theme_color_override(
+		"font_color", URGENT_COLOR if seconds <= URGENT_SECONDS else CALM_COLOR)
+```
+
+A shrinking number does not feel urgent. **A color change is what the eye
+notices first.**
+
+### 5-5. Draw once at start
+
+```gdscript
+	_hud.set_health(_health)
+	_hud.set_beacons(0, _beacons.size())
+	_hud.set_time_left(_time_left)
+```
+
+Drawing only **when a value changes** is not enough.
+On the first frame nothing has happened, so nothing is drawn.
+
+Same reason as Lesson 4's beacon, where we called the setter once more
+in `_ready()`.
+
+## 6. Check that this much is working
+
+```bash
+pnpm game:check
+```
+
+- Three hearts top-left, beacon count and time top-right
+- Hits fade the hearts one by one
+- Lighting a beacon changes it to `Beacons 1/3`
+- Time counts down and turns red under 15 seconds
+- Time running out is a loss
+- **The stick still works with the HUD on screen**
+
+## 7. Break it on purpose
+
+**① Set the `Hud` root `mouse_filter` to `Stop`**
+→ The stick dies completely. It covers the whole screen.
+
+**② Change `ceilf` to `floorf`**
+→ The clock shows `1:29` the instant the run starts.
+
+**③ Remove `maxf(seconds, 0.0)`**
+→ After time runs out you see something like `-1:59`.
+
+**④ Remove the three initial-draw lines in `_ready()`**
+→ Hearts are missing at start, and `Beacons 0/3` does not appear until
+the first beacon is lit.
+
+**⑤ Set the 9-patch margin to `8`**
+→ Stretchable center is 0px, so the panel breaks.
+
+## 8. Completion checklist
+
+- [ ] Three hearts sit on a wood panel
+- [ ] Hits fade the hearts
+- [ ] Lighting a beacon changes the number
+- [ ] Time counts down and turns red under 15 seconds
+- [ ] Time running out shows the lose panel
+- [ ] Stick and beacon lighting still work with the HUD present
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Homework
+
+1. Cut `TIME_LIMIT` to `45`. Lighting three beacons and reaching the gate
+   is tight. Feel in your hands why 90 is that number.
+
+2. Raise `URGENT_SECONDS` to `60`.
+   It is red from the start, so urgency disappears. **A warning only works
+   if it is rare.**
+
+3. Grow the hearts to five. Because it is an `HBoxContainer`, add two nodes
+   and change `MAX_HEALTH`. This is where using a container pays off.

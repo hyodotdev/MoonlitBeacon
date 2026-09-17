@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_QUICK_ARROW_NAME"
+description = "RELIC_QUICK_ARROW_DESC"
+effect = 12
+amount = 0.86
+accent = Color(0.78, 1, 0.82, 1)

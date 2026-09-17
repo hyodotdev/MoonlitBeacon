@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/spirits/stalker.png" id="sheet"]
+
+[resource]
+script = ExtResource("script")
+display_name = "밤의 추격자"
+behavior = 1
+charge_windup = 0.85
+charge_speed = 300.0
+charge_seconds = 0.5
+sheet = ExtResource("sheet")
+cell = 48
+facings = 4
+frames = 4
+lift = -8.0
+speed = 74.0
+turn_rate = 4.0
+health = 60
+score_value = 160
+stagger_seconds = 0.1
+body_scale = 1.12
+tint = Color(1, 1, 1, 1)
+anim_fps = 6.0

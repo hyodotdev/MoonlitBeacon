@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/spirits/swarm.png" id="sheet"]
+
+[resource]
+script = ExtResource("script")
+display_name = "작은 불티"
+behavior = 0
+
+sheet = ExtResource("sheet")
+cell = 48
+facings = 4
+frames = 4
+lift = -8.0
+speed = 118.0
+turn_rate = 9.0
+health = 20
+score_value = 45
+stagger_seconds = 0.1
+body_scale = 0.72
+tint = Color(1, 1, 1, 1)
+anim_fps = 6.0

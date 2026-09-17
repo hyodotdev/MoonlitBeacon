@@ -1,0 +1,218 @@
+---
+sidebar_position: 11
+title: Lesson 11 · Install and play on a phone
+---
+
+# Lesson 11 · Install and play on a phone
+
+We have checked on a phone every lesson. But we were never in a state
+**where you could play a run to the end.** There was no way to pause.
+
+This lesson fills that in. And it bumps the version to **0.1.0**.
+This is as far as "a game that runs" goes.
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-11-pause.mp4"
+  poster="img/chapter-11-pause-poster.jpg"
+  title="Pixel 10 v0.1.0 — pause any time with the top-right button and resume"
+  silent
+/>
+
+## 2. A phone game is interrupted at any moment
+
+A desktop game only stops when the player decides to quit.
+A phone is different.
+
+- A call comes in
+- A notification appears
+- You have to get off the subway
+- Your wrist hurts
+
+**Without a way to pause, you lose the run every time.** Even a 90-second
+game is annoying to lose that way.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Finishing up` and
+`Exporting for Android`.
+
+| Official docs | What we take |
+| --- | --- |
+| Finishing up | pause · restart |
+| Pausing games | `get_tree().paused` and `process_mode` |
+| Exporting for Android | putting a debug build on a phone |
+
+## 4. What stops when you pause, and what does not
+
+`get_tree().paused = true` **stops every node.**
+The pause panel stops too. Then you cannot press Resume.
+
+```gdscript
+	process_mode = Node.PROCESS_MODE_ALWAYS
+```
+
+This panel is the exception.
+
+| `process_mode` | When it runs |
+| --- | --- |
+| `INHERIT` (default) | follows the parent |
+| `PAUSABLE` | only while not paused |
+| `WHEN_PAUSED` | **only while paused** |
+| `ALWAYS` | always |
+| `DISABLED` | never |
+
+The pause panel is `ALWAYS`. You have to press the button before the pause too.
+
+:::danger Write it in the scene file as well
+If you change `process_mode` in `_ready()`, **the default is still in
+effect through that frame.** If the scene pauses the moment it is created
+(when the app goes to the background), you are too late.
+
+Put `process_mode = 3` in the `.tscn` and set it once more in code.
+:::
+
+## 5. Implement it yourself
+
+### 5-1. Button anchors — a button that stretched to the screen width
+
+At first we wrote this.
+
+```ini
+anchors_preset = 14
+anchor_right = 1.0
+offset_left = -66.0
+offset_right = 66.0
+```
+
+On a phone **the button stretched across the full screen width.**
+
+`preset 14` is `HCENTER_WIDE` — **full width, vertically centered.**
+`anchor_left = 0`, `anchor_right = 1`, so `offset_left = -66` means
+"66 past the left edge."
+
+To center it, use `preset 8` (`CENTER`).
+
+```ini
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -66.0
+offset_right = 66.0
+```
+
+All four anchors must be `0.5` so you get **66 left and 66 right of center.**
+
+> **This is the cost of choosing `expand` in Lesson 1**
+> Screen width differs by device, so you have to say "center" with anchors.
+> Pixel coordinates fall off the screen on a narrow phone.
+
+### 5-2. Pause automatically when the app goes to the background
+
+```gdscript
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED and $Button.visible:
+		_pause()
+```
+
+A phone call sends the app to the background. Coming back to **a spirit
+right in front of you is unfair.** Pause on the way out.
+
+:::warning `APPLICATION_PAUSED`, not `FOCUS_OUT`
+`NOTIFICATION_APPLICATION_FOCUS_OUT` fires **much more often.**
+A notification banner or a screenshot will trigger it.
+
+While making this lesson we used `FOCUS_OUT` first, then every
+`adb exec-out screencap` paused the game and we spent a long time
+thinking "the button does not press."
+:::
+
+### 5-3. Hide the button after the run ends
+
+```gdscript
+func set_available(value: bool) -> void:
+	$Button.visible = value
+```
+
+A pause button stacked on the result panel looks ugly, and there is no
+reason to pause a finished run.
+
+### 5-4. Version 0.1.0
+
+Bump `config/version` in `project.godot` to `0.1.0`.
+The label at the bottom-right of the title screen follows automatically —
+Lesson 1 already reads it from `ProjectSettings`.
+
+```gdscript
+	var version: String = str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	_version.text = "v" + version
+```
+
+**You only change one place.** Same when Lesson 16 bumps it to `1.0.0`.
+
+### 5-5. Put it on a phone
+
+```bash
+pnpm android:build
+pnpm android:run
+```
+
+The first command cleans the build template and Gradle output. The second
+installs and launches with a safe launcher intent.
+
+:::danger Do not bypass the wrapper for Android export
+`pnpm android:build` handles relative paths, Gradle cleanup, and isolating
+Play Billing from the direct-distribution APK in one step. Calling
+`godot --export-debug` yourself skips those safeguards.
+:::
+
+## 6. Check that this much is working
+
+Put it on a phone and **play a run to the end.**
+
+- The top-right button pauses
+- Time does not count down while paused
+- Resume takes you back
+- Restart starts over
+- Pressing Home and coming back leaves it paused
+- The pause button disappears when the result panel appears
+- `v0.1.0` at the bottom-right of the title
+
+## 7. Break it on purpose
+
+**① Remove `process_mode = ALWAYS`**
+→ The panel pauses with the game and **you can never unpause.** You have
+to kill the app.
+
+**② Revert the button anchors to `preset 14`**
+→ The button stretches across the full screen width.
+
+**③ Remove `set_available(false)`**
+→ The pause button stacks on the result panel.
+
+**④ Change `APPLICATION_PAUSED` to `FOCUS_OUT`**
+→ A notification banner alone pauses the game.
+
+## 8. Completion checklist
+
+- [ ] You can play a run **to the end** on a phone
+- [ ] You can pause any time and resume
+- [ ] Time does not count down while paused
+- [ ] Coming back from the background leaves it paused
+- [ ] Title shows `v0.1.0`
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Homework
+
+1. Touch the stick while paused. Nothing happens.
+   The stick is paused too, because `PROCESS_MODE_PAUSABLE` is the default.
+
+2. Give only `Overlay` `process_mode = ALWAYS` and leave the root at the
+   default. The button presses, but **it does not press before the pause.**
+   Think about why.
+
+3. Rotate the phone to portrait. It does not rotate.
+   That is Lesson 1's `orientation = 4` (Sensor Landscape).

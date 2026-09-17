@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/camp.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/camp_windup.png" id="windup"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/camp_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_CAMP_NAME"
+behavior = 4
+guardian_style = 2
+boss_accent = Color(1, 0.56, 0.22, 1)
+guardian_rule = "GUARDIAN_CAMP_RULE"
+guardian_burst_fraction = 0.16
+guardian_sustain_fraction = 0.13
+guardian_windup_sheet = ExtResource("windup")
+guardian_alt_windup_sheet = ExtResource("windup")
+guardian_charge_sheet = ExtResource("windup")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+keep_distance = 136.0
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 44.0
+turn_rate = 2.4
+health = 680
+score_value = 900
+stagger_seconds = 0.05
+body_scale = 1.12
+tint = Color(1, 1, 1, 1)
+anim_fps = 3.2

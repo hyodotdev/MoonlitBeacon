@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://tests/test_shrine_portraits.gd" id="script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shrine_panel.tscn" id="shrine"]
+
+[node name="TestShrinePortraits" type="Node"]
+script = ExtResource("script")
+
+[node name="ShrinePanel" parent="." instance=ExtResource("shrine")]

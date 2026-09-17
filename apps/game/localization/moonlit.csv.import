@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://bpfiqp1y4c67i"
+
+[deps]
+
+files=["res://localization/moonlit.ko.translation", "res://localization/moonlit.en.translation", "res://localization/moonlit.ja.translation", "res://localization/moonlit.zh_CN.translation", "res://localization/moonlit.zh_TW.translation"]
+
+source_file="res://localization/moonlit.csv"
+dest_files=["res://localization/moonlit.ko.translation", "res://localization/moonlit.en.translation", "res://localization/moonlit.ja.translation", "res://localization/moonlit.zh_CN.translation", "res://localization/moonlit.zh_TW.translation"]
+
+[params]
+
+compress=true
+delimiter=0
+unescape_keys=false
+unescape_translations=true

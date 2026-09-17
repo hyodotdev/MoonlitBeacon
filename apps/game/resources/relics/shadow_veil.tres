@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_SHADOW_VEIL_NAME"
+description = "RELIC_SHADOW_VEIL_DESC"
+effect = 7
+amount = 0.6
+accent = Color(0.82, 0.78, 1, 1)

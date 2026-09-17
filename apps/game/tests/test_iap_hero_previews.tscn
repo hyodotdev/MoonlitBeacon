@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://tests/test_iap_hero_previews.gd" id="script"]
+[ext_resource type="PackedScene" path="res://scenes/ui/iap_shop_panel.tscn" id="shop"]
+
+[node name="TestIapHeroPreviews" type="Node"]
+script = ExtResource("script")
+
+[node name="IapShopPanel" parent="." instance=ExtResource("shop")]

@@ -1,0 +1,239 @@
+name: CI
+
+# Default checks on every PR and push to main.
+# Same coverage as local `/verify`. All three jobs are fast, so they run in parallel.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Cancel the previous run when the same PR is pushed again.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.1
+
+jobs:
+  docs:
+    name: Docs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # showLastUpdateTime reads each file's last commit from git log.
+          # A shallow clone cannot get the date, so the build breaks.
+          fetch-depth: 0
+
+      # setup-node's cache: pnpm calls `pnpm store path`, so pnpm must be on PATH first.
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # onBrokenLinks: 'throw', so a dead link stops the build here.
+      # The dev server returns 200 for missing paths because of SPA fallback,
+      # so link checking is build-only.
+      - name: Docusaurus build
+        run: pnpm --filter @moonlit-beacon/docs build
+
+      # React's renderToPipeableStream leaks encoding-buffer padding into HTML
+      # when it hits multibyte characters such as Hangul (upstream bug).
+      # A NUL inside a TOC href makes that item go nowhere.
+      # The build script strips them with `scripts/strip-nul.mjs`, so this
+      # step only confirms they are gone.
+      #
+      # We used to run `grep -rlP '\x00'`. This runner's grep cannot handle a
+      # NUL in the pattern, so it **passed silently while NULs were present.**
+      # `|| true` hid that failure. Switched to node so it is not platform-dependent.
+      - name: No NUL bytes in the output
+        run: node scripts/strip-nul.mjs --check
+
+      # Internal anchors in TOC and body actually resolve to heading ids.
+      # onBrokenAnchors defaults to 'warn', so the build can pass with dead links.
+      - name: Internal anchor check
+        run: node .github/scripts/check-anchors.mjs
+
+      # A typo in `<Video src="video/x.mp4">` still lets Docusaurus build.
+      # static/ is copied as-is, so a missing file is not blocked by anyone.
+      # It only breaks on the student's screen.
+      - name: Videos and posters referenced by the body exist
+        run: node .github/scripts/check-media.mjs
+
+  game:
+    name: Game check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: Install Godot
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o godot.zip "${BASE}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+          godot --version
+
+      # The first run may wobble on exit code while import runs.
+      # Warm up once and only look at the second run.
+      - name: Import the project
+        run: godot --headless --path apps/game --quit --editor || true
+
+      - name: IAPKit export config regression
+        run: node --test scripts/lib/iapkit-config.test.mjs
+
+      - name: Android build output regression
+        run: pnpm test:android-build
+
+      - name: Play release package and capture regression
+        run: pnpm test:play-release-package
+
+      - name: Store export preflight regression
+        run: pnpm test:export-preflight
+
+      - name: iOS build and install verification regression
+        run: pnpm test:ios-build
+
+      - name: App Store release package regression
+        run: pnpm test:app-store-release
+
+      - name: Store public contact config regression
+        run: pnpm test:store-contact
+
+      - name: Store metadata regression
+        run: pnpm test:store-metadata
+
+      - name: Game save, purchase, and result regression
+        run: pnpm test:game
+
+      - name: Opens without errors
+        run: |
+          set -euo pipefail
+          godot --headless --path apps/game --quit
+          echo "exit code 0"
+
+      # The check above only opens the main scene and quits. **Scripts the
+      # title screen never reaches are not even compiled** — arena, spirits,
+      # and projectiles only parse when you actually start a run. We kept
+      # seeing `Identifier "heat" not declared` after a green light, after
+      # baking an APK, and after installing it.
+      #
+      # Run it as a scene, not `--script`. `--script` mode has no autoloads,
+      # so every script that uses `Records` or `Settings` fails for the wrong reason.
+      - name: Compile every script
+        run: godot --headless --path apps/game res://tools/check_scripts.tscn
+
+      # `pack_grok_spirits.py --check` re-packs source art for comparison and
+      # is the only generator that uses Pillow. The runner does not have it,
+      # so this step used to die wholesale. The other generators use
+      # `pixel_canvas.py` and have no external deps.
+      - name: Install Pillow
+        run: python3 -m pip install --quiet --break-system-packages pillow
+
+      # Putting a file in res:// and forgetting the manifest means you have to
+      # rediscover the license later. Force a record at the moment it is added.
+      - name: Asset manifest and custom output comparison
+        run: pnpm check:assets
+
+      - name: Tracked store graphics comparison
+        run: pnpm check:store-graphics
+
+      # Keys like `RESULT_WIN` showing on screen only show up at runtime.
+      # Catch what we can without launching the game.
+      - name: Translation table vs keys in use
+        run: node .github/scripts/check-locale.mjs
+
+      - name: Store localization metadata comparison
+        run: pnpm check:store-metadata
+
+      # The check above only looks at the table. Whether import actually ran
+      # has to be asked of the engine. `.translation` is not in git; it is
+      # produced by import, so a skipped import quietly launches with neither
+      # language loaded.
+      - name: Translations actually load
+        run: godot --headless --path apps/game --script res://tools/check_locale.gd
+
+      # The editor has actually reverted values. Compare the 10 locked ones.
+      - name: project.godot locked values
+        run: |
+          set -euo pipefail
+          fail=0
+          check() {
+            if grep -qx "$1" apps/game/project.godot; then
+              echo "  OK   $1"
+            else
+              echo "  FAIL $1  (actual: $(grep "^${1%%=*}=" apps/game/project.godot || echo missing))"
+              fail=1
+            fi
+          }
+          check 'window/size/viewport_width=808'
+          check 'window/size/viewport_height=360'
+          check 'window/size/window_width_override=1616'
+          check 'window/size/window_height_override=720'
+          check 'window/stretch/mode="canvas_items"'
+          check 'window/stretch/aspect="expand"'
+          check 'window/handheld/orientation=4'
+          check 'pointing/emulate_touch_from_mouse=true'
+          check 'textures/canvas_textures/default_texture_filter=0'
+          check 'renderer/rendering_method="gl_compatibility"'
+          exit $fail
+
+      # `.ogg` import defaults to `loop=false`. Reimport in the editor and it
+      # can snap back: music plays one loop then goes quiet, while the game
+      # still runs, so no other check catches it. Pin it for the same reason
+      # as the project.godot locked values.
+      - name: Music imported as looping
+        run: |
+          set -euo pipefail
+          fail=0
+          for f in apps/game/assets/third_party/**/audio/music/*.ogg.import; do
+            [ -e "$f" ] || continue
+            if grep -qx 'loop=true' "$f"; then
+              echo "  OK   $(basename "$f")"
+            else
+              echo "::error file=$f::Music must be imported with loop=true"
+              fail=1
+            fi
+          done
+          exit $fail
+
+  hygiene:
+    name: Repo rules
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      # "Phase" term, do-not-commit list, clip budget (silent · 1MB), Godot
+      # output paths, hardcoded absolute paths, .ps1 / project.godot BOM,
+      # Claude/Codex skill sync, project.godot locked values, and music
+      # loop=true, all in one pass.
+      #
+      # These checks used to live only as bash here, with a paste block in
+      # the local `/verify` doc. The two copies drifted, so lowercase
+      # `phase` passed locally and died only in CI. Now both call one file.
+      - name: Repo rules
+        run: node .github/scripts/check-hygiene.mjs

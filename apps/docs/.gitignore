@@ -1,0 +1,9 @@
+# Docusaurus local output -----------------------------------------------------
+# The root .gitignore lists the same paths, but files this app creates
+# are also declared next to the app. The rules travel with apps/docs if
+# the folder is moved or split out.
+# A leading `/` means the pattern applies only relative to this folder.
+/node_modules/
+/build/
+/.docusaurus/
+/.cache-loader/

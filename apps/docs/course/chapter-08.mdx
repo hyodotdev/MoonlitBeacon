@@ -1,0 +1,261 @@
+---
+sidebar_position: 8
+title: Lesson 8 · Creating enemies
+---
+
+# Lesson 8 · Creating enemies
+
+Nothing got in the way of lighting a beacon. You just walked up and stood
+there.
+
+This lesson we put in a **spirit**. It appears from the dark, chases the
+ninja, and on contact the screen flashes red.
+
+## 1. The finished screen
+
+<Video
+  src="video/chapter-08-chase.mp4"
+  poster="img/chapter-08-chase-poster.jpg"
+  title="Pixel 10 — a spirit chases you, and on contact the screen flashes red"
+  silent
+/>
+
+## 2. An enemy is the same structure as the player
+
+`spirit.tscn` is almost the same as `player.tscn`.
+
+```text
+Spirit  (CharacterBody2D)
+  Shadow  (Sprite2D)
+  Sprite  (AnimatedSprite2D)   4 directions × 4 frames
+  Body    (CollisionShape2D)
+  Hitbox  (Area2D)             ← only this is different
+  Hover   (AnimationPlayer)
+```
+
+The value of extracting the player as a separate scene in Lesson 5 comes out
+here.
+**You already know how to make it**, so cutting the sprite sheet and attaching
+it is the end.
+
+| | Player | Spirit |
+| --- | --- | --- |
+| Speed | 96 | **62** |
+| Facing | stick | toward the player |
+| Idle | 1px breathing | **3px hovering** |
+| Layer | 2 | **4** |
+
+> **The spirit is slower**
+> 96 versus 62. If the spirit is faster there is no way to run, and there is
+> no game.
+> You get chased, but you have to be able to **shake them off**. When we put
+> in a fast enemy in Lesson 13, this balance is the baseline.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Creating the enemy` together.
+
+| Official docs | What we take from them |
+| --- | --- |
+| Creating the enemy | Enemy as a separate scene · same structure as the player |
+| Physics layers | Deciding "who collides with what" with layers |
+
+The official sample has mobs cross the screen. Ours **chase you**.
+
+## 4. Layers become the rule
+
+This is the most important part.
+
+In Lesson 7 we made the beacon's detect area **see only layer 2**.
+Put the spirit on **layer 4** and the spirit cannot light a beacon.
+
+```ini
+[node name="Spirit" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 0
+```
+
+<Video
+  src="video/chapter-08-layer.mp4"
+  poster="img/chapter-08-layer-poster.jpg"
+  title="A spirit can walk past a beacon and still not light it — different layer (silent)"
+  silent
+  ratio="1120 / 760"
+/>
+
+**We did not ask in code "is this the player?"**
+
+```gdscript
+# do not do this
+func _on_body_entered(body: Node2D) -> void:
+	if body.name != "Player":
+		return
+```
+
+Filter by name and the condition grows every time enemies grow.
+Even when there are three enemy types in Lesson 13, **the layer setup stays
+as-is**.
+
+| Layer | What | Who sees it |
+| --- | --- | --- |
+| 2 | Player | Beacon `Reach` · spirit `Hitbox` |
+| 4 | Spirit | Nobody. **Nobody seeing it is the point of this table** |
+
+## 5. Build it yourself
+
+### 5-1. Chase, but do not stick tight
+
+```gdscript
+	var wish: Vector2 = (_target.global_position - global_position).normalized()
+	velocity = velocity.lerp(wish * speed, TURN_RATE * delta)
+	move_and_slide()
+```
+
+Snap with `velocity = wish * speed` and **the spirit sticks tight to the
+player**.
+When they turn they pivot at radius 0, and there is no way to dodge.
+
+`lerp` turns them slowly so they take a wide corner, and **you can cut and
+shake them off**.
+Raise `TURN_RATE` and they get persistent; lower it and they get dull. It is
+a difficulty knob.
+
+### 5-2. Who to chase is the arena's decision
+
+```gdscript
+func set_target(node: Node2D) -> void:
+	_target = node
+```
+
+The spirit does **not search the scene** with something like
+`get_tree().get_first_node_in_group("player")`.
+The arena puts it in.
+
+Same judgment as making the player not know about beacons in Lesson 7.
+Put the spirit in another scene and it still runs.
+
+### 5-3. On contact
+
+```gdscript
+const HIT_COOLDOWN: float = 1.1
+
+func _on_body_entered(_body: Node2D) -> void:
+	if _cooldown > 0.0:
+		return
+	_cooldown = HIT_COOLDOWN
+	touched_player.emit()
+```
+
+:::danger Without a cooldown you keep getting hit while overlapping
+`body_entered` fires **once**, at the moment of entry. But if the spirit
+pushes the player and jitters on the boundary, enter/exit repeats.
+
+When health arrives in Lesson 9, that one burst would wipe all three hearts.
+We put it in now.
+:::
+
+### 5-4. Red flash
+
+Lay a red `ColorRect` over the whole screen on the `Ui` layer, and drop alpha
+from 1 to 0.
+
+```gdscript
+func _on_player_hit() -> void:
+	if _flash != null and _flash.is_valid():
+		_flash.kill()
+	_hit_flash.modulate.a = 1.0
+	_flash = create_tween()
+	_flash.tween_property(_hit_flash, "modulate:a", 0.0, HIT_FLASH_SECONDS)
+```
+
+Same as what we learned in Lesson 4 — **kill the previous tween before
+making a new one**.
+Get hit in a row and two tweens pull the same alpha toward different targets.
+
+Always set `mouse_filter = 2` (Ignore). Skip it and this rectangle **eats
+touches across the whole screen** and the stick does not work.
+
+### 5-5. Getting knocked back
+
+A flash alone is weak. **The body has to be pushed** for the hit to reach
+your hands.
+
+```gdscript
+func knock_back(from_position: Vector2) -> void:
+	var away: Vector2 = (global_position - from_position).normalized()
+	velocity = away * KNOCKBACK_SPEED
+	_knock_left = KNOCKBACK_SECONDS
+```
+
+:::warning While being pushed you have to ignore the stick
+Without `_knock_left`, the next frame `move_toward` puts velocity back toward
+the stick.
+**The hand holding the stick erases the knockback as-is.**
+
+We do not read the stick for only 0.18 seconds. Short enough that it does not
+feel like control was stolen, and the push is clearly visible. Measured, it
+is 48px.
+:::
+
+> **There is still no health**
+> Right now it is enough that a hit **only looks** like a hit.
+> Three hearts and game over are Lessons 9 and 10.
+
+## 6. Check your work so far
+
+```bash
+pnpm game:check
+```
+
+- A spirit chases the ninja
+- It is slower than the ninja (you can shake it off)
+- On contact the screen flashes red
+- Overlapping does not keep hitting you
+- **A spirit can walk past a beacon and the beacon does not light**
+- With a spirit present, the stick still works
+
+## 7. Break it on purpose
+
+**① Change the spirit's `collision_layer` to `2`**
+→ **The spirit lights beacons.** Stand still and the game finishes itself.
+One layer is one rule.
+
+**② Change to `velocity = wish * speed`**
+→ The spirit sticks tight and follows. Cut and it still does not come off.
+
+**③ Set `HIT_COOLDOWN` to `0`**
+→ It keeps flashing the whole time you overlap. When health arrives in
+Lesson 9, it is instant death.
+
+**④ Set `HitFlash`'s `mouse_filter` to `Stop`**
+→ The stick does not work. The rectangle covering the whole screen eats
+touches.
+
+**⑤ Skip `_knock_left` and only set velocity in `knock_back()`**
+→ Hold the stick and you are not pushed. The next frame you go back toward
+the stick.
+
+**⑥ Set spirit `speed` to `120`**
+→ Faster than the ninja, so you cannot run. There is no game.
+
+## 8. Completion checklist
+
+- [ ] A spirit chases you, and it is slower than the ninja
+- [ ] On contact the screen flashes red and the ninja is knocked back
+- [ ] While being pushed, you are still pushed even if you hold the stick
+- [ ] Overlapping hits only once per 1.1 seconds
+- [ ] A spirit cannot light a beacon (**with a layer, not with code**)
+- [ ] With a spirit present, the stick and beacon ignition still work
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Exercises
+
+1. Change `TURN_RATE` to `1.0` and `20.0`.
+   1.0 takes a wide turn and is easy to shake off; 20.0 sticks like a shadow.
+
+2. Place one more spirit. Call `set_target()` once more from the arena.
+   Same as placing three beacons in Lesson 3.
+
+3. Give the spirit's `Sprite` `light_mask = 0`.
+   It does not brighten even beside a beacon. It looks ghostly — pick which
+   side is better.

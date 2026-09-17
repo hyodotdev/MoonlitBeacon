@@ -1,0 +1,181 @@
+[gd_scene load_steps=24 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="beacon"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg" id="bgm"]
+[ext_resource type="Script" path="res://scripts/audio/music_player.gd" id="music"]
+[ext_resource type="Script" path="res://scripts/gameplay/arena.gd" id="arena"]
+[ext_resource type="PackedScene" path="res://scenes/ui/relic_panel.tscn" id="relic"]
+[ext_resource type="PackedScene" path="res://scenes/ui/run_choice_panel.tscn" id="runchoice"]
+[ext_resource type="PackedScene" path="res://scenes/ui/analytics_consent_panel.tscn" id="analytics_consent"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dash_button.tscn" id="dashbtn"]
+[ext_resource type="Script" path="res://scripts/ui/beacon_compass.gd" id="compass"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/virtual_stick.tscn" id="stick"]
+[ext_resource type="PackedScene" path="res://scenes/actors/spirit.tscn" id="spirit"]
+[ext_resource type="PackedScene" path="res://scenes/objectives/moon_gate.tscn" id="gate"]
+[ext_resource type="PackedScene" path="res://scenes/ui/result_panel.tscn" id="result"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_panel.tscn" id="pause"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/credits_panel.tscn" id="credits"]
+[ext_resource type="Script" path="res://scripts/dev/frame_meter.gd" id="framemeter"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ladder_panel.tscn" id="ladderpanel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dialogue_scene.tscn" id="dialogue"]
+[ext_resource type="Script" path="res://scripts/dev/arena_tools.gd" id="arenatools"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="confirm"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_focus.ogg" id="focus"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
+
+[node name="Arena" type="Node2D"]
+y_sort_enabled = true
+script = ExtResource("arena")
+
+[node name="Rooms" type="Node2D" parent="."]
+y_sort_enabled = true
+
+[node name="BeaconWest" parent="." instance=ExtResource("beacon")]
+position = Vector2(258, 286)
+scale = Vector2(0.78, 0.78)
+lit = false
+flicker_speed = 0.87
+
+[node name="BeaconNorth" parent="." instance=ExtResource("beacon")]
+position = Vector2(414, 196)
+scale = Vector2(0.62, 0.62)
+lit = false
+flicker_speed = 1.24
+
+[node name="BeaconEast" parent="." instance=ExtResource("beacon")]
+position = Vector2(566, 272)
+scale = Vector2(0.86, 0.86)
+lit = false
+flicker_speed = 1.03
+
+[node name="Player" parent="." instance=ExtResource("player")]
+position = Vector2(330, 300)
+
+[node name="MoonGate" parent="." instance=ExtResource("gate")]
+position = Vector2(404, 336)
+
+[node name="Spirit" parent="." instance=ExtResource("spirit")]
+position = Vector2(640, 190)
+
+[node name="Bgm" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("bgm")
+volume_db = -11.0
+autoplay = true
+bus = &"Music"
+
+[node name="EventSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("confirm")
+volume_db = -6.0
+max_polyphony = 2
+bus = &"Sfx"
+
+[node name="PickupSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("focus")
+volume_db = -14.0
+max_polyphony = 4
+bus = &"Sfx"
+
+[node name="Ui" type="CanvasLayer" parent="."]
+
+[node name="MoveStick" parent="Ui" instance=ExtResource("stick")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+grow_horizontal = 2
+
+[node name="Dash" parent="Ui" instance=ExtResource("dashbtn")]
+
+[node name="Compass" type="Control" parent="Ui"]
+modulate = Color(1, 1, 1, 0)
+mouse_filter = 2
+script = ExtResource("compass")
+
+[node name="HitFlash" type="ColorRect" parent="Ui"]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.72, 0.09, 0.12, 0.42)
+
+[node name="FrameMeter" type="Label" parent="Ui"]
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -140.0
+offset_top = -46.0
+offset_right = -4.0
+offset_bottom = -2.0
+grow_horizontal = 0
+grow_vertical = 0
+mouse_filter = 2
+script = ExtResource("framemeter")
+
+[node name="Hud" parent="Ui" instance=ExtResource("hud")]
+
+[node name="Result" parent="Ui" instance=ExtResource("result")]
+
+[node name="AnalyticsConsent" parent="Ui" instance=ExtResource("analytics_consent")]
+
+[node name="Pause" parent="Ui" instance=ExtResource("pause")]
+
+[node name="Settings" parent="Ui" instance=ExtResource("settings")]
+
+[node name="Credits" parent="Ui" instance=ExtResource("credits")]
+
+[node name="Ladder" parent="Ui" instance=ExtResource("ladderpanel")]
+
+[node name="Relic" parent="Ui" instance=ExtResource("relic")]
+
+[node name="RunChoice" parent="Ui" instance=ExtResource("runchoice")]
+
+[node name="Dialogue" parent="Ui" instance=ExtResource("dialogue")]
+
+[node name="ZoneWipe" type="ColorRect" parent="Ui"]
+visible = false
+modulate = Color(1, 1, 1, 0)
+z_index = 100
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.025, 0.035, 0.08, 0.96)
+
+[node name="Label" type="Label" parent="Ui/ZoneWipe"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.72, 0.92, 1, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ArenaTools" type="HBoxContainer" parent="Ui"]
+process_mode = 3
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 6.0
+offset_top = -20.0
+offset_right = 140.0
+offset_bottom = -4.0
+grow_vertical = 0
+script = ExtResource("arenatools")

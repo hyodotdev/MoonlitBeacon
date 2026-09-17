@@ -1,0 +1,514 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/settings_panel.gd" id="script"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
+[ext_resource type="PackedScene" path="res://scenes/ui/analytics_consent_panel.tscn" id="analytics_consent"]
+
+[node name="SettingsPanel" type="Control"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.03, 0.07, 0.78)
+
+[node name="AnalyticsConsent" parent="Dim" instance=ExtResource("analytics_consent")]
+layout_mode = 1
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -132.0
+offset_bottom = -96.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 30
+text = "SETTINGS_TITLE"
+horizontal_alignment = 1
+
+[node name="LanguageLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -224.0
+offset_top = -70.0
+offset_right = -148.0
+offset_bottom = -46.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.96, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 16
+text = "SETTINGS_LANGUAGE"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="LocaleKo" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -138.0
+offset_top = -72.0
+offset_right = -86.0
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "한국어"
+
+[node name="LocaleEn" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -82.0
+offset_top = -72.0
+offset_right = -30.0
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "English"
+
+[node name="LocaleJa" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -26.0
+offset_top = -72.0
+offset_right = 26.0
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "日本語"
+
+[node name="LocaleZhCn" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 30.0
+offset_top = -72.0
+offset_right = 82.0
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "简中"
+
+[node name="LocaleZhTw" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 86.0
+offset_top = -72.0
+offset_right = 138.0
+offset_bottom = -44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "繁中"
+
+[node name="MusicLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -172.0
+offset_top = -26.0
+offset_right = -92.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.96, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 16
+text = "SETTINGS_MUSIC"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="MusicDown" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = -28.0
+offset_right = -50.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "-"
+
+[node name="MusicBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -42.0
+offset_top = -21.0
+offset_right = 42.0
+offset_bottom = -7.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="MusicUp" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 50.0
+offset_top = -28.0
+offset_right = 76.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "+"
+
+[node name="SfxLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -172.0
+offset_top = 18.0
+offset_right = -92.0
+offset_bottom = 42.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.96, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 16
+text = "SETTINGS_SFX"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SfxDown" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -76.0
+offset_top = 16.0
+offset_right = -50.0
+offset_bottom = 44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "-"
+
+[node name="SfxBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -42.0
+offset_top = 23.0
+offset_right = 42.0
+offset_bottom = 37.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 4
+
+[node name="SfxUp" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 50.0
+offset_top = 16.0
+offset_right = 76.0
+offset_bottom = 44.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+auto_translate_mode = 2
+text = "+"
+
+[node name="AnalyticsLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -172.0
+offset_top = 46.0
+offset_right = -44.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.96, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 15
+text = "SETTINGS_ANALYTICS"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Analytics" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -36.0
+offset_top = 46.0
+offset_right = 172.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_ANALYTICS_UNKNOWN"
+
+[node name="Credits" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -110.0
+offset_top = 84.0
+offset_right = -6.0
+offset_bottom = 112.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_CREDITS"
+
+[node name="Close" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 6.0
+offset_top = 84.0
+offset_right = 110.0
+offset_bottom = 112.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_CLOSE"
+
+[node name="ExternalLinks" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -182.0
+offset_top = 114.0
+offset_right = 182.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Privacy" type="Button" parent="ExternalLinks"]
+custom_minimum_size = Vector2(174, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_PRIVACY"
+
+[node name="Support" type="Button" parent="ExternalLinks"]
+custom_minimum_size = Vector2(174, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_SUPPORT"
+
+[node name="LinkStatus" type="Label" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = 150.0
+offset_right = 250.0
+offset_bottom = 168.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.68, 0.62, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+text = "SETTINGS_LINK_FAILED"
+horizontal_alignment = 1

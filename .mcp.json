@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "iapkit": {
+      "type": "http",
+      "url": "https://kit.openiap.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer ${IAPKIT_ADMIN_KEY}"
+      }
+    }
+  }
+}

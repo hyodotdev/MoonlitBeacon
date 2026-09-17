@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/charge_ring.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/derived/ui/charge_ring.png" id="ring"]
+
+[node name="ChargeRing" type="Node2D"]
+script = ExtResource("script")
+
+[node name="Track" type="Sprite2D" parent="."]
+light_mask = 0
+modulate = Color(1, 0.86, 0.55, 0.18)
+texture = ExtResource("ring")
+
+[node name="Fill" type="Sprite2D" parent="."]
+light_mask = 0
+modulate = Color(1, 0.78, 0.36, 0.95)
+texture = ExtResource("ring")

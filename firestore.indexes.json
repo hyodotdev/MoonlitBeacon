@@ -1,0 +1,36 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "version",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "score",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "analytics_events_v1",
+      "fieldPath": "expires_at",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "analytics_events_v1",
+      "fieldPath": "session_id",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "analytics_events_v1",
+      "fieldPath": "run_id",
+      "indexes": []
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="RoomKind" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/nature.png" id="tileset"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/forest_floor.png" id="floor"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/forest_props.png" id="obstacles"]
+
+[resource]
+script = ExtResource("script")
+display_name = "밤 숲"
+encounter = 0
+tileset = ExtResource("tileset")
+floor_texture = ExtResource("floor")
+tint = Color(0.46, 0.48, 0.56, 1)
+floor_tint = Color(1.08, 1.03, 0.94, 1)
+border_count = 260
+decor_count = 300
+clump_count = 46
+obstacle_tileset = ExtResource("obstacles")
+obstacle_count = 32
+tree_kinds = PackedStringArray("bigA", "bigB", "bigC", "bigD", "sm0", "sm1", "sm2", "sm3")
+decor_kinds = PackedStringArray("bush", "twig", "stump2", "rockS", "rockS2", "branch")

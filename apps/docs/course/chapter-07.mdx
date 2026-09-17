@@ -1,0 +1,313 @@
+---
+sidebar_position: 7
+title: Lesson 7 · Signals
+---
+
+# Lesson 7 · Signals
+
+In Lesson 4 the arena lit the beacons in sequence. **Nobody asked, and they
+lit themselves.**
+
+This lesson **the player lights them**. Stand next to a beacon and a ring at
+your feet fills; the moment it completes, fire catches. Leave and it drains
+back down.
+
+And we harvest the seed we sowed in Lesson 4 — **the one doing the lighting
+changed, and we did not edit a single character of the code that brightens
+the forest.**
+
+## 1. The finished screen
+
+<Video
+  src="video/chapter-07-ignite.mp4"
+  poster="img/chapter-07-ignite-poster.jpg"
+  title="Pixel 10 — stand next to a beacon and the ring fills; when it completes, fire catches"
+  silent
+/>
+
+## 2. What a signal is
+
+A signal is **announcing "this happened."**
+The announcer does not have to know who is listening.
+
+We already wrote one line in Lesson 4.
+
+```gdscript
+signal lit_changed(beacon: Node2D, is_lit: bool)
+```
+
+The beacon only announces that it lit. Listening to that and brightening the
+forest is the arena.
+
+**That design pays off in this lesson.** The one doing the lighting changed
+from the arena to the player, and `_on_beacon_lit_changed()` that raises the
+brightness is unchanged.
+The beacon only says "I lit" and **does not say who lit it**.
+
+> **Can't I just call a function directly**
+> You can. Then the beacon has to know the arena.
+> Code like `get_parent().brighten_forest()` appears, and the moment you put
+> the beacon in another scene it breaks. The "you can place a beacon
+> anywhere" we made in Lesson 3 disappears.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Using signals` together.
+
+| Official docs | What we take from them |
+| --- | --- |
+| Using signals | Declaring `signal` · `connect()` · `emit()` |
+| Custom signals | Sending a value along |
+
+The official sample presses a button to stop a timer. We have **the beacon
+announce its own state and the arena relay**. That is one extra hop, and the
+reason for that hop is the core of this lesson.
+
+## 4. Knowing they are nearby with `Area2D`
+
+Attach an `Area2D` to the beacon and receive **who enters and who leaves**.
+
+```text
+Beacon
+  Reach      (Area2D)            collision_mask = 2
+    ReachShape (CollisionShape2D) radius 34
+```
+
+`collision_mask = 2` means **it only sees what is on layer 2**.
+In Lesson 5 we put the player on layer 2.
+
+When enemies appear in Lesson 8 we put them on a different layer. Then
+**enemies lighting a beacon** is blocked automatically. You do not have to
+ask in code "is this the player?"
+
+:::danger Draw the beacon smaller and the detect range gets smaller too
+In Lesson 3 we gave each beacon a different `scale` for depth
+(`0.78` · `0.62` · `0.86`).
+
+`Area2D` is a child of the node, so it takes that `scale` as-is.
+On the north beacon, radius 34 becomes **34 × 0.62 = 21**.
+
+We drew it smaller so it would look far away, not so it would be **harder to
+walk up to**.
+Divide by `scale` to put it back in world units.
+
+```gdscript
+func _normalize_reach() -> void:
+	var s: float = maxf(absf(scale.x), 0.01)
+	var shape: CircleShape2D = ($Reach/ReachShape as CollisionShape2D).shape
+	shape = shape.duplicate()                    # instances share the resource
+	shape.radius = REACH_RADIUS / s
+	($Reach/ReachShape as CollisionShape2D).shape = shape
+```
+
+Skip `duplicate()` and **the three beacons share the same `CircleShape2D`**.
+The last value computed overwrites all three.
+:::
+
+## 5. Build it yourself
+
+<Video
+  src="video/chapter-07-ring.mp4"
+  poster="img/chapter-07-ring-poster.jpg"
+  title="The ring fills from the bottom up — no shader, only growing the region (silent)"
+  silent
+  ratio="920 / 640"
+/>
+
+### 5-1. Fill and drain
+
+```gdscript
+const CHARGE_SECONDS: float = 1.3
+const DECAY_MULTIPLIER: float = 1.8
+
+
+func _process(delta: float) -> void:
+	var before: float = _charge
+	if _visitors > 0:
+		_charge += delta / CHARGE_SECONDS
+	else:
+		_charge -= delta / CHARGE_SECONDS * DECAY_MULTIPLIER
+	_charge = clampf(_charge, 0.0, 1.0)
+```
+
+We made **draining 1.8× faster**. A brief step-out is not a big loss, and
+leaving for real resets quickly.
+
+1.3 seconds is a value we set by feeling it. 0.5 seconds lights as you walk
+past; 3 seconds is boring.
+
+:::tip Turn `_process` off when nobody is there
+```gdscript
+	elif _charge <= 0.0 and _visitors == 0:
+		set_process(false)
+```
+
+There are three beacons; there is no reason to compute three times every
+frame.
+When several enemies exist in Lesson 13, this kind of thing piles up.
+:::
+
+### 5-2. Why we count visitors
+
+`_visitors` is a **count**, not a boolean.
+
+```gdscript
+func _on_body_entered(_body: Node2D) -> void:
+	_visitors += 1
+```
+
+Right now there is only one player, so it is 0 or 1.
+But `Area2D` can **repeat enter/exit when the same body jitters on the
+boundary**, and later more than one body may enter.
+
+Use a boolean and the moment one leaves it becomes `false`, and you miss
+whatever is still inside.
+
+### 5-3. Fill the ring without a shader
+
+The usual way to make a circular gauge is a shader. We do not use one here.
+
+**Stack two copies of the same ring picture, and grow only the top copy's
+`region` from the bottom up.**
+
+```gdscript
+func set_progress(value: float) -> void:
+	var p: float = clampf(value, 0.0, 1.0)
+	visible = p > 0.001
+
+	var h: float = _size.y * p
+	_fill.region_rect = Rect2(0.0, _size.y - h, _size.x, h)
+	_fill.offset = Vector2(0.0, (_size.y - h) * 0.5)
+```
+
+Change only `region_rect` and **it draws stuck to the top by the amount
+cropped**.
+You have to lower it by that amount with `offset` so it looks like it is
+filling from the bottom.
+Skip that one line and the ring grows from the top.
+
+> **Why we do not use a shader**
+> A shader can fill by angle and looks nicer. But the subject of this lesson
+> is signals. Pull shader language in here and what you have to learn doubles.
+>
+> **Two `region` pictures take 15 minutes to understand and give you the
+> picture you want.**
+> Know that a better method exists, and move on.
+
+### 5-4. The ring is at the player's feet
+
+We attach the ring to the **player**, not the beacon.
+
+Put a ring on every beacon and three of them fill separately. Stand between
+two beacons and you see two rings. Put one on the player and show **the
+highest filled value**.
+
+```gdscript
+# arena.gd
+func _on_beacon_charge_changed(_beacon: Node2D, _ratio: float) -> void:
+	var top: float = 0.0
+	for beacon in _beacons:
+		top = maxf(top, beacon.get_charge())
+	_player.set_charge(top)
+```
+
+**The player does not know about beacons.** The arena relays.
+In Lesson 8 enemies use the same body, and enemies do not light beacons.
+
+### 5-5. Sound
+
+There has to be a sound at the moment it lights. Attach an
+`AudioStreamPlayer2D` to the beacon and **the west beacon's sound comes from
+the left**.
+
+:::warning Even a short sound effect leaks Ogg
+The cleanup logic we attached to music in Lesson 3 is needed here too.
+Skip it and when you quit the game you get this.
+
+```text
+ERROR: 2 resources still in use at exit
+```
+
+But `AudioStreamPlayer` and `AudioStreamPlayer2D` have **split inheritance**,
+so one script cannot be used on both.
+
+```text
+Script inherits from native type 'AudioStreamPlayer',
+so it can't be assigned to an object of type 'AudioStreamPlayer2D'.
+```
+
+We pull only the waiting part into `AudioFlush` and both sides use it.
+So we do not copy the same explanation into two files.
+:::
+
+We convert the sound effect from 216KB `wav` to 20KB `ogg`.
+It is a short one-shot, so lowering quality does not show.
+
+### 5-6. We did not edit the Lesson 4 code
+
+In `arena.gd` we **only deleted** `_run_ignition_sequence()`.
+
+`_on_beacon_lit_changed()` that brightens the forest was not touched by a
+single character.
+Even though the one doing the lighting changed from the arena to the player.
+
+**The value of going through a signal in Lesson 4 comes out here.**
+
+## 6. Check your work so far
+
+```bash
+pnpm game:check
+```
+
+Check these on the phone:
+
+- Walk up to a beacon and a ring appears at your feet and fills
+- When it completes the beacon lights and the forest brightens
+- Leave midway and the ring drains (faster than it filled)
+- Beside an already-lit beacon the ring does not appear
+- The west beacon's sound comes from the left
+
+## 7. Break it on purpose
+
+**① Delete `duplicate()` from `_normalize_reach()`**
+→ The three beacons share the same `CircleShape2D`. The last computation
+overwrites all three and **every detect range becomes the same**.
+
+**② Change `_visitors` to a `bool`**
+→ When it jitters on the boundary it starts draining even though you are
+still inside.
+
+**③ Do not set `_fill.offset`**
+→ The ring grows **from the top**, not the bottom.
+
+**④ Set `Reach`'s `collision_mask` to `0`**
+→ Nobody is detected. Stand next to it and no ring appears.
+
+**⑤ Skip `AudioFlush` and leave a plain `AudioStreamPlayer2D`**
+→ Light a beacon then quit the game and `resources still in use at exit`
+appears.
+**If you never lit one, it does not appear.** That is why it is easy to miss.
+
+## 8. Completion checklist
+
+- [ ] Stand next to a beacon and a ring at your feet fills
+- [ ] When it completes the beacon lights and the forest brightens a step
+- [ ] Leave and the ring drains
+- [ ] All three beacons react at the same distance (even with different `scale`)
+- [ ] A sound plays at the moment it lights, and the direction is correct
+- [ ] No leak warning when you quit the game
+- [ ] We did not edit the brightness code in `arena.gd`
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Exercises
+
+1. Change `CHARGE_SECONDS` to `0.4` and `3.0`.
+   0.4 lights as you walk past; 3.0 is boring.
+
+2. Lower `DECAY_MULTIPLIER` to `0.3`.
+   Once it fills it barely drains. Walk back and forth between beacons and
+   they all light. The game gets easier.
+
+3. Attach the ring to the **beacon** instead of the player.
+   Stand between two beacons and you see two rings. You will know why we put
+   it on the player.

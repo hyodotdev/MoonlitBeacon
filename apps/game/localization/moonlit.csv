@@ -1,0 +1,381 @@
+keys,ko,en,ja,zh_CN,zh_TW
+TITLE_NAME,달빛 봉화,MOONLIT BEACON,月明かりの烽火,月光烽火,月光烽火
+TITLE_SUBTITLE,밤을 밝히는 마지막 불빛,OUTLAST THE NIGHT,夜を照らす最後の灯,照亮长夜的最后火光,照亮長夜的最後火光
+TAP_TO_START,화면을 탭하여 시작,Tap to start,画面をタップして開始,点击屏幕开始,點擊畫面開始
+HUD_BEACONS,봉화 %d/%d,Beacons %d/%d,烽火 %d/%d,烽火 %d/%d,烽火 %d/%d
+HUD_BEACONS_INIT,봉화 0/3,Beacons 0/3,烽火 0/3,烽火 0/3,烽火 0/3
+HUD_KILLS,처치 %d,Defeated %d,撃破 %d,击败 %d,擊敗 %d
+HUD_KILLS_INIT,처치 0,Defeated 0,撃破 0,击败 0,擊敗 0
+HUD_DASH,대시,Dash,ダッシュ,冲刺,衝刺
+PAUSE_TITLE,잠시 멈춤,Paused,一時停止,已暂停,已暫停
+PAUSE_RESUME,이어서,Resume,再開,继续,繼續
+PAUSE_RESTART,처음부터,Restart,最初から,重新开始,重新開始
+PAUSE_SETTINGS,설정,Settings,設定,设置,設定
+PAUSE_TO_TITLE,타이틀로,To title,タイトルへ,回标题,回標題
+RESULT_WIN,빛을 지켜 귀환했다,You returned with the light,光を守り帰還した,守住光明并成功归来,守住光明並成功歸來
+RESULT_ESCAPE,빛을 품고 무사히 귀환했다,You returned safely with the light,光を抱いて無事に帰還した,带着光明平安归来,帶著光明平安歸來
+RESULT_LOSE,어둠에 삼켜졌다,Swallowed by the dark,闇に呑まれた,被黑暗吞噬,被黑暗吞噬
+RESULT_TAP,화면을 탭하여 다시 시작,Tap to play again,タップして再挑戦,点击再次挑战,點擊再次挑戰
+RESULT_BEST_NEW,신기록!,New best!,新記録！,新纪录！,新紀錄！
+RESULT_BEST,최고 %d (%s),Best %d (%s),最高 %d (%s),最高 %d（%s）,最高 %d（%s）
+RESULT_SHARD_BALANCE,이번 판 +%d · 보유 %d조각,Run +%d · %d shards held,今回 +%d · 所持 %d個,本局 +%d · 持有 %d枚,本局 +%d · 持有 %d枚
+RESULT_GOAL_COMPLETE,제단의 모든 축복을 완성했습니다,Shrine collection complete,祭壇の加護をすべて最大まで強化しました,祭坛祝福已全部完成,祭壇祝福已全部完成
+RESULT_GOAL_READY,%s 구매 가능 · 제단에서 강화하세요,%s is ready · upgrade at the Shrine,%s 購入可能 · 祭壇で強化しよう,%s 可购买 · 前往祭坛强化,%s 可購買 · 前往祭壇強化
+RESULT_GOAL_PROGRESS,%s · 앞으로 %d조각,%s · %d shards to go,%s · あと%d個,%s · 还需%d枚碎片,%s · 還需%d枚碎片
+RESULT_RETRY,다시 출전,Retry,再挑戦,再次出战,再次出戰
+RESULT_SHRINE,제단 강화,Upgrade,祭壇で強化,祭坛强化,祭壇強化
+RESULT_RECORD,기록 남기기,Record,記録を残す,留下记录,留下紀錄
+SCORE_BEACONS,봉화 %d,Beacons %d,烽火 %d,烽火 %d,烽火 %d
+SCORE_TIME,살아남은 시간 %d초,Survived %ds,生存時間 %d秒,存活时间 %d秒,存活時間 %d秒
+SCORE_KILLS,흩은 정령,Spirits scattered,退けた精霊,驱散精灵,驅散精靈
+SCORE_TOTAL,합계,Total,合計,总计,總計
+SETTINGS_TITLE,설정,Settings,設定,设置,設定
+SETTINGS_LANGUAGE,언어,Language,言語,语言,語言
+SETTINGS_MUSIC,음악,Music,音楽,音乐,音樂
+SETTINGS_SFX,효과음,Sound,効果音,音效,音效
+SETTINGS_CREDITS,크레딧,Credits,クレジット,制作名单,製作名單
+SETTINGS_CLOSE,닫기,Close,閉じる,关闭,關閉
+SETTINGS_PRIVACY,개인정보 처리방침,Privacy Policy,プライバシーポリシー,隐私政策,隱私權政策
+SETTINGS_SUPPORT,고객지원,Support,サポート,客户支持,客戶支援
+SETTINGS_LINK_FAILED,링크를 열 수 없습니다,Could not open link,リンクを開けません,无法打开链接,無法開啟連結
+SETTINGS_SAVE_FAILED,설정을 저장하지 못했습니다 · 다시 시도해 주세요,Could not save settings · Please try again,設定を保存できません · もう一度お試しください,无法保存设置 · 请重试,無法儲存設定 · 請重試
+SETTINGS_ANALYTICS,익명 분석,Analytics,匿名分析,匿名分析,匿名分析
+SETTINGS_ANALYTICS_UNKNOWN,선택 안 함,Not chosen,未選択,未选择,未選擇
+SETTINGS_ANALYTICS_ON,공유 켜짐,Sharing on,共有オン,已开启共享,已開啟分享
+SETTINGS_ANALYTICS_OFF,공유 꺼짐,Sharing off,共有オフ,已关闭共享,已關閉分享
+ANALYTICS_CONSENT_TITLE,익명 플레이 지표를 공유할까요?,Share anonymous gameplay metrics?,匿名のプレイ指標を共有しますか？,要分享匿名游玩指标吗？,要分享匿名遊玩指標嗎？
+ANALYTICS_CONSENT_BODY,익명 플레이 지표를 공유해 게임 개선을 돕습니다. 공유 지표에는 이름 · 구매 내역 · 기기 식별자가 포함되지 않습니다. 구매는 앱 스토어가 별도로 처리하며 공유 여부는 설정에서 언제든 바꿀 수 있습니다.,Share anonymous gameplay metrics to help improve the game. Shared metrics exclude your name · purchase history · and device ID. Purchases are processed separately by the app store. You can change sharing anytime in Settings.,ゲーム改善のため匿名のプレイ指標を共有します。共有される指標に名前・購入履歴・端末識別子は含まれません。購入はアプリストアが別途処理します。共有は設定でいつでも変更できます。,分享匿名游玩指标以帮助改进游戏。分享的指标不包含姓名・购买记录或设备标识符。购买由应用商店单独处理。你可以随时在设置中更改分享选择。,分享匿名遊玩指標以協助改善遊戲。分享的指標不包含姓名・購買紀錄或裝置識別碼。購買由應用程式商店另行處理。你可以隨時在設定中更改分享選擇。
+ANALYTICS_CONSENT_PRIVACY,개인정보 처리방침,Privacy policy,プライバシーポリシー,隐私政策,隱私權政策
+ANALYTICS_CONSENT_SHARE,익명 지표 공유,Share anonymously,匿名で共有,匿名分享,匿名分享
+ANALYTICS_CONSENT_NOT_NOW,지금은 공유 안 함,Not now,今は共有しない,暂不分享,暫不分享
+CREDITS_TITLE,크레딧,Credits,クレジット,制作名单,製作名單
+CREDITS_INTRO,자체 제작 그림과 자유 라이선스 음원·글꼴로 만들었습니다,Original art with freely licensed audio and fonts,オリジナルアートと自由ライセンスの音源・フォントを使用,使用原创美术与自由授权的音频和字体制作,使用原創美術與自由授權的音訊和字型製作
+CREDITS_ART,그림 · UI,Art and UI,アート · UI,美术 · 界面,美術 · 介面
+CREDITS_SOUND,음악 · 효과음,Music and sound,音楽 · 効果音,音乐 · 音效,音樂 · 音效
+CREDITS_FONT,글꼴,Font,フォント,字体,字型
+CREDITS_ENGINE,엔진,Engine,エンジン,引擎,引擎
+CREDITS_MADE_BY,만든 사람,Made by,制作,制作,製作
+CREDITS_IAP,결제 연동,Store integration,ストア連携,商店接入,商店整合
+CREDITS_SUPPORTER,달빛 후원자,Moonlit supporter,月明かりの支援者,月光支持者,月光贊助者
+CREDITS_BACK,돌아가기,Back,戻る,返回,返回
+QUIT_TITLE,게임을 끝낼까요?,Quit the game?,ゲームを終了しますか？,要退出游戏吗？,要退出遊戲嗎？
+QUIT_YES,끝내기,Quit,終了,退出,退出
+QUIT_NO,돌아가기,Cancel,戻る,取消,取消
+RELIC_PICK,달빛이 하나를 내민다,The moonlight offers a gift,月明かりが贈り物を差し出す,月光送来一份礼物,月光送來一份禮物
+RELIC_GAINED,%s Lv %d 강화,%s Lv %d upgraded,%s Lv %d 強化,%s Lv %d 已强化,%s Lv %d 已強化
+RELIC_DEW_HUNTER_NAME,이슬 사냥꾼,Dew Hunter,露の狩人,月露猎手,月露獵手
+RELIC_DEW_HUNTER_DESC,달빛 이슬 확률 +50%,Moon Dew chance +50%,月露の確率 +50%,月露概率 +50%,月露機率 +50%
+RELIC_HEAVY_ARROW_NAME,무거운 월륜,Heavy Moon Disc,重い月輪,重型月轮,重型月輪
+RELIC_HEAVY_ARROW_DESC,월륜 피해 +18% · 유성우 진화 경로,Moon Disc damage +18% · Starfall path,月輪ダメージ +18% · 流星雨への進化経路,月轮伤害 +18% · 流星雨进化路线,月輪傷害 +18% · 流星雨進化路線
+RELIC_LIGHT_STEP_NAME,잰걸음,Light Step,軽快な足さばき,轻捷步法,輕捷步法
+RELIC_LIGHT_STEP_DESC,걷는 속도 +18,Move speed +18,移動速度 +18,移动速度 +18,移動速度 +18
+RELIC_LONG_BLADE_NAME,긴 칼날,Long Blade,長い刃,长刃,長刃
+RELIC_LONG_BLADE_DESC,칼이 닿는 거리 +18% · 만월참 진화 경로,Slash reach +18% · Full Moon path,斬撃範囲 +18% · 満月斬りへの進化経路,斩击范围 +18% · 满月斩进化路线,斬擊範圍 +18% · 滿月斬進化路線
+RELIC_MOON_DASH_NAME,달빛 걸음,Moonlit Step,月影の歩み,月影步,月影步
+RELIC_MOON_DASH_DESC,대시가 35% 빨리 돌아온다,Dash cooldown -35%,ダッシュ再使用時間 -35%,冲刺冷却 -35%,衝刺冷卻 -35%
+RELIC_MOON_RING_NAME,달빛 고리,Moon Ring,月光の輪,月光环,月光環
+RELIC_MOON_RING_DESC,달빛 고리 +1 · 파문과 만나면 월영무,Orbiting orb +1 · Pair with Ripple for Moon Dance,旋回する輪 +1 · 波紋と揃うと月影舞,环绕光球 +1 · 与波纹组合进化为月影舞,環繞光球 +1 · 與波紋組合進化為月影舞
+RELIC_MOON_RIPPLE_NAME,달빛 파문,Moonlit Ripple,月光の波紋,月光波纹,月光波紋
+RELIC_MOON_RIPPLE_DESC,파문이 넓고 잦아짐 · 고리와 만나면 월영무,Wider faster ripples · Pair with Ring for Moon Dance,波紋が広がり、発生頻度が上がる · 輪と揃うと月影舞,波纹范围更广且触发更频繁 · 与光环组合进化为月影舞,波紋範圍更廣且觸發更頻繁 · 與光環組合進化為月影舞
+RELIC_PIERCE_ARROW_NAME,관통 월륜,Piercing Moon Disc,貫通月輪,穿透月轮,穿透月輪
+RELIC_PIERCE_ARROW_DESC,월륜 관통 +1 · 유성우 진화 경로,Moon Disc pierce +1 · Starfall path,月輪貫通 +1 · 流星雨への進化経路,月轮穿透 +1 · 流星雨进化路线,月輪穿透 +1 · 流星雨進化路線
+RELIC_QUICK_ARROW_NAME,빠른 월륜,Swift Moon Disc,迅速な月輪,迅捷月轮,迅捷月輪
+RELIC_QUICK_ARROW_DESC,월륜 발사 간격 -14% · 유성우 진화 경로,Moon Disc interval -14% · Starfall path,月輪発射間隔 -14% · 流星雨への進化経路,月轮发射间隔 -14% · 流星雨进化路线,月輪發射間隔 -14% · 流星雨進化路線
+RELIC_SHADOW_VEIL_NAME,그림자 장막,Shadow Veil,影の帳,暗影帷幕,暗影帷幕
+RELIC_SHADOW_VEIL_DESC,맞은 뒤 무적 +0.6초,Invulnerability after taking damage +0.6s,被弾後の無敵 +0.6秒,受伤后无敌 +0.6秒,受傷後無敵 +0.6秒
+RELIC_SHARP_MOON_NAME,날카로운 달빛,Sharp Moonlight,鋭い月光,锋锐月光,鋒銳月光
+RELIC_SHARP_MOON_DESC,베는 피해 +18% · 만월참 진화 경로,Slash damage +18% · Full Moon path,斬撃ダメージ +18% · 満月斬りへの進化経路,斩击伤害 +18% · 满月斩进化路线,斬擊傷害 +18% · 滿月斬進化路線
+RELIC_SWIFT_HAND_NAME,빠른 손,Swift Hand,早業,快手,快手
+RELIC_SWIFT_HAND_DESC,휘두르는 간격 -14% · 만월참 진화 경로,Swing interval -14% · Full Moon path,斬撃間隔 -14% · 満月斬りへの進化経路,挥砍间隔 -14% · 满月斩进化路线,揮砍間隔 -14% · 滿月斬進化路線
+RELIC_TOUGH_LIFE_NAME,질긴 목숨,Tenacious Life,不屈の命,坚韧生命,堅韌生命
+RELIC_TOUGH_LIFE_DESC,하트 칸 +1 · 즉시 한 칸 회복,Max hearts +1 · Restore 1 heart now,最大ハート +1 · 即座に1回復,生命上限 +1 · 立即恢复1颗心,生命上限 +1 · 立即恢復1顆心
+RELIC_TWIN_ARROW_NAME,쌍월륜,Twin Moon Discs,双月輪,双月轮,雙月輪
+RELIC_TWIN_ARROW_DESC,월륜 편대 총화력 +18% · 유성우 진화 경로,Moon Disc volley power +18% · Starfall path,月輪編隊の総火力 +18% · 流星雨への進化経路,月轮齐射火力 +18% · 流星雨进化路线,月輪齊射火力 +18% · 流星雨進化路線
+RELIC_WARM_BEACON_NAME,봉화의 온기,Beacon's Warmth,烽火の温もり,烽火暖意,烽火暖意
+RELIC_WARM_BEACON_DESC,순환마다 첫 봉화를 켜면 한 칸 회복,Restore 1 heart at the first beacon of each cycle,各周回の最初の烽火でハートを1回復,每轮点燃第一座烽火时恢复1颗心,每輪點燃第一座烽火時恢復1顆心
+RELIC_WIDE_ARC_NAME,넓은 베기,Wide Slash,広い斬撃,广域斩击,廣域斬擊
+RELIC_WIDE_ARC_DESC,베는 각도 +25% · 만월참 진화 경로,Slash arc +25% · Full Moon path,斬撃角度 +25% · 満月斬りへの進化経路,斩击角度 +25% · 满月斩进化路线,斬擊角度 +25% · 滿月斬進化路線
+GUARDIAN_REWARD,수호자의 전리품,Guardian's trove,守護者の戦利品,守护者战利品,守護者戰利品
+EVOLUTION_NONE,진화,Evolution,進化,进化,進化
+EVOLUTION_STARFALL,유성우,Starfall,流星雨,流星雨,流星雨
+EVOLUTION_FULL_MOON,만월참,Full Moon,満月斬り,满月斩,滿月斬
+EVOLUTION_MOON_DANCE,월영무,Moon Dance,月影舞,月影舞,月影舞
+CARD_EVOLUTION_PROGRESS,진화 · %s %d/%d,Evolve · %s %d/%d,進化 · %s %d/%d,进化 · %s %d/%d,進化 · %s %d/%d
+CARD_EVOLUTION_NOW,선택 시 진화 · %s,Evolves now · %s,選ぶと進化 · %s,选择后进化 · %s,選擇後進化 · %s
+CARD_RESONANCE_NOW,선택 시 공명 · %s,Resonates now · %s,選ぶと共鳴 · %s,选择后共鸣 · %s,選擇後共鳴 · %s
+CARD_EVOLUTION_TIER,%s %d단계,%s tier %d,%s 第%d段階,%s %d阶,%s %d階
+CARD_DOUBLE_SUFFIX, · ×2 획득, · Gain ×2, · ×2 獲得, · 获得×2, · 獲得×2
+EVOLUTION_UNLOCKED,진화 완성 · %s,Evolution complete · %s,進化完成 · %s,进化完成 · %s,進化完成 · %s
+RESONANCE_UNLOCKED,공명 발동 · %s,Resonance active · %s,共鳴発動 · %s,共鸣激活 · %s,共鳴啟動 · %s
+EVOLUTION_UPGRADED,%s %d단계 강화,%s upgraded to tier %d,%s 第%d段階に強化,%s 强化至%d阶,%s 強化至%d階
+EVOLUTION_PROGRESS_BANNER,%s %d/%d · 진화가 가까워진다,%s %d/%d · evolution draws closer,%s %d/%d · 進化が近づく,%s %d/%d · 即将进化,%s %d/%d · 即將進化
+EVOLUTION_WEAKENED,%s 약화 · 9초 안에 회수: %s,%s weakened · reclaim %s within 9 seconds,%s 弱体化 · 9秒以内に%sを回収,%s 已弱化 · 9秒内找回%s,%s 已弱化 · 9秒內找回%s
+EVOLUTION_RESTORED,%s 복원,%s restored,%s 復元,%s 已恢复,%s 已恢復
+CYCLE_REWARD_DOUBLE,%s %d단계 · 수호자 전리품 · %d순환,%s tier %d · Guardian reward · Wave %d,%s 第%d段階 · 守護者報酬 · 第%d巡,%s %d阶 · 守护者奖励 · 第%d轮,%s %d階 · 守護者獎勵 · 第%d輪
+CYCLE_REWARD_EVOLUTION,%s 진화 · 수호자 전리품 · %d순환,%s evolved · Guardian reward · Wave %d,%s 進化 · 守護者報酬 · 第%d巡,%s 进化 · 守护者奖励 · 第%d轮,%s 進化 · 守護者獎勵 · 第%d輪
+CYCLE_REWARD_RESONANCE,%s 공명 · 수호자 전리품 · %d순환,%s resonance · Guardian reward · Wave %d,%s 共鳴 · 守護者報酬 · 第%d巡,%s 共鸣 · 守护者奖励 · 第%d轮,%s 共鳴 · 守護者獎勵 · 第%d輪
+CYCLE_REWARD_PROGRESS,%s %d/%d · 수호자 전리품 · %d순환,%s %d/%d · Guardian reward · Wave %d,%s %d/%d · 守護者報酬 · 第%d巡,%s %d/%d · 守护者奖励 · 第%d轮,%s %d/%d · 守護者獎勵 · 第%d輪
+ARROW_EVOLVED,월륜이 유성우로 진화했다,Moon Discs evolved into Starfall,月輪が流星雨へ進化した,月轮进化为流星雨,月輪進化為流星雨
+DISC_UPGRADED,월륜 강화 %d/%d · 유성우가 가까워진다,Moon Disc %d/%d · Starfall draws closer,月輪強化 %d/%d · 流星雨が近づく,月轮强化 %d/%d · 即将进化为流星雨,月輪強化 %d/%d · 即將進化為流星雨
+STARFALL_UPGRADED,유성우 %d단계 강화,Starfall upgraded to tier %d,流星雨 第%d段階に強化,流星雨强化至%d阶,流星雨強化至%d階
+STARFALL_WEAKENED,유성우 약화 · 떨어진 유물을 되찾아라,Starfall weakened · reclaim the dropped relic,流星雨弱体化 · 落とした遺物を取り戻せ,流星雨已弱化 · 找回掉落的遗物,流星雨已弱化 · 找回掉落的遺物
+CYCLE_REWARD_GAINED,%s Lv %d · %d순환 · 체력 회복,%s Lv %d · Wave %d · health restored,%s Lv %d · 第%d巡 · 体力回復,%s Lv %d · 第%d轮 · 恢复生命,%s Lv %d · 第%d輪 · 恢復生命
+CYCLE_REWARD_EVOLVED,유성우 진화 · %d순환 · 체력 회복,Starfall evolved · Wave %d · health restored,流星雨進化 · 第%d巡 · 体力回復,流星雨进化 · 第%d轮 · 恢复生命,流星雨進化 · 第%d輪 · 恢復生命
+HUD_LEVEL,Lv %d,Lv %d,Lv %d,Lv %d,Lv %d
+HUD_LEVEL_INIT,Lv 1,Lv 1,Lv 1,Lv 1,Lv 1
+HUD_MOONFIRE,달불씨 0/10,Embers 0/10,月の火種 0/10,月火种 0/10,月火種 0/10
+HUD_EMBERS,달불씨 %d/10,Embers %d/10,月の火種 %d/10,月火种 %d/10,月火種 %d/10
+HUD_MOONFIRE_ACTIVE,월광 각성,Moonfire,月光覚醒,月光觉醒,月光覺醒
+HUD_MOONFIRE_LOCKED,보스전 각성,Boss Awakened,ボス戦覚醒,首领战觉醒,首領戰覺醒
+HUD_BEACONS_CYCLE,봉화 %d/%d (%d순환),Beacons %d/%d (wave %d),烽火 %d/%d（第%d巡）,烽火 %d/%d（第%d轮）,烽火 %d/%d（第%d輪）
+HUD_DISC_PROGRESS,월륜 %d/%d → 유성우,Moon Disc %d/%d → Starfall,月輪 %d/%d → 流星雨,月轮 %d/%d → 流星雨,月輪 %d/%d → 流星雨
+HUD_DISC_INIT,월륜 0/3 → 유성우,Moon Disc 0/3 → Starfall,月輪 0/3 → 流星雨,月轮 0/3 → 流星雨,月輪 0/3 → 流星雨
+HUD_STARFALL_LEVEL,유성우 %d단계,Starfall tier %d,流星雨 第%d段階,流星雨 %d阶,流星雨 %d階
+HUD_EVOLUTION_PICK,진화 선택,Choose evolution,進化を選択,选择进化,選擇進化
+HUD_EVOLUTION_PROGRESS,%s %d/%d,%s %d/%d,%s %d/%d,%s %d/%d,%s %d/%d
+HUD_EVOLUTION_LEVEL,%s %d단계,%s T%d,%s 第%d段階,%s %d阶,%s %d階
+HUD_MISSILE_POWER_INIT,미사일 0/8 · 코어 0/2,Missile 0/8 · core 0/2,ミサイル 0/8 · コア 0/2,导弹 0/8 · 核心 0/2,飛彈 0/8 · 核心 0/2
+HUD_MISSILE_POWER,미사일 %d/%d · 코어 %d/%d,Missile %d/%d · core %d/%d,ミサイル %d/%d · コア %d/%d,导弹 %d/%d · 核心 %d/%d,飛彈 %d/%d · 核心 %d/%d
+HUD_MISSILE_CORE_WAITING,미사일 %d/%d · 코어를 주워라,Missile %d/%d · pick up the core,ミサイル %d/%d · コアを拾え,导弹 %d/%d · 拾取核心,飛彈 %d/%d · 拾取核心
+HUD_MISSILE_MAX,미사일 %d/%d · 편대 완성,Missile %d/%d · volley complete,ミサイル %d/%d · 編隊完成,导弹 %d/%d · 齐射完成,飛彈 %d/%d · 齊射完成
+HUD_MISSILE_RECOVERY_INIT,회수 코어 9초,Recover core · 9s,コア回収 9秒,找回核心 · 9秒,找回核心 · 9秒
+HUD_MISSILE_RECOVERY,회수 코어 %d초,Recover core · %ds,コア回収 %d秒,找回核心 · %d秒,找回核心 · %d秒
+HUD_WORLD,%s · %s,%s · %s,%s · %s,%s · %s,%s · %s
+HUD_WORLD_INIT,밤 숲 · 밤,Night Forest · Night,夜の森 · 夜,夜之森林 · 夜晚,夜之森林 · 夜晚
+WORLD_FOREST,밤 숲,Night Forest,夜の森,夜之森林,夜之森林
+WORLD_FIELD,달빛 들판,Moonlit Field,月明かりの野原,月光原野,月光原野
+WORLD_CAMP,버려진 야영지,Abandoned Camp,捨てられた野営地,废弃营地,廢棄營地
+TIME_NIGHT,밤,Night,夜,夜晚,夜晚
+TIME_BLUE_DAWN,푸른 새벽,Blue Dawn,蒼い夜明け,蓝色黎明,藍色黎明
+TIME_SUNRISE,여명,Sunrise,暁,破晓,破曉
+TIME_DAY,낮,Day,昼,白昼,白晝
+BEACON_KINDLED,봉화 %d/3 · 달불씨 게이지 +1/3 · 탈출구 개방,Beacon %d/3 · Ember gauge +1/3 · Escape opened,烽火 %d/3 · 火種ゲージ +1/3 · 脱出口開放,烽火 %d/3 · 火种槽 +1/3 · 出口开启,烽火 %d/3 · 火種槽 +1/3 · 出口開啟
+BEACON_KINDLED_EXTENDED,봉화 %d/3 · 월광 각성 +0.5초 · 탈출구 개방,Beacon %d/3 · Moonfire +0.5s · Escape opened,烽火 %d/3 · 月光覚醒 +0.5秒 · 脱出口開放,烽火 %d/3 · 月光觉醒 +0.5秒 · 出口开启,烽火 %d/3 · 月光覺醒 +0.5秒 · 出口開啟
+EMBER_HELP,달불씨 %d/10 · 10개면 모든 무기 각성,Embers %d/10 · collect 10 to awaken every weapon,月の火種 %d/10 · 10個で全武器覚醒,月火种 %d/10 · 收集10个觉醒所有武器,月火種 %d/10 · 收集10個覺醒所有武器
+MISSILE_CORE_HELP,무기 코어! 주우면 미사일 출력 상승,Weapon core! Pick it up to increase missile power,武器コア！拾うとミサイル出力上昇,武器核心！拾取后提升导弹火力,武器核心！拾取後提升飛彈火力
+MISSILE_POWER_UP,미사일 출력 %d/%d,Missile power %d/%d,ミサイル出力 %d/%d,导弹火力 %d/%d,飛彈火力 %d/%d
+MISSILE_HOMING,미사일 출력 %d/%d · 각성 중 유도 편대,Missile power %d/%d · homing during Awakening,ミサイル出力 %d/%d · 覚醒中は追尾編隊,导弹火力 %d/%d · 觉醒时追踪齐射,飛彈火力 %d/%d · 覺醒時追蹤齊射
+MISSILE_COMPLETE,미사일 편대 완성 · 출력 %d/%d,Missile volley complete · power %d/%d,ミサイル編隊完成 · 出力 %d/%d,导弹齐射完成 · 火力 %d/%d,飛彈齊射完成 · 火力 %d/%d
+MISSILE_DROPPED,미사일 출력 %d→%d · 9초 안에 회수,Missile power %d→%d · reclaim within 9 seconds,ミサイル出力 %d→%d · 9秒以内に回収,导弹火力 %d→%d · 9秒内找回,飛彈火力 %d→%d · 9秒內找回
+MISSILE_RESTORED,코어 회수 · 출력 진행 +%d,Core reclaimed · power progress +%d,コア回収 · 出力進行 +%d,核心找回 · 火力进度 +%d,核心找回 · 火力進度 +%d
+MISSILE_LOST,코어 소실 · 미사일 출력 %d,Core lost · missile power remains %d,コア消失 · ミサイル出力 %d,核心丢失 · 导弹火力保持%d,核心遺失 · 飛彈火力保持%d
+MOONFIRE_AWAKENED,월광 각성! 모든 무기가 달아오른다,Moonfire awakened! All weapons surge,月光覚醒！すべての武器が燃え上がる,月光觉醒！所有武器全面爆发,月光覺醒！所有武器全面爆發
+GUARDIAN_APPEARS,각성 고정 · 붉은 수호자 표식을 따라가라,Awakening locked · follow the red Guardian marker,覚醒維持 · 赤い守護者マーカーを追え,觉醒锁定 · 跟随红色守护者标记,覺醒鎖定 · 跟隨紅色守護者標記
+GUARDIAN_INTRO,%s 출현 · %s,%s appears · %s,%s 出現 · %s,%s 出现 · %s,%s 出現 · %s
+GUARDIAN_FOREST_NAME,가시숲 추격자,Thornwood Pursuer,茨森の追跡者,荆棘林追猎者,荊棘林追獵者
+GUARDIAN_FOREST_RULE,연속 돌진을 옆 대시로 피해라,side-dash its chained charges,連続突進を横ダッシュで避けろ,侧向冲刺躲开连续突进,側向衝刺躲開連續突進
+GUARDIAN_FIELD_NAME,푸른 들판의 날개,Azure Fieldwing,蒼野の翼,苍蓝原野之翼,蒼藍原野之翼
+GUARDIAN_FIELD_RULE,교차 탄막의 빈 길을 선점하라,claim the gap in its crossfire,交差弾幕の隙間に先回りしろ,抢占交叉弹幕的空隙,搶占交叉彈幕的空隙
+GUARDIAN_CAMP_NAME,잿불 철갑장군,Emberclad Warden,残り火の鉄甲将,余烬铁甲将,餘燼鐵甲將
+GUARDIAN_CAMP_RULE,부채꼴 뒤 열린 갑옷을 노려라,strike its open armor after the fan,扇状攻撃の後、装甲の隙を狙え,扇形攻击后攻击装甲空隙,扇形攻擊後攻擊裝甲空隙
+GUARDIAN_FOREST_THORN_NAME,가시왕 추격자,Thorn King Pursuer,茨王の追跡者,荆棘王追猎者,荊棘王追獵者
+GUARDIAN_FOREST_THORN_RULE,세 번 이어지는 돌진을 끊지 마라,do not stop between its triple charges,三段突進の間を止めるな,别在三段突进之间停下,別在三段突進之間停下
+GUARDIAN_FIELD_STORM_NAME,벼락 들판의 날개,Storm Fieldwing,雷野の翼,雷原之翼,雷原之翼
+GUARDIAN_FIELD_STORM_RULE,더 촘촘한 탄막의 한 칸만 노려라,take the single gap in denser fire,より密な弾幕の隙間一つを狙え,只抢更密弹幕的那一格空隙,只搶更密彈幕的那一格空隙
+GUARDIAN_CAMP_SIEGE_NAME,공성 철갑장군,Siegeclad Warden,攻城の鉄甲将,攻城铁甲将,攻城鐵甲將
+GUARDIAN_CAMP_SIEGE_RULE,더 짧은 개방을 놓치지 마라,do not miss its shorter open window,より短い開放を逃すな,别错过更短的破绽,別錯過更短的破綻
+CYCLE_CLEARED,%d순환 시작 · 하트 1칸 회복,Wave %d · restore 1 heart,第%d巡開始 · ハート1回復,第%d轮开始 · 恢复1颗心,第%d輪開始 · 恢復1顆心
+BEACON_CHOICE_TITLE,봉화의 불꽃을 고르세요,CHOOSE THE BEACON FLAME,烽火の灯し方を選べ,选择烽火点燃方式,選擇烽火點燃方式
+BEACON_CHOICE_SUBTITLE,이번 순환 과충전 %d/3,Overcharges this wave %d/3,今回の過充電 %d/3,本轮过充能 %d/3,本輪過充能 %d/3
+BEACON_CHOICE_LEFT_TITLE,안정 점화,SAFE KINDLE,安定点火,稳定点燃,穩定點燃
+BEACON_CHOICE_LEFT_DESC,바로 지피고 다음 지형으로 간다,Kindle now and move to the next terrain,すぐ灯して次の地形へ進む,立即点燃并前往下一地形,立即點燃並前往下一地形
+BEACON_CHOICE_RIGHT_TITLE,과충전,OVERCHARGE,過充電,过充能,過充能
+BEACON_CHOICE_RIGHT_DESC,6.5초를 지키면 코어와 성장을 얻는다,Hold for 6.5 seconds to earn a core and growth,6.5秒守ればコアと成長を得る,坚守6.5秒获得核心和成长,堅守6.5秒獲得核心和成長
+BEACON_CHOICE_RIGHT_DESC_MAX,6.5초를 지키면 추가 성장을 얻는다,Hold for 6.5 seconds to gain extra growth,6.5秒守れば追加の成長を得る,坚守6.5秒获得额外成长,堅守6.5秒獲得額外成長
+CYCLE_CHOICE_TITLE,%d순환을 지켜냈다,WAVE %d SECURED,第%d巡を守り抜いた,守住第%d轮,守住第%d輪
+CYCLE_CHOICE_SUBTITLE,지금 정산하거나 보상을 들고 더 깊이 간다,Cash out now or carry the reward deeper,今精算するか報酬を持ってさらに奥へ進む,现在结算或带着奖励继续深入,現在結算或帶著獎勵繼續深入
+CYCLE_CHOICE_LEFT_TITLE,귀환 · 정산,RETURN · CASH OUT,帰還 · 精算,返回 · 结算,返回 · 結算
+CYCLE_CHOICE_LEFT_DESC,현재 기록과 조각을 안전하게 남긴다,Secure this score and every shard,現在の記録と欠片を確定する,保存当前记录和全部碎片,保存目前記錄和全部碎片
+CYCLE_CHOICE_RIGHT_TITLE,다음 순환,NEXT WAVE,次の巡,下一轮,下一輪
+CYCLE_CHOICE_RIGHT_DESC,하트 1칸을 회복하고 보상을 이어 간다,Restore 1 heart and carry the build onward,ハートを1回復してビルドを継ぐ,恢复1颗心并延续当前构筑,恢復1顆心並延續目前構築
+CYCLE_CHOICE_MAP_BEYOND_TITLE,지도 끝을 넘어섰다,BEYOND THE MAP,地図の果てを越えた,已越过地图尽头,已越過地圖盡頭
+CYCLE_CHOICE_MAP_BEYOND_SUBTITLE,약속은 지켰다 · 여기부터는 끝없는 밤이다,The promise is kept · the endless night starts here,約束は果たした · ここからは終わりなき夜だ,承诺已兑现 · 无尽之夜从这里开始,承諾已兌現 · 無盡之夜從這裡開始
+CYCLE_CHOICE_MAP_BEYOND_LEFT_TITLE,전설로 귀환,RETURN AS LEGEND,伝説として帰還,作为传奇归来,作為傳奇歸來
+CYCLE_CHOICE_MAP_BEYOND_LEFT_DESC,여덟 순환의 승리를 기록한다,Record victory across eight waves,八巡の勝利を記録する,记录八轮胜利,記錄八輪勝利
+CYCLE_CHOICE_MAP_BEYOND_RIGHT_TITLE,끝없는 밤,ENDLESS NIGHT,終わりなき夜,无尽之夜,無盡之夜
+CYCLE_CHOICE_MAP_BEYOND_RIGHT_DESC,지도 밖 난이도와 보상을 계속 쌓는다,Keep stacking danger and rewards off the map,地図外の難度と報酬を積み続ける,继续累积地图外的难度与奖励,繼續累積地圖外的難度與獎勵
+OVERCHARGE_STARTED,과충전 · 봉화 곁을 지켜라,Overcharge · defend the beacon,過充電 · 烽火のそばを守れ,过充能 · 守住烽火,過充能 · 守住烽火
+OVERCHARGE_SUCCEEDED,과충전 성공 %d/%d · 코어와 성장 획득,Overcharge %d/%d · core and growth gained,過充電成功 %d/%d · コアと成長を獲得,过充能成功 %d/%d · 获得核心和成长,過充能成功 %d/%d · 獲得核心和成長
+OVERCHARGE_SUCCEEDED_MAX,과충전 성공 %d/%d · 추가 성장 획득,Overcharge %d/%d · extra growth gained,過充電成功 %d/%d · 追加の成長を獲得,过充能成功 %d/%d · 获得额外成长,過充能成功 %d/%d · 獲得額外成長
+OVERCHARGE_FAILED,과충전 해제 · 봉화는 안전하게 켜졌다,Overcharge released · the beacon is safely lit,過充電解除 · 烽火は安全に灯った,过充能解除 · 烽火已安全点燃,過充能解除 · 烽火已安全點燃
+HUD_COMBO,%d 연속,%d chain,%d 連続,%d连击,%d連擊
+RAID,정령들이 몰려온다,The spirits swarm,精霊が押し寄せる,精灵蜂拥而至,精靈蜂擁而至
+RAID_AMBUSH,숲의 매복 · 봉화 쪽이 비었다,Forest ambush · the beacon path is open,森の待ち伏せ · 烽火への道が空いた,森林伏击 · 通往烽火的路空了,森林伏擊 · 通往烽火的路空了
+RAID_CROSSFIRE,들판의 교차사격 · 한쪽 술사를 먼저 끊어라,Crossfire · break one caster line,野原の交差射撃 · 片方の術師を先に倒せ,原野交叉火力 · 先击败一侧的术师,原野交叉火力 · 先擊敗一側的術師
+RAID_CARAVAN,불씨 호송대 · 정예 운반자를 노려라,Ember caravan · strike the elite carrier,火種の輸送隊 · 精鋭運搬者を狙え,火种护送队 · 攻击精英运送者,火種護送隊 · 攻擊精英運送者
+RECLAIMED,되찾았다,Reclaimed,取り戻した,已找回,已找回
+RELIC_DROPPED,유물 드롭 · %s · 9초 안에 회수,Dropped %s · reclaim within 9 seconds,遺物落下 · %s · 9秒以内に回収,遗物掉落 · %s · 9秒内找回,遺物掉落 · %s · 9秒內找回
+RELIC_RECLAIMED,%s 회수,Reclaimed %s,%s 回収,%s 已找回,%s 已找回
+RELIC_LOST,%s 소실,%s was lost,%s 消失,%s 已丢失,%s 已遺失
+TUTORIAL_MOVE,화면 아무 곳을 눌러 이동 · 화살표를 따라 봉화로,Touch anywhere to move · follow the arrow,画面のどこでもタッチして移動 · 矢印に沿って烽火へ,触摸任意位置移动 · 跟随箭头前往烽火,觸碰任意位置移動 · 跟隨箭頭前往烽火
+TUTORIAL_DASH,오른쪽 버튼으로 대시,Dash with the right button,右のボタンでダッシュ,点击右侧按钮冲刺,點擊右側按鈕衝刺
+TUTORIAL_BEACON,봉화 곁에 머무르면 불이 붙습니다 · 셋을 지피면 어둠이 수호자를 보냅니다,Stay beside a beacon to kindle it · light all three and the dark sends its Guardian,烽火のそばに留まると火がつく · 三つ灯すと闇が守護者を送る,在烽火旁停留即可点燃 · 点亮三座后黑暗会派出守护者,在烽火旁停留即可點燃 · 點亮三座後黑暗會派出守護者
+TUTORIAL_AUTO_ATTACK,공격은 저절로 나갑니다 · 피하는 데만 집중하세요,You attack automatically · just focus on dodging,攻撃は自動で出ます · 回避だけに集中しよう,攻击会自动发出 · 只需专心闪避,攻擊會自動發出 · 只需專心閃避
+TUTORIAL_HEART,부딪히면 하트가 하나 줄어듭니다 · 다 닳으면 어둠이 이깁니다,Each hit costs a heart · lose them all and the dark wins,当たるとハートが一つ減る · 尽きると闇の勝ちだ,被撞到会少一颗心 · 心耗尽黑暗就赢了,被撞到會少一顆心 · 心耗盡黑暗就贏了
+TUTORIAL_CORE,떨어진 코어를 주우면 달빛 미사일이 늘어납니다,Pick up dropped cores to gain more moonlight missiles,落ちたコアを拾うと月光ミサイルが増える,拾取掉落的核心可增加月光导弹,拾取掉落的核心可增加月光導彈
+COMPASS_BEACON,봉화,BEACON,烽火,烽火,烽火
+COMPASS_EXIT,탈출구,ESCAPE,脱出口,出口,出口
+COMPASS_GUARDIAN,수호자,GUARDIAN,守護者,守护者,守護者
+ZONE_TRAVEL,추격을 뚫고 다음 지형으로,Escaping to the next region,追跡を振り切り次の地域へ,突破追击前往下一区域,突破追擊前往下一區域
+ZONE_ENTER,%s 진입,Entering %s,%sに進入,进入%s,進入%s
+SCORE_CYCLES,순환 %d바퀴,Cycles %d,巡回数 %d,循环轮数 %d,循環輪數 %d
+SCORE_LEVEL,레벨 %d,Level %d,レベル %d,等级 %d,等級 %d
+SHRINE_TITLE,달빛 제단,Moonlit Shrine,月光の祭壇,月光祭坛,月光祭壇
+SHRINE_OPEN,제단,Shrine,祭壇,祭坛,祭壇
+SHRINE_HEROES,영웅,HEROES,英雄,英雄,英雄
+SHRINE_BOONS,영구 은혜,PERMANENT BOONS,永続の加護,永久祝福,永久祝福
+SHRINE_NEXT_READY,%s 구매 가능,%s is ready,%s 購入可能,%s 可购买,%s 可購買
+SHRINE_NEXT_GOAL,%s · 앞으로 %d조각,%s · %d shards to go,%s · あと%d個,%s · 还需%d枚碎片,%s · 還需%d枚碎片
+SHRINE_ALL_OWNED,모든 영웅과 은혜를 완성했습니다,Every hero and boon is complete,すべての英雄を解放し、加護を最大まで強化しました,所有英雄与祝福已完成,所有英雄與祝福已完成
+SHRINE_NEXT_EFFECT,다음 효과 · %s,Next · %s,次の効果 · %s,下一效果 · %s,下一效果 · %s
+SHRINE_PRICE,%d조각,%d shards,%d個,%d枚碎片,%d枚碎片
+SHRINE_SHORT,%d조각 부족,Short %d shards,あと%d個,还差%d枚碎片,還差%d枚碎片
+SHRINE_OWNED,해금됨,Unlocked,解放済み,已解锁,已解鎖
+SHRINE_SELECTED,선택 중,Selected,選択中,已选择,已選擇
+SHRINE_SELECT,이 영웅 선택,Select hero,この英雄を選ぶ,选择这位英雄,選擇這位英雄
+SHRINE_UNLOCK,영웅 해금,Unlock hero,英雄を解放,解锁英雄,解鎖英雄
+HERO_PREVIEW_VIEW,%s 크게 보기,View %s,%s を拡大表示,查看%s大图,查看%s大圖
+HERO_PREVIEW_LOCKED,잠김 · %d조각으로 해금,Locked · unlock for %d shards,未解放 · %d個で解放,未解锁 · 使用%d枚碎片解锁,未解鎖 · 使用%d枚碎片解鎖
+HERO_PREVIEW_IAP_LOCKED,잠김 · 기기 스토어에서 구매,Locked · purchase in device store,未購入 · 端末ストアで購入,未购买 · 在设备商店购买,未購買 · 在裝置商店購買
+SHRINE_BUY,은혜 구매,Buy boon,加護を購入,购买祝福,購買祝福
+SHRINE_BOON_BOUGHT,%s %d단계 구매,%s tier %d purchased,%s 第%d段階を購入,已购买%s第%d阶,已購買%s第%d階
+SHRINE_HERO_UNLOCKED,%s 해금 완료,%s unlocked,%s 解放完了,%s 已解锁,%s 已解鎖
+SHRINE_HERO_SELECTED,%s 선택 완료,%s selected,%s を選択,%s 已选择,%s 已選擇
+SHRINE_SAVE_FAILED,저장하지 못했습니다 · 다시 시도하세요,Could not save · try again,保存できません · もう一度お試しください,保存失败 · 请重试,儲存失敗 · 請重試
+SHRINE_REFRESHED,상품 정보가 바뀌어 새로 불러왔습니다,Shop changed · refreshed,商品情報が変わったため更新しました,商品信息已变更 · 已刷新,商品資訊已變更 · 已重新整理
+SHRINE_INVALID,이 항목은 지금 구매할 수 없습니다,This item is not available,この項目は現在購入できません,此项目目前无法购买,此項目目前無法購買
+SHRINE_NEED_MORE,달빛 조각이 %d개 더 필요합니다,Need %d more shards,月光の欠片があと%d個必要です,还需要%d枚月光碎片,還需要%d枚月光碎片
+SHARDS,달빛 조각 %d,%d shards,月光の欠片 %d,月光碎片 %d,月光碎片 %d
+BOON_MAXED,끝까지 올림,Maxed,最大,已满级,已滿級
+BOON_STEADY_HEART_NAME,단단한 심장,Steady Heart,強い心,坚韧之心,堅韌之心
+BOON_STEADY_HEART_DESC,시작 하트 +%s칸,Starting hearts +%s,開始時ハート +%s,初始心数 +%s,初始心數 +%s
+BOON_KEEN_EDGE_NAME,벼려진 날,Keen Edge,研ぎ澄ました刃,锋锐刀刃,鋒銳刀刃
+BOON_KEEN_EDGE_DESC,시작 피해 +%s%%,Starting damage +%s%%,開始時ダメージ +%s%%,初始伤害 +%s%%,初始傷害 +%s%%
+BOON_LIGHT_FOOT_NAME,가벼운 발,Light Foot,軽い足取り,轻盈步伐,輕盈步伐
+BOON_LIGHT_FOOT_DESC,걷는 속도 +%s,Move speed +%s,移動速度 +%s,移动速度 +%s,移動速度 +%s
+BOON_FIRST_GIFT_NAME,첫 선물,First Gift,最初の贈り物,初始赠礼,初始贈禮
+BOON_FIRST_GIFT_DESC,생존 유물 %s개를 쥐고 시작,Begin with support relics ×%s,支援遺物を%s個持って開始,携带%s件生存遗物开始,攜帶%s件生存遺物開始
+BOON_DEW_SENSE_NAME,이슬 냄새,Dew Sense,露の気配,月露感知,月露感知
+BOON_DEW_SENSE_DESC,이슬 확률 +%s%%,Moon Dew chance +%s%%,月露の確率 +%s%%,月露概率 +%s%%,月露機率 +%s%%
+BOON_SHARD_SENSE_NAME,조각 감각,Shard Sense,欠片の気配,碎片感知,碎片感知
+BOON_SHARD_SENSE_DESC,조각 획득 +%s%%,Shard gain +%s%%,欠片獲得量 +%s%%,碎片获取 +%s%%,碎片獲取 +%s%%
+HERO_WARDEN_NAME,달빛 파수꾼,Moonlit Warden,月光の番人,月光守望者,月光守望者
+HERO_WARDEN_DESC,하트 5칸 · 고른 성능 · 손에 든 봉화 초에서 베기와 화살을 부름,5 hearts · balanced · calls slash and arrows from the beacon candle,ハート5 · バランス型 · 手にした烽火のろうそくから斬撃と矢を放つ,5颗心 · 均衡型 · 从手中的烽火蜡烛召唤斩击与箭矢,5顆心 · 均衡型 · 從手中的烽火蠟燭召喚斬擊與箭矢
+HERO_DANCER_NAME,그림자 무희,Shadow Dancer,影の舞姫,暗影舞者,暗影舞者
+HERO_DANCER_DESC,하트 3칸 · 이속 +43.75% · 피해 -10% · 대시 쿨 -40% · 달빛 고리·잰걸음,3 hearts · move +43.75% · dmg -10% · dash CD -40% · Moon Ring/Light Step,ハート3 · 移速 +43.75% · ダメージ -10% · ダッシュCD -40% · 月光の輪・軽快な足さばき,3颗心 · 移速 +43.75% · 伤害 -10% · 冲刺冷却 -40% · 月光环·轻捷步法,3顆心 · 移速 +43.75% · 傷害 -10% · 衝刺冷卻 -40% · 月光環·輕捷步法
+HERO_KEEPER_NAME,봉화지기,Beacon Keeper,烽火の守り人,烽火守护者,烽火守護者
+HERO_KEEPER_DESC,하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨,6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life,ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命,6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命,6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命
+HERO_KNIGHT_NAME,백월 기사,Silver Moon Knight,白月の騎士,白月骑士,白月騎士
+HERO_KNIGHT_DESC,하트 5칸 · 이속 -12% · 피해 +8% · 대시 쿨 +25% · 긴 칼날·그림자 장막,5 hearts · move -12% · dmg +8% · dash CD +25% · Long Blade/Shadow Veil,ハート5 · 移速 -12% · ダメージ +8% · ダッシュCD +25% · 長い刃・影の帳,5颗心 · 移速 -12% · 伤害 +8% · 冲刺冷却 +25% · 长刃·暗影帷幕,5顆心 · 移速 -12% · 傷害 +8% · 衝刺冷卻 +25% · 長刃·暗影帷幕
+HERO_ECLIPSE_NAME,월식 마도사,Eclipse Mage,月蝕の魔導士,月蚀法师,月蝕法師
+HERO_ECLIPSE_DESC,하트 3칸 · 이속 +8% · 피해 +10% · 대시 쿨 -31.75% · 빠른 손·달빛 걸음,3 hearts · move +8% · dmg +10% · dash CD -31.75% · Swift Hand/Moonlit Step,ハート3 · 移速 +8% · ダメージ +10% · ダッシュCD -31.75% · 早業・月影の歩み,3颗心 · 移速 +8% · 伤害 +10% · 冲刺冷却 -31.75% · 快手·月影步,3顆心 · 移速 +8% · 傷害 +10% · 衝刺冷卻 -31.75% · 快手·月影步
+HERO_SAGE_NAME,성좌 현자,Constellation Sage,星座の賢者,星座贤者,星座賢者
+HERO_SAGE_DESC,하트 4칸 · 이속 -8% · 피해 -16% · 대시 쿨 +15% · 쌍월륜·관통 월륜,4 hearts · move -8% · dmg -16% · dash CD +15% · Twin Moon Discs/Piercing Moon Disc,ハート4 · 移速 -8% · ダメージ -16% · ダッシュCD +15% · 双月輪・貫通月輪,4颗心 · 移速 -8% · 伤害 -16% · 冲刺冷却 +15% · 双月轮·穿透月轮,4顆心 · 移速 -8% · 傷害 -16% · 衝刺冷卻 +15% · 雙月輪·穿透月輪
+HERO_SWIPE_HINT,‹ 밀어서 영웅 6명 보기 ›,‹ Swipe to view all 6 heroes ›,‹ スワイプして6人を見る ›,‹ 滑动查看全部6名英雄 ›,‹ 滑動查看全部6名英雄 ›
+SCORE_SHARDS,얻은 조각,Shards earned,獲得した欠片,获得碎片,獲得碎片
+LADDER_TITLE,순위표,High Scores,ハイスコア,最高分,最高分
+LADDER_NEW,기록을 남긴다,New record,記録を残す,留下记录,留下紀錄
+LADDER_PENDING,캐릭터 %s · 버전 v%s · 점수 %d,Hero %s · version v%s · score %d,キャラクター %s・バージョン v%s・スコア %d,角色 %s · 版本 v%s · 分数 %d,角色 %s · 版本 v%s · 分數 %d
+LADDER_UNKNOWN_HERO,알 수 없음,Unknown,不明,未知,未知
+LADDER_NAME,이름,Name,名前,名字,名字
+LADDER_SUBMIT,등록,Submit,登録,提交,送出
+LADDER_EMPTY,아직 기록이 없다,No records yet,まだ記録がありません,暂无记录,暫無紀錄
+LADDER_ANON,이름없음,Nameless,名無し,无名,無名
+LADDER_OPEN,순위,Ranks,順位,排名,排名
+LADDER_GLOBAL,전역 순위,Global Ranks,世界ランキング,全球排名,全球排名
+IAP_TITLE,달빛 상점,Moonlit Store,月光の店,月光商店,月光商店
+IAP_OPEN,상점,Store,ストア,商店,商店
+IAP_PRINCIPLE,승리 판매 없음 · 캐릭터는 영구 소유,No pay-to-win · heroes are yours to keep,勝利は販売しません · 英雄は永久所有,不出售胜利 · 英雄永久拥有,不販售勝利 · 英雄永久擁有
+IAP_SUPPORTER_TITLE,달빛 후원자,Moonlit Supporter,月明かりの支援者,月光支持者,月光贊助者
+IAP_SUPPORTER_DESC,개발을 후원하고 크레딧에 순위표 이름과 후원자 표식을 영구히 새깁니다,Support development and add your leaderboard name to the credits,開発を支援しランキング名と支援者印をクレジットに永久表示します,支持开发并在制作名单中永久显示排行榜名称与支持者标记,贊助開發並在製作名單中永久顯示排行榜名稱與贊助者標記
+IAP_HERO_BUNDLE_TITLE,영웅 묶음,Hero Bundle,英雄セット,英雄组合包,英雄組合包
+IAP_HERO_BUNDLE_DESC,과거 구매를 복원해 그림자 무희와 봉화지기를 다시 엽니다,Restore a past purchase to unlock Dancer and Keeper again,過去の購入を復元して影の舞姫と烽火守を再解放します,恢复历史购买以再次解锁暗影舞者与烽火守护者,恢復歷史購買以再次解鎖暗影舞者與烽火守護者
+IAP_LANTERN_TITLE,봉화 색상 꾸러미,Lantern Colors,烽火カラーパック,烽火颜色包,烽火顏色包
+IAP_LANTERN_DESC,봉화 불빛 4색을 고릅니다 · 감지 범위와 전투 성능은 변하지 않습니다,Choose four flame colors · no range or combat advantage,烽火の炎を4色から選択 · 範囲や戦闘性能は変わりません,可从4种烽火颜色中选择 · 不改变范围或战斗性能,可從4種烽火顏色中選擇 · 不改變範圍或戰鬥性能
+IAP_BUY,구매,Buy,購入,购买,購買
+IAP_OWNED,보유 중,Owned,所有済み,已拥有,已擁有
+IAP_ALREADY_EARNED,이미 해금,Already unlocked,解放済み,已解锁,已解鎖
+IAP_CONNECTING,연결 중,Connecting,接続中,连接中,連線中
+IAP_DEVICE_ONLY,기기 스토어 전용,Device store only,端末ストア専用,仅限设备商店,僅限裝置商店
+IAP_PRODUCT_UNAVAILABLE,상품 준비 중,Product unavailable,商品準備中,商品尚未就绪,商品尚未就緒
+IAP_OPENING_STORE,안전한 기기 결제창을 여는 중입니다,Opening the secure device checkout,安全な端末決済画面を開いています,正在打开安全支付页面,正在開啟安全付款頁面
+IAP_RESTORE,구매 복원,Restore purchases,購入を復元,恢复购买,恢復購買
+IAP_RESTORING,이 계정의 영구 구매를 확인하고 있습니다,Checking permanent purchases for this account,このアカウントの永久購入を確認しています,正在检查此账号的永久购买,正在檢查此帳號的永久購買
+IAP_RETRY,다시 연결,Retry connection,再接続,重新连接,重新連線
+IAP_RETRYING,기기 스토어와 상품 정보를 다시 확인하고 있습니다,Reconnecting to the device store and products,端末ストアと商品情報を再確認しています,正在重新连接设备商店并检查商品,正在重新連線裝置商店並檢查商品
+IAP_PURCHASED,%s 구매가 저장되었습니다,%s purchase saved,%sの購入を保存しました,%s 购买已保存,%s 購買已儲存
+IAP_PENDING,결제가 승인 대기 중입니다 · 완료되면 자동으로 지급합니다,Payment pending · benefit will arrive after approval,決済承認待ち · 完了後に自動付与,付款待处理 · 批准后将自动发放权益,付款待處理 · 核准後將自動發放權益
+IAP_CANCELLED,결제를 취소했습니다,Purchase cancelled,購入をキャンセルしました,购买已取消,購買已取消
+IAP_FAILED,결제를 완료하지 못했습니다 · 잠시 뒤 다시 시도하세요,Could not complete purchase · please try again,購入を完了できません · 後でもう一度お試しください,无法完成购买 · 请稍后重试,無法完成購買 · 請稍後重試
+IAP_VERIFY_RETRY,결제 확인 서버가 잠시 응답하지 않습니다 · 지급하지 않고 안전하게 다시 확인합니다,Purchase verification is temporarily unavailable · no benefit was granted and we will retry safely,購入確認サーバーが一時応答しません · 付与せず安全に再確認します,购买验证服务暂时无响应 · 暂不发放权益并将安全重试,購買驗證服務暫時無回應 · 暫不發放權益並將安全重試
+IAP_VERIFY_SUPPORT,구매를 확인하지 못했습니다 · 혜택 미지급 · 스토어 구매 내역을 확인한 뒤 지원팀에 문의해 주세요,Could not verify the purchase · nothing was granted · check your store purchase history and contact support,購入を確認できませんでした · 特典は未付与 · ストアの購入履歴を確認してサポートへご連絡ください,无法验证购买 · 未发放权益 · 请检查商店购买记录并联系支持团队,無法驗證購買 · 未發放權益 · 請檢查商店購買記錄並聯絡支援團隊
+IAP_REVOKED,환불된 구매의 영구 혜택을 안전하게 회수했습니다,The refunded purchase benefit has been removed,返金された商品の永久特典を取り消しました,已撤销退款商品的永久权益,已撤銷退款商品的永久權益
+IAP_RESTORE_FOUND,영구 구매 %d개를 복원했습니다,Restored %d permanent purchases,永久購入を%d件復元しました,已恢复%d项永久购买,已恢復%d項永久購買
+IAP_RESTORE_EMPTY,복원할 새 구매가 없습니다,No new purchases to restore,復元する新しい購入はありません,没有新的购买可恢复,沒有新的購買可恢復
+IAP_CONNECTING_LONG,기기 스토어와 상품 정보를 연결하고 있습니다,Connecting to the device store and loading products,端末ストアに接続して商品を読み込んでいます,正在连接设备商店并加载商品,正在連線裝置商店並載入商品
+IAP_DEVICE_STORE_NOTE,실제 가격과 구매는 App Store·Google Play에서 확인할 수 있습니다,Prices and purchases are available through the App Store or Google Play,実際の価格と購入はApp Store・Google Playで確認できます,实际价格与购买请在App Store或Google Play中确认,實際價格與購買請在App Store或Google Play中確認
+IAP_PRODUCT_LOAD_FAILED,스토어 상품을 불러오지 못했습니다 · 스토어 배포본과 테스트 계정을 확인하세요,Products could not load · check the store build and test account,ストア商品を読み込めません · 配布ビルドとテストアカウントをご確認ください,无法加载商店商品 · 请检查商店版本与测试账号,無法載入商店商品 · 請檢查商店版本與測試帳號
+IAP_STORE_READY,가격은 기기 스토어가 현지 통화로 표시합니다,Prices are localized by your device store,価格は端末ストアで現地通貨により表示されます,设备商店将以当地货币显示价格,裝置商店將以當地貨幣顯示價格
+IAP_PALETTE_TITLE,봉화 색상,LANTERN COLOR,烽火の色,烽火颜色,烽火顏色
+IAP_PALETTE_READY,원하는 색을 선택하세요,Choose any unlocked color,解放済みの色を選んでください,选择任意已解锁颜色,選擇任意已解鎖顏色
+IAP_PALETTE_LOCKED,기본 불씨 · 색상 꾸러미로 3색 추가,Ember · three more with Lantern Colors,基本の残り火 · カラーパックで3色追加,默认余烬色 · 颜色包增加3种,預設餘燼色 · 顏色包增加3種
+IAP_PALETTE_SELECTED,%s 불빛을 선택했습니다,%s light selected,%s の光を選択しました,已选择%s光芒,已選擇%s光芒
+IAP_COLOR_EMBER,불씨,Ember,残り火,余烬,餘燼
+IAP_COLOR_MOON,달빛,Moon,月光,月光,月光
+IAP_COLOR_VIOLET,보랏빛,Violet,紫,紫罗兰,紫羅蘭
+IAP_COLOR_JADE,비취빛,Jade,翡翠,翡翠,翡翠
+IAP_NOTICE,캐릭터·색상은 영구 소유이며 구매 복원을 지원합니다 · 이어하기 코인은 쓰면 사라집니다,Heroes and colors are permanent and restorable · continue coins are used up when spent,英雄と色は永久所有で購入の復元に対応 · コンティニューコインは使うとなくなります,英雄与颜色永久拥有并支持恢复购买 · 继续游戏金币使用后消失,英雄與顏色永久擁有並支援恢復購買 · 繼續遊戲金幣使用後消失
+HERO_MOTION_ROUND,크게 원을 그리는 부메랑,Wide boomerang arc,大きく回るブーメラン,大幅回旋的回力镖,大幅迴旋的回力鏢
+HERO_MOTION_WEAVE,좌우로 감기는 쌍호,Twin arcs that weave,左右に絡む双弧,左右交织的双弧,左右交織的雙弧
+HERO_MOTION_HEAVY,흔들림 없는 묵직한 직진,Heavy and steady,ぶれない重い直進,厚重笔直推进,厚重筆直推進
+HERO_MOTION_STRAIGHT,권총처럼 곧게 뻗는 직선,Straight like a pistol,拳銃のような直線,像手枪一样笔直,像手槍一樣筆直
+HERO_MOTION_ORBIT,한쪽으로 감기는 궤도,Orbit that curls,片側へ巻く軌道,向一侧卷曲的轨道,向一側捲曲的軌道
+HERO_MOTION_STEP,툭툭 꺾이는 각진 계단,Sharp zigzag steps,カクカク折れる階段,棱角分明的折线,稜角分明的折線
+RESULT_CONTINUE,이어하기,Continue,コンティニュー,继续游戏,繼續遊戲
+RESULT_CONTINUE_COINS,이어하기 (코인 %d),Continue (%d coins),コンティニュー (コイン %d),继续游戏（金币 %d）,繼續遊戲（金幣 %d）
+RESULT_CONTINUE_BUY,판 끝내고 상점으로,End run & open Store,ランを終了してストアへ,结束本局并前往商店,結束本局並前往商店
+CONTINUE_RESUMED,다시 일어섰다,Back on your feet,再び立ち上がった,重新站起来了,重新站起來了
+IAP_CONTINUE_TITLE,이어하기 코인,Continue Coin,コンティニューコイン,继续游戏金币,繼續遊戲金幣
+IAP_CONTINUE_DESC,코인 한 개 · 쓰러진 자리에서 이어간다,One coin · resume where you fell,コイン1枚 · 倒れた場所から再開,金币一枚 · 在倒下之处继续,金幣一枚 · 在倒下之處繼續
+IAP_CONTINUE_5_TITLE,이어하기 코인 5개,Continue Coins ×5,コンティニューコイン 5個,继续游戏金币 5 个,繼續遊戲金幣 5 個
+IAP_CONTINUE_5_DESC,코인 다섯 개 묶음 · 개당 값이 내려간다,Five coins in one · lower price each,コイン5枚セット · 1枚あたりが安い,五枚金币一组 · 单价更低,五枚金幣一組 · 單價更低
+IAP_CONTINUE_10_TITLE,이어하기 코인 10개,Continue Coins ×10,コンティニューコイン 10個,继续游戏金币 10 个,繼續遊戲金幣 10 個
+IAP_CONTINUE_10_DESC,코인 열 개 묶음 · 개당 값이 가장 싸다,Ten coins in one · best price each,コイン10枚セット · 1枚あたり最安,十枚金币一组 · 单价最低,十枚金幣一組 · 單價最低
+IAP_COIN_BALANCE,이어하기 코인 %d개 보유,Continue coins: %d,コンティニューコイン %d個,继续游戏金币 %d 个,繼續遊戲金幣 %d 個
+VOICE_BEACON_FIRST_1,하나. 여기는 어둠이 못 넘는다,One. The dark stops here,一つ。ここは闇が越えられない,第一座。黑暗过不来了,第一座。黑暗過不來了
+VOICE_BEACON_FIRST_2,불이 붙었다. 어둠이 한 걸음 물러난다,It caught. The dark steps back,火がついた。闇が一歩下がる,点着了。黑暗退了一步,點著了。黑暗退了一步
+VOICE_BEACON_MID_1,둘. 아직 한쪽이 열려 있다,Two. One side is still open,二つ。まだ片側が開いている,第二座。还有一边是敞的,第二座。還有一邊是敞的
+VOICE_BEACON_MID_2,조금만 더. 손이 아직 밝다,A little more. My hands still glow,もう少し。手はまだ明るい,再一点。手还亮着,再一點。手還亮著
+VOICE_BEACON_LAST_1,셋. 선이 그어졌다,Three. The line is drawn,三つ。線が引かれた,第三座。界线画好了,第三座。界線畫好了
+VOICE_BEACON_LAST_2,경계가 닫혔다. 숨 쉴 수 있다,The border is closed. I can breathe,境界が閉じた。息ができる,界线合上了。可以喘口气,界線合上了。可以喘口氣
+VOICE_SWARM_1,빛에 끌려온 것들이다,They came for the light,光に引かれて来たものたちだ,是被光引来的,是被光引來的
+VOICE_SWARM_2,어둠이 뱉어냈다. 곧 더 온다,The dark spat them out. More are coming,闇が吐き出した。すぐもっと来る,黑暗吐出来的。马上还有,黑暗吐出來的。馬上還有
+VOICE_SWARM_3,베어도 줄지 않는다. 밀어내야 한다,Cutting won't thin them. Push instead,斬っても減らない。押し返すんだ,砍不完的。得推回去,砍不完的。得推回去
+VOICE_GUARDIAN_1,삼킨 빛이 뭉쳐 저 꼴이 됐구나,The swallowed light clotted into that,飲み込んだ光が固まってあの姿か,吞下的光凝成了那副模样,吞下的光凝成了那副模樣
+VOICE_GUARDIAN_2,빛날수록 크다. 조심하자,The brighter it shines the bigger it is. Careful,光るほど大きい。気をつけよう,越亮越大。小心,越亮越大。小心
+VOICE_GUARDIAN_DOWN_1,삼킨 빛을 돌려받았다,I took the light back,飲まれた光を取り返した,吞下的光要回来了,吞下的光要回來了
+VOICE_GUARDIAN_DOWN_2,이 자리는 이제 조용하다,This ground is quiet now,この場所はもう静かだ,这块地方安静了,這塊地方安靜了
+VOICE_LOW_1,아직… 불씨가 남았어,Still… the flame holds,まだ…火は残ってる,还…火还没灭,還…火還沒滅
+VOICE_LOW_2,여기서 꺼지면 이 땅은 어둠이 된다,If I go out here this land goes dark,ここで消えればこの土地は闇になる,我熄灭之时这片地就归黑暗,我熄滅之時這片地就歸黑暗
+VOICE_MOONFIRE_1,보인다. 길이 보여,I see it. The path,見える。道が見える,看见了。路,看見了。路
+VOICE_MOONFIRE_2,봉화 초가 답한다,The beacon candle answers,烽火の蝋燭が応える,烽火之烛回应了,烽火之燭回應了
+VOICE_CYCLE_1,다음 봉우리로. 어둠이 더 깊다,Next ridge. The dark runs deeper,次の峰へ。闇が深い,去下一座山。黑暗更深,去下一座山。黑暗更深
+VOICE_CYCLE_2,여기는 지켰다. 더 안쪽으로 간다,This ground is held. Deeper in now,ここは守った。もっと奥へ行く,这里守住了。往更里面走,這裡守住了。往更裡面走
+STORY_CYCLE_1_A,어둠이 이 숲을 삼키고 있다,The dark is swallowing this forest,闇がこの森を飲み込んでいる,黑暗正在吞没这片森林,黑暗正在吞沒這片森林
+STORY_CYCLE_1_B,봉화 셋을 지피면 물러난다. 밝음을 되찾자,Kindle three beacons and it pulls back. Take the light back,烽火を三つ灯せば退く。明かりを取り戻そう,点燃三座烽火它就会退去。夺回光明吧,點燃三座烽火它就會退去。奪回光明吧
+STORY_CYCLE_2_A,봉화가 서니 어둠이 덩치를 내보냈다,The beacons rose and the dark sent something big,烽火が立つと闇は大物を寄こした,黑暗因烽火而派出了庞然大物,黑暗因烽火而派出了龐然大物
+STORY_CYCLE_2_B,저건 삼킨 빛으로 빚은 것이다. 되찾으면 된다,It is shaped from swallowed light. Take it back,あれは飲み込んだ光で作られている。取り返せばいい,那是用吞下的光造的。夺回来就行,那是用吞下的光造的。奪回來就行
+STORY_CYCLE_3_A,사람이 살던 자리다. 화덕이 아직 남았다,People lived here. The hearth is still standing,人が住んでいた跡だ。かまどがまだ残っている,这里住过人。灶台还留着,這裡住過人。灶臺還留著
+STORY_CYCLE_3_B,여기서도 누가 봉화를 지켰겠지. 놓쳤을 뿐이다,Someone kept the beacons here too. They just lost them,ここでも誰かが烽火を守ったはずだ。ただ失っただけだ,这里也有人守过烽火。只是没能守住,這裡也有人守過烽火。只是沒能守住
+STORY_CYCLE_4_A,정령들은 나를 노린 게 아니다,The spirits are not hunting me,精霊たちは私を狙っていない,精灵并不是冲我来的,精靈並不是衝我來的
+STORY_CYCLE_4_B,빛에 끌릴 뿐이다. 미움 없이 밀어내자,They only follow the light. Push them back without hate,光に引かれるだけだ。憎まず押し返そう,它们只是被光吸引。不带恨意地推开吧,牠們只是被光吸引。不帶恨意地推開吧
+STORY_CYCLE_5_A,이 들판은 원래 숲이었다고 했다,They said this field was once forest,この野原は元は森だったという,据说这片原野原本是森林,據說這片原野原本是森林
+STORY_CYCLE_5_B,어둠은 하룻밤에 오지 않았다. 오래 먹어 왔다,The dark did not come in one night. It has been eating for ages,闇は一晩で来たのではない。長く食ってきた,黑暗不是一夜之间来的。它吃了很久,黑暗不是一夜之間來的。它吃了很久
+STORY_CYCLE_6_A,어둠이 화가 났다. 수호자가 커지고 빨라진다,The dark is angry. Its guardians grow and quicken,闇が怒っている。守護者が大きく速くなる,黑暗动怒了。守护者变大变快,黑暗動怒了。守護者變大變快
+STORY_CYCLE_6_B,그만큼 우리가 밀고 있다는 뜻이다,That means we are pushing it back,それだけ押し返しているということだ,这说明我们正在把它逼退,這說明我們正在把它逼退
+STORY_CYCLE_7_A,알겠다. 봉화는 태우는 불이 아니었다,I see it now. The beacon was never a burning fire,わかった。烽火は燃やす火ではなかった,我明白了。烽火不是用来烧的火,我明白了。烽火不是用來燒的火
+STORY_CYCLE_7_B,어둠이 넘지 못하는 선을 긋는 불이었다,It draws a line the dark cannot cross,闇が越えられない線を引く火だった,而是画出黑暗跨不过的界线,而是畫出黑暗跨不過的界線
+STORY_CYCLE_8_A,셋으로는 모자란다. 밤마다 다시 먹힌다,Three is not enough. Every night it eats back in,三つでは足りない。夜ごとにまた食われる,三座不够。每夜都会被重新吞掉,三座不夠。每夜都會被重新吞掉
+STORY_CYCLE_8_B,봉화를 하나로 이어야 한다. 끝까지 가자,The beacons must join into one line. Go to the end,烽火をひとつに繋がねばならない。最後まで行こう,必须把烽火连成一条线。走到最后,必須把烽火連成一條線。走到最後
+STORY_CYCLE_9_A,여덟 번째 선이 이어졌다. 약속은 지켰다,The eighth line is joined. The promise is kept,八本目の線が繋がった。約束は守った,第八道界线连上了。承诺已经兑现,第八道界線連上了。承諾已經兌現
+STORY_CYCLE_9_B,여기부터는 지도에 없는 밤이다. 얼마나 깊은지 보자,Past here the night is off the map. Let us see how deep it goes,ここから先は地図にない夜だ。どこまで深いか見てやろう,再往前是地图上没有的黑夜。看看它有多深,再往前是地圖上沒有的黑夜。看看它有多深

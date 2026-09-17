@@ -1,0 +1,12 @@
+[gd_resource type="FontVariation" load_steps=3 format=3]
+
+; 굵은 글꼴. 예전에는 Noto 를 `variation_embolden` 으로 합성해 굵혔는데,
+; 메이플스토리체는 Bold 가 따로 배포되므로 진짜 Bold 를 쓴다. 라이선스가
+; "배포 형태 그대로" 를 요구하므로 합성 굵기를 쓰지 않는 편이 안전하다.
+
+[ext_resource type="FontFile" path="res://assets/third_party/fonts/MaplestoryBold.ttf" id="1_base"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/NotoSansCJKsc-SyntheticBold.tres" id="2_fallback"]
+
+[resource]
+base_font = ExtResource("1_base")
+fallbacks = Array[Font]([ExtResource("2_fallback")])

@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_windup.png" id="windup"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_charge.png" id="charge"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_FOREST_NAME"
+behavior = 4
+guardian_style = 0
+boss_accent = Color(0.48, 1, 0.58, 1)
+guardian_rule = "GUARDIAN_FOREST_RULE"
+guardian_burst_fraction = 0.18
+guardian_sustain_fraction = 0.15
+guardian_windup_sheet = ExtResource("windup")
+guardian_alt_windup_sheet = ExtResource("windup")
+guardian_charge_sheet = ExtResource("charge")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+charge_windup = 0.72
+charge_speed = 300.0
+charge_seconds = 0.4
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 62.0
+turn_rate = 3.4
+health = 700
+score_value = 900
+stagger_seconds = 0.06
+body_scale = 1.03
+tint = Color(1, 1, 1, 1)
+anim_fps = 4.2

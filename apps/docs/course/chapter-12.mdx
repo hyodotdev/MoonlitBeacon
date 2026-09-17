@@ -1,0 +1,230 @@
+---
+sidebar_position: 12
+title: Lesson 12 · Dash
+---
+
+# Lesson 12 · Dash
+
+Through Lesson 11 we had "a game that runs." From here we make **a better game.**
+
+The only way to dodge the spirit was walking. Walk speed is 96, the spirit
+is 62 — you can outrun it, but **if you get cornered there is no answer.**
+
+Flick the stick with the right thumb and you slip out in that direction.
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-12-dash.mp4"
+  poster="img/chapter-12-dash-poster.jpg"
+  title="A dash leaves afterimages as you slip away (silent)"
+  silent
+/>
+
+## 2. What Lesson 6 prepared
+
+In Lesson 6 we left this note.
+
+> In Lesson 12 a dash stick appears on the right. Dashing with the right
+> hand while walking with the left sends touch events on two lines.
+> **Each stick watches only its own finger.**
+
+Thanks to that, today's work is **placing the scene one more time.**
+
+```ini
+[node name="RightStick" parent="Ui" instance=ExtResource("stick")]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -404.0
+grow_horizontal = 0
+```
+
+It is the same `virtual_stick.tscn`. Only the anchors are flipped to the
+right. Same as placing the beacon three times in Lesson 3.
+
+<Video
+  src="video/chapter-12-thumb.mp4"
+  poster="img/chapter-12-thumb-poster.jpg"
+  title="Pixel 10 — flick the stick with the right thumb"
+  silent
+/>
+
+## 3. Check the official docs
+
+This lesson is outside the official intro course. We look at these instead.
+
+| Docs | What we take |
+| --- | --- |
+| `Tween` | afterimages fading out |
+| `Node.queue_free()` | cleaning up a fully faded afterimage |
+| `AnimatedSprite2D.sprite_frames` | pulling the current frame's image |
+
+## 4. Not while you push — the moment you release
+
+This is the most important decision.
+
+If a dash fires **while you push** the stick, there is no time to choose a
+direction. You leave on the tiny wobble from the instant the thumb lands.
+
+It has to fire **on release.** Raise the stick, aim, lift the finger, and it goes.
+
+```gdscript
+signal flicked(direction: Vector2)
+
+func _release() -> void:
+	var last: Vector2 = _value
+	_touch_index = -1
+	_value = Vector2.ZERO
+	...
+	if last.length() > 0.0:
+		flicked.emit(last)
+```
+
+Store `_value` **before** you zero it. Reverse the order and you always emit 0.
+
+> **The left stick emits the same signal**
+> Same scene, so the left stick also emits `flicked`. Nobody listens.
+> The emitter does not know the listener — exactly what Lesson 7 taught.
+
+## 5. Implement it yourself
+
+### 5-1. Ignore the stick during a dash
+
+Same problem as Lesson 8's knockback.
+
+```gdscript
+	if _knock_left > 0.0:
+		_knock_left -= delta
+	elif _dash_left > 0.0:
+		_dash_left -= delta                      # ignore the stick during a dash too
+	else:
+		var target: Vector2 = _wish * speed
+		...
+```
+
+Otherwise the hand holding the left stick **erases the dash.**
+Ignore it for only 0.19 seconds.
+
+### 5-2. Cooldown
+
+```gdscript
+const DASH_COOLDOWN: float = 1.15
+
+func dash(direction: Vector2) -> bool:
+	if _dash_cooldown > 0.0 or direction.length() < 0.01:
+		return false
+```
+
+Without a cooldown **you would only dash.** Walking would lose its meaning.
+
+1.15 seconds is a hair longer than the spirit's hit cooldown (1.1 seconds).
+After you get hit and dash out, you have to wait **just barely** for the next dash.
+
+### 5-3. Afterimages
+
+```gdscript
+func _leave_afterimages() -> void:
+	for i in AFTERIMAGE_COUNT:
+		await get_tree().create_timer(
+			DASH_SECONDS * float(i) / float(AFTERIMAGE_COUNT)).timeout
+		if not is_inside_tree():
+			return
+		var ghost: Sprite2D = Sprite2D.new()
+		ghost.texture = _sprite.sprite_frames.get_frame_texture(
+			_sprite.animation, _sprite.frame)
+		ghost.offset = _sprite.offset
+		ghost.light_mask = 0
+		ghost.modulate = Color(0.72, 0.86, 1.0, 0.85)
+		ghost.global_position = global_position
+		get_parent().add_child(ghost)
+		var fade: Tween = ghost.create_tween()
+		fade.tween_property(ghost, "modulate:a", 0.0, AFTERIMAGE_FADE)
+		fade.tween_callback(ghost.queue_free)
+```
+
+**Afterimages must not follow the player.** They have to stay where you
+were, or it does not read as "moved fast." So we parent them to
+`get_parent()` — as children of the player they would move with it.
+
+`light_mask = 0`. Same call as Lesson 5's shadow and Lesson 2's flame.
+An afterimage is **a glowing trail**, not an object that receives light.
+
+:::warning At first the afterimages were invisible
+Alpha `0.5` sank into the night-forest background and **showed nothing.**
+Even dumping frames at 30fps and counting blue pixels, there were only a
+few hundred.
+
+We raised it to `0.85`, went from 4 copies to 5, and stretched the fade
+from 0.3 to 0.42.
+**On a dark background, translucency is much fainter than you expect.**
+:::
+
+:::info The final game trims full-body afterimages into speed lines
+This section is the Lesson 12 implementation. After the world later grew
+4×, several full-body copies looked like two of the same body overlapping.
+The final `Player` does not clone the body. It draws two 1px moonlight
+lines behind the body for 0.14 seconds. Dash physics and cooldown stay
+the same.
+:::
+
+### 5-4. Show whether the dash is ready
+
+```gdscript
+func set_dash_ready(ratio: float) -> void:
+	_dash.modulate.a = 0.3 + 0.7 * clampf(ratio, 0.0, 1.0)
+```
+
+Put a `Dash` label on the HUD and show readiness **with opacity.**
+
+Do not use a number. Counting a 1.15-second cooldown in seconds makes
+`0.8` `0.5` `0.2` flicker and the screen gets noisy. **Sharp or faint**
+is enough.
+
+Same approach as Lesson 10's hearts.
+
+## 6. Check that this much is working
+
+- Press the right half to raise the stick and **release** to dash that way
+- It does not fire while you hold
+- Afterimages stay on the path you took
+- Right after a dash the `Dash` label fades, then sharpens again
+- During cooldown, no amount of flicking fires it
+- **You can walk with the left stick and dash with the right at the same time**
+
+## 7. Break it on purpose
+
+**① Remove the `_dash_left` guard**
+→ Holding the left stick cancels the dash. The hand erases it.
+
+**② In `_release()`, zero `_value` before storing `last`**
+→ The dash never fires. Direction is always 0.
+
+**③ Parent afterimages with `add_child(ghost)` (as children of the player)**
+→ Afterimages follow the player. A husk, not a trail.
+
+**④ Set `DASH_COOLDOWN` to `0.1`**
+→ You only dash. Walking loses its meaning.
+
+**⑤ Set afterimage alpha to `0.3`**
+→ They sink into the night-forest background and disappear.
+
+## 8. Completion checklist
+
+- [ ] Releasing the right stick dashes
+- [ ] Afterimages stay on the path you took, then fade
+- [ ] There is a cooldown, visible on the HUD
+- [ ] You can walk and dash with both hands at once
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Homework
+
+1. Raise `DASH_SPEED` to `600`. You teleport across half the screen.
+   You will also see the bounds stop you.
+
+2. Change the afterimage color to the beacon orange (`1, 0.78, 0.36`).
+   **It collides with the spirit's blue.** Think about what color does in
+   the game.
+
+3. Place one more right stick. Even overlapping, each watches only its
+   own finger. That is the value of `_touch_index` from Lesson 6.

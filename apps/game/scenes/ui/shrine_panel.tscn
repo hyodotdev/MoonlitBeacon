@@ -1,0 +1,181 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/shrine_panel.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/panel_moonlit.png" id="panel"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Multilingual.tres" id="font"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font_bold"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="confirm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hero_preview_panel.tscn" id="hero_preview"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_wood"]
+texture = ExtResource("panel")
+texture_margin_left = 5.0
+texture_margin_top = 5.0
+texture_margin_right = 5.0
+texture_margin_bottom = 5.0
+modulate_color = Color(0.9, 0.92, 1, 0.96)
+
+[node name="ShrinePanel" type="Control"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.015, 0.022, 0.055, 0.88)
+
+[node name="Frame" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 14
+anchor_left = 0.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 16.0
+offset_top = -164.0
+offset_right = -16.0
+offset_bottom = 164.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_wood")
+
+[node name="Margin" type="MarginContainer" parent="Frame"]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 2
+
+[node name="Rows" type="VBoxContainer" parent="Frame/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Frame/Margin/Rows/Header"]
+custom_minimum_size = Vector2(142, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 22
+text = "SHRINE_TITLE"
+
+[node name="Goal" type="Label" parent="Frame/Margin/Rows/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.78, 0.84, 1, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+text_overrun_behavior = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Shards" type="Label" parent="Frame/Margin/Rows/Header"]
+custom_minimum_size = Vector2(130, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.86, 0.92, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HeroesHeader" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 13)
+layout_mode = 2
+
+[node name="HeroesTitle" type="Label" parent="Frame/Margin/Rows/HeroesHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.87, 0.6, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+text = "SHRINE_HEROES"
+vertical_alignment = 1
+
+[node name="HeroesHint" type="Label" parent="Frame/Margin/Rows/HeroesHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.64, 0.7, 0.84, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 9
+text = "HERO_SWIPE_HINT"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="HeroesScroll" type="ScrollContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="Heroes" type="HBoxContainer" parent="Frame/Margin/Rows/HeroesScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 5
+
+[node name="BoonsTitle" type="Label" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 13)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.76, 0.9, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+text = "SHRINE_BOONS"
+vertical_alignment = 1
+
+[node name="List" type="GridContainer" parent="Frame/Margin/Rows"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 5
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="Footer" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 23)
+layout_mode = 2
+alignment = 1
+
+[node name="Close" type="Button" parent="Frame/Margin/Rows/Footer"]
+custom_minimum_size = Vector2(126, 23)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_CLOSE"
+
+[node name="Sfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("confirm")
+volume_db = -4.0
+bus = &"Sfx"
+
+[node name="HeroPreview" parent="." instance=ExtResource("hero_preview")]

@@ -1,0 +1,80 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Moonlit Beacon"
+config/name_localized={
+"en": "Moonlit Beacon",
+"ja": "月明かりの烽火",
+"ko": "달빛 봉화",
+"zh": "月光烽火",
+"zh_TW": "月光烽火"
+}
+config/description="봉화를 밝히고 정령의 불씨와 유물로 무기를 키워 끝없는 순환에 도전하는 2D 탑다운 서바이버 액션 게임."
+config/version="2.1.0"
+run/main_scene="res://scenes/menus/title_menu.tscn"
+config/quit_on_go_back=false
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(0.027451, 0.062745, 0.121569, 1)
+boot_splash/stretch_mode=4
+boot_splash/image="res://assets/custom/ui/boot_splash.png"
+config/icon="res://assets/custom/ui/app_icon_master.png"
+boot_splash/minimum_display_time=550
+config/privacy_policy_url="https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/privacy"
+config/support_contact="https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/support"
+
+[autoload]
+
+GodotIapPlugin="*uid://d0h0i4cgnbewn"
+Records="*res://scripts/gameplay/records.gd"
+Settings="*res://scripts/gameplay/settings.gd"
+Analytics="*res://scripts/analytics/analytics.gd"
+Vault="*res://scripts/gameplay/vault.gd"
+Ladder="*res://scripts/gameplay/ladder.gd"
+GlobalLadder="*res://scripts/gameplay/global_ladder.gd"
+IapStore="*res://scripts/iap/iap_store.gd"
+
+[display]
+
+window/size/viewport_width=808
+window/size/viewport_height=360
+window/size/window_width_override=1616
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot-iap/plugin.cfg")
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/moonlit.en.translation", "res://localization/moonlit.ja.translation", "res://localization/moonlit.ko.translation", "res://localization/moonlit.zh_CN.translation", "res://localization/moonlit.zh_TW.translation")
+
+[physics]
+
+common/physics_ticks_per_second=30
+common/max_physics_steps_per_frame=2
+common/physics_jitter_fix=0.0
+common/physics_interpolation=true
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.043137, 0.054902, 0.109804, 1)

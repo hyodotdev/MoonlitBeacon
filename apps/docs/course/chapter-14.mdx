@@ -1,0 +1,331 @@
+---
+sidebar_position: 14
+title: Lesson 14 · Score and saving records
+---
+
+# Lesson 14 · Score and saving records
+
+Win or lose was all we had. Nothing told you **how well you did.**
+
+This lesson scores the run, stamps a rank, and **leaves the best record on the device.**
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-14-score.mp4"
+  poster="img/chapter-14-score-poster.jpg"
+  title="Score ticks up line by line, then a rank stamp lands (silent)"
+  silent
+/>
+
+## 2. What does the score praise?
+
+The score formula **decides what the game wants you to do well.**
+
+| | Score | Why |
+| --- | --- | --- |
+| One beacon | 300 | the basic goal |
+| 1 second left | 12 | finishing faster is better |
+| One heart left | 250 | not getting hit is better |
+| Escape | 500 | you only get this if you finish |
+
+**If you do not finish, the rank is D no matter how high the score is.**
+
+```gdscript
+func rank() -> String:
+	if not escaped:
+		return "D"
+	...
+```
+
+Light three beacons and leave a lot of time, and you still get D if you
+never enter the gate. A 1,904-point D is possible.
+
+> **This is how rules are made**
+> Drop the escape bonus and "light beacons and stall" becomes optimal.
+> Drop the time score and going slowly and safely becomes optimal.
+> **Change the score and you change the game.**
+
+## 3. Check the official docs
+
+| Docs | What we take |
+| --- | --- |
+| Singletons (Autoload) | things that survive across scenes |
+| `ConfigFile` | simple saves |
+| `user://` | a per-device app-only folder |
+
+## 4. Things that survive across scenes
+
+In Lesson 9 we left this note.
+
+> Do not write code that resets each value by hand. (…) Only in Lesson 14,
+> when we save a score, do we separately handle "things that must survive
+> across scenes."
+
+That time is now. `reload_current_scene()` **wipes everything.**
+Only the best record has to remain.
+
+Put `Records` on autoload.
+
+```ini
+[autoload]
+
+Records="*res://scripts/gameplay/records.gd"
+```
+
+It lives through scene changes and restarts.
+
+:::warning Do not sprinkle autoloads everywhere
+If you dump all game state into autoload because it is convenient,
+**what Lesson 9 built collapses.** Reloading the scene would not restore
+the state.
+
+Autoload holds **only what must live across scenes.**
+Here that is one best record.
+:::
+
+## 5. Implement it yourself
+
+### 5-1. Score as a type
+
+```gdscript
+class_name Score
+extends RefCounted
+
+var beacons: int = 0
+var seconds_left: float = 0.0
+var hearts: int = 0
+var escaped: bool = false
+
+func total() -> int: ...
+func rank() -> String: ...
+func lines() -> Array: ...
+```
+
+The arena fills the values, the result panel draws `lines()`.
+**Both only know this type.**
+
+Same as Lesson 10's HUD rule — the drawing side computes nothing.
+
+### 5-2. Save with `ConfigFile`
+
+```gdscript
+const SAVE_PATH: String = "user://records.cfg"
+
+func load_records() -> void:
+	var cfg: ConfigFile = ConfigFile.new()
+	if cfg.load(SAVE_PATH) != OK:
+		return                                   # a first-run device has no file
+	best_score = int(cfg.get_value(SECTION, "score", 0))
+```
+
+:::danger A missing file is not an error
+A freshly installed device has no save file. Treat `cfg.load()` not being
+`OK` as an error and **the first launch dies.**
+
+Just return quietly. The defaults (0 points, `-`) stay.
+:::
+
+On Android, `user://` maps to the app-only folder. No permission needed.
+`res://` is **read-only**, so you cannot save there.
+
+### 5-3. Numbers tick up
+
+`tween_method` passes the value straight into a function. Use it when you
+are moving **our variable**, not a node property.
+
+```gdscript
+	_reveal = create_tween()
+	_reveal.tween_interval(0.35)                 # hold still while the panel appears
+	for i in _rows.size():
+		_reveal.tween_method(_set_row.bind(i), 0, int(_rows[i][1]), ROW_SECONDS)
+		_reveal.tween_interval(ROW_GAP)
+	_reveal.tween_method(_set_sum, 0, score.total(), SUM_SECONDS)
+	_reveal.tween_callback(_stamp_in)
+```
+
+Chain them on one tween and they run **in sequence.** The total rises only
+after the four lines finish, and the stamp lands only after the total.
+You do not need four timers.
+
+A value passed with `bind(i)` is **appended after** the value the tween gives.
+
+```gdscript
+func _set_row(value: int, index: int) -> void:
+```
+
+:::warning Do not add rows one by one
+If you **add** rows to make them "appear one at a time," the label grows
+in height. It overlaps whatever is below.
+
+All four rows occupy their slots from the start, and **only the numbers**
+tick from 0. Slots stay fixed; values move.
+:::
+
+### 5-4. Like a stamp landing
+
+```gdscript
+func _stamp_in() -> void:
+	_stamp.visible = true
+	_stamp.pivot_offset = _stamp.size * 0.5
+	_stamp.scale = Vector2.ONE * 2.4
+	create_tween().tween_property(_stamp, "scale", Vector2.ONE, 0.22) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+```
+
+It appears large, **overshoots a little**, and settles (`TRANS_BACK`).
+
+:::warning Without `pivot_offset`, the origin is the top-left
+`scale` grows around `pivot_offset`. The default `(0,0)` makes the stamp
+**stretch down and to the right**, then come back.
+:::
+
+### 5-5. You must be able to skip the reveal
+
+It is a 2.2-second reveal. Nice the first time, **in the way by the tenth run.**
+
+```gdscript
+	# If the reveal is running, skip that first. This tap does not restart.
+	if _reveal != null and _reveal.is_valid():
+		_skip_reveal()
+		return
+```
+
+Skip and restart are **different actions.** Doing both on one tap starts
+the next run before you see the result.
+
+`_skip_reveal()` kills the tween and writes the final values itself.
+
+```gdscript
+	_reveal.kill()
+	_reveal = null
+	for i in _rows.size():
+		_shown[i] = int(_rows[i][1])
+	_sum_shown = _score.total()
+	_redraw()
+	_stamp_in()
+```
+
+:::danger `kill()` alone, without filling the values, freezes mid-count
+Killing the tween leaves the numbers where they were.
+You stare at a screen stuck on `Total 1,847`.
+:::
+
+### 5-6. Place things so they do not overlap
+
+The first result screen looked like this.
+
+- The `S` stamp overlapped the title
+- `New best!` covered the hint text
+
+We only saw it after rendering. **UI has to be reviewed with the values filled in.**
+Empty labels will not tell you they overlap.
+
+| | Vertical position (from center) |
+| --- | --- |
+| Title | −104 ~ −50 |
+| Breakdown | −36 ~ 46 (right-aligned) |
+| Stamp | −32 ~ 38 (right of the breakdown) |
+| Hint | 62 ~ 84 |
+
+### 5-7. The result screen found Lesson 9's hole
+
+We put it on a phone, lost the first run, and saw this.
+
+| | |
+| --- | --- |
+| Result screen | Beacons **0** — 0 points |
+| Top-right HUD | Beacons **1/3** |
+
+Two numbers disagree on the same screen.
+
+We had died next to a beacon, pushed by the spirit. Lesson 9 put `_over`
+on the arena so "after it ends, nothing is accepted," but **the beacon
+runs on its own clock.**
+
+After the panel appeared, the charge at your feet kept rising and it lit
+itself a moment later. Score was already computed at 0; only the HUD
+went to 1/3.
+
+```gdscript
+# beacon.gd
+func freeze() -> void:
+	set_process(false)
+	_reach.monitoring = false
+	_visitors = 0
+	if not lit and _charge > 0.0:
+		_charge = 0.0
+		charge_changed.emit(self, 0.0)           # clear the ring at your feet too
+```
+
+```gdscript
+# arena.gd — inside _finish()
+	for beacon in _beacons:
+		beacon.freeze()
+```
+
+> **The result screen is a checksum of everything so far**
+> This bug sat there for five lessons, until we printed the beacon count.
+> It was not visible anywhere.
+>
+> **Put a number on screen and the mismatch shows.**
+> Adding a score is both writing the rules and placing a ruler that
+> inspects yourself.
+
+## 6. Check that this much is working
+
+- Numbers tick up line by line, then the total appears
+- The stamp lands last (2.2 seconds in all)
+- A press during the reveal snaps to the end, and **that tap does not restart**
+- **Failing to escape is D even with a high score**
+- The best record survives a restart
+- The best record survives quitting and relaunching the app
+- **The result screen's beacon count matches the HUD**
+
+## 7. Break it on purpose
+
+**① Remove `if not escaped: return "D"` from `rank()`**
+→ Lighting beacons and stalling until time runs out still gives S.
+There is no reason to escape.
+
+**② Skip `pivot_offset`**
+→ The stamp stretches down and to the right, then comes back.
+
+**③ In `_skip_reveal()`, `kill()` without filling values**
+→ The ticking numbers freeze mid-count.
+
+**④ Treat a failed `cfg.load()` as an error**
+→ First launch on a fresh install dies.
+
+**⑤ Change `user://` to `res://`**
+→ Saving fails. In an exported game `res://` is read-only.
+
+**⑥ Move all arena state onto autoload**
+→ Restarting leaves the beacons lit. Lesson 9 collapses.
+
+**⑦ Remove the `beacon.freeze()` calls**
+→ Dying next to a beacon lets it light itself behind the panel.
+Result screen 0, HUD 1/3.
+
+## 8. Completion checklist
+
+- [ ] Numbers tick up and the stamp lands
+- [ ] You can skip the reveal
+- [ ] Failing to escape is D
+- [ ] The best record survives quitting and relaunching
+- [ ] A new best is announced as such
+- [ ] Dying next to a beacon does not light it behind the panel
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Homework
+
+1. Set `PER_SECOND` to `0`. There is no reason to hurry.
+   You feel immediately that **the score is the rule.**
+
+2. Lower the S threshold in `RANKS` to `1000`. You get S no matter how
+   you play. Rank loses its meaning.
+
+3. Find and open `user://records.cfg`.
+   Godot editor: `Project ▸ Open User Data Folder`.
+   **It is a text file, so you can edit it by hand** — that is a problem
+   for some games.

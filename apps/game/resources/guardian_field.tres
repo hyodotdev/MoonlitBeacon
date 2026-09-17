@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/field.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/field_windup_cross.png" id="windup_cross"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/field_windup_radial.png" id="windup_radial"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/field_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_FIELD_NAME"
+behavior = 4
+guardian_style = 1
+boss_accent = Color(0.38, 0.88, 1, 1)
+guardian_rule = "GUARDIAN_FIELD_RULE"
+guardian_burst_fraction = 0.1
+guardian_sustain_fraction = 0.12
+guardian_windup_sheet = ExtResource("windup_cross")
+guardian_alt_windup_sheet = ExtResource("windup_radial")
+guardian_charge_sheet = ExtResource("windup_cross")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+orbit_radius = 124.0
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 78.0
+turn_rate = 5.0
+health = 620
+score_value = 900
+stagger_seconds = 0.055
+body_scale = 0.94
+tint = Color(1, 1, 1, 1)
+anim_fps = 5.2

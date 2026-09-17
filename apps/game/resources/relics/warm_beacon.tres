@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_WARM_BEACON_NAME"
+description = "RELIC_WARM_BEACON_DESC"
+effect = 9
+amount = 1.0
+accent = Color(1, 0.72, 0.42, 1)

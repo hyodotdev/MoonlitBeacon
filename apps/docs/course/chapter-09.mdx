@@ -1,0 +1,295 @@
+---
+sidebar_position: 9
+title: Lesson 9 · Start and end of a run
+---
+
+# Lesson 9 · Start and end of a run
+
+Until now **there was no ending.** Lighting every beacon did nothing, and
+you could keep walking after a hundred hits from the spirit.
+
+This lesson makes **a run**. Light all three beacons and a moonlight gate
+opens at the far edge of the forest. Walk in and you win. Take three hits
+and you lose. Either way, you can start again.
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-09-win.mp4"
+  poster="img/chapter-09-win-poster.jpg"
+  title="Light all three beacons and the moonlight gate opens; walk in and the run ends (silent)"
+  silent
+/>
+
+<Video
+  src="video/chapter-09-lose.mp4"
+  poster="img/chapter-09-lose-poster.jpg"
+  title="Pixel 10 — three hits and the dark swallows you"
+  silent
+/>
+
+## 2. A run has state
+
+Nothing we built so far **had state**. A beacon was on or off, the spirit
+chased you, and that was it.
+
+A run adds these:
+
+| | |
+| --- | --- |
+| Health | Starts at 3 and drops on each hit |
+| Is it over? | After it ends, nothing is accepted |
+| Did you win? | The result panel text changes |
+
+**"Is it over?" is the most important one.** Without it the game keeps
+running behind the panel. The spirit still chases, beacons still light,
+and health goes negative.
+
+```gdscript
+func _finish(won: bool) -> void:
+	if _over:
+		return
+	_over = true
+	if is_instance_valid(_spirit):
+		_spirit.set_target(null)
+	_player.set_move_input(Vector2.ZERO)
+	set_process(false)                           # stop reading the stick
+	_result.show_result(won)
+```
+
+Win or lose, **funnel it through this one function.** If you split the
+shutdown into two places, you will miss one of them.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / The main game scene` together.
+
+| Official docs | What we take |
+| --- | --- |
+| The main game scene | A place that manages the whole game |
+| Game over | Stop when it ends, then start again |
+
+The official sample makes a separate `Main` scene. **The arena is that
+place for us.** There is not enough to manage to justify another scene.
+
+## 4. The moonlight gate
+
+```text
+MoonGate  (Node2D)
+  Halo   (Sprite2D)         light bloom
+  Light  (PointLight2D)     blue light on the surroundings
+  Sprite (Sprite2D)         the gate shape
+  Enter  (Area2D)           mask = 2 (player only)
+```
+
+:::tip A closed gate should not be visible at all
+Some games draw the gate in gray and say "not open yet."
+Then **players wander toward it from the start.**
+
+If lighting the beacons has to come first, it is better for the gate to
+**not exist, then appear.** Keep `visible = false` and fade it in over
+1.2 seconds once every beacon is lit.
+:::
+
+:::danger Do not let the player enter while it is opening
+```gdscript
+	_enter.monitoring = false        # off at first
+
+func open() -> void:
+	...
+	await fade.finished
+	_enter.monitoring = true         # on only after it has opened
+```
+
+Otherwise, if the last beacon happens to sit next to the gate,
+**you graze it while it is appearing and the run ends.**
+You did win, but it feels empty.
+:::
+
+## 5. Implement it yourself
+
+### 5-1. Lesson 6's bounds get in the way
+
+In Lesson 6 we left this note.
+
+> **This is a place you will have to change later**
+> In Lesson 9 a moonlight gate opens at the far edge of the forest. This
+> rectangle will not be enough then.
+
+That is exactly what happened. The gate is at `(404, 336)`, but the player
+can only walk to `y` 322. **Even if the gate opens, you cannot reach it.**
+
+Turn the constant into a variable, and widen it when the gate opens.
+
+```gdscript
+# player.gd
+const DEFAULT_BOUNDS: Rect2 = Rect2(96, 150, 616, 172)
+var bounds: Rect2 = DEFAULT_BOUNDS
+
+func set_bounds(rect: Rect2) -> void:
+	bounds = rect
+```
+
+```gdscript
+# arena.gd
+	if _lit_count >= _beacons.size():
+		_gate.open()
+		_player.set_bounds(_player.bounds.merge(Rect2(_gate.position - Vector2(24, 0), Vector2(48, 18))))
+```
+
+`merge()` returns a rectangle that contains both rectangles.
+Only the path to the gate opens; the rest of the edge stays the same.
+
+> **This is the healthy case**
+> If Lesson 6 had tried to make "perfect" bounds by putting a collider on
+> every tree, you would have to retouch all of that now. **Because we kept
+> it simple, knowing it would change later,** today's fix is two lines.
+
+### 5-2. Overlap must keep dealing hits
+
+The cooldown we added in Lesson 8 **had a hole.**
+
+```gdscript
+func _on_body_entered(_body: Node2D) -> void:
+	if _cooldown > 0.0:
+		return
+	...
+```
+
+`body_entered` fires **only at the moment of entry.** If the spirit keeps
+pushing into the player, a second signal never arrives.
+
+On a device we stood still for 24 seconds and **took exactly one hit.**
+Health is 3, so you never die.
+
+```gdscript
+func _try_hit() -> void:
+	if _cooldown > 0.0:
+		return
+	if not _hitbox.has_overlapping_bodies():
+		return
+	_cooldown = HIT_COOLDOWN
+	touched_player.emit(global_position)
+
+
+func _physics_process(delta: float) -> void:
+	_cooldown = maxf(_cooldown - delta, 0.0)
+	_try_hit()                                   # keep checking while overlapped
+	...
+```
+
+After the fix, a device run took three hits at 3.8s, 4.8s, and 6.0s, and ended.
+
+> **A signal is a "change," not a "state"**
+> `body_entered` is the event of crossing a boundary. To ask "am I inside
+> right now," you have to **read the state directly**, like
+> `has_overlapping_bodies()`.
+>
+> Lesson 7's beacon counting `_visitors` is the same idea.
+
+### 5-3. Result panel
+
+Win or lose, we use **the same panel.** Only the text and color change.
+
+| | Text | Color |
+| --- | --- | --- |
+| Win | All beacons are burning | yellow light |
+| Lose | Swallowed by the dark | red light |
+
+:::warning If a finger is already down when the panel appears, the run restarts immediately
+The moment you lose to the spirit, the hand is still holding the stick.
+If you accept input then, the run restarts before anyone sees the panel.
+
+```gdscript
+	await get_tree().create_timer(0.6).timeout
+	_accepting = true
+```
+
+Wait 0.6 seconds, then accept.
+:::
+
+### 5-4. Restart
+
+```gdscript
+func _restart() -> void:
+	get_tree().reload_current_scene()
+```
+
+One line. Reloading the whole scene puts beacons, spirits, and health back
+to the start.
+
+**Do not write code that resets each value by hand.** Every new field is
+another place you will forget. Only in Lesson 14, when we save a score,
+do we separately handle **"things that must survive across scenes."**
+
+### 5-5. Do not touch something already freed
+
+```gdscript
+	if is_instance_valid(_spirit):
+		_spirit.set_target(null)
+```
+
+Right now there is only one spirit, and it is never freed. In Lesson 13
+they **spawn and vanish.**
+
+A reference captured with `@onready` stays around after the node is freed.
+Calling it as-is dies like this:
+
+```text
+Attempt to call function 'set_target' in base 'previously freed' on a null instance.
+```
+
+## 6. Check that this much is working
+
+```bash
+pnpm game:check
+```
+
+- Lighting every beacon makes the gate appear (it is hidden before that)
+- Walking into the gate shows the win panel
+- Three hits show the lose panel
+- After the panel is up, the spirit no longer chases
+- A tap starts over from the beginning
+- **Standing still, you take three hits and lose** (not one hit and then nothing)
+
+## 7. Break it on purpose
+
+**① Remove the `_over` check**
+→ The game keeps running behind the panel. Health goes negative and the
+panel stacks on itself.
+
+**② Delete `_try_hit()` and leave only `body_entered`**
+→ Standing still, you **take one hit and never die.**
+
+**③ Remove the `set_bounds()` call**
+→ The gate opens but you cannot reach it. Lesson 6's bounds block you.
+
+**④ Remove the result panel's 0.6 second wait**
+→ The hand still holding the stick restarts the run before the panel is seen.
+
+**⑤ Remove the gate's `monitoring = false`**
+→ When the last beacon is near the gate, you graze it while it opens and win.
+
+## 8. Completion checklist
+
+- [ ] The gate appears only after all three beacons are lit
+- [ ] Walking into the gate shows "All beacons are burning"
+- [ ] Three hits show "Swallowed by the dark"
+- [ ] Standing still actually loses the run
+- [ ] The game does not run behind the panel
+- [ ] A tap restarts from the beginning
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Homework
+
+1. Set `MAX_HEALTH` to `1`. One hit and it is over.
+   It is already fairly hard with a single spirit. Think about Lesson 13,
+   when there will be three.
+
+2. Move the gate to the middle of the forest, something like `(404, 200)`.
+   You can reach it without `set_bounds()`. Think about why the far edge
+   is the better place.
+
+3. Rewrite `_restart()` by hand instead of `reload_current_scene()`.
+   Three beacons, health, spirit position, gate, bounds, panel… count how
+   many you forget.

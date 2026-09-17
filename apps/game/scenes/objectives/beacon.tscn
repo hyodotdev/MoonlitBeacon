@@ -1,0 +1,272 @@
+[gd_scene load_steps=33 format=3]
+
+[ext_resource type="Script" path="res://scripts/objectives/beacon.gd" id="beacon"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/sfx/beacon_ignite.ogg" id="sfx"]
+[ext_resource type="Script" path="res://scripts/audio/sfx_player_2d.gd" id="sfx_script"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/beacon/clearing.png" id="clearing"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/camp.png" id="camp"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/beacon/smoke.png" id="smoke"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/beacon/spark.png" id="spark"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/beacon/flame.png" id="fire"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_ember"]
+blend_mode = 1
+particles_animation = true
+particles_anim_h_frames = 7
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_flame"]
+particles_animation = true
+particles_anim_h_frames = 8
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_smoke"]
+particles_animation = true
+particles_anim_h_frames = 6
+particles_anim_v_frames = 1
+particles_anim_loop = false
+
+[sub_resource type="Curve" id="Curve_flame"]
+_data = [Vector2(0, 0.72), 0.0, 1.5, 0, 0, Vector2(0.26, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.18), -1.1, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Gradient" id="Gradient_embercol"]
+offsets = PackedFloat32Array(0, 0.18, 0.66, 1)
+colors = PackedColorArray(1, 0.78, 0.4, 0, 1, 0.66, 0.28, 0.8, 1, 0.38, 0.1, 0.45, 0.8, 0.2, 0.05, 0)
+
+[sub_resource type="Gradient" id="Gradient_flamecol"]
+offsets = PackedFloat32Array(0, 0.24, 0.6, 1)
+colors = PackedColorArray(1, 0.96, 0.8, 1, 1, 0.68, 0.28, 1, 0.9, 0.32, 0.09, 0.72, 0.5, 0.12, 0.03, 0)
+
+[sub_resource type="Gradient" id="Gradient_glow"]
+offsets = PackedFloat32Array(0, 0.34, 1)
+colors = PackedColorArray(1, 0.82, 0.55, 0.34, 1, 0.5, 0.16, 0.2, 1, 0.36, 0.08, 0)
+
+[sub_resource type="Gradient" id="Gradient_light"]
+offsets = PackedFloat32Array(0, 0.1, 0.3, 0.6, 1)
+colors = PackedColorArray(1, 1, 1, 0.85, 1, 1, 1, 0.8, 1, 1, 1, 0.4, 1, 1, 1, 0.11, 1, 1, 1, 0)
+
+[sub_resource type="Gradient" id="Gradient_smoke"]
+offsets = PackedFloat32Array(0, 0.16, 0.55, 1)
+colors = PackedColorArray(0.42, 0.36, 0.34, 0, 0.34, 0.3, 0.31, 0.5, 0.26, 0.25, 0.3, 0.26, 0.2, 0.2, 0.26, 0)
+
+[sub_resource type="CurveTexture" id="CurveTexture_flame"]
+curve = SubResource("Curve_flame")
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_embercol"]
+gradient = SubResource("Gradient_embercol")
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_flamecol"]
+gradient = SubResource("Gradient_flamecol")
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_smoke"]
+gradient = SubResource("Gradient_smoke")
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_glow"]
+gradient = SubResource("Gradient_glow")
+width = 256
+height = 256
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_light"]
+gradient = SubResource("Gradient_light")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_ember"]
+lifetime_randomness = 0.5
+emission_shape = 3
+emission_box_extents = Vector3(6, 3, 1)
+direction = Vector3(0, -1, 0)
+spread = 28.0
+initial_velocity_min = 7.0
+initial_velocity_max = 18.0
+gravity = Vector3(0, -12, 0)
+damping_min = 2.0
+damping_max = 6.0
+scale_min = 0.35
+scale_max = 0.7
+color_ramp = SubResource("GradientTexture1D_embercol")
+anim_speed_min = 1.0
+anim_speed_max = 1.0
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_flame"]
+lifetime_randomness = 0.35
+emission_shape = 3
+emission_box_extents = Vector3(4, 2, 1)
+direction = Vector3(0, -1, 0)
+spread = 13.0
+initial_velocity_min = 10.0
+initial_velocity_max = 26.0
+gravity = Vector3(0, -32, 0)
+scale_min = 0.7
+scale_max = 1.3
+scale_curve = SubResource("CurveTexture_flame")
+color_ramp = SubResource("GradientTexture1D_flamecol")
+anim_speed_min = 1.0
+anim_speed_max = 1.0
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_smoke"]
+lifetime_randomness = 0.4
+emission_shape = 3
+emission_box_extents = Vector3(3, 2, 1)
+direction = Vector3(0, -1, 0)
+spread = 11.0
+initial_velocity_min = 10.0
+initial_velocity_max = 17.0
+gravity = Vector3(8, -9, 0)
+damping_min = 0.5
+damping_max = 2.0
+scale_min = 0.3
+scale_max = 0.62
+color_ramp = SubResource("GradientTexture1D_smoke")
+anim_speed_min = 1.0
+anim_speed_max = 1.0
+
+[sub_resource type="Animation" id="Animation_flicker"]
+resource_name = "flicker"
+length = 3.7
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Light:energy")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.9, 1.3, 1.9, 2.4, 2.8, 3.3, 3.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [4.64, 5.056, 4.256, 4.896, 4.032, 4.8, 4.416, 4.96, 4.64]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Glow:scale")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.7, 1.5, 2.2, 3, 3.7),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.42, 0.37), Vector2(0.47, 0.41), Vector2(0.38, 0.34), Vector2(0.45, 0.4), Vector2(0.4, 0.36), Vector2(0.42, 0.37)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_beacon"]
+_data = {
+&"flicker": SubResource("Animation_flicker")
+}
+
+[sub_resource type="Gradient" id="Gradient_scorch"]
+offsets = PackedFloat32Array(0, 0.5, 1)
+colors = PackedColorArray(0.1, 0.075, 0.055, 0.9, 0.12, 0.095, 0.07, 0.5, 0.14, 0.11, 0.08, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_scorch"]
+gradient = SubResource("Gradient_scorch")
+width = 128
+height = 128
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_reach"]
+radius = 26.0
+
+[node name="Beacon" type="Node2D"]
+script = ExtResource("beacon")
+
+[node name="Clearing" type="Sprite2D" parent="."]
+z_index = -1
+modulate = Color(0.378, 0.35, 0.399, 1)
+position = Vector2(0, 0)
+texture = ExtResource("clearing")
+[node name="Scorch" type="Sprite2D" parent="."]
+z_index = -1
+modulate = Color(0.315, 0.35, 0.57, 1)
+position = Vector2(0, 3)
+scale = Vector2(0.72, 0.42)
+texture = SubResource("GradientTexture2D_scorch")
+[node name="Pit" type="Sprite2D" parent="."]
+modulate = Color(0.258, 0.28, 0.45, 1)
+position = Vector2(-16, -15)
+texture = ExtResource("camp")
+centered = false
+region_enabled = true
+region_rect = Rect2(192, 80, 32, 30)
+
+[node name="Light" type="PointLight2D" parent="."]
+position = Vector2(0, -6)
+color = Color(1, 0.6, 0.3, 1)
+energy = 4.64
+texture = SubResource("GradientTexture2D_light")
+texture_scale = 0.56
+
+[node name="Smoke" type="GPUParticles2D" parent="."]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_smoke")
+position = Vector2(0, -14)
+amount = 11
+texture = ExtResource("smoke")
+lifetime = 2.6
+preprocess = 1.6
+randomness = 0.5
+process_material = SubResource("ParticleProcessMaterial_smoke")
+
+[node name="Embers" type="GPUParticles2D" parent="."]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_ember")
+position = Vector2(0, -4)
+amount = 14
+texture = ExtResource("spark")
+lifetime = 2.6
+preprocess = 1.3
+randomness = 0.6
+process_material = SubResource("ParticleProcessMaterial_ember")
+
+[node name="Flame" type="GPUParticles2D" parent="."]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_flame")
+position = Vector2(0, -1)
+amount = 30
+texture = ExtResource("fire")
+lifetime = 0.88
+preprocess = 0.9
+randomness = 0.3
+process_material = SubResource("ParticleProcessMaterial_flame")
+
+[node name="Glow" type="Sprite2D" parent="."]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_add")
+position = Vector2(0, -8)
+scale = Vector2(0.42, 0.37)
+texture = SubResource("GradientTexture2D_glow")
+
+[node name="Reach" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="ReachShape" type="CollisionShape2D" parent="Reach"]
+shape = SubResource("CircleShape2D_reach")
+
+[node name="Sfx" type="AudioStreamPlayer2D" parent="."]
+script = ExtResource("sfx_script")
+stream = ExtResource("sfx")
+volume_db = -6.0
+max_distance = 900.0
+bus = &"Sfx"
+
+[node name="Flicker" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_beacon")
+}
+autoplay = "flicker"

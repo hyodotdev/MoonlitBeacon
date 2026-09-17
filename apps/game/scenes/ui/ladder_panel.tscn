@@ -1,0 +1,106 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/ladder_panel.gd" id="script"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
+
+[node name="LadderPanel" type="Control"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.03, 0.07, 0.82)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Rows" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Center/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+text = "LADDER_TITLE"
+
+[node name="Pending" type="Label" parent="Center/Rows"]
+visible = false
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.76, 0.9, 1, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+text = "LADDER_PENDING"
+
+[node name="Entry" type="HBoxContainer" parent="Center/Rows"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="Name" type="LineEdit" parent="Center/Rows/Entry"]
+custom_minimum_size = Vector2(220, 26)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 12
+placeholder_text = "LADDER_NAME"
+alignment = 1
+
+[node name="Submit" type="Button" parent="Center/Rows/Entry"]
+custom_minimum_size = Vector2(90, 26)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "LADDER_SUBMIT"
+
+[node name="Board" type="VBoxContainer" parent="Center/Rows"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Close" type="Button" parent="Center/Rows"]
+custom_minimum_size = Vector2(120, 26)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 12
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_CLOSE"

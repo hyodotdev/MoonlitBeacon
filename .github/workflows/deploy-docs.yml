@@ -1,0 +1,90 @@
+name: Deploy Docs
+
+# Manually deploy the docs site (apps/docs) to GitHub Pages.
+# A private repo in the hyodotdev Free org cannot use Pages.
+# Make the repo public or raise the org to Team or above, then set
+# Settings > Pages > Source to "GitHub Actions".
+on:
+  # Do not auto-deploy while Pages enablement keeps failing on a private repo.
+  # Build and deploy only when a human starts it from the Actions UI.
+  workflow_dispatch:
+
+# Receive only the permissions the job declares.
+permissions: {}
+
+# Only one Pages deploy at a time.
+# cancel-in-progress is false so an in-flight deploy is not cut off.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # Split build and deploy.
+  # Only the deploy job is bound to the github-pages environment, so the
+  # permission scope is narrower, and a failed build never starts deploy.
+  build:
+    name: Docs build
+    runs-on: ubuntu-latest
+    permissions:
+      # Used only for checkout and Pages metadata lookup.
+      contents: read
+      pages: read
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+        with:
+          # docusaurus.config.ts showLastUpdateTime reads each file's last
+          # commit from git log. The default shallow clone (depth 1) cannot
+          # get the date, so the build breaks — fetch the full history.
+          fetch-depth: 0
+
+      # setup-node's cache: pnpm runs `pnpm store path`, so pnpm must be on
+      # PATH first. Reversing the order fails cache setup.
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          # Root package.json has no packageManager field, so pin the version.
+          # Same major (11.x) as the local dev environment.
+          version: 11
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      # Passes only after Pages is enabled on a supported plan / visibility.
+      # The default GITHUB_TOKEN cannot create the site.
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      # --frozen-lockfile: if the lockfile and package.json disagree, fail
+      # instead of quietly fixing. Forces local and CI onto the same tree.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Docusaurus build
+        run: pnpm --filter @moonlit-beacon/docs build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          # Docusaurus default output path.
+          path: apps/docs/build
+
+  deploy:
+    name: Pages deploy
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      # Only what Pages deploy and deploy-pages OIDC auth need.
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      # Show the deployed URL as a link on the Actions run.
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

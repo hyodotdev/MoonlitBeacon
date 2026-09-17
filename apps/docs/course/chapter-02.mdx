@@ -1,0 +1,651 @@
+---
+sidebar_position: 2
+title: Lesson 2 · Nodes and scenes
+---
+
+# Lesson 2 · Nodes and scenes
+
+The title screen from Lesson 1 **all lives in one file.** The forest, the
+beacon, and the title text are bunched inside `title_menu.tscn`. Looking at
+the screen, it is fine.
+
+This lesson splits that one lump into **parts**. The beacon goes into a file
+that holds only the beacon. The night forest goes into a file that holds only
+the night forest. Then we load both back in and attach them to make the stage
+where the game actually happens — the **arena**.
+
+When you actually open it, though, **the beacon is not even one lump.** It is
+scattered across two places, and there is a reason. If you do not unpack that
+reason first, you cannot extract it as a scene.
+That is the part of this lesson that takes the longest.
+
+## 1. The finished screen
+
+<Video
+  src="video/chapter-02-arena.mp4"
+  poster="img/chapter-02-arena-poster.jpg"
+  title="Running arena.tscn — a night-forest clearing with one beacon burning"
+  silent
+/>
+
+Moonlight drops through the trees, mist drifts, and a beacon burns in the
+middle of the clearing.
+It **looks almost the same** as the Lesson 1 title screen. That is correct.
+This is not a lesson that changes the look. It is a lesson that turns the same
+screen into a **shape you can reuse**.
+
+## 2. Nodes and scenes
+
+Godot has exactly two big ideas.
+
+A **node** is a part that does one job.
+`Sprite2D` draws one picture, `PointLight2D` emits light,
+`GPUParticles2D` throws embers — each does only one thing.
+
+A **scene** is nodes bundled and saved as a file. One `.tscn` file is one
+scene.
+And here is the important part — **a saved scene can be used like a node
+again.**
+
+```text
+Beacon (Node2D)          ← save it as a scene, and
+  Pit    (Sprite2D)
+  Light  (PointLight2D)
+  Flame  (GPUParticles2D)
+```
+
+```text
+Arena (Node2D)
+  NightForest            ← slot another scene into a node slot
+  Beacon                 ←
+```
+
+You bundle parts into a bigger part, then bundle that again. The whole game is
+this loop.
+Making `title_menu.tscn` in Lesson 1 was already making a scene.
+This time we tear the inside apart and turn it into **parts you can use in
+more than one place**.
+
+### Why bother splitting
+
+In Lesson 3 we place **three** beacons in different spots.
+If the beacon stays buried inside the title screen the way it is now, there is
+only one method — copy the nodes and paste three copies.
+
+Then every time you change the flame color you have to **edit three places the
+same way**.
+Miss one and only one beacon has the wrong color. And you will miss one.
+
+Extract it as a scene and you only edit the one file `beacon.tscn`.
+Whether three places use it or thirty, they all follow.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Nodes and scenes` page together.
+
+| Official docs | What we take from them |
+| --- | --- |
+| Nodes and scenes | A node does one job · a scene is a bundle of nodes |
+| Creating instances | How to slot a saved scene into another scene |
+
+The official docs explain it with a one-label scene.
+We **tear apart a 1,296-node screen we already built, in reverse**.
+The concept is the same, but splitting scenes in a real project is usually
+closer to this side.
+Nobody starts with a perfect split.
+
+## 4. The beacon is scattered across two places
+
+Before you start, open the Lesson 1 scene once. Expand the Scene dock and it
+looks like this.
+
+```text
+TitleMenu
+  Forest
+    NightTint   (CanvasModulate)
+    Ground / Clearing / Scorch / Details / Trees ...
+    Beacon
+      Pit       (Sprite2D)      ← fire pit
+      Light     (PointLight2D)  ← firelight
+  BeaconFx      (AnimationPlayer)
+  Fire          (CanvasLayer)   ← ?
+    Flames
+      Smoke / Embers / Flame / Glow   ← flame, embers, smoke
+  Ui / Bgm / Sfx
+```
+
+One beacon is **split across two places**. The fire pit and the light are
+inside the forest; the flame and smoke are on a separate `CanvasLayer` called
+`Fire`.
+
+If you do not know that and right-click `Beacon` to save it as a scene, you
+get a **half beacon**.
+A pile of stones with no fire. You have to know why it is scattered first.
+
+### 4-1. The culprit is `CanvasModulate`
+
+`NightTint` inside `Forest` is a `CanvasModulate` node.
+This node tints **an entire canvas** with a color you pick.
+Put one inside the forest and the whole forest becomes night. Convenient.
+
+Too convenient, which is the problem. **Everything on the same canvas** gets
+tinted.
+Put the flame inside the forest and the flame goes blue too. A blue flame is
+not a beacon.
+
+Lesson 1 dodged this by **pulling only the flame onto a separate
+`CanvasLayer`**.
+Different canvas, so `CanvasModulate` cannot reach it. The screen looks
+correct.
+
+### 4-2. That method dies in Lesson 3
+
+:::danger Children of a `CanvasLayer` do not follow the parent's position
+A `CanvasLayer` is a separate drawing layer fixed to the screen. It is a node
+for things that **must stay put even when the camera moves**, like a HUD or
+subtitles.
+
+So the flame you put inside it is outside the arena coordinate system.
+Change the beacon's `position` and the flame does not follow.
+Next lesson we have to place three beacons in different spots, and **this
+structure cannot do that**.
+:::
+
+If we only find out in Lesson 3, we have to come back. We fix it now.
+
+### 4-3. What we use instead — the root node's `modulate`
+
+Instead of `CanvasModulate`, we use the **forest root node's `modulate`
+property**.
+The difference between the two is the core of this lesson.
+
+| | What gets tinted |
+| --- | --- |
+| `CanvasModulate` (node) | **Everything on the same canvas** — siblings, and anything you add later |
+| `modulate` (property) | **Itself and its children** — siblings are left alone |
+
+Make the beacon a **sibling** of the forest and only the forest goes blue; the
+beacon stays as it is.
+No `CanvasLayer` needed, so the beacon remains an ordinary `Node2D` and
+`position` works.
+
+> **Nobody knows this in advance**
+> While making this course we built it with `CanvasModulate` first, then got
+> stuck trying to move the beacon and had to come back. **Fixing the structure
+> after the problem blows up** is the normal order.
+> You just have to know the cause when you fix it, so you do not step in it
+> again.
+
+## 5. Build it yourself
+
+<Video
+  src="video/chapter-02-compose.mp4"
+  poster="img/chapter-02-compose-poster.jpg"
+  title="Night-forest scene · beacon scene · the arena that combines both (silent)"
+  silent
+/>
+
+The clip above is **the real screen of running the three files one at a time**.
+Run only `night_forest.tscn` and you get an empty clearing with no beacon. Run
+only `beacon.tscn` and you get one beacon in the dark. Run `arena.tscn` and
+you get the two combined.
+
+`arena.tscn` does not own a single picture. **It only points.**
+
+Order matters. **Change the night tint first, gather the beacon, then extract
+it as a scene.**
+Change the order and the screen goes blue in the middle, and you cannot tell
+what you did wrong.
+
+### 5-1. Move the night tint
+
+**Delete** the `NightTint` node inside `Forest`. The forest goes bright like
+daytime.
+
+Select the `Forest` node, find `CanvasItem ▸ Visibility ▸ Modulate` in the
+inspector, and enter these values.
+
+| R | G | B | A |
+| --- | --- | --- | --- |
+| 0.315 | 0.35 | 0.57 | 1 |
+
+The forest is night again. It **should look identical** to what you just
+deleted.
+If the color looks different here, you entered the values wrong.
+
+The `Fire` `CanvasLayer` is no longer needed. We delete it in a moment.
+
+### 5-2. Gather the beacon into one place
+
+Select the four nodes under `Fire/Flames` — `Smoke`, `Embers`, `Flame`,
+`Glow` — and **drag them under `Forest/Beacon`**.
+
+The flame goes blue. Do not panic — it is a child of `Forest` now, so of
+course it does.
+The next step pulls it out.
+
+:::warning Moving a node changes its position
+Nodes that lived inside a `CanvasLayer` were using screen coordinates.
+Move them into the forest and the parent changes, so the on-screen position
+jumps.
+Godot does not correct the coordinates for you.
+
+After you move them under `Beacon`, check with your eyes that the four nodes'
+`position` values are **correct relative to the fire pit**, and if they are
+off, put the flame on top of the pit.
+:::
+
+### 5-3. Pull the beacon out of the forest
+
+Select `Beacon` and drag it **out of** `Forest`. It must become a direct child
+of `TitleMenu`, which is to say a sibling of `Forest`.
+
+The flame goes orange again. That is because `modulate` only flows down to
+children.
+**The table from 4-3 is happening in front of you.**
+
+Now set `Beacon`'s `position` to `(404, 250)`.
+Internal resolution is 808 × 360, so X is exactly center, and Y 250 is the
+clearing toward the bottom of the screen.
+
+Delete the now-empty `Fire` `CanvasLayer`.
+
+### 5-4. Recolor the fire pit
+
+At this point **only the fire pit is bright like daytime**. Before, the pit
+also passed through `CanvasModulate` and picked up the night tint. Now the
+beacon has left that range.
+
+Multiply the night tint onto the fire pit yourself.
+
+| | R | G | B |
+| --- | --- | --- | --- |
+| Original pit color | 0.82 | 0.80 | 0.79 |
+| Night tint | × 0.315 | × 0.35 | × 0.57 |
+| **Value to enter** | **0.258** | **0.28** | **0.45** |
+
+Select `Pit` and put `(0.258, 0.28, 0.45, 1)` in `Modulate`.
+You have written by hand, on that one spot, the math `CanvasModulate` used to
+do.
+
+### 5-5. The clearing lost its warmth
+
+The forest and the pit match, but put the screen next to Lesson 1 and **the
+clearing is dead gray**.
+The warm wash that used to sit around the campfire is gone.
+
+You did not enter the color wrong. The two methods **apply light in a
+different order**.
+
+| | Order |
+| --- | --- |
+| `CanvasModulate` | Draw in the original color → add light → multiply night tint over the whole result |
+| `modulate` | **First multiply night tint onto a darkened picture** → then add light |
+
+Light is hitting a darkened floor, so no matter how hard you shine it never
+gets as bright as before.
+Measure it and this is what you get. Forest the light does not reach is
+**identical**; only the clearing drops.
+
+| Where we measure | Lesson 1 | After the structure change only |
+| --- | --- | --- |
+| Forest outside the light | `(16.1, 21.6, 24.8)` | `(16.1, 21.6, 24.7)` |
+| Clearing | `(134.1, 79.2, 65.4)` | `(83.9, 60.1, 61.6)` |
+
+Give the light that much more power. Raise `Light`'s `energy` by **3.2×**.
+We tried 1.5, 1.9, 2.3, and 2.7 to find the slope, and 3.2 is where it
+matched.
+It is not a number you can derive. It is a **number you match with your eyes
+and a ruler**.
+
+> **Why 3.2 of all numbers — do not memorize it**
+> If your night tint is different, the multiplier is different too. The number
+> is not what matters. What matters is **"change the structure and you have to
+> recapture the light."**
+> Places the light does not reach, like the forest, match on their own. Only
+> places the light reaches go off.
+
+**And yet raising `energy` in the inspector right now does nothing.**
+The reason and where to put the value are in 5-7. First we have to extract the
+beacon as a scene.
+
+### 5-6. Extract the beacon as a scene
+
+Only now can we extract it as a scene. The beacon is gathered in one place.
+
+Create the `scenes/objectives/` folder in the FileSystem dock first.
+Then **right-click `Beacon` → `Save Branch as Scene`** and save it as
+`res://scenes/objectives/beacon.tscn`.
+
+After you save, that slot in the Scene dock **collapses to a single clapperboard
+icon**.
+You cannot see the child nodes. They are not deleted; they moved to another
+file.
+Click the icon and that file opens.
+
+`beacon.tscn` looks like this.
+
+| Node | Type | Job |
+| --- | --- | --- |
+| `Beacon` | `Node2D` | Root that holds the rest. Position is set here |
+| `Pit` | `Sprite2D` | Stone-ringed fire pit |
+| `Light` | `PointLight2D` | Firelight that tints the surroundings |
+| `Smoke` | `GPUParticles2D` | Smoke rising up |
+| `Embers` | `GPUParticles2D` | Drifting embers |
+| `Flame` | `GPUParticles2D` | Flame |
+| `Glow` | `Sprite2D` | Bloom layered over the flame |
+
+**Seven** nodes. Everything one beacon needs, and nothing else.
+(When we move the flicker in at 5-7, one `AnimationPlayer` is added and it
+becomes eight.)
+
+> **Why the root node is `Node2D`**
+> It is tempting to put `Sprite2D` (the pit) at the top and hang the rest as
+> its children.
+> Then the moment you delete the pit sprite or change its size, the flame and
+> light come along for the ride.
+> Make the root a **`Node2D` that draws nothing** and the children stay
+> independent of each other.
+
+### 5-7. Move the flicker into the beacon
+
+Try putting the 3.2× value into `energy` in the inspector — **nothing
+happens**.
+
+That is because `BeaconFx` **overwrites `Light:energy` every frame** with an
+animation.
+The value written in the scene dies the moment the animation starts.
+
+:::warning Properties an animation touches cannot be changed from the inspector
+If a value you enter does not change, check `AnimationPlayer` before you get
+angry.
+If that property is in the track list, the place to fix is not the inspector
+but the **keyframes**.
+:::
+
+So should we just edit the keyframes? Then there are two places to touch —
+the title's keyframes, and the `energy` on `beacon.tscn` that the arena will
+use.
+**That is exactly what this lesson is teaching you not to do.**
+
+Flicker is part of what makes a beacon a beacon. The beacon scene should hold
+it.
+
+1. Cut the `flicker` animation out of `BeaconFx` and attach a **new
+   `AnimationPlayer` (`Flicker`) inside `beacon.tscn`**. Turn on `Autoplay on
+   Load`.
+2. The node path gets one step shorter — `Beacon/Light:energy` →
+   `Light:energy`.
+3. Multiply every `energy` keyframe by 3.2.
+   `1.45` → `4.64`, `1.58` → `5.056`, …
+4. Set the inspector `energy` to `4.64` as well. The animation overwrites it,
+   but if the value only jumps when you later turn the animation off, the
+   cause is very hard to find.
+
+What stays on the title is only the **`flare` that burns big once when you
+tap**.
+That is a title-only effect, so it belongs there.
+Multiply `flare`'s `energy` values by the same 3.2. Otherwise a tap actually
+makes it **darker**.
+
+`BeaconFx` no longer autoplays. Turn `Autoplay` off.
+
+> **Is it OK for two `AnimationPlayer`s to touch the same value?**
+> Yes. **Whoever comes later in the tree wins.** `BeaconFx` is after
+> `Beacon`, so for the 0.85 seconds of a tap `flare` wins, and when it ends
+> the beacon's own flicker takes the value back. So you do not need to start
+> `flicker` again after `flare`.
+
+At this point **forest the light does not reach matches Lesson 1 pixel for
+pixel, and the clearing's warmth is back.**
+As a bonus the arena beacon flickers too — because the beacon scene holds it.
+
+### 5-8. The flame got washed out by its own light
+
+We raised the light 3.2× and this time **the flame color is gone**.
+In Lesson 1 you could see a deep orange with a red wick, and the smoke was
+clear.
+Now the whole thing is a pale yellow lump.
+
+The beacon's light is **also lighting its own flame**.
+
+That did not happen in Lesson 1. The flame was on a separate `CanvasLayer`, so
+**2D lights could not reach it at all**. This problem came along when we
+gathered everything onto one canvas.
+
+We cannot go back to `CanvasLayer`. We use a **light mask** instead.
+
+| Property | Where it lives | Meaning |
+| --- | --- | --- |
+| `light_mask` | `CanvasItem` (everything that is drawn) | Which lights do I respond to |
+| `range_item_cull_mask` | `Light2D` | Which things do I light |
+
+The light reaches only if at least one bit overlaps. **Set `light_mask` to
+`0` and there is no bit on, so no light reaches it.**
+
+Select the four nodes `Smoke`, `Embers`, `Flame`, and `Glow` and set
+`light_mask` to `0`.
+
+```ini
+[node name="Flame" type="GPUParticles2D" parent="."]
+light_mask = 0
+```
+
+> **This is a method we were already using**
+> Open `night_forest.tscn` and look at `MistFar`, `MistNear`, `Beams`,
+> `Motes`, `CanopyShade`, and `Vignette`. All of them have `light_mask = 0`.
+> Mist and moonlight shafts glow on their own, so they got the same treatment.
+> We are not making a new rule. We are applying **a rule this project already
+> uses** to the beacon as well.
+
+Leave `Pit` (the fire pit) as it is. In Lesson 1 the pit was inside the forest
+and received light.
+Firelight catching on the stones is the right picture.
+
+Now the flame burns in its own color, and only the surrounding floor brightens.
+
+> **A flame is supposed to glow on its own**
+> The flame art is already drawn as "bright fire." Add light on top of that
+> and it does not get brighter — **the color washes out**.
+> Do not shine light on things that already glow — a rule you use often in 2D
+> lighting.
+
+### 5-9. Extract the night forest as a scene
+
+The same way, save `Forest` as `res://scenes/gameplay/night_forest.tscn`.
+After saving, rename the root inside the scene to `NightForest`.
+
+This side has **1,296** nodes. Every tree and tuft of grass is a node.
+The file becomes 10,819 lines. It is not a file you open to read, and you will
+have no reason to.
+**This is exactly the kind of thing you should extract as a scene.**
+Copy it into two copies and nobody will know which one is real.
+
+| Layer | Nodes |
+| --- | --- |
+| Floor | `Ground` · `Clearing` · `Scorch` |
+| Grass and trees | `Details` · `Trees` |
+| Shade | `CanopyShade` |
+| Light and dust | `Motes` · `Beams` |
+| Mist | `MistFar` · `MistNear` · `Mist` (`AnimationPlayer`) |
+| Darkened edges | `Vignette` |
+
+### 5-10. Make the arena
+
+`Scene ▸ New Scene` → make the root a `Node2D` and rename it `Arena`.
+Save it as `res://scenes/gameplay/arena.tscn`.
+
+Now press the **chain icon (`Instantiate Child Scene`)** at the top of the
+Scene dock and pick `night_forest.tscn`. Press it once more and pick
+`beacon.tscn`.
+Set the pasted `Beacon`'s `Position` to `(404, 250)`.
+
+The saved file looks like this. **This is all of it.**
+
+```ini
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/gameplay/night_forest.tscn" id="forest"]
+[ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="beacon"]
+
+[node name="Arena" type="Node2D"]
+
+[node name="NightForest" parent="." instance=ExtResource("forest")]
+
+[node name="Beacon" parent="." instance=ExtResource("beacon")]
+position = Vector2(404, 250)
+```
+
+**11 lines**. Three nodes, and not a single line of actual content.
+Two `ExtResource` lines point at other files, and one `position` line decides
+where the beacon goes.
+
+Press `F6` and run just this scene. You should get the screen from section 1.
+
+### 5-11. Rebuild the title screen on the new parts
+
+`title_menu.tscn` still **owns** its forest and beacon **directly**.
+The contents match what `arena.tscn` uses, but they are separate nodes. There
+are two copies of the forest.
+
+Delete `Forest` and `Beacon` from the title, and attach the two scenes as
+instances the same way you did in `arena.tscn`. `Beacon` position is still
+`(404, 250)`.
+
+| File | Before | After |
+| --- | --- | --- |
+| `title_menu.tscn` | 11,228 lines | **201 lines** |
+
+What remains in those 201 lines is the title text, the "Tap to start" prompt,
+the version display, the music, and the animation of the beacon swaying —
+**only the things that belong to the title screen**.
+
+:::warning Fix the animation node paths too
+`AnimationPlayer` remembers target nodes as a **path string**.
+You moved the nodes, so every path is now wrong.
+
+| Before | After | Where it goes |
+| --- | --- | --- |
+| `Fire/Flames/Glow:scale` | `Glow:scale` | `Flicker` in `beacon.tscn` |
+| `Forest/Beacon/Light:energy` | `Light:energy` | `Flicker` in `beacon.tscn` |
+| `Fire/Flames/Glow:scale` | `Beacon/Glow:scale` | Title `BeaconFx` (`flare`) |
+| `Forest/Beacon/Light:energy` | `Beacon/Light:energy` | Title `BeaconFx` (`flare`) |
+
+The scary part is that **there is no error**. The game runs fine; only the
+flame does not sway.
+Open `AnimationPlayer` and check with your eyes that no track name is shown in
+red.
+:::
+
+Change the paths that look up nodes in the script as well.
+
+```gdscript
+@onready var _forest: Node2D = $NightForest
+@onready var _vignette: Sprite2D = $NightForest/Vignette
+@onready var _beacon: Node2D = $Beacon
+```
+
+If these are wrong, **you get an error the moment you run**. So they are
+actually safer.
+The dangerous ones are the animation tracks that fail quietly.
+
+In the part that handles a tap, you have to delete one line.
+
+```gdscript
+	_beacon_player.play(&"flare")
+	_beacon_player.queue(&"flicker")   # ← delete this line
+```
+
+`flicker` is no longer on `BeaconFx`. Leave it and it looks for an animation
+that is not there and **errors at runtime**. The beacon itself keeps
+flickering, so when `flare` ends it comes back on its own.
+
+## 6. Check your work so far
+
+The four files should look like this.
+
+```text
+res://scenes/
+  gameplay/
+    arena.tscn            11 lines  · 3 nodes
+    night_forest.tscn  10,819 lines · 1,296 nodes
+  objectives/
+    beacon.tscn           227 lines · 8 nodes
+  menus/
+    title_menu.tscn       201 lines · 13 nodes
+```
+
+Being off by a few dozen lines does not matter. **The order of magnitude
+should match.**
+If `title_menu.tscn` is still in the ten-thousands, you skipped 5-11.
+
+Check that it opens with no errors from the command line.
+
+```bash
+pnpm game:check
+```
+
+The exit code must be `0`, with no errors or warnings.
+
+## 7. Break it on purpose
+
+**① Move `Beacon` under `NightForest` as a child**
+→ The moment it is a child instead of a sibling, `modulate` flows down and
+the beacon goes blue.
+Where it hangs in the scene tree is exactly how far the color spreads.
+
+**② Set `NightForest`'s `modulate` back to white and add a `CanvasModulate` as
+a child**
+→ This time even the sibling beacon goes blue. Same canvas.
+This is why the Lesson 1 structure had to pull the flame onto a separate
+layer. After you check, put it back.
+
+**③ In `beacon.tscn`, change the fire-pit picture to something else**
+→ **Both** `arena.tscn` and `title_menu.tscn` change.
+That is what extracting as a scene gets you. This one line is what this
+lesson earned.
+
+**④ Set `Flicker`'s `energy` keyframes back to the values before the 3.2×**
+→ The clearing goes gray again. The forest stays the same.
+You can see with your eyes that only the places light reaches go off.
+
+**⑤ Set `Flame`'s `light_mask` to `1`**
+→ The flame goes pale. It is being washed out by its own light.
+Zoom in and you can see the red wick and the smoke are gone.
+
+## 8. Completion checklist
+
+- [ ] `beacon.tscn` exists, and running it alone burns a beacon (flame included)
+- [ ] `night_forest.tscn` exists, and running it alone shows a night forest with no beacon
+- [ ] `arena.tscn` holds the two scenes as instances only, and is around 11 lines
+- [ ] Running `arena.tscn` shows one beacon burning in a night-forest clearing
+- [ ] The beacon is not blue, and the forest is blue
+- [ ] The clearing has a warm wash (if it is gray, you skipped 5-5 and 5-7)
+- [ ] The flame is a deep orange (if it is a pale yellow lump, you skipped 5-8)
+- [ ] The `Fire` `CanvasLayer` and the `NightTint` `CanvasModulate` are gone
+- [ ] `title_menu.tscn` shrank to around 201 lines
+- [ ] The **arena's** beacon also flickers (proof the flicker lives inside the beacon scene)
+- [ ] Tapping the title screen makes the beacon flare, then return to its own flicker
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Exercises
+
+1. In `beacon.tscn`, change `Light`'s `color` to blue and confirm that the
+   change shows up on **both** `arena.tscn` and `title_menu.tscn`.
+   After you check, put it back to `(1, 0.6, 0.3)`.
+
+   > Change `energy` instead of `color` and **neither side changes**.
+   > `Flicker` overwrites `Light:energy` every frame.
+   > **A property an animation touches ignores the value written in the
+   > scene.**
+   > Confirm once more what you hit in 5-7. To change it, you have to edit the
+   > keyframes.
+
+2. Attach one more `Beacon` instance to `arena.tscn` and give it a different
+   position.
+   If two beacons each burn on their own, Lesson 3 is ready.
+   (After you try it, delete the extra one and go back to one.)
+
+3. Toggle `Vignette` on `night_forest.tscn` off and on and watch how the
+   screen edges change. How much that one node contributes to the "this is
+   night" impression is larger than you think.

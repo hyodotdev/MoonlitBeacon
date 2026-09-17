@@ -1,0 +1,214 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/iap_shop_panel.gd" id="script"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Multilingual.tres" id="font"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font_bold"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="confirm"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hero_preview_panel.tscn" id="hero_preview"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frame"]
+bg_color = Color(0.022, 0.035, 0.082, 0.985)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.72, 0.5, 0.24, 0.96)
+shadow_color = Color(0, 0, 0, 0.72)
+shadow_size = 6
+
+[node name="IapShopPanel" type="Control"]
+process_mode = 3
+visible = false
+modulate = Color(1, 1, 1, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.015, 0.022, 0.055, 0.9)
+
+[node name="Frame" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 14
+anchor_left = 0.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 16.0
+offset_top = -164.0
+offset_right = -16.0
+offset_bottom = 164.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_frame")
+
+[node name="Margin" type="MarginContainer" parent="Frame"]
+layout_mode = 2
+theme_override_constants/margin_left = 9
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 9
+theme_override_constants/margin_bottom = 7
+
+[node name="Rows" type="VBoxContainer" parent="Frame/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Header" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 27)
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Frame/Margin/Rows/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 19
+text = "IAP_TITLE"
+
+[node name="Principle" type="Label" parent="Frame/Margin/Rows/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.72, 0.8, 0.94, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+text = "IAP_PRINCIPLE"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="CoinBalance" type="Label" parent="Frame/Margin/Rows/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.86, 0.5, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 10
+text_overrun_behavior = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Status" type="Label" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 17)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.9, 0.93, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+text_overrun_behavior = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CoinsScroll" type="ScrollContainer" parent="Frame/Margin/Rows"]
+layout_mode = 2
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 0
+
+[node name="Coins" type="HBoxContainer" parent="Frame/Margin/Rows/CoinsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 5
+
+[node name="CardsScroll" type="ScrollContainer" parent="Frame/Margin/Rows"]
+layout_mode = 2
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="Cards" type="HBoxContainer" parent="Frame/Margin/Rows/CardsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 5
+
+[node name="PaletteHeader" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PaletteLabel" type="Label" parent="Frame/Margin/Rows/PaletteHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.75, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+text = "IAP_PALETTE_TITLE"
+vertical_alignment = 1
+
+[node name="PaletteButtons" type="HBoxContainer" parent="Frame/Margin/Rows/PaletteHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="PaletteTitle" type="Label" parent="Frame/Margin/Rows/PaletteHeader"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.58, 0.64, 0.76, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+text_overrun_behavior = 3
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Notice" type="Label" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.56, 0.62, 0.74, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+text = "IAP_NOTICE"
+horizontal_alignment = 1
+
+[node name="Footer" type="HBoxContainer" parent="Frame/Margin/Rows"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Restore" type="Button" parent="Frame/Margin/Rows/Footer"]
+custom_minimum_size = Vector2(136, 24)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0.76, 0.88, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "IAP_RESTORE"
+
+[node name="Close" type="Button" parent="Frame/Margin/Rows/Footer"]
+custom_minimum_size = Vector2(136, 24)
+layout_mode = 2
+focus_mode = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_CLOSE"
+
+[node name="Sfx" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("confirm")
+volume_db = -4.0
+bus = &"Sfx"
+
+[node name="HeroPreview" parent="." instance=ExtResource("hero_preview")]

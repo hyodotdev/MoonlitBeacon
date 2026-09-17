@@ -1,0 +1,272 @@
+---
+sidebar_position: 5
+title: Lesson 5 · The player scene and animation
+---
+
+# Lesson 5 · The player scene and animation
+
+Three beacons stand in the night forest. Now we make **the person who will
+stand in that forest**.
+
+This lesson we do not move. We only stand.
+Instead we make **standing properly** — casting a shadow, rising and falling
+like a breath, catching firelight beside a beacon.
+
+Moving is Lesson 6. But **the facing direction we lock in now**, so that when
+we attach the stick in Lesson 6 we only have to call one function.
+
+## 1. The finished screen
+
+<Video
+  src="video/chapter-05-device.mp4"
+  poster="img/chapter-05-device-poster.jpg"
+  title="Pixel 10 — a ninja standing beside a beacon. When the beacon lights, firelight catches on the ninja too"
+  silent
+/>
+
+## 2. Why a separate scene
+
+We do not draw the player directly inside the arena. We extract `player.tscn`.
+Same reason we extracted the beacon in Lesson 2.
+
+- When we make enemies in Lesson 8 we use **the same structure**
+- When we make enemies in Lesson 8 we use **that same structure as-is**
+  (everything that moves looks like this)
+- We can edit the player without opening the arena
+
+```text
+player.tscn
+  Player   (CharacterBody2D)   ← the body. Lesson 6 puts velocity here
+    Shadow (Sprite2D)          ← shadow at the feet
+    Sprite (AnimatedSprite2D)  ← 4-direction idle and walk
+    Body   (CollisionShape2D)  ← the collision range
+    Breathe(AnimationPlayer)   ← the breathing rise and fall
+```
+
+> **Why the root is `CharacterBody2D`**
+> In Lesson 6 we move with `move_and_slide()`. We put what that needs on the
+> root now.
+> Change the root type later and every child you attached and every script
+> shakes.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Creating the player scene`
+together.
+
+| Official docs | What we take from them |
+| --- | --- |
+| Creating the player scene | Player as a separate scene · `AnimatedSprite2D` |
+| 2D sprite animation | Cutting a sprite sheet into `SpriteFrames` |
+
+The official sample puts two animations on `AnimatedSprite2D`.
+We put **4 directions × 2 states = 8**. It is top-down, so we need direction.
+
+## 4. Reading the sprite sheet
+
+We use `NinjaBlue` from the `Ninja Adventure` pack. We bring only two files.
+
+| File | Size | Layout |
+| --- | --- | --- |
+| `ninja_walk.png` | 64 × 64 | 16px cells **4 columns × 4 rows** |
+| `ninja_idle.png` | 64 × 16 | 16px cells **4 columns × 1 row** |
+
+**Columns are direction and rows are frames.** Get that backwards and the
+facing changes while walking.
+
+| Column | Direction | How you can tell |
+| --- | --- | --- |
+| 0 | Down | You can see the face |
+| 1 | Up | You can see the back of the head |
+| 2 | Left | Side view |
+| 3 | Right | The other side view |
+
+:::tip Zoom the sheet and confirm with your eyes
+Do not trust the layout written in a document. Open it. Packs differ, and even
+inside the same pack characters can differ. At 16px you have to scale 4–6× to
+see it.
+:::
+
+Make eight animations in `SpriteFrames`.
+
+| Name | Frames | Speed |
+| --- | --- | --- |
+| `idle_down` `idle_up` `idle_left` `idle_right` | 1 frame | 1 |
+| `walk_down` `walk_up` `walk_left` `walk_right` | 4 frames | 9 |
+
+## 5. Build it yourself
+
+<Video
+  src="video/chapter-05-idle.mp4"
+  poster="img/chapter-05-idle-poster.jpg"
+  title="Idle — rising and falling like a breath on a 1.8-second cycle (silent)"
+  silent
+  ratio="1040 / 680"
+/>
+
+### 5-1. The problem of idle being one frame
+
+`Idle.png` has **one frame** per direction. Leave it and it freezes
+completely.
+It does not look alive.
+
+We solve it without drawing more frames. **Raise the sprite 1px and lower it.**
+
+```ini
+[sub_resource type="Animation" id="Animation_breathe"]
+length = 1.8
+loop_mode = 1
+tracks/0/path = NodePath("Sprite:offset")
+"values": [Vector2(0, -8), Vector2(0, -9), Vector2(0, -8)]
+```
+
+1px over 1.8 seconds. Internal resolution 808 × 360 grows 3× on the phone, so
+on screen it rises and falls 3px. Not noticeable, and **not frozen**.
+
+> **In pixel art, 1px is a large value**
+> 1px on a 16px character is 1/16 of their height. On a person that is 10cm.
+> Do 2px and it looks like hopping, not breathing.
+
+The default ninja in this course has a one-frame idle, so this animation is
+needed. The shipping 48×64 heroes have a 4-frame idle, so we pin the baseline
+with `Breathe.stop()` and `Sprite.offset = Vector2(0, -8)`. Layer a frame
+animation on a whole-body offset and on a scaled-up screen you see two bodies
+overlapping.
+
+### 5-2. Shadow
+
+Make one soft 24 × 10 ellipse and put it at the feet.
+
+:::warning Light must not reach the shadow
+Set the shadow sprite's `light_mask` to `0`.
+
+Otherwise **the shadow brightens beside a beacon.** Closer to the fire, the
+shadow gets lighter — which is the opposite of reality.
+
+Same judgment as giving the flame `light_mask = 0` in Lesson 2.
+**Do not shine light on things that glow on their own, or on things that
+block light.**
+:::
+
+### 5-3. Night tint
+
+The player is a **sibling** of the forest. The night tint we gave the forest
+does not flow down.
+Leave it and a daytime ninja is standing in a night forest.
+
+Put the night tint on the `Player` root's `Modulate`.
+
+| R | G | B |
+| --- | --- | --- |
+| 0.315 | 0.35 | 0.57 |
+
+Same treatment as the fire pit in Lesson 2 and the clearing in Lesson 3.
+
+**There is one difference from the fire pit.** Leave the sprite's
+`light_mask` at the default `1`. It has to receive beacon light.
+
+That fire-side is bright in a night forest is this whole game.
+If the player does not receive that light, there is no reason to light a
+beacon.
+
+### 5-4. Lock facing in now
+
+We make this function ahead of time so that when we attach the stick in
+Lesson 6 we only have to call it.
+
+```gdscript
+enum Facing { DOWN, UP, LEFT, RIGHT }
+
+
+## Lesson 6 passes the stick direction as-is. If the length is near 0, do not change facing.
+func face_toward(direction: Vector2) -> void:
+	if direction.length() < 0.01:
+		return
+	if absf(direction.x) > absf(direction.y):
+		facing = Facing.RIGHT if direction.x > 0.0 else Facing.LEFT
+	else:
+		facing = Facing.DOWN if direction.y > 0.0 else Facing.UP
+```
+
+> **Which way is a diagonal**
+> Push the stick at 45 degrees and `x` and `y` are similar. Split with
+> `absf(x) > absf(y)` and follow **the larger one**. We only have 4-direction
+> sprites, so we have to pick one.
+>
+> **Not changing facing** when the length is near 0 is also important.
+> The moment you release the stick the value drops to 0, and if you change
+> facing then, the character looks down every time you lift your hand.
+
+Match the `enum` order to **the column order of the sprite sheet** and you can
+use it as-is when you build the name.
+
+```gdscript
+const FACING_NAMES: Array[StringName] = [&"down", &"up", &"left", &"right"]
+
+
+func _play_current() -> void:
+	var prefix: String = "walk_" if _walking else "idle_"
+	_sprite.play(prefix + FACING_NAMES[facing])
+```
+
+### 5-5. Place it in the arena
+
+Attach `player.tscn` as an instance on `arena.tscn` and put it at
+`(330, 300)`.
+Near the west beacon. You can see firelight catch the moment the beacon
+lights.
+
+## 6. Check your work so far
+
+```bash
+pnpm game:check
+```
+
+- `player.tscn` exists and has 8 animations
+- A ninja stands in the arena with a shadow at their feet
+- When the beacon is unlit the ninja is dark
+- When the beacon lights the ninja brightens
+- The shadow does not brighten
+- Left alone, they rise and fall like a breath
+
+## 7. Break it on purpose
+
+**① Set `Player`'s `Modulate` back to white**
+→ A daytime ninja stands in a night forest. They look like they are in a
+different world by themselves.
+
+**② Set the shadow's `light_mask` to `1`**
+→ Beside a beacon the shadow gets lighter. Closer to the fire, the shadow
+disappears.
+
+**③ Stretch `breathe`'s 1px to 4px**
+→ It hops instead of breathing. You can see how large 1px is in pixel art.
+
+**④ Delete `if direction.length() < 0.01: return` from `face_toward()`**
+→ It does not show yet. Attach the stick in Lesson 6 and **they look down
+every time you lift your hand.**
+That is why we put it in now.
+
+## 8. Completion checklist
+
+- [ ] `player.tscn` exists as a separate file
+- [ ] `SpriteFrames` has 8 animations (4 idle · 4 walk)
+- [ ] A ninja stands in the arena
+- [ ] There is a shadow at their feet, and it does not brighten when a beacon lights
+- [ ] The ninja receives the night tint, and also receives beacon light
+- [ ] They rise and fall like a breath
+- [ ] `pnpm game:check` exits with code 0
+- [ ] The same screen appears on the phone
+
+## 9. Exercises
+
+1. Set `walk_down` to `autoplay` and run. They march in place.
+   This is a preview of when that animation will appear in Lesson 6.
+   After you check, put it back to `idle_down`.
+
+2. In the inspector, change `Facing` to `UP`, `LEFT`, and `RIGHT`.
+   It does not change in the editor; you have to run.
+   Unlike the Lesson 4 beacon, we did not put `@tool` on it.
+
+3. Move the ninja near the north beacon at `(414, 196)`.
+   That beacon is the third to light. Watch how dark the ninja is until then.

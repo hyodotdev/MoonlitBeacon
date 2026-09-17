@@ -1,0 +1,192 @@
+/* Moonlit Beacon — night forest (deep navy) + beacon flame (amber) */
+
+:root {
+  --ifm-color-primary: #b06f12;
+  --ifm-color-primary-dark: #9e6410;
+  --ifm-color-primary-darker: #955f0f;
+  --ifm-color-primary-darkest: #7b4e0d;
+  --ifm-color-primary-light: #c27a14;
+  --ifm-color-primary-lighter: #cb8015;
+  --ifm-color-primary-lightest: #e29122;
+  --ifm-code-font-size: 92%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.08);
+
+  --mb-night: #0b0e1c;
+  --mb-night-soft: #141a33;
+  --mb-flame: #ffb347;
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #ffb347;
+  --ifm-color-primary-dark: #ffa326;
+  --ifm-color-primary-darker: #ff9b15;
+  --ifm-color-primary-darkest: #e18100;
+  --ifm-color-primary-light: #ffc368;
+  --ifm-color-primary-lighter: #ffcb79;
+  --ifm-color-primary-lightest: #ffe0ac;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+
+  --ifm-background-color: var(--mb-night);
+  --ifm-background-surface-color: var(--mb-night-soft);
+}
+
+/* ------------------------------------------------------------------ course clips */
+
+.mb-clip {
+  margin: 1.25rem 0 1.75rem;
+}
+
+/* Frame aspect ratio.
+ *
+ * `preload="none"` means we do not know the intrinsic size until the clip
+ * arrives. Without a fixed-ratio box the layout jumps on every load.
+ * So we keep a box, and **match its ratio to the clip.**
+ *
+ * The default is the game view (1212 x 540). 28 of 35 clips use that size.
+ * Editor crops pass their own ratio with `<Video ratio="..." />`.
+ * Everything used to be 16/9, and the Lesson 10 HUD clip was 82% empty
+ * background inside the frame. */
+.mb-clip__frame {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  aspect-ratio: var(--mb-clip-ratio, 1212 / 540);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--mb-night);
+  border: 1px solid var(--ifm-color-emphasis-300);
+}
+
+.mb-clip__frame iframe,
+.mb-clip__frame video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.mb-clip__caption {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  opacity: 0.7;
+}
+
+/* Pre-recording placeholder — a one-line card. It does not eat the page. */
+.mb-clip--pending {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px dashed var(--ifm-color-emphasis-400);
+  border-radius: 8px;
+  background: var(--ifm-color-emphasis-100);
+}
+
+.mb-clip__badge {
+  flex: none;
+  width: 1.65rem;
+  height: 1.65rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  color: var(--mb-night);
+  background: var(--ifm-color-primary);
+  opacity: 0.85;
+}
+
+.mb-clip__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.mb-clip__meta strong {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.mb-clip__sub {
+  font-size: 0.78rem;
+  opacity: 0.62;
+}
+
+/* ------------------------------------------------------------------ landing */
+
+.mb-hero {
+  position: relative;
+  padding: 5rem 1rem 4rem;
+  text-align: center;
+  background:
+    radial-gradient(
+      70% 100% at 50% 0%,
+      rgba(255, 179, 71, 0.18) 0%,
+      transparent 70%
+    ),
+    var(--mb-night);
+  color: #f2f0e6;
+  overflow: hidden;
+}
+
+.mb-hero__title {
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.mb-hero__subtitle {
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  opacity: 0.82;
+  max-width: 34rem;
+  margin: 0 auto 2rem;
+  line-height: 1.7;
+}
+
+.mb-hero__buttons {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.mb-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  justify-content: center;
+  margin-top: 2.5rem;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.mb-section {
+  padding: 3.5rem 0;
+}
+
+.mb-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.mb-card {
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 10px;
+  padding: 1.25rem 1.4rem;
+  background: var(--ifm-background-surface-color);
+}
+
+.mb-card h3 {
+  margin-bottom: 0.4rem;
+  font-size: 1.05rem;
+}
+
+.mb-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  line-height: 1.65;
+}

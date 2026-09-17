@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/items/moon_ember.gd" id="script"]
+
+[node name="MoonEmber" type="Node2D"]
+light_mask = 0
+script = ExtResource("script")

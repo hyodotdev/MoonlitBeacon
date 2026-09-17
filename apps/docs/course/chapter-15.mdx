@@ -1,0 +1,336 @@
+---
+sidebar_position: 15
+title: Lesson 15 · Settings · Korean and English · Credits
+---
+
+# Lesson 15 · Settings · Korean and English · Credits
+
+Until now every on-screen string was **hard-coded in one language.**
+
+This lesson builds a settings window, switches language in place, and
+adds credits. Credits are not taste. They are an **obligation.**
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-15-language.mp4"
+  poster="img/chapter-15-language-poster.jpg"
+  title="Changing language in Settings rewrites every on-screen string in place (silent)"
+  silent
+/>
+
+<Video
+  src="video/chapter-15-credits.mp4"
+  poster="img/chapter-15-credits-poster.jpg"
+  title="Credits — translate role names, leave proper nouns as they are (silent)"
+  silent
+/>
+
+## 2. Translation is not "changing the letters"
+
+If translation were only swapping
+`"All beacons are burning"` for another language's sentence,
+one `if` would be enough.
+
+The problem is that **the strings are scattered.**
+
+| Where | How many |
+| --- | --- |
+| `text` written in scenes | 10 |
+| strings the code builds | 12 |
+
+You cannot put `if locale == "en"` in twenty-two places.
+
+Godot does this. **Write a key where the string goes, and keep a table
+separately.**
+
+```csv
+keys,ko,en
+RESULT_WIN,All beacons are burning,All beacons are burning
+```
+
+The scene stores `text = "RESULT_WIN"`. The screen shows the current
+language's string. The real game CSV still has a Korean column; this
+English-language course shows the English side of the same row.
+
+> **The table is comma-separated**
+> A comma inside a translation shifts the columns. The `.mjs` check
+> catches that. If you truly need a comma you must wrap it in quotes,
+> and it is better not to need one.
+
+## 3. Check the official docs
+
+| Docs | What we take |
+| --- | --- |
+| Internationalizing games | keys and the translation table |
+| Importing translations | CSV to `.translation` |
+| `TranslationServer` | changing language at runtime |
+
+## 4. Files the import creates
+
+`localization/moonlit.csv` is the **source.** The game reads
+`moonlit.ko.translation` and `moonlit.en.translation`,
+and the import creates those two.
+
+:::danger `--headless --quit` does not import
+Edit the CSV, run the game, and **the old translation still appears.**
+We hit this. A new key showed on screen as `CREDITS_SOUND` itself.
+
+```bash
+godot --headless --path apps/game --import
+```
+
+Run `--import` once so `.translation` is rebuilt.
+Opening the editor also works. Import runs when the editor starts.
+:::
+
+`.translation` files are generated, so they stay out of git.
+But **a missed import fails quietly**, so we keep a check.
+
+```bash
+node .github/scripts/check-locale.mjs                              # table vs keys
+godot --headless --path apps/game --script res://tools/check_locale.gd   # does it actually load
+```
+
+The first looks at the table without launching the game. The second asks
+the engine directly.
+**You need both** — a perfect table still shows raw keys if import never ran.
+
+## 5. Implement it yourself
+
+### 5-1. Strings written in scenes change by themselves
+
+When a `Control` draws `text`, it translates it into the current language.
+When the language changes, the engine notifies every `Control` to redraw.
+
+**We do nothing.** One line, `TranslationServer.set_locale("en")`,
+rewrites every string stored in a scene in place.
+
+### 5-2. Strings the code built, we rewrite
+
+The HUD beacon count is built in code.
+
+```gdscript
+func set_beacons(lit: int, total: int) -> void:
+	_lit = lit
+	_total = total
+	_beacons.text = tr("HUD_BEACONS") % [lit, total]
+```
+
+`tr()` builds the string in the language at the moment it is called.
+**If the language changes after that, the string already in the label
+does not change.**
+
+You can change language while paused, so we listen for the notification
+and redraw.
+
+```gdscript
+func _notification(what: int) -> void:
+	# This notification can arrive before `_ready()`. `@onready` may still be empty.
+	if what == NOTIFICATION_TRANSLATION_CHANGED and _beacons != null:
+		set_beacons(_lit, _total)
+```
+
+:::danger It arrives before `_ready()`
+We ran it without the `@onready` check and got this.
+
+```text
+Invalid assignment of property 'text' ... on a base object of type 'Nil'
+```
+
+Autoload picks a language as it starts, and at that moment the HUD's
+`@onready` vars are not filled yet.
+:::
+
+You also have to keep the last values so you can redraw.
+That is why `_lit` and `_total` exist.
+
+### 5-3. Things we do not translate
+
+| | Why |
+| --- | --- |
+| Moonlit Beacon logo | It is a logo. `MOONLIT BEACON` already sits under it |
+| Native language names · `English` | **Write each name in that language.** A button that says "Korean" on an English screen is hard to find for someone looking for Korean |
+| `Pixel-Boy` · `Maplestory` | Person names and pack names. Translating them makes the authors unfindable |
+| `+` · `-` | Symbols |
+
+In Godot, turn it off with `auto_translate_mode = 2` (Disabled).
+
+### 5-4. Split sound across buses
+
+Until now every sound sat on a single `Master`.
+To lower only the music you need a **music bus.**
+
+```text
+Master
+ ├─ Music   ← title BGM, arena BGM, guardian BGM
+ └─ Sfx     ← confirm sound, beacon ignite
+```
+
+Write it in `default_bus_layout.tres` and set each `AudioStreamPlayer`'s `bus`.
+
+:::warning Do not write step numbers as decibels
+The ear hears loudness **on a log scale.** Putting steps in as
+`-5, -4, -3 …` makes only the top one or two ticks sound different,
+and everything below them sounds the same.
+
+```gdscript
+func step_to_db(step: int) -> float:
+	if step <= 0:
+		return MUTE_DB                           # linear_to_db(0) is -inf
+	return linear_to_db(float(step) / float(MAX_STEP))
+```
+
+Take a ratio and convert with `linear_to_db()`. The steps spread as
+5→0.0 · 4→−1.9 · 3→−4.4 · 2→−8.0 · 1→−14.0 dB.
+:::
+
+Step 0 is not handled as decibels alone. Also call `set_bus_mute()`.
+
+### 5-5. One more autoload
+
+In Lesson 14 we wrote this.
+
+> Do not sprinkle autoloads everywhere. (…) Autoload holds **only what
+> must live across scenes.**
+
+Settings are that too. We still **keep them separate** from `Records`.
+
+| | What | File |
+| --- | --- | --- |
+| `Records` | play results | `user://records.cfg` |
+| `Settings` | preferences | `user://settings.cfg` |
+
+Clearing records should leave the language setting. Two autoloads that
+each do one job beat one autoload that does two.
+
+### 5-6. Language on a first-run device
+
+```gdscript
+func _default_locale() -> String:
+	var system: String = OS.get_locale_language()
+	return system if system in LOCALES else "en"
+```
+
+A Korean-language device starts in Korean; otherwise English.
+**Once the player picks, that value is saved** and the device language
+no longer matters.
+
+Also remember a save file can be edited by hand.
+
+```gdscript
+	if saved in LOCALES:                         # a hand-edited file can arrive
+		locale = saved
+```
+
+### 5-7. The same scene in two places
+
+The settings window is **on the title and in pause.** There is one scene.
+
+That works because it does not hold the values itself. The panel only
+reads `Settings` to draw, and redraws when it hears `changed`.
+
+```gdscript
+	Settings.changed.connect(_redraw)
+```
+
+Same idea as growing enemies with one `.tres` in Lesson 13.
+**Do not build the same thing twice.**
+
+### 5-8. Hide what sits behind the window
+
+At first we only dimmed. After rendering, it looked like this.
+
+- Title: the Moonlit Beacon logo showed through between settings rows
+- Pause: `Paused` and three buttons stacked from behind
+
+```gdscript
+	$Ui/Screen.visible = false                   # title
+	_pause.set_overlay_visible(false)            # pause
+```
+
+Leave the paused state (`get_tree().paused`) as it is. **Just do not show it.**
+
+:::tip Translucent does not mean "overlap is fine"
+0.78 still leaves 22% of what is behind. A dark background hides it,
+but **bright text still shows through.** Large type like a logo especially.
+:::
+
+### 5-9. Credits are an obligation
+
+| Asset | License | Credit |
+| --- | --- | --- |
+| Godot Engine | MIT | **required** |
+| MapleStory | Nexon free font (attribution) | **required** |
+| Noto Sans CJK SC | SIL OFL 1.1 | **required** |
+| godot-iap | MIT | **required** |
+| Ninja Adventure | CC0 | none (but we write it) |
+| Kenney | CC0 | none (but we write it) |
+
+CC0 has no obligation, and we still write it. Leaving out the name of
+someone who let you use their work for free is **not a legal problem.
+It is a manners problem.**
+
+The credits screen must match
+[Third-party assets and licenses](/docs/assets/third-party).
+When you add an asset, edit both places together.
+
+## 6. Check that this much is working
+
+```bash
+node .github/scripts/check-locale.mjs
+```
+
+- Pressing English in Settings rewrites every string in place
+- The logo, native language names, and `Pixel-Boy` stay as they are
+- Music at 0 still leaves sound effects audible
+- Quitting and relaunching keeps language and volume
+- Changing language while paused **changes the HUD too**
+- The logo or pause screen does not show through behind Settings
+
+## 7. Break it on purpose
+
+**① Edit the CSV and run without `--import`**
+→ Old translations appear. New keys show as the key itself.
+
+**② Put a comma inside a translation**
+→ Columns shift and the wrong string appears. `check-locale.mjs` catches it.
+
+**③ Skip the `@onready` check in the HUD `_notification`**
+→ The game dies on launch trying to set `text` on `Nil`.
+
+**④ Write step numbers as decibels**
+→ Step 1 and step 2 sound the same.
+
+**⑤ Use `linear_to_db(0)` as-is**
+→ `-inf` goes in and audio goes wrong.
+
+**⑥ Leave `auto_translate_mode` on for language buttons**
+→ A native Korean label is not in the table, so it would still show as-is.
+It still leaves room to treat `English` as a key. Turning it off is clearer.
+
+**⑦ Open Settings without hiding what is behind**
+→ The logo and pause screen show through between settings rows.
+
+## 8. Completion checklist
+
+- [ ] Language changes in place (no restart)
+- [ ] Proper nouns do not change
+- [ ] Music and sound effects are adjusted separately
+- [ ] Settings survive quitting and relaunching
+- [ ] Title and pause use **the same settings scene**
+- [ ] Credits list MIT and OFL
+- [ ] `pnpm verify` exits with code 0
+
+## 9. Homework
+
+1. Add a Japanese (`ja`) column to the CSV. **Do not change a line of code.**
+   Put `"ja"` in `LOCALES` and add one button, and you are done.
+
+2. Make one English translation very long (say thirty characters).
+   Something will run off the screen or overlap.
+   **Adding a language means reviewing layout too.**
+
+3. Hand-edit `locale` in `user://settings.cfg` to `de` and run.
+   `if saved in LOCALES` ignores it. Also see what happens if you delete
+   that line.

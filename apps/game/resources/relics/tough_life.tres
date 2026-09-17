@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_TOUGH_LIFE_NAME"
+description = "RELIC_TOUGH_LIFE_DESC"
+effect = 5
+amount = 1.0
+accent = Color(1, 0.62, 0.66, 1)

@@ -1,0 +1,98 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docs: dev server",
+      "detail": "Start the Docusaurus dev server. http://localhost:3000/MoonlitBeacon/",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["docs:dev"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "docusaurus",
+        "fileLocation": "absolute",
+        "pattern": {
+          "regexp": "^\\s*(ERROR|Error):\\s+(.*)$",
+          "severity": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*(Starting the development server|Compiling).*",
+          "endsPattern": ".*(Docusaurus website is running at|Compiled successfully|compiled successfully).*"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "moonlit"
+      }
+    },
+    {
+      "label": "docs: static build",
+      "detail": "Build the same static files that go to GitHub Pages.",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["docs:build"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "docs: preview build",
+      "detail": "Serve the built static site locally as-is.",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["docs:serve"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "docusaurus-serve",
+        "pattern": { "regexp": "^\\s*(ERROR|Error):\\s+(.*)$", "severity": 1, "message": 2 },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*Serving.*",
+          "endsPattern": ".*(Serving|localhost).*"
+        }
+      },
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "game: run",
+      "detail": "Run the game in Godot.",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["game"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "game: open editor",
+      "detail": "Open the project in the Godot editor.",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["game:editor"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "game: check for errors",
+      "detail": "Open and quit headless to see if anything errors. Exit code must be 0.",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["game:check"],
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "android: build APK + install + run",
+      "detail": "Build the APK, install it on a connected device, and launch it.",
+      "type": "shell",
+      "command": "pnpm android:build && pnpm android:run",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="Hero" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/hero.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/heroes/warden/walk.png" id="2_walk"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/heroes/warden/idle.png" id="3_idle"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/heroes/warden/portrait.png" id="4_portrait"]
+
+[resource]
+script = ExtResource("1")
+display_name = "HERO_WARDEN_NAME"
+description = "HERO_WARDEN_DESC"
+unlock_cost = 0
+health = 5
+speed_scale = 1.0
+damage_scale = 1.0
+dash_scale = 1.0
+opening = Array[String]([])
+accent = Color(0.56, 0.85, 1, 1)
+attack_profile = 0
+vfx_tier = 0
+projectile_primary = Color(0.3, 0.68, 1, 1)
+projectile_secondary = Color(0.82, 0.95, 1, 1)
+walk_sheet = ExtResource("2_walk")
+idle_sheet = ExtResource("3_idle")
+portrait = ExtResource("4_portrait")
+sprite_cell = Vector2i(48, 64)
+preview_crop = Rect2i(12, 32, 24, 24)
+walk_frames = 4
+idle_frames = 4
+walk_fps = 12.0
+idle_fps = 4.0

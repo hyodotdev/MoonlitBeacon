@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_SWIFT_HAND_NAME"
+description = "RELIC_SWIFT_HAND_DESC"
+effect = 1
+amount = 0.86
+accent = Color(0.72, 0.9, 1, 1)

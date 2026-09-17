@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Open docs site (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000/MoonlitBeacon/",
+      "webRoot": "${workspaceFolder}/apps/docs",
+      "preLaunchTask": "docs: dev server",
+      "postDebugTask": "",
+      "sourceMaps": true
+    },
+    {
+      "name": "Open docs site (Edge)",
+      "type": "msedge",
+      "request": "launch",
+      "url": "http://localhost:3000/MoonlitBeacon/",
+      "webRoot": "${workspaceFolder}/apps/docs",
+      "preLaunchTask": "docs: dev server",
+      "sourceMaps": true
+    },
+    {
+      "name": "Open course pages (Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000/MoonlitBeacon/course",
+      "webRoot": "${workspaceFolder}/apps/docs",
+      "preLaunchTask": "docs: dev server",
+      "sourceMaps": true
+    }
+  ]
+}

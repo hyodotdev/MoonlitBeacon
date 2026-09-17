@@ -1,0 +1,275 @@
+---
+sidebar_position: 13
+title: Lesson 13 · Three enemy types and the final guardian
+---
+
+# Lesson 13 · Three enemy types and the final guardian
+
+There was only one spirit. For the whole 90 seconds, the same thing chased
+you at the same speed.
+
+This lesson grows that to **three types**, and the moment the last beacon
+lights, **the forest guardian** appears.
+
+There is still **one** scene.
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-13-kinds.mp4"
+  poster="img/chapter-13-kinds-poster.jpg"
+  title="Three enemy types — one scene, three settings (silent)"
+  silent
+/>
+
+## 2. Making three scenes is how you lose
+
+The easy way is to copy `spirit.tscn` three times.
+That is also what this course has been avoiding.
+
+- Fixing hit cooldown means editing **three places**
+- A new enemy means **another scene**
+- Thirteen kinds means thirteen places
+
+**One scene, several settings.** We use a custom resource.
+
+```gdscript
+class_name SpiritKind
+extends Resource
+
+@export var display_name: String = "Spirit"
+@export var sheet: Texture2D = null
+@export var cell: int = 16
+@export var rows: int = 4
+@export var columns: int = 4
+@export var speed: float = 62.0
+@export var turn_rate: float = 5.0
+@export var body_scale: float = 1.0
+@export var tint: Color = Color(0.315, 0.35, 0.57, 1)
+@export var anim_fps: float = 5.0
+```
+
+One `.tres` file is one enemy type.
+**A new enemy needs neither code nor a scene.**
+
+| | Speed | Turn rate | Color | Personality |
+| --- | --- | --- | --- | --- |
+| Drifting spirit | 62 | 5.0 | blue light | default. Lesson 8's spirit |
+| Night bat | 70 | **2.2** | deep blue | wide turns, easy to predict |
+| Ember spirit | **84** | **8.5** | red light | fast and persistent |
+| Forest guardian | 52 | 3.2 | violet | slow but large |
+
+## 3. Check the official docs
+
+| Docs | What we take |
+| --- | --- |
+| Resources | inherit `Resource` to make your own type |
+| `class_name` | expose that type in the inspector |
+| `SpriteFrames` | build animations in code |
+
+## 4. Slice the sheet in code
+
+Through Lesson 3 we wrote `AtlasTexture` into the `.tscn`.
+Four kinds would mean four of those too.
+
+```gdscript
+func _apply_kind() -> void:
+	scale = Vector2.ONE * kind.body_scale
+	modulate = kind.tint
+
+	var frames: SpriteFrames = SpriteFrames.new()
+	frames.remove_animation(&"default")
+	for col in kind.columns:
+		var anim: StringName = &"float_" + FACING_NAMES[mini(col, FACING_NAMES.size() - 1)]
+		frames.add_animation(anim)
+		frames.set_animation_loop(anim, true)
+		frames.set_animation_speed(anim, kind.anim_fps)
+		for row in kind.rows:
+			var atlas: AtlasTexture = AtlasTexture.new()
+			atlas.atlas = kind.sheet
+			atlas.region = Rect2(col * kind.cell, row * kind.cell, kind.cell, kind.cell)
+			frames.add_frame(anim, atlas)
+	_sprite.sprite_frames = frames
+```
+
+:::warning Do not forget `remove_animation(&"default")`
+A new `SpriteFrames` already contains one empty animation named `default`.
+Leave it and an empty entry stays in the list.
+:::
+
+:::danger Only the guardian's layout is different
+| | Cell | Rows | Columns |
+| --- | --- | --- | --- |
+| Spirits | 16 | 4 (frames) | 4 (facings) |
+| **Guardian** | **50** | **1** | **5 (frames)** |
+
+The guardian sheet is a single row, so **it has no facing.** The picture
+is the same from every side.
+
+That is why `cell`, `rows`, and `columns` are all settings.
+Hard-code any of them and you cannot add the guardian.
+
+```gdscript
+	var wanted: StringName = &"float_" + FACING_NAMES[mini(index, kind.columns - 1)]
+```
+
+Clamp with `mini()`. One column always yields `float_down`.
+:::
+
+## 5. Implement it yourself
+
+### 5-1. They come out of the dark
+
+```gdscript
+const SPAWN_POINTS: Array[Vector2] = [
+	Vector2(120, 170), Vector2(690, 170), Vector2(120, 310), Vector2(690, 310),
+]
+
+func _farthest_spawn() -> Vector2:
+	var best: Vector2 = SPAWN_POINTS[0]
+	for point in SPAWN_POINTS:
+		if point.distance_to(_player.position) > best.distance_to(_player.position):
+			best = point
+	return best
+```
+
+They spawn **at the point farthest from the player.** Popping up in your
+face is unfair.
+
+### 5-2. They appear gradually
+
+```gdscript
+func materialize() -> void:
+	var alpha: float = modulate.a
+	modulate.a = 0.0
+	_hitbox.monitoring = false
+	var fade: Tween = create_tween()
+	fade.tween_property(self, "modulate:a", alpha, MATERIALIZE_SECONDS)
+	await fade.finished
+	if not is_inside_tree():
+		return
+	_hitbox.monitoring = true
+```
+
+**They cannot hit you while appearing.** Getting hit by something that is
+not solid yet is unfair.
+Same call as turning `monitoring` on late for Lesson 9's moonlight gate.
+
+### 5-3. The run gets meaner as it progresses
+
+```gdscript
+const SPIRIT_KINDS: Array[String] = [
+	"res://resources/wisp.tres",
+	"res://resources/drifter.tres",
+	"res://resources/ember.tres",
+	"res://resources/ember.tres",
+]
+
+	var kind_path: String = SPIRIT_KINDS[mini(_lit_count, SPIRIT_KINDS.size() - 1)]
+```
+
+Kind is chosen by **how many beacons are lit.** Difficulty is paced by
+progress, not the clock, so skilled players get challenged sooner and
+lost players get challenged later.
+
+Cap with `MAX_SPIRITS = 3`. A screen full of spirits is punishment, not a game.
+
+### 5-4. The guardian — lesser spirits withdraw
+
+<Video
+  src="video/chapter-13-guardian.mp4"
+  poster="img/chapter-13-guardian-poster.jpg"
+  title="When the last beacon lights, the guardian appears and the music changes (silent)"
+  silent
+/>
+
+:::danger At first you died the instant the last beacon lit
+Simply adding the guardian meant **one guardian + three spirits** charged
+at once. With 3 health that was not hard — it was **impossible.**
+
+When the guardian appears, lesser spirits withdraw.
+
+```gdscript
+	_prune_spirits()
+	for s in _spirits:
+		s.retreat()
+	_spirits.clear()
+	_spawn_timer = INF
+```
+
+Clearing the stage makes the last stretch **one-on-one with the guardian.**
+It also fits the story — when the master arrives, the lesser ones withdraw.
+:::
+
+### 5-5. The music changes
+
+```gdscript
+	_bgm.stop()
+	_bgm.stream = GUARDIAN_THEME
+	_bgm.play()
+```
+
+We use `17 - Fight`. It is the opposite of the arena track (`27 - Chill`):
+big swings and fast.
+
+In Lesson 3 we chose the arena track as "the one with the smallest swings."
+Here we pick by **the opposite criterion.** Same ruler, other end.
+
+### 5-6. Handling several of them
+
+One spirit was `@onready var _spirit`. Now they spawn and vanish.
+
+```gdscript
+func _prune_spirits() -> void:
+	_spirits = _spirits.filter(func(s: Node2D) -> bool: return is_instance_valid(s))
+```
+
+**Strip the dead ones before you use the list.** The `is_instance_valid()`
+we put in Lesson 9 pays off here.
+
+## 6. Check that this much is working
+
+- More spirits appear over time (max three)
+- Meaner kinds appear as you light beacons
+- New spirits appear from far away, gradually
+- You are not hit while they appear
+- Lighting the last beacon brings the guardian and lesser spirits withdraw
+- The music changes
+
+## 7. Break it on purpose
+
+**① Remove the `retreat()` calls**
+→ You die the instant the last beacon lights. We actually shipped it this
+way first, then fixed it.
+
+**② Remove `materialize()`**
+→ Spirits pop in, and you get hit at that instant.
+
+**③ Use a fixed `SPAWN_POINTS[0]` instead of `_farthest_spawn()`**
+→ Standing top-left, they keep spawning in your face.
+
+**④ Remove `mini` from `mini(index, kind.columns - 1)`**
+→ The guardian dies looking for an animation that does not exist.
+
+**⑤ Set `MAX_SPIRITS` to `12`**
+→ The screen is covered in spirits. Nowhere to dodge.
+
+## 8. Completion checklist
+
+- [ ] Four enemy types, **one scene**
+- [ ] One more `.tres` makes a new enemy
+- [ ] The guardian works even with a sheet that has no facing
+- [ ] When the guardian appears, lesser spirits withdraw and the music changes
+- [ ] `pnpm game:check` exits with code 0
+
+## 9. Homework
+
+1. Make one more `.tres` and add a fifth enemy.
+   Reuse the `Spirit` sheet and set `speed` to `120`. **Do not write a line of code.**
+
+2. Raise the guardian's `body_scale` to `2.0`.
+   Like `_normalize_reach()` on Lesson 7's beacon, the hitbox grows with it.
+   Think about whether that is the right behavior.
+
+3. Point every entry in `SPIRIT_KINDS` at `ember.tres`.
+   The meanest kind appears from the start. **The difficulty curve disappears.**

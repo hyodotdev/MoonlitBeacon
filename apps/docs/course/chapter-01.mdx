@@ -1,0 +1,494 @@
+---
+sidebar_position: 1
+title: Lesson 1 · Project setup and the title screen
+---
+
+# Lesson 1 · Project setup and the title screen
+
+This lesson locks in the **project foundation** you will not touch again, then
+stands a **title screen** on top of it. When you are done you can tap the app
+icon on a phone and run it, and that screen is good enough to use as a store
+screenshot.
+
+You will not write a single line of game code. Even so, there is a game on
+screen.
+
+## 1. The finished screen
+
+When the app launches, a beacon burns over a landscape-locked night forest,
+mist drifts, and the music fades in. Tap the screen and the beacon flares once.
+
+<Video
+  src="video/chapter-01-title.mp4"
+  poster="img/chapter-01-title-poster.jpg"
+  title="Title screen running on the phone (2424 × 1080 landscape)"
+  silent
+/>
+
+## 2. Check the official docs
+
+We look at Godot's official `First 2D game / Setting up the project` page
+together.
+
+- The official sample also starts with **window size and stretch**.
+- The official sample splits Player / Mob / HUD into **separate scenes**. We
+  use the same structure.
+- The difference: the official sample is a desktop-window game with a keyboard.
+  Ours is a game you **hold the phone in landscape and play with both thumbs**.
+  We follow the same concept order, and we put those concepts onto an Android
+  game.
+
+Read these three sections:
+
+| Official docs | What we take from them |
+| --- | --- |
+| Setting up the project | The order: lock window size and stretch **first** |
+| Creating the player scene | The structure that splits Player / Mob / HUD into separate scenes |
+| Coding the player | Moving a character with `CharacterBody2D` + `move_and_slide()` |
+
+
+## 3. Build it yourself
+
+<Video
+  src="video/chapter-01-editor.mp4"
+  poster="img/chapter-01-editor-poster.jpg"
+  title="Entering 3-2 through 3-5 in Project Settings, in order (silent · 74s)"
+  ratio="1212 / 736"
+/>
+
+Writing down which menu and which row a setting lives in rarely helps you find
+it. Watch where the mouse goes in the clip above.
+
+That clip is **the real screen of a blank project with 3-2 through 3-5 entered
+in order**. It opens `Project ▸ Project Settings`, turns on `Advanced
+Settings`, sets resolution, window size, stretch, orientation, texture filter,
+and mouse-as-touch, then closes the window. We deliberately left frames where
+the dropdowns are open and the other options are visible — once you have seen
+`viewport` next to `canvas_items` and `keep` next to `expand`, you will not mix
+them up later.
+
+The `project.godot` at the end of that clip **matches all nine values** in
+[the comparison table in 3-7](#3-7-check-your-work-so-far).
+
+:::info Two stretches the clip does not cover
+**Creating the project and picking a renderer in 3-1** is the Project Manager
+screen, so it is not in this clip. You cannot bring that screen back on a
+project that already exists.
+**Making folders in 3-6** is also just follow the text below.
+:::
+
+### 3-1. Creating the project and picking a renderer
+
+Project Manager → `+ New` → project name `Moonlit Beacon`,
+path is `apps/game` inside the repository → **Renderer: Compatibility**.
+
+> **Why Compatibility?**
+> Forward+ has strong 3D features but weaker mobile compatibility, and Mobile
+> assumes a recent mobile GPU. We are making a 2D pixel-art game that should
+> run on as many devices as possible, so Compatibility is the right answer.
+
+### 3-2. Internal resolution and orientation
+
+`Project → Project Settings → Display → Window`
+
+| Item | Value |
+| --- | --- |
+| Viewport Width | 808 |
+| Viewport Height | 360 |
+| Window Width Override | 1616 |
+| Window Height Override | 720 |
+| Handheld → Orientation | `Sensor Landscape` (value 4) |
+
+> **Why 808 × 360?**
+> A Pixel 10 in landscape is 2424 × 1080. Divide each by 3 and you get
+> 808 × 360.
+> That is **exactly 1/3**, so it scales up by an integer 3× and a 16px dot
+> never lands on a half pixel.
+> In 16px tiles that is 50 columns by 22 and a half rows.
+>
+> The window override 1616 × 720 is twice the internal resolution.
+> That is the window size **when you hit F5 on the desktop during development**,
+> not on the phone.
+
+> **`Sensor Landscape`, not `Landscape`**
+> Plain `Landscape` allows only one landscape direction. `Sensor Landscape`
+> allows both, so the screen follows whichever way you lay the phone down.
+
+### 3-3. Stretch
+
+Same screen, `Stretch` further down:
+
+| Item | Value |
+| --- | --- |
+| Mode | `canvas_items` |
+| Aspect | **`expand`** |
+
+- `viewport` mode scales the whole screen in pixel units, so even UI text
+  breaks apart.
+- `canvas_items` scales the game view while keeping UI sharp.
+- `keep` preserves the aspect ratio and fills leftover space with black bars.
+  That is the right call for a desktop game.
+- **Android devices have different aspect ratios**, so `keep` makes the bar
+  thickness different on every phone. `expand` locks height at 360 and widens
+  only the width to the device ratio, so there are no bars.
+
+> **Two rules that come with `expand`**
+> 1. Always pin UI to **screen-edge anchors**. Width is not fixed.
+> 2. Put anything the game truly needs (beacons, the exit) only inside the
+>    **16:9 safe area** in the center of the screen.
+>
+> Push the background art by the leftover width to keep it centered. When you
+> push, **floor to integer pixels**. A leftover half pixel misaligns the dots
+> under nearest-neighbor upscaling.
+
+### 3-4. Pixel filter
+
+`Project Settings → Rendering → Textures → Canvas Textures`
+→ **Default Texture Filter = Nearest**
+
+> Skip this and a 16 × 16 sprite blurs when you scale it up.
+> This is the first setting to check in a pixel-art game.
+
+### 3-5. Pretending the mouse is a touch
+
+`Project Settings → Input Devices → Pointing`
+→ **Emulate Touch From Mouse = On**
+
+The real controls are virtual joysticks you push with both thumbs. You cannot
+bake an APK and put it on a phone for every change, though. With this setting
+on, you hit F5 in the editor and the virtual stick works from **mouse drag
+alone**.
+
+> **Final checks still have to be on a real device**
+> A mouse cannot press two fingers at once.
+> Two-handed controls can only be tested properly on a phone.
+
+### 3-6. Folder structure
+
+Create folders in the FileSystem dock.
+
+```text
+res://
+  assets/third_party/   # made by someone else
+  assets/derived/       # made or processed by us
+  scenes/
+  scripts/
+  resources/
+  localization/
+  docs/licenses/
+```
+
+The whole repository looks like this.
+
+```text
+MoonlitBeacon/
+  apps/
+    game/            # Godot project (res://)
+    docs/            # this course site
+  _downloads/        # original ZIPs you downloaded     (not in git)
+  _asset_sources/    # unpacked originals               (not in git)
+  builds/            # build output                     (not in git)
+```
+
+> **Why split them?**
+> The Ninja Adventure pack is about 89MB. Drop it into `res://` as-is and
+> Godot imports thousands of images and tracks we will never use. The project
+> gets slower every time you open it, and finding the file you need in the
+> FileSystem dock gets harder.
+> The habit of **copying only the files you need** is the same one you use in
+> production.
+
+### 3-7. Check your work so far
+
+Everything you clicked in the editor is written to one file,
+`apps/game/project.godot`.
+Open it in a text editor and check that it **matches the following exactly**.
+If even one line is different, set that item again.
+
+```ini
+[display]
+
+window/size/viewport_width=808
+window/size/viewport_height=360
+window/size/window_width_override=1616
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+```
+
+:::warning Do not put comments in `project.godot`
+This file is **managed by the editor.** Even if you add a comment by hand like
+`; why is this 808`, the moment the editor opens the project and saves
+settings **every comment disappears and the key order is reshuffled.** The
+values stay; the explanations do not.
+
+We hit this while making this course. We wrote careful comments, opened the
+editor once, closed it, and they were all gone. So "why this value" lives in
+this document, and `project.godot` is a file that **holds values only**.
+:::
+
+| Value | Meaning |
+| --- | --- |
+| `orientation=4` | Sensor Landscape. Both landscape directions allowed |
+| `default_texture_filter=0` | Nearest. 1 is Linear, and the pixels blur |
+| `import_etc2_astc=true` | Android texture compression. Leave it off and export warns |
+
+To check it all at once from the command line:
+
+```bash
+godot --headless --path apps/game --quit
+```
+
+The exit code must be `0`, with no errors or warnings.
+
+If it says `godot` is not found, use the shortcut command prepared in the
+repository. It finds the Godot executable for you.
+
+```bash
+pnpm game:check
+```
+
+## 4. Downloading assets and licenses
+
+<Video
+  src="video/chapter-01-assets.mp4"
+  poster="img/chapter-01-assets-poster.jpg"
+  title="Checking the license on each distribution page yourself (silent · 54s)"
+  ratio="1212 / 682"
+/>
+
+The clip above is **the screen of checking the license line on each of three
+asset distribution pages**.
+Ninja Adventure on itch.io lists "Creative Commons Zero (CC0)" under
+`License`, Kenney lists "Creative Commons CC0" in the `License` cell of the
+info table at the top of the page, and Galmuri shows "OFL-1.1 license" in the
+right-hand `About` box of the GitHub repository.
+Galmuri even includes **the full license text** as `ofl.md` inside the repo.
+
+Keep [Get the assets](/docs/assets/download-guide) open while you work.
+
+| Asset | Use | License |
+| --- | --- | --- |
+| Ninja Adventure Asset Pack | All graphics, music, and sound | CC0 |
+| Kenney Input Prompts Pixel | Control-hint icons | CC0 |
+| Kenney UI Audio | Menu sound | CC0 |
+| Kenney Impact Sounds | Hit sound | CC0 |
+| Galmuri11 | Korean pixel font | OFL 1.1 |
+
+**What to take from this**
+
+1. Do not trust a table someone else prepared. **Confirm the license with your
+   own eyes** on the distribution page.
+   The clip above is that confirmation. The table in this document is the
+   result of that same check.
+2. Save all three license-text copies (`OFL-1.1.txt`, `CC0-1.0.txt`,
+   `GODOT-MIT.txt`) into `apps/game/docs/licenses/` **in Lesson 1**. Do not
+   postpone it.
+3. Do **not** start from the **Godot demo project** that ships with Ninja
+   Adventure.
+   If you edit that, this stops being a "make it yourself" course and becomes
+   a "dissect someone else's project" course.
+   Use it only as a reference for sprite-frame layout.
+4. Every time you copy a file, record it in the
+   [asset manifest](/docs/assets/manifest).
+
+### After you download, it should look like this
+
+Six original ZIPs in `_downloads/`:
+
+| File | Size |
+| --- | --- |
+| `Ninja Adventure - Asset Pack.zip` | 89.67 MB |
+| `Godot Project V4.zip` (reference only) | 30.57 MB |
+| `Galmuri-v2.40.4.zip` | 19.02 MB |
+| `kenney_impact-sounds.zip` | 0.76 MB |
+| `kenney_ui-audio.zip` | 0.39 MB |
+| `kenney_input-prompts-pixel.zip` | 0.31 MB |
+
+After unpacking, file counts inside `_asset_sources/` look like this.
+If the numbers are far off, the download was incomplete — get them again.
+
+| Folder | File count |
+| --- | --- |
+| `ninja_adventure/` | 2,234 |
+| `ninja_adventure_reference_project/` | 1,873 |
+| `kenney_input_prompts/` | 823 |
+| `kenney_impact_sounds/` | 133 |
+| `kenney_ui_audio/` | 55 |
+| `galmuri/` | 40 |
+
+Of those, **only 66 files (9.0MB) actually go into the game**.
+(That count does not include the `.import` files Godot creates automatically.)
+Which files you pick out of more than 2,000 is the most important part of this
+section.
+
+:::tip itch.io puts a form in front of the download
+`Download Now` → on the amount screen, press **"No thanks, just take me to the
+downloads"** and you can take it for $0. No account needed.
+:::
+
+## 5. Assembling the title screen
+
+<Video
+  src="video/chapter-01-layers.mp4"
+  poster="img/chapter-01-layers-poster.jpg"
+  title="Layer breakdown — eight steps from the forest floor to the UI"
+  silent
+/>
+
+`res://scenes/menus/title_menu.tscn` — this lesson's result.
+
+| Layer | Contents |
+| --- | --- |
+| Forest floor | A derived texture baked from tiles, filling the whole screen with `texture_repeat` |
+| Forest edge | Trees cut from `tileset_nature.png` |
+| Beacon | `tileset_camp.png` fire pit plus flame, ember, and smoke particles |
+| Moonlight | Light shafts from `fx/raylight.png` |
+| Mist | Procedurally baked `night_mist.png`, drifting on a 48-second cycle |
+| UI | Title 55 · prompt 22 · version 11 (Galmuri11) |
+
+> **Type sizes only in multiples of 11**
+> Galmuri11 is drawn on an 11px grid. Sizes like 12 or 20 that fall between
+> the grid smash the dots. We use title 55 (5×), prompt 22 (2×), version 11
+> (1×).
+
+The version string is read from `ProjectSettings`. It is managed in one place:
+`project.godot`.
+
+## 6. Git
+
+```bash
+git init -b main
+git status          # first confirm _downloads/ and builds/ are not picked up
+git add .
+git commit -m "chore: Lesson 1 — project setup and the title screen"
+```
+
+The most important line in `.gitignore`:
+
+```text
+.godot/
+```
+
+`.godot/` holds more than the import cache. It also stores
+**`export_credentials.cfg`**.
+That file contains the **Android signing-keystore password**.
+For us, making an Android game, this is not someone else's problem. Never put
+it on a public repository.
+`export_presets.cfg`, on the other hand, has no secrets, so we commit it.
+
+> Exclude `credentials`, commit `presets`.
+
+## 7. First run of the docs site
+
+```bash
+pnpm install
+pnpm docs:dev
+```
+
+:::warning Commit first, docs site second
+Docusaurus has `showLastUpdateTime` on, so the last-updated time at the bottom
+of a page is read from **the git log**. If you run `pnpm docs:build` with zero
+commits, there is no git history to read and it fails. If you create a new
+repository, try to boot the docs first, and hit this error, the cause is
+surprisingly hard to find. Keep the order **`git init` → first commit → docs
+site**.
+:::
+
+## 8. Bake an APK and put it on a phone
+
+<Video
+  src="video/chapter-01-device.mp4"
+  poster="img/chapter-01-device-poster.jpg"
+  title="Running on a Pixel 10 — tap the screen and the beacon flares"
+  silent
+/>
+
+We are not covering release steps like signing or versioning today. Lessons 11
+and 16 cover that.
+Today we only check that the title screen **actually looks right on a real
+phone**.
+
+```bash
+pnpm android:build
+pnpm android:run
+```
+
+The first command handles installing the build template and cleaning Gradle
+output. The second installs the APK and launches it with a safe launcher
+intent.
+
+:::danger Only export Android with `pnpm android:build`
+The wrapper prepares the `builds/android` folder and the `../../` relative
+path correctly, and it cleans Gradle output. On a direct-distribution APK it
+also isolates the Play Billing plugin.
+Calling `godot --export-debug` yourself skips that channel split, so do not
+use it.
+:::
+
+:::danger `am start` will not launch it
+```bash
+adb shell am start -n com.crossplatformkorea.moonlitbeacon/com.godot.game.GodotApp
+# SecurityException: not exported
+```
+`GodotApp` is an internal activity with `exported=false`.
+The real launcher activity is `com.godot.game.GodotAppLauncher`, and throwing
+a launcher intent with `monkey` is easier than memorizing the name.
+:::
+
+## 9. Break it on purpose
+
+<Video
+  src="video/chapter-01-settings.mp4"
+  poster="img/chapter-01-settings-poster.jpg"
+  title="How the screen changes when you change the settings — 9× zoom comparison"
+  silent
+/>
+
+**① Set `Default Texture Filter` back to `Linear`**
+→ Tree and fire-pit edges blur. Set it back to `Nearest` and they go sharp
+again.
+
+**② Change `Stretch Aspect` to `keep`**
+→ Widen the window and black bars appear on the left and right. **This is not
+a wrong setting.**
+For a desktop game it is actually the right one. The problem is that bar
+thickness changes per phone, so we use `expand`. After you check, always put
+it back to `expand`.
+
+## 10. Completion checklist
+
+- [ ] The project runs with no errors
+- [ ] The title screen fills the phone's landscape screen as-is
+- [ ] Changing window width keeps the background centered and the text pinned to the edges
+- [ ] Pixel images do not blur
+- [ ] Tapping the screen makes the beacon flare and plays a confirm sound
+- [ ] Assets are downloaded into `_downloads/` and unpacked into `_asset_sources/`
+- [ ] Every license is confirmed and recorded
+- [ ] Asset ZIPs are not inside `res://`
+- [ ] `godot --headless --path apps/game --quit` (or `pnpm game:check`) exits with code 0
+
+## 11. Exercises
+
+1. Switch `Stretch Aspect` to `keep`, `keep_width`, and `keep_height` and
+   watch what changes when you resize the window width.
+   **After you check, always put it back to `expand`.**
+2. Change the window-size override to `2424 × 1080` and confirm that
+   808 × 360 scales up by exactly 3×. That value is a Pixel 10's real
+   landscape resolution.
+   After you check, put it back to `1616 × 720`.
+3. Inside `_asset_sources/ninja_adventure/`, find **where the monster sprites
+   are** and note the path. (You will use it in Lesson 8 when you make
+   enemies.)

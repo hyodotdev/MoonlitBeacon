@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/actors/moon_bolt.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/items/projectiles/hostile_moon_bolt.png" id="orb"]
+
+[node name="MoonBolt" type="Node2D"]
+script = ExtResource("script")
+
+[node name="Sprite" type="Sprite2D" parent="."]
+light_mask = 0
+modulate = Color(1.7, 1.2, 2.2, 1)
+scale = Vector2(0.42, 0.42)
+texture = ExtResource("orb")

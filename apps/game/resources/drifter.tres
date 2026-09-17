@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/spirits/drifter.png" id="sheet"]
+
+[resource]
+script = ExtResource("script")
+display_name = "밤 박쥐"
+sheet = ExtResource("sheet")
+cell = 48
+facings = 4
+frames = 4
+lift = -8.0
+speed = 88.0
+turn_rate = 2.2
+health = 50
+score_value = 90
+stagger_seconds = 0.12
+body_scale = 0.92
+tint = Color(1, 1, 1, 1)
+anim_fps = 9.0

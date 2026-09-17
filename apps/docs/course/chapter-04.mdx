@@ -1,0 +1,456 @@
+---
+sidebar_position: 4
+title: Lesson 4 · Your first script
+---
+
+# Lesson 4 · Your first script
+
+You did write scripts through Lesson 3. They were **back-office work**:
+centering the screen, cleaning up sound, swapping scenes.
+
+This lesson is different. **Code holds the game's state.**
+Is the beacon on or off — that one slot appears, and the screen changes with
+it.
+
+Three beacons start unlit, catch fire one by one, and each time one lights the
+forest moonlight brightens a step. And we pay back the debt from Lesson 3.
+
+## 1. The finished screen
+
+<Video
+  src="video/chapter-04-device.mp4"
+  poster="img/chapter-04-device-poster.jpg"
+  title="Pixel 10 — three unlit beacons catch fire in turn and the forest brightens"
+  silent
+/>
+
+Tap the title and you enter the arena. Three beacons stand as **cold piles of
+stone**, then catch fire one by one, and each time the forest brightens a
+little.
+
+## 2. A script is something you attach to a node
+
+A Godot script is **the place you write a node's behavior**.
+If a scene is "what exists," a script is "what it does."
+
+Attach a script to the root of `beacon.tscn` and the three beacons you placed
+as instances **all get that script**. Each one runs on its own, and each one
+holds its own values.
+
+```text
+beacon.tscn  ← attach a script here and
+   │
+   ├── BeaconWest   its own lit, its own flicker_speed
+   ├── BeaconNorth  its own lit, its own flicker_speed
+   └── BeaconEast   its own lit, its own flicker_speed
+```
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Creating your first script` page
+together.
+
+| Official docs | What we take from them |
+| --- | --- |
+| Creating your first script | Attach a script to a node and start from `_ready()` |
+| Exporting variables | Send values to the inspector with `@export` |
+| Setters and getters | Change the screen at the same moment the value changes |
+
+The official docs spin one icon. In the same slot we put **the on/off state of
+a beacon**.
+
+## 4. The debt from Lesson 3
+
+In Lesson 3 we turned on `Editable Children` to give each beacon a different
+flicker speed.
+We wrote this then.
+
+> The moment you turn it on, that instance **depends on the inside
+> structure**.
+> Later, if you rename `Flicker` in `beacon.tscn` or move its order, this
+> arena breaks quietly.
+
+The way to pay it back is this. The beacon script **exports the speed**.
+Then the arena does not even have to know a node called `Flicker` exists.
+
+**You have to make the script first before that slot exists**, though. So we
+actually pay it back after attaching the script in section 5
+([5-4](#5-4-paying-back-lesson-3)).
+
+> **`@export` is making a slot in the inspector**
+> An ordinary variable inside a script is known only to that script. Add
+> `@export` and a slot appears in the inspector, and you can put **a
+> different value per instance**.
+> It is doing to a value we made what we did to `position` and `scale` in
+> Lesson 3.
+
+## 5. Build it yourself
+
+<Video
+  src="video/chapter-04-ignite.mp4"
+  poster="img/chapter-04-ignite-poster.jpg"
+  title="Three unlit beacons catch fire in turn and the forest brightens a step each time (silent)"
+  silent
+/>
+
+### 5-1. Attach a script to the beacon
+
+Open `beacon.tscn`, select the root `Beacon`, then **Attach Script**.
+Save it as `res://scripts/objectives/beacon.gd`.
+
+First decide how an unlit beacon differs from a lit one.
+
+| | Unlit | Lit |
+| --- | --- | --- |
+| `Pit` color | `(0.17, 0.19, 0.33)` cold | `(0.258, 0.28, 0.45)` |
+| `Light` | hidden | visible |
+| `Glow` | hidden | visible |
+| `Smoke` · `Embers` · `Flame` | `emitting = false` | `emitting = true` |
+| `Flicker` | stopped | playing |
+
+Translate that into code as-is. Grab the nodes you will touch first.
+
+```gdscript
+@tool
+extends Node2D
+
+const PIT_UNLIT: Color = Color(0.17, 0.19, 0.33, 1)
+const PIT_LIT: Color = Color(0.258, 0.28, 0.45, 1)
+
+@onready var _pit: Sprite2D = $Pit
+@onready var _light: PointLight2D = $Light
+@onready var _glow: Sprite2D = $Glow
+@onready var _flicker: AnimationPlayer = $Flicker
+@onready var _emitters: Array[GPUParticles2D] = [$Smoke, $Embers, $Flame]
+
+
+@export var lit: bool = true:
+	set = _set_lit
+
+
+func _set_lit(value: bool) -> void:
+	lit = value
+	if _pit == null:
+		return                                   # not in the tree yet
+	_pit.modulate = PIT_LIT if lit else PIT_UNLIT
+	_light.visible = lit
+	_glow.visible = lit
+	for e in _emitters:
+		e.emitting = lit
+	if lit:
+		_flicker.play(&"flicker")
+	else:
+		_flicker.stop()
+```
+
+:::danger `set` runs before `@onready`
+If you set `lit` to `false` in the inspector, that value arrives **before the
+`@onready` variables are filled** when the scene is built. Touch
+`_pit.modulate` as-is and you get this error.
+
+```text
+SCRIPT ERROR: Invalid assignment of property or key 'modulate' with value of type
+'Color' on a base object of type 'Nil'.
+   at: _set_lit (res://scripts/objectives/beacon.gd:58)
+```
+
+**The game does not stop.** GDScript prints this error and keeps going.
+So if you are not looking at the console, it is easy to miss.
+
+We do two things.
+
+1. Bail out inside `set` with `if _pit == null: return`
+2. **Call the setters once more** from `_ready()`
+
+```gdscript
+func _ready() -> void:
+	# The inspector value arrives before `@onready` is filled. Apply it once more here.
+	_set_lit(lit)
+	_set_flicker_speed(flicker_speed)
+```
+
+Re-apply only `_set_lit` and skip `_set_flicker_speed`, and **the flicker
+speed you put in the inspector never applies**. There is no error either.
+Every time you add another `@export`, this function grows with it.
+:::
+
+### 5-2. Make the moment fire "catches"
+
+Turn it on with `lit = true` and the beacon **pops into existence**. It does
+not feel like fire catching.
+
+Inflate the light from 0 once and let it settle, and it is much better.
+Stop the flicker during that, then hand it back when it is done.
+
+```gdscript
+const IGNITE_SECONDS: float = 0.45
+const LIGHT_ENERGY: float = 4.64             # baseline of the `Flicker` keyframes
+const IGNITE_OVERSHOOT: float = 1.7
+
+
+func ignite() -> void:
+	if lit:
+		return
+	lit = true
+
+	_flicker.stop()
+	_light.energy = 0.0
+	var flare: Tween = create_tween()
+	flare.tween_property(_light, "energy", LIGHT_ENERGY * IGNITE_OVERSHOOT, IGNITE_SECONDS * 0.35)
+	flare.tween_property(_light, "energy", LIGHT_ENERGY, IGNITE_SECONDS * 0.65)
+	await flare.finished
+	if not is_inside_tree() or not lit:
+		return
+	_flicker.play(&"flicker")
+```
+
+Measure it and the brightness at the beacon spot moves `29 → 210 → 229 →
+225`.
+Overshooting briefly and coming back down is what makes the **feeling of fire
+catching**.
+
+### 5-3. Visible in the editor too — `@tool`
+
+Put `@tool` at the top of the script and **the script also runs in the
+editor**.
+
+Toggle `lit` in the inspector and you see it immediately without running the
+game.
+There are three beacons, so being able to see which ones are on with your eyes
+is much better.
+
+:::warning A `@tool` script can kill the editor too
+The editor actually runs this code. Put in an infinite loop and **the editor
+stops**.
+
+Signals need care as well. If a signal goes out during editing, whatever is
+listening reacts in a chain when that side is also `@tool`. Right now the
+listener (`arena.gd`) is not `@tool`, so it is quiet, but the moment you put
+`@tool` on that side, editing alone would run game logic.
+
+**Block it in advance.**
+
+```gdscript
+	if not Engine.is_editor_hint():
+		lit_changed.emit(self, lit)
+```
+:::
+
+### 5-4. Paying back Lesson 3
+
+Now we can make the slot.
+
+```gdscript
+@export_range(0.5, 2.0, 0.01) var flicker_speed: float = 1.0:
+	set = _set_flicker_speed
+
+
+func _set_flicker_speed(value: float) -> void:
+	flicker_speed = value
+	if _flicker != null:
+		_flicker.speed_scale = flicker_speed
+```
+
+Open `arena.tscn` and right-click each of the three beacons → **turn
+`Editable Children` off**.
+That removes the `Flicker` overrides we put in in Lesson 3, so put the same
+values back into the new inspector slots.
+
+| Instance | `Lit` | `Flicker Speed` |
+| --- | --- | --- |
+| `BeaconWest` | **off** | `0.87` |
+| `BeaconNorth` | **off** | `1.24` |
+| `BeaconEast` | **off** | `1.03` |
+
+Same values we used in Lesson 3. **They have to differ** so each one rides
+its own beat.
+
+Turn `Lit` off here too. Leave it on and the default is on, so **all three
+beacons are already burning from the start, and the ignite effect never
+happens**.
+
+:::tip How to check that you paid the debt
+Open `arena.tscn` in a text editor. If there is no `[editable`, you paid it.
+If there is, the instance is still looking inside the beacon scene.
+:::
+
+### 5-5. Announce that the beacon lit
+
+Lighting the forest is not the beacon's job. The beacon announces **only the
+fact that it lit**.
+
+```gdscript
+signal lit_changed(beacon: Node2D, is_lit: bool)
+```
+
+The beacon does not have to know who is listening. Right now the arena
+listens and brightens the forest, but later a scoreboard can listen too and
+the beacon stays the same.
+
+> **Signals get a proper treatment in Lesson 7**
+> Here we use one line of them as a tool for "let the beacon do only its own
+> job."
+
+### 5-6. The arena brightens the forest
+
+`arena.gd` listens to the three beacons' signals and raises the forest color
+by the number that are lit.
+
+```gdscript
+const NIGHT_TINT: Color = Color(0.315, 0.35, 0.57, 1)
+const LIT_BRIGHTEN: float = 1.14
+const BRIGHTEN_SECONDS: float = 1.1
+
+var _lit_count: int = 0
+var _brighten: Tween = null
+
+
+func _ready() -> void:
+	...
+	for beacon in _beacons:
+		beacon.lit_changed.connect(_on_beacon_lit_changed)
+
+
+func _on_beacon_lit_changed(_beacon: Node2D, is_lit: bool) -> void:
+	_lit_count += 1 if is_lit else -1
+	_lit_count = clampi(_lit_count, 0, _beacons.size())
+
+	var target: Color = NIGHT_TINT * pow(LIT_BRIGHTEN, _lit_count)
+	target.a = 1.0
+
+	if _brighten != null and _brighten.is_valid():
+		_brighten.kill()
+	_brighten = create_tween()
+	_brighten.tween_property(_forest, "modulate", target, BRIGHTEN_SECONDS)
+```
+
+**Which beacon lit does not matter.** We only count how many are lit.
+Multiply 1.14 three times and you get about 1.48×, so when all three are lit
+the forest is about half again as bright.
+
+:::warning Tweens that overlap pull against each other
+At the current interval (2.6 seconds), the next beacon lights after the 1.1
+seconds of brightening has finished, so the two tweens do not overlap. In
+Lesson 7, though, once the player starts lighting beacons, **you can light two
+in a row**.
+
+If a new tween starts while the previous one is still running, they pull the
+same `modulate` toward different targets. The result is **the forest never
+finishes brightening**.
+
+Block it in advance.
+
+```gdscript
+	if _brighten != null and _brighten.is_valid():
+		_brighten.kill()
+```
+
+We reproduce it ourselves in section 7, item ③.
+:::
+
+### 5-7. Light them in sequence
+
+Right now the arena lights them on its own. In Lesson 7 that changes so they
+light when the player stands next to them.
+
+```gdscript
+func _run_ignition_sequence() -> void:
+	await get_tree().create_timer(FIRST_IGNITE_DELAY).timeout
+	for beacon in _beacons:
+		if not is_inside_tree():
+			return                               # we may have left the scene while waiting
+		beacon.ignite()
+		await get_tree().create_timer(IGNITE_INTERVAL).timeout
+```
+
+:::danger After `await`, the scene may already be gone
+During three waits of 2.6 seconds each, the player can press back and leave
+the scene.
+Call `beacon.ignite()` as-is and **you touch something already freed**.
+
+Always check `is_inside_tree()` after `await`.
+When we faded the music and swapped scenes in Lesson 3, we put in the same
+guard for the same reason.
+:::
+
+## 6. Check your work so far
+
+```bash
+pnpm game:check
+```
+
+Exit code `0`, zero errors and warnings.
+
+Measure it and you get this (mean of the red channel at the beacon spots).
+
+| Time | West | North | East | Forest (outside the light) |
+| --- | --- | --- | --- | --- |
+| 0.0s | 29 | 35 | 29 | 14.9 |
+| 2.0s | **224** | 35 | 29 | 16.5 |
+| 4.0s | 225 | 35 | **235** | 17.8 |
+| 7.0s | 225 | **222** | 235 | 22.6 |
+| 10.0s | 225 | 225 | 235 | **25.0** |
+
+The moment a beacon lights, that spot jumps, and the forest climbs **like
+stairs** from 14.9 to 25.0.
+
+## 7. Break it on purpose
+
+**① Delete `_set_lit(lit)` from `_ready()`**
+→ Beacons you turned off start lit. **There is no error.**
+This is the exercise where you see with your eyes that `set` runs before
+`@onready`.
+
+**② Delete `if _pit == null: return` inside `set`**
+→ The console shows an `on a base object of type 'Nil'` error.
+And yet **the game does not stop and the result is still correct** — `_ready()`
+fixes it right after.
+This is exactly the kind of error it is tempting to skip because "it still
+runs."
+
+**③ Reproduce tweens fighting**
+→ Set `IGNITE_INTERVAL` to `0.6` and delete the two `_brighten.kill()` lines.
+The three beacons light in a row inside the 1.1 seconds of brightening, and
+the tweens overlap.
+
+| | Final forest brightness |
+| --- | --- |
+| Current code | **42.9** |
+| When tweens overlap | 39.8 |
+
+The forest never finishes brightening. After you check, revert both.
+
+**④ Delete `@tool`**
+→ Turning `lit` off in the inspector leaves the editor view as-is. You only
+see it when you run.
+
+## 8. Completion checklist
+
+- [ ] Enter the arena and the three beacons **start unlit**
+- [ ] An unlit beacon looks like a cold pile of stone (no flame, smoke, or light)
+- [ ] Beacons catch fire one after another; they do not pop on, they inflate once and settle
+- [ ] Each time one lights, the forest brightens a step
+- [ ] **The three beacons flicker on different beats** (we did not lose what Lesson 3 made)
+- [ ] `arena.tscn` has **no** `[editable`
+- [ ] Toggling `lit` in the editor shows immediately
+- [ ] The title screen matches Lesson 3
+- [ ] `pnpm game:check` exits with code 0
+- [ ] Installed on a phone, it runs in the same order
+
+## 9. Exercises
+
+1. Open `beacon.tscn` and toggle `Lit` in the inspector.
+   It changes immediately in the editor view. That is what `@tool` does.
+
+2. Raise `LIT_BRIGHTEN` to `1.4`. When all three are lit the forest is as
+   bright as daytime.
+   It stops being a night game. After you check, put it back to `1.14`.
+
+3. Change the order of `_beacons` in `arena.gd`.
+   The lighting order changes. **Which beacon lights in which order is the
+   arena's decision; the beacon itself does not know.** That is the core of
+   this structure.
+
+4. Set `IGNITE_OVERSHOOT` to `1.0`. It just turns on, with no inflate.
+   That 0.7 of difference is what separates "fire catches" from "fire
+   appears."

@@ -1,0 +1,91 @@
+# Godot 4 ------------------------------------------------------------------
+# Import cache. export_credentials.cfg (secrets) also lives in here, so this
+# must stay excluded.
+.godot/
+# Godot 3 leftover
+.import/
+# Files produced by importing the translation tables (`localization/*.csv`).
+# The source is the CSV. CI rebuilds them with a `--quit --editor` warmup,
+# and two checks catch missing files.
+apps/game/localization/*.translation
+
+# Course source assets / build output -------------------------------------
+# Original ZIPs and unpacked copies do not go in the repo.
+# The folders themselves must exist right after clone, so only .gitkeep stays.
+# A whole-directory ignore like `_downloads/` means git never looks inside,
+# so `!_downloads/.gitkeep` is ignored. Always write `directory/*`.
+_downloads/*
+!_downloads/.gitkeep
+_asset_sources/*
+!_asset_sources/.gitkeep
+builds/
+
+# Export ---------------------------------------------------------------------
+# Commit export_presets.cfg (secrets live in .godot/export_credentials.cfg).
+*.pck
+# Gradle custom build templates are regenerated from the installed Godot
+# export template. The two Godot AARs alone exceed 200MB, and export also
+# copies game assets into them, so they are not committed.
+apps/game/android/
+# IAPKit publishable config created only during store export. Not a lasting source.
+apps/game/iapkit.cfg
+# Do not add a global `*.zip` rule.
+# Original asset zips are already excluded via _downloads/ and
+# _asset_sources/ above. A global rule would silently block files that must
+# live in the repo, such as a course starter-project zip.
+
+# Node / pnpm ----------------------------------------------------------------
+# pnpm-lock.yaml must be committed; CI `--frozen-lockfile` depends on it.
+node_modules/
+.pnpm-store/
+*.log
+
+# Python ----------------------------------------------------------------------
+# Asset generators keep source only. Import caches are derivatives recreated
+# on every check.
+__pycache__/
+*.py[cod]
+
+# Docusaurus -----------------------------------------------------------------
+# .docusaurus/ is the build cache, build/ is the static output. Both can be
+# regenerated at any time.
+.docusaurus/
+.cache-loader/
+apps/docs/build/
+
+# Environment variables ------------------------------------------------------
+# Ignore local-only values. Shared names live in .env.example.
+.env.local
+.env.*.local
+
+# Block every name that can hold secrets.
+#
+# Only `.env.local` used to be ignored, so `.env`, `.secrets/`, and `*.p8`
+# were tracked. That was a path where gathering credentials into one file
+# could commit them. The keystore file itself is a credential, and a leak
+# cannot be undone.
+.env
+.env.*
+!.env.example
+.secrets/
+*.p8
+*.jks
+*.keystore
+*service-account*.json
+
+# OS -------------------------------------------------------------------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Editors --------------------------------------------------------------------
+*.tmp
+*.bak
+*~
+
+# Claude Code ----------------------------------------------------------------
+# settings.local.json is a per-machine permission allow-list and is not shared.
+# Team-shared settings go in .claude/settings.json.
+.claude/settings.local.json
+firebase.cfg

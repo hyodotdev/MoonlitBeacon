@@ -1,0 +1,455 @@
+---
+sidebar_position: 3
+title: Lesson 3 · Instances
+---
+
+# Lesson 3 · Instances
+
+In Lesson 2 you made the beacon as one file. This lesson **places it three
+times**.
+
+You are not copying it into three copies. You point at the same file from
+three spots, and **only the values that differ per spot sit on top**. Then
+when you want to change the flame color, there is still only one place to
+edit.
+
+Then we hook it up so tapping the title screen takes you into that arena.
+From here on there are **two screens**.
+
+## 1. The finished screen
+
+<Video
+  src="video/chapter-03-transition.mp4"
+  poster="img/chapter-03-transition-poster.jpg"
+  title="Pixel 10 — tap the screen and you enter the arena with three beacons burning"
+  silent
+/>
+
+Tap the title and the beacon flares once, then you enter the night-forest
+arena.
+Three beacons in different spots burn on their own beats.
+
+## 2. What an instance is
+
+An **instance** is a saved scene slotted into another scene.
+You already used this twice in Lesson 2 — `arena.tscn` held the night forest
+and the beacon as instances.
+
+What is new this time is placing **one of them several times, differently per
+spot**.
+
+```text
+beacon.tscn  ← one original
+   │
+   ├── BeaconWest   position (258, 286)   scale 0.78
+   ├── BeaconNorth  position (414, 196)   scale 0.62
+   └── BeaconEast   position (566, 272)   scale 0.86
+```
+
+The three **point at the same file**. Change the fire-pit picture and all
+three change.
+Only position and scale differ per instance.
+
+<Video
+  src="video/chapter-03-instances.mp4"
+  poster="img/chapter-03-instances-poster.jpg"
+  title="Change the light color once in beacon.tscn and all three follow"
+  silent
+/>
+
+The clip above is the result of opening `beacon.tscn` and changing `Light`'s
+`color` **once**.
+We did not touch the arena. All three beacons follow.
+
+That is why we split the scenes in Lesson 2. If you had copied three copies,
+you would now have to edit three places the same way, and you would definitely
+miss one.
+
+## 3. Check the official docs
+
+We look at Godot's official `Step by step / Instancing` page together.
+
+| Official docs | What we take from them |
+| --- | --- |
+| Instancing | How to instance a scene more than once |
+| Editing instances | How to give each instance different values, and how to revert |
+| Editable children | When you have to touch nodes inside an instance |
+
+The official docs drop several balls to show it. The idea is the same —
+**one original, several placements, different values on each**.
+
+## 4. What has to follow when there are three beacons
+
+Place three beacons as-is and this is what you get.
+
+- Two beacons burn **in the middle of the grass**
+- There is still only one clearing, in the center of the screen
+
+That is because the clearing is baked into `night_forest.tscn` as one.
+A clearing is **something that follows a beacon**. So the beacon scene should
+hold it.
+
+Same judgment as gathering the fire pit and the flame into the beacon scene in
+Lesson 2.
+Ask **"is this part of the beacon?"** and if yes, put it inside the beacon
+scene.
+
+### 4-1. Move the clearing into the beacon scene
+
+Cut `Clearing` and `Scorch` out of `night_forest.tscn` and paste them
+**in front of `Pit`** in `beacon.tscn`. Recapture the positions relative to
+the beacon.
+
+| Node | Position in the forest | Position inside the beacon |
+| --- | --- | --- |
+| `Clearing` | `(404, 250)` | `(0, 0)` |
+| `Scorch` | `(404, 253)` | `(0, 3)` |
+
+The beacon was at `(404, 250)`, so subtract that.
+
+Night tint gets the same treatment as the fire pit in Lesson 2. It left the
+forest, so write the multiplied result directly.
+
+| | R | G | B |
+| --- | --- | --- | --- |
+| `Clearing` (originally `1.2, 1, 0.7`) | 0.378 | 0.35 | 0.399 |
+| `Scorch` (originally white) | 0.315 | 0.35 | 0.57 |
+
+:::warning You have to follow nested resources recursively
+`Scorch` uses a `GradientTexture2D`, and **that texture in turn references a
+`Gradient`**.
+Move only what you can see and the scene will not open at all.
+
+```text
+ERROR: res://scenes/objectives/beacon.tscn:168 - Parse Error: .
+WARNING: Node './Beacon' was modified from inside an instance, but it has vanished.
+```
+
+Cut and paste in the editor and Godot follows them for you.
+You only have to be careful when you edit the `.tscn` by hand.
+:::
+
+### 4-2. Make draw order explicit
+
+Move them and run, and **the clearing covers the grass and the trees**.
+
+The beacon is a sibling of the forest and sits **later** in the tree. Whatever
+is later draws on top, so the clearing the beacon brought covers the whole
+forest.
+
+Lock the floor layer with `z_index`.
+
+| Node | `z_index` | Why |
+| --- | --- | --- |
+| `NightForest/Ground` | `-1` | Dirt floor. Bottom |
+| `Beacon/Clearing` | `-1` | Clearing mark. Above the floor, below the grass |
+| `Beacon/Scorch` | `-1` | Scorch. Same layer |
+| Everything else | default `0` | Grass · trees · fire pit · flame |
+
+> **Same `z_index` draws in tree order**
+> `Ground` and `Clearing` are both `-1`, but the forest is before the beacon,
+> so the floor draws first and the clearing sits on top. That is the intended
+> order.
+
+## 5. Build it yourself
+
+<Video
+  src="video/chapter-03-arena.mp4"
+  poster="img/chapter-03-arena-poster.jpg"
+  title="arena.tscn — three beacons burn on their own beats (silent)"
+  silent
+/>
+
+### 5-1. Place three beacons
+
+Open `arena.tscn` and use the **chain icon (`Instantiate Child Scene`)** to
+attach `beacon.tscn` two more times.
+
+Rename them — `BeaconWest`, `BeaconNorth`, `BeaconEast`.
+Leave them as `Beacon`, `Beacon2`, `Beacon3` and later you will not know which
+is which from a script.
+
+Give them position and scale in the inspector.
+
+| Instance | `Position` | `Scale` |
+| --- | --- | --- |
+| `BeaconWest` | `(258, 286)` | `0.78` |
+| `BeaconNorth` | `(414, 196)` | `0.62` |
+| `BeaconEast` | `(566, 272)` | `0.86` |
+
+The different scales are not decoration. On a top-down screen **up is
+farther**.
+Make the north beacon smaller and the screen gets depth.
+
+:::tip Change a value and a revert arrow appears in the inspector
+A property you changed on an instance gets a **↩-shaped icon** next to it.
+That mark means "overwritten, different from the original." Press it to revert
+to the original value.
+
+Only properties with that mark are saved on this instance. Everything else
+follows the original.
+That is why editing `beacon.tscn` changes all three at once.
+:::
+
+### 5-2. The problem of all three flickering on one beat
+
+Run it at this point and something feels off.
+**The three beacons flicker in perfectly the same beat.**
+
+Of course they do. All three started the same `Flicker` animation at the same
+moment.
+Three real campfires do not sway on the same beat.
+
+`Flicker` is a node **inside** the beacon scene, so it does not show in the
+inspector.
+Right-click `BeaconWest` and turn on **`Editable Children`** and the inside
+unfolds.
+Turn it on for the other two as well — you have to turn it on per instance.
+
+Give each instance's `Flicker` a different `Speed Scale`.
+
+| Instance | `Speed Scale` |
+| --- | --- |
+| `BeaconWest` | `0.87` |
+| `BeaconNorth` | `1.24` |
+| `BeaconEast` | `1.03` |
+
+The same animation running at different speeds is already off at the start,
+and it drifts further over time. They look like three fires living their own
+lives.
+
+Measure it and the correlation coefficients of the three beacons' brightness
+are `+0.01`, `+0.06`, and `-0.19`.
+Close to 1.0 means the same beat, so near 0 means they are fully independent.
+
+:::danger `Editable Children` only when you truly need it
+The moment you turn it on, that instance **depends on the inside structure**.
+Later, if you rename `Flicker` in `beacon.tscn` or move its order, this arena
+breaks quietly.
+
+We turned it on here for one value. In Lesson 4, once a script is on the
+beacon, you will be able to give each instance a value **without turning this
+on** (`@export`).
+We revert this setting then.
+:::
+
+### 5-3. Put music on the arena
+
+Enter the arena and the title music cuts. A silent screen looks unfinished.
+
+Add one `AudioStreamPlayer` to `arena.tscn` and hook up
+`assets/third_party/ninja_adventure/audio/music/arena_theme.ogg`.
+`Volume dB` is `-11`, and turn `Autoplay` on.
+
+:::warning The import default is `loop=false`
+Select the `.ogg` in the FileSystem dock → **Import tab → check `Loop` →
+Reimport**.
+Leave it off and the music ends after 48 seconds and goes quiet.
+:::
+
+> **Pick a track with a ruler, not by the name**
+> Among the candidates there is a track called `11 - Clearing`. We are making
+> a forest clearing, so by name it looks like the answer. But **the last 3
+> seconds fade out to 36% of the body**, so looping it means the sound dies
+> down and then pops back every time.
+>
+> We picked `27 - Chill`. The end is not cut off (0.72), and of the 8
+> candidates it has **the smallest loudness swing** (1-second-window RMS
+> coefficient of variation 0.281, max–min gap 10.6dB).
+> Arena music has to sit under play, so the side without big waves is right.
+>
+> :::danger Do not pick from one column
+> Look only at spectral centroid and `2 - The Cave` is lower at 356Hz. Lower
+> does sink into the background, but that track also has **the most treble at
+> 1.1% and a large swing.**
+> :::
+>
+> Every measured value is in the [asset manifest](/docs/assets/manifest).
+
+### 5-4. Center the arena on screen too
+
+In Lesson 1 we set stretch aspect to `expand`. Height stays locked at 360 and
+only width grows with the device ratio. So we have to **push the stage to the
+center of the screen**.
+
+The title screen has been doing that since Lesson 1. The arena does not have
+it.
+On a Pixel 10 (2.244:1) it happens to fit, so you cannot tell, but on a 16:9
+phone the stage slides to one side and the vignette cannot cover the screen
+edge.
+
+The math is the same as the title. To avoid writing the same formula in two
+places, we extract `scripts/util/screen.gd` and both sides use it.
+
+```gdscript
+class_name Screen
+extends RefCounted
+
+const BASE_SIZE: Vector2 = Vector2(808, 360)
+
+static func center_offset(viewport_size: Vector2) -> Vector2:
+	return ((viewport_size - BASE_SIZE) * 0.5).floor()
+```
+
+The arena's root is `Node2D`, so **pushing itself** moves the forest and all
+three beacons with it.
+The title's root is `Control`, so the forest and the beacon have to be pushed
+separately.
+
+| Viewport | Offset | Left margin | Right margin |
+| --- | --- | --- | --- |
+| 808 (Pixel 10) | 0 | 0 | 0 |
+| 640 (16:9) | −84 | −84 | −84 |
+| 900 (a wider phone) | +46 | +46 | +46 |
+
+Equal left and right margins means it is centered.
+
+> **Floor to integer pixels**
+> A leftover half pixel misaligns the dots under nearest-neighbor upscaling.
+> That is the rule we set in Lesson 1.
+
+### 5-5. Go from the title to the arena
+
+The title screen already emits a `start_requested` signal when you tap.
+It has been there since Lesson 1, and **nobody was listening**.
+
+Add three places to `title_menu.gd`.
+
+```gdscript
+## Where a tap takes you.
+## Keep the path in this one line so there is one place to edit if the arena file moves.
+const ARENA_SCENE: String = "res://scenes/gameplay/arena.tscn"
+
+
+func _ready() -> void:
+	...
+	start_requested.connect(_enter_arena)
+
+
+func _enter_arena() -> void:
+	get_tree().change_scene_to_file(ARENA_SCENE)
+```
+
+`change_scene_to_file()` tears down the current scene as a whole and loads
+the new one.
+The title's forest and beacon disappear, and the arena makes its own from
+scratch.
+
+:::danger The transition frame freezes
+Leave it like this and the screen **stops for 181ms** at the moment of the
+transition. That is 11 frames at 60fps.
+
+When an `AudioStreamPlayer` leaves the tree, the audio thread needs time to
+clean up, so it waits 150ms. That wait lands on the same frame that swaps the
+scene.
+
+**Turn the sound off first.** Fade the music to zero over 0.55 seconds from
+the moment of the tap, and by the time the beacon effect (0.85 seconds) ends
+the sound is already gone, so there is nothing to wait for.
+
+```gdscript
+const BGM_FADE_OUT_SECONDS: float = 0.55
+
+func _fade_out_music() -> void:
+	var fade: Tween = create_tween()
+	fade.tween_property(_bgm, "volume_db", BGM_SILENCE_DB, BGM_FADE_OUT_SECONDS)
+	await fade.finished
+	if not is_inside_tree():
+		return
+	_bgm.release()
+	_sfx.release()
+```
+
+Fix it and measure again and the slowest frame is **27ms**.
+The music dies away naturally as you go, so it also looks better.
+:::
+
+:::warning A flash of gray on the one transition frame
+The moment the scene changes, Godot's default background color (`#4C4C4C`
+gray) shows for one frame.
+A gray flash in a night-forest game is very noticeable.
+
+Set `Project Settings → Rendering → Environment → Default Clear Color` to the
+night color (`#0b0e1c`) and the transition happens in the dark, so you cannot
+see it.
+:::
+
+> **Why bother going through a signal**
+> It is the same file, so you could change the scene at the end of
+> `request_start()`.
+> Later, though, when a place that manages the whole game exists, that place
+> could receive this signal, read a save, pick a difficulty, and then show
+> the arena.
+>
+> (In this course, Lesson 9 actually has **the arena take that seat** and we
+> do not make a separate manager scene. Even so, because we cut it at a
+> signal, we did not change a single character on the title.)
+>
+> The title screen should **only say "I want to start," and not know what
+> comes next**.
+> One extra line now is one line to edit then.
+
+## 6. Check your work so far
+
+```bash
+pnpm game:check
+```
+
+Exit code `0`, zero errors and warnings.
+
+- `arena.tscn` has **three** instances of `beacon.tscn`
+- The three instances each have a different `position`, `scale`, and
+  `speed_scale`
+- `night_forest.tscn` has **no** `Clearing` or `Scorch`
+- Each of the three beacons sits on its own clearing
+
+## 7. Break it on purpose
+
+**① Set all three `Flicker` `Speed Scale` values back to `1.0`**
+→ They flicker on one beat. They look mechanical. After you check, put them
+back.
+
+**② Set `Beacon/Clearing`'s `z_index` to `0`**
+→ The clearing covers the grass and the trees. You can see that the beacon
+sits after the forest.
+
+**③ In `beacon.tscn`, double `Pit`'s `Scale`**
+→ All three beacons' fire pits get bigger. You did not touch the arena.
+
+**④ Press the revert arrow next to `BeaconNorth`'s `Scale`**
+→ It goes back to the original value `1.0` and the north beacon gets bigger.
+You can tell which values are overwrites just by looking at the arrows. After
+you check, put it back to `0.62`.
+
+## 8. Completion checklist
+
+- [ ] Tapping the title screen takes you into the arena
+- [ ] The arena has three beacons, each in a different position and scale
+- [ ] The three beacons flicker on different beats
+- [ ] Each of the three beacons sits on its own clearing
+- [ ] The clearing does not cover the grass and the trees
+- [ ] Music plays in the arena, and it does not cut off after 48 seconds
+- [ ] The screen does not freeze or flash gray at the moment of the transition
+- [ ] Changing window width keeps the arena centered
+- [ ] Edit `beacon.tscn` once and all three change
+- [ ] `pnpm game:check` exits with code 0
+- [ ] Install it on a phone, tap, and it runs in the same order
+
+## 9. Exercises
+
+1. Place a fourth beacon anywhere. How many seconds did it take.
+   Think about how many minutes it would have taken if you had not extracted
+   it as a scene in Lesson 2.
+   (After you check, delete it and go back to three.)
+
+2. Change only `BeaconNorth`'s `Modulate` to a bluish tint.
+   The other two stay as they are. You get a feel for how far **different per
+   instance** goes.
+   After you check, put it back to white.
+
+3. Make `arena.tscn` the **main scene** and run
+   (`Project Settings → Application → Run → Main Scene`).
+   The arena comes up with no title. After you check, put it back to the
+   title.
+   A method you use often in development when you want to look at one screen
+   over and over.

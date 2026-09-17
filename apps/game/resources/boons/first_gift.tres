@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Boon" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/boon.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+display_name = "BOON_FIRST_GIFT_NAME"
+description = "BOON_FIRST_GIFT_DESC"
+grace = 3
+step = 1.0
+max_rank = 2
+base_cost = 45
+cost_growth = 2.5
+accent = Color(1, 0.78, 0.95, 1)

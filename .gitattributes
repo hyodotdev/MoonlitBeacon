@@ -1,0 +1,48 @@
+* text=auto eol=lf
+
+*.gd        text
+*.tscn      text
+*.tres      text
+*.godot     text
+*.cfg       text
+*.csv       text
+*.md        text
+*.mdx       text
+*.ps1       text
+*.mjs       text
+*.py        text
+
+# Binary types must be listed here.
+# `* text=auto` decides text vs binary by whether the start of the file has
+# NUL bytes. That is usually right, but it is a heuristic: if a NUL appears
+# late, line-ending normalization quietly corrupts the file. **It looks fine
+# locally; only people who clone get a broken file.** That is very hard to
+# diagnose.
+#
+# Video is course output, so corruption shows immediately — call it out.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.webp      binary
+*.ico       binary
+*.gif       binary
+*.mp4       binary
+*.mkv       binary
+*.avi       binary
+*.mov       binary
+*.ogg       binary
+*.wav       binary
+*.mp3       binary
+*.ttf       binary
+*.otf       binary
+*.woff      binary
+*.woff2     binary
+*.exe       binary
+*.wasm      binary
+*.apk       binary
+*.aab       binary
+*.aar       binary
+vendor/godot-iap-ios/bin/ios/GodotIap.framework/GodotIap binary
+vendor/godot-iap-ios/bin/ios/SwiftGodotRuntime.framework/SwiftGodotRuntime binary
+*.zip       binary
+*.keystore  binary

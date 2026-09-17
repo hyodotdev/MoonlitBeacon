@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/spirits/caster.png" id="sheet"]
+
+[resource]
+script = ExtResource("script")
+display_name = "달빛 술사"
+behavior = 3
+keep_distance = 150.0
+shoot_interval = 2.2
+sheet = ExtResource("sheet")
+cell = 48
+facings = 4
+frames = 4
+lift = -8.0
+speed = 66.0
+turn_rate = 3.5
+health = 40
+score_value = 200
+stagger_seconds = 0.1
+body_scale = 1.0
+tint = Color(1, 1, 1, 1)
+anim_fps = 6.0

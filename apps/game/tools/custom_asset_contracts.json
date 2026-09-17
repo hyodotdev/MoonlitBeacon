@@ -1,0 +1,1533 @@
+{
+  "version": 1,
+  "asset_root": "assets/custom",
+  "defaults": {
+    "status": "planned",
+    "format": "rgba8",
+    "require_visible": true,
+    "max_alpha_levels": 5
+  },
+  "assets": [
+    {
+      "id": "atmosphere.night_mist",
+      "category": "atmosphere",
+      "status": "final",
+      "path": "assets/custom/world/atmosphere/night_mist.png",
+      "width": 1024,
+      "height": 420,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 4
+    },
+    {
+      "id": "atmosphere.raylight",
+      "category": "atmosphere",
+      "status": "final",
+      "path": "assets/custom/world/atmosphere/raylight.png",
+      "width": 216,
+      "height": 102,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 8,
+      "max_alpha_levels": 5
+    },
+    {
+      "id": "boss.camp",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/camp.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.camp.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/camp_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.camp.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/camp_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.camp_siege",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/camp_siege.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.camp_siege.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/camp_siege_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.camp_siege.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/camp_siege_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field.windup_cross",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_windup_cross.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field.windup_radial",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_windup_radial.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field_storm",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_storm.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field_storm.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_storm_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field_storm.windup_cross",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_storm_windup_cross.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.field_storm.windup_radial",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/field_storm_windup_radial.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest.charge",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_charge.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest_thorn",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_thorn.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest_thorn.charge",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_thorn_charge.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest_thorn.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_thorn_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.forest_thorn.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/forest_thorn_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "enemy.caster",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/caster.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "enemy.drifter",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/drifter.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "enemy.ember",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/ember.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "enemy.stalker",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/stalker.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "enemy.swarm",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/swarm.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "enemy.weaver",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/weaver.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "enemy.wisp",
+      "category": "enemy",
+      "status": "final",
+      "path": "assets/custom/actors/spirits/wisp.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4096,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "fx.beacon_flame",
+      "category": "fx",
+      "status": "final",
+      "path": "assets/custom/world/beacon/flame.png",
+      "width": 96,
+      "height": 12,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2,
+      "frame_grid": {
+        "columns": 8,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 12,
+        "allow_blank_frames": false,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "fx.beacon_smoke",
+      "category": "fx",
+      "status": "final",
+      "path": "assets/custom/world/beacon/smoke.png",
+      "width": 192,
+      "height": 32,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 32,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 32,
+        "cell_height": 32,
+        "allow_blank_frames": false,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "fx.beacon_spark",
+      "category": "fx",
+      "status": "final",
+      "path": "assets/custom/world/beacon/spark.png",
+      "width": 70,
+      "height": 8,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2,
+      "frame_grid": {
+        "columns": 7,
+        "rows": 1,
+        "cell_width": 10,
+        "cell_height": 8,
+        "allow_blank_frames": false,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "fx.moon_slash",
+      "category": "fx",
+      "status": "final",
+      "path": "assets/custom/items/fx/moon_slash.png",
+      "width": 192,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 24,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 48,
+        "cell_height": 48,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "hero.dancer.idle",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/idle.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.dancer.portrait",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/portrait.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8192,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 96,
+        "cell_height": 96,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "hero.dancer.walk",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/walk.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.eclipse.idle",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/idle.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.eclipse.portrait",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/portrait.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8192,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 96,
+        "cell_height": 96,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "hero.eclipse.walk",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/walk.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.keeper.idle",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/idle.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.keeper.portrait",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/portrait.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8192,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 96,
+        "cell_height": 96,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "hero.keeper.walk",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/walk.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.knight.idle",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/idle.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.knight.portrait",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/portrait.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8192,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 96,
+        "cell_height": 96,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "hero.knight.walk",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/walk.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.sage.idle",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/idle.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.sage.portrait",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/portrait.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8192,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 96,
+        "cell_height": 96,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "hero.sage.walk",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/walk.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.warden.idle",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/idle.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "hero.warden.portrait",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/portrait.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8192,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 96,
+        "cell_height": 96,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "hero.warden.walk",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/walk.png",
+      "width": 192,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16384,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 4,
+        "cell_width": 48,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "objective.beacon_clearing",
+      "category": "objective",
+      "status": "final",
+      "path": "assets/custom/world/beacon/clearing.png",
+      "width": 288,
+      "height": 160,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "objective.moon_gate",
+      "category": "objective",
+      "status": "final",
+      "path": "assets/custom/world/gate/moon_gate.png",
+      "width": 34,
+      "height": 52,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 32,
+      "max_alpha_levels": 8,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 34,
+        "cell_height": 52,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "pickup.moon_dew",
+      "category": "pickup",
+      "status": "final",
+      "path": "assets/custom/ui/heart.png",
+      "width": 80,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2,
+      "frame_grid": {
+        "columns": 5,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": false,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "pickup.power_gem",
+      "category": "pickup",
+      "status": "final",
+      "path": "assets/custom/items/pickups/power_gem.png",
+      "width": 96,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 18,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 24,
+        "cell_height": 24,
+        "allow_blank_frames": false,
+        "edge_padding": 1
+      }
+    },
+    {
+      "id": "projectile.hostile_moon_bolt",
+      "category": "projectile",
+      "status": "final",
+      "path": "assets/custom/items/projectiles/hostile_moon_bolt.png",
+      "width": 40,
+      "height": 40,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 24,
+      "max_alpha_levels": 8
+    },
+    {
+      "id": "projectile.moon_arrow",
+      "category": "projectile",
+      "status": "final",
+      "path": "assets/custom/items/projectiles/moon_arrow.png",
+      "width": 128,
+      "height": 32,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 24,
+      "max_alpha_levels": 8,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 32,
+        "cell_height": 32,
+        "allow_blank_frames": false,
+        "edge_padding": 2
+      }
+    },
+    {
+      "id": "terrain.camp_atlas",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/camp.png",
+      "width": 368,
+      "height": 144,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 24,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.camp_floor_atlas",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/floor.png",
+      "width": 352,
+      "height": 417,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.camp_props",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/camp_props.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 64,
+      "frame_grid": {
+        "columns": 16,
+        "rows": 16,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": true,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "terrain.field_atlas",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/field.png",
+      "width": 80,
+      "height": 240,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.field_props",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/field_props.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 64,
+      "frame_grid": {
+        "columns": 16,
+        "rows": 16,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": true,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "terrain.forest_floor",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/forest_floor.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 32
+    },
+    {
+      "id": "terrain.forest_props",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/forest_props.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 64,
+      "frame_grid": {
+        "columns": 16,
+        "rows": 16,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": true,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "terrain.nature_atlas",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/nature.png",
+      "width": 384,
+      "height": 336,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 32,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.app_icon_background",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/app_icon_background.png",
+      "width": 432,
+      "height": 432,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 35000,
+      "max_alpha_levels": 1
+    },
+    {
+      "id": "ui.app_icon_foreground",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/app_icon_foreground.png",
+      "width": 432,
+      "height": 432,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 15000,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.app_icon_master",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/app_icon_master.png",
+      "width": 1024,
+      "height": 1024,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 150000,
+      "max_alpha_levels": 1
+    },
+    {
+      "id": "ui.app_icon_main",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/app_icon_main.png",
+      "width": 192,
+      "height": 192,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 20000,
+      "max_alpha_levels": 1
+    },
+    {
+      "id": "ui.boot_splash",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/boot_splash.png",
+      "width": 2048,
+      "height": 1152,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 128,
+      "max_alpha_levels": 1
+    },
+    {
+      "id": "ui.bust.dancer",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/busts/dancer.png",
+      "width": 168,
+      "height": 248,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.bust.eclipse",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/busts/eclipse.png",
+      "width": 168,
+      "height": 248,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.bust.keeper",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/busts/keeper.png",
+      "width": 168,
+      "height": 248,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.bust.knight",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/busts/knight.png",
+      "width": 168,
+      "height": 248,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.bust.sage",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/busts/sage.png",
+      "width": 168,
+      "height": 248,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.bust.warden",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/busts/warden.png",
+      "width": 168,
+      "height": 248,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.button_disabled",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/button_disabled_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.button_focus",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/button_focus_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.button_hover",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/button_hover_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.button_normal",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/button_normal_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.button_pressed",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/button_pressed_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.panel_frame",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/panel_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.relic_panel_frame",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/nine_path_panel_moonlit.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 16,
+      "max_alpha_levels": 2
+    }
+  ]
+}

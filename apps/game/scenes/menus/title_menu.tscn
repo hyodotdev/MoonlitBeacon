@@ -1,0 +1,350 @@
+[gd_scene load_steps=26 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/gameplay/night_forest.tscn" id="forest"]
+[ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="beacon"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/title_theme.ogg" id="bgm"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Multilingual.tres" id="font"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font_bold"]
+[ext_resource type="Script" path="res://scripts/ui/title_menu.gd" id="script"]
+[ext_resource type="Script" path="res://scripts/audio/music_player.gd" id="music"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="sfx_confirm"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings"]
+[ext_resource type="PackedScene" path="res://scenes/ui/credits_panel.tscn" id="credits"]
+[ext_resource type="PackedScene" path="res://scenes/ui/quit_panel.tscn" id="quit"]
+[ext_resource type="Script" path="res://scripts/dev/test_launcher.gd" id="testlauncher"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shrine_panel.tscn" id="shrine"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ladder_panel.tscn" id="ladderpanel"]
+[ext_resource type="PackedScene" path="res://scenes/ui/iap_shop_panel.tscn" id="iapshop"]
+
+[sub_resource type="Animation" id="Animation_blink"]
+resource_name = "blink"
+length = 2.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("TapPrompt:modulate")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1.1, 2.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0.4), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_flare"]
+resource_name = "flare"
+length = 0.85
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Beacon/Light:energy")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.85),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [4.64, 9.92, 4.64]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Beacon/Glow:scale")
+tracks/1/interp = 2
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.12, 0.85),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector2(0.42, 0.37), Vector2(0.88, 0.78), Vector2(0.42, 0.37)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_beacon"]
+_data = {
+&"flare": SubResource("Animation_flare")
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_prompt"]
+_data = {
+&"blink": SubResource("Animation_blink")
+}
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_badge"]
+bg_color = Color(0.98, 0.58, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.16, 0.12, 0.16, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="TitleMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("script")
+
+[node name="NightForest" parent="." instance=ExtResource("forest")]
+
+[node name="Beacon" parent="." instance=ExtResource("beacon")]
+position = Vector2(404, 250)
+
+[node name="BeaconFx" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_beacon")
+}
+
+[node name="Ui" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="Screen" type="Control" parent="Ui"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 14
+anchor_left = 0.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 0.0
+offset_top = -106.0
+offset_right = 0.0
+offset_bottom = -38.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.957, 0.878, 1)
+theme_override_colors/font_outline_color = Color(0.027, 0.035, 0.071, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
+theme_override_constants/outline_size = 8
+theme_override_constants/shadow_offset_x = 0
+theme_override_constants/shadow_offset_y = 5
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 55
+text = "TITLE_NAME"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 14
+anchor_left = 0.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 0.0
+offset_top = -32.0
+offset_right = 0.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.976, 0.749, 0.408, 1)
+theme_override_colors/font_outline_color = Color(0.027, 0.035, 0.071, 0.9)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 22
+text = "TITLE_SUBTITLE"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TapPrompt" type="Label" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 14
+anchor_left = 0.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = 0.0
+offset_top = 116.0
+offset_right = 0.0
+offset_bottom = 142.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.898, 0.918, 0.965, 1)
+theme_override_colors/font_outline_color = Color(0.027, 0.035, 0.071, 0.9)
+theme_override_constants/outline_size = 5
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 22
+text = "TAP_TO_START"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Version" type="Label" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -110.0
+offset_top = -24.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.549, 0.588, 0.686, 0.7)
+theme_override_colors/font_outline_color = Color(0.027, 0.035, 0.071, 0.75)
+theme_override_constants/outline_size = 3
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 11
+text = ""
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SettingsButton" type="Button" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -78.0
+offset_top = 12.0
+offset_right = -10.0
+offset_bottom = 38.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SETTINGS_TITLE"
+
+[node name="TestLauncher" type="HBoxContainer" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -30.0
+offset_right = 200.0
+offset_bottom = -8.0
+grow_vertical = 0
+script = ExtResource("testlauncher")
+
+[node name="ShrineButton" type="Button" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -78.0
+offset_top = 44.0
+offset_right = -10.0
+offset_bottom = 70.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.86, 0.92, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "SHRINE_OPEN"
+
+[node name="PurchaseBadge" type="Label" parent="Ui/Screen/ShrineButton"]
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_left = -13.0
+offset_top = 3.0
+offset_right = 7.0
+offset_bottom = 23.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.12, 0.08, 0.12, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 11
+theme_override_styles/normal = SubResource("StyleBoxFlat_badge")
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LadderButton" type="Button" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -78.0
+offset_top = 76.0
+offset_right = -10.0
+offset_bottom = 102.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(1, 0.92, 0.7, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "LADDER_OPEN"
+
+[node name="StoreButton" type="Button" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -78.0
+offset_top = 108.0
+offset_right = -10.0
+offset_bottom = 134.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.86, 0.75, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "IAP_OPEN"
+
+[node name="PromptBlink" type="AnimationPlayer" parent="Ui/Screen"]
+libraries = {
+&"": SubResource("AnimationLibrary_prompt")
+}
+autoplay = "blink"
+
+[node name="Settings" parent="Ui" instance=ExtResource("settings")]
+
+[node name="Credits" parent="Ui" instance=ExtResource("credits")]
+
+[node name="Shrine" parent="Ui" instance=ExtResource("shrine")]
+
+[node name="Ladder" parent="Ui" instance=ExtResource("ladderpanel")]
+
+[node name="IapShop" parent="Ui" instance=ExtResource("iapshop")]
+
+[node name="Quit" parent="Ui" instance=ExtResource("quit")]
+
+[node name="Bgm" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("bgm")
+volume_db = -60.0
+bus = &"Music"
+
+[node name="Sfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("sfx_confirm")
+volume_db = -4.0
+bus = &"Sfx"

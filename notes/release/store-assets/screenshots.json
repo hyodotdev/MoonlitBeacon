@@ -1,0 +1,160 @@
+{
+  "iap_review": [
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.hero_dancer",
+      "output": "hero-dancer.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.hero_keeper",
+      "output": "hero-keeper.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.hero_knight",
+      "output": "hero-knight.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.hero_eclipse",
+      "output": "hero-eclipse.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.hero_sage",
+      "output": "hero-sage.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.supporter",
+      "output": "supporter.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.lantern_colors",
+      "output": "lantern-colors.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.continue_coin",
+      "output": "continue-coin.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.continue_coin_5",
+      "output": "continue-coin-5.png"
+    },
+    {
+      "product_id": "com.crossplatformkorea.moonlitbeacon.continue_coin_10",
+      "output": "continue-coin-10.png"
+    }
+  ],
+  "screenshots": [
+    {
+      "output": "01-moonlight-barrage.png",
+      "scene": "combat",
+      "localized_sources": {
+        "en-US": "builds/shots/store-localized/en-US/01-moonlight-barrage.png",
+        "ko-KR": "builds/shots/store-localized/ko-KR/01-moonlight-barrage.png",
+        "ja-JP": "builds/shots/store-localized/ja-JP/01-moonlight-barrage.png",
+        "zh-Hans": "builds/shots/store-localized/zh-Hans/01-moonlight-barrage.png",
+        "zh-Hant": "builds/shots/store-localized/zh-Hant/01-moonlight-barrage.png"
+      },
+      "crop_bottom": 180,
+      "labels": {
+        "en-US": "UNLEASH A STORM OF HOMING MOONLIGHT",
+        "ko-KR": "추적하는 달빛 탄막을 펼치세요",
+        "ja-JP": "追尾する月光の弾幕を解き放て",
+        "zh-Hans": "释放追踪敌人的月光弹幕",
+        "zh-Hant": "釋放追蹤敵人的月光彈幕"
+      }
+    },
+    {
+      "output": "02-field-guardian.png",
+      "scene": "combat",
+      "localized_sources": {
+        "en-US": "builds/shots/store-localized/en-US/02-field-guardian.png",
+        "ko-KR": "builds/shots/store-localized/ko-KR/02-field-guardian.png",
+        "ja-JP": "builds/shots/store-localized/ja-JP/02-field-guardian.png",
+        "zh-Hans": "builds/shots/store-localized/zh-Hans/02-field-guardian.png",
+        "zh-Hant": "builds/shots/store-localized/zh-Hant/02-field-guardian.png"
+      },
+      "crop_bottom": 180,
+      "labels": {
+        "en-US": "THREE BEACONS • A DIFFERENT GUARDIAN",
+        "ko-KR": "봉화 셋 뒤에는 지형별 수호자",
+        "ja-JP": "3つの烽火・地形ごとの守護者",
+        "zh-Hans": "点燃三座烽火，挑战地形守护者",
+        "zh-Hant": "點燃三座烽火，挑戰地形守護者"
+      }
+    },
+    {
+      "output": "03-missile-core-drop.png",
+      "scene": "combat",
+      "localized_sources": {
+        "en-US": "builds/shots/store-localized/en-US/03-missile-core-drop.png",
+        "ko-KR": "builds/shots/store-localized/ko-KR/03-missile-core-drop.png",
+        "ja-JP": "builds/shots/store-localized/ja-JP/03-missile-core-drop.png",
+        "zh-Hans": "builds/shots/store-localized/zh-Hans/03-missile-core-drop.png",
+        "zh-Hant": "builds/shots/store-localized/zh-Hant/03-missile-core-drop.png"
+      },
+      "crop_bottom": 180,
+      "labels": {
+        "en-US": "TAKE A HIT • RECLAIM YOUR MISSILE CORE",
+        "ko-KR": "피격하면 떨어진 미사일 코어를 되찾으세요",
+        "ja-JP": "被弾で落としたミサイルコアを取り戻せ",
+        "zh-Hans": "受伤后，夺回掉落的导弹核心",
+        "zh-Hant": "受傷後，奪回掉落的飛彈核心"
+      }
+    },
+    {
+      "output": "04-title.png",
+      "scene": "title",
+      "localized_sources": {
+        "en-US": "builds/shots/store-localized/en-US/04-title.png",
+        "ko-KR": "builds/shots/store-localized/ko-KR/04-title.png",
+        "ja-JP": "builds/shots/store-localized/ja-JP/04-title.png",
+        "zh-Hans": "builds/shots/store-localized/zh-Hans/04-title.png",
+        "zh-Hant": "builds/shots/store-localized/zh-Hant/04-title.png"
+      },
+      "crop_bottom": 90,
+      "labels": {
+        "en-US": "LIGHT THE BEACONS • OUTLAST THE NIGHT",
+        "ko-KR": "봉화를 밝히고 밤을 버티세요",
+        "ja-JP": "烽火を灯し、夜を生き抜け",
+        "zh-Hans": "点燃烽火，熬过长夜",
+        "zh-Hant": "點燃烽火，撐過長夜"
+      }
+    },
+    {
+      "output": "05-moonlit-shrine.png",
+      "scene": "shrine",
+      "localized_sources": {
+        "en-US": "builds/shots/store-localized/en-US/05-moonlit-shrine.png",
+        "ko-KR": "builds/shots/store-localized/ko-KR/05-moonlit-shrine.png",
+        "ja-JP": "builds/shots/store-localized/ja-JP/05-moonlit-shrine.png",
+        "zh-Hans": "builds/shots/store-localized/zh-Hans/05-moonlit-shrine.png",
+        "zh-Hant": "builds/shots/store-localized/zh-Hant/05-moonlit-shrine.png"
+      },
+      "crop_bottom": 0,
+      "labels": {
+        "en-US": "CHOOSE YOUR MOONLIT HERO",
+        "ko-KR": "나만의 달빛 영웅을 선택하세요",
+        "ja-JP": "月明かりの英雄を選ぼう",
+        "zh-Hans": "选择你的月光英雄",
+        "zh-Hant": "選擇你的月光英雄"
+      }
+    },
+    {
+      "output": "06-hero-preview.png",
+      "scene": "hero-preview",
+      "localized_sources": {
+        "en-US": "builds/shots/store-localized/en-US/06-hero-preview.png",
+        "ko-KR": "builds/shots/store-localized/ko-KR/06-hero-preview.png",
+        "ja-JP": "builds/shots/store-localized/ja-JP/06-hero-preview.png",
+        "zh-Hans": "builds/shots/store-localized/zh-Hans/06-hero-preview.png",
+        "zh-Hant": "builds/shots/store-localized/zh-Hant/06-hero-preview.png"
+      },
+      "crop_bottom": 0,
+      "labels": {
+        "en-US": "PREVIEW EACH HERO BEFORE YOU CHOOSE",
+        "ko-KR": "선택 전에 영웅 모습을 확인하세요",
+        "ja-JP": "選ぶ前に英雄をプレビュー",
+        "zh-Hans": "选择前预览每位英雄",
+        "zh-Hant": "選擇前預覽每位英雄"
+      }
+    }
+  ]
+}

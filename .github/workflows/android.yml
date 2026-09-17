@@ -1,0 +1,259 @@
+name: Android packages
+
+# Confirm a debug APK and a Play-upload AAB actually bake.
+# CI takes more than 5 minutes (export template download is 700MB+), so it
+# runs only on PRs that change the game.
+# Outputs upload as artifacts so people without a phone can still install.
+# Fork PRs get no secrets, so they build the APK only; the store AAB needs
+# the IAPKIT_API_KEY secret and its checks are skipped there.
+on:
+  pull_request:
+    paths:
+      - 'apps/game/**'
+      - '.github/workflows/android.yml'
+      - 'scripts/android-build.mjs'
+      - 'scripts/godot.mjs'
+      - 'scripts/lib/**'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/game/**'
+      - 'scripts/android-build.mjs'
+      - 'scripts/godot.mjs'
+      - 'scripts/lib/**'
+      - 'package.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: 4.7.1
+
+jobs:
+  apk:
+    name: Debug APK · AAB build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          # The default package list still includes the retired `tools`
+          # package (`Failed to find package 'tools'`). cmdline-tools already
+          # replace it; install platform-tools only.
+          packages: platform-tools
+      - name: Accept remaining Android SDK licenses
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          for bin in "$SDK/cmdline-tools/latest/bin/sdkmanager" "$SDK/cmdline-tools/16.0/bin/sdkmanager"; do
+            if [ -x "$bin" ]; then
+              yes | "$bin" --licenses >/dev/null || true
+              break
+            fi
+          done
+
+      - name: Install Godot and export templates
+        run: |
+          set -euo pipefail
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+
+          curl -fsSL -o godot.zip "${BASE}/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          sudo mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+
+          # Export templates must sit at a fixed path or Godot will not find them.
+          curl -fsSL -o templates.tpz "${BASE}/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mv templates/* "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/"
+          godot --version
+
+      # Export fails without a debug keystore.
+      # This is not the release keystore. CI does not release-sign.
+      - name: Create debug keystore
+        run: |
+          set -euo pipefail
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey \
+            -keypass android -keystore debug.keystore -storepass android \
+            -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+          {
+            echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$PWD/debug.keystore"
+            echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey"
+            echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android"
+          } >> "$GITHUB_ENV"
+
+      - name: Plant the SDK path in editor settings
+        run: |
+          set -euo pipefail
+          CFG="$HOME/.config/godot"
+          mkdir -p "$CFG"
+          cat > "$CFG/editor_settings-4.7.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "${ANDROID_SDK_ROOT}"
+          export/android/debug_keystore = "${GODOT_ANDROID_KEYSTORE_DEBUG_PATH}"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      - name: Import the project
+        run: godot --headless --path apps/game --quit --editor || true
+
+      # Output paths are relative to the folder passed as --path (apps/game).
+      # A repo-root path looks for apps/game/builds/ and fails.
+      # Godot will not create missing folders, so mkdir first.
+      - name: Export APK
+        run: |
+          set -euo pipefail
+          node scripts/android-build.mjs
+          ls -la builds/android/
+
+      # The store AAB embeds the IAPKit publishable key, which fork PRs
+      # cannot receive. Same-repo runs keep failing loudly on a missing key
+      # instead of silently shipping an AAB without IAP config.
+      - name: Export store AAB
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false
+        env:
+          # IAPKit publishable key injected only into the store AAB. The build
+          # script strips it from Godot/Gradle child environments and deletes
+          # the cfg after export.
+          IAPKIT_API_KEY: ${{ secrets.IAPKIT_API_KEY }}
+        run: |
+          set -euo pipefail
+          node scripts/android-build.mjs --bundle --debug
+          ls -la builds/android/
+
+      - name: Verify APK · AAB
+        env:
+          # Same predicate the export step gates on, so verify never expects
+          # a skipped AAB.
+          IS_FORK_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}
+        run: |
+          set -euo pipefail
+          APK=builds/android/MoonlitBeacon.apk
+          AAB=builds/android/MoonlitBeacon.aab
+          test -f "$APK" || { echo "::error::APK was not produced"; exit 1; }
+          size=$(du -m "$APK" | cut -f1)
+          echo "APK ${size} MB"
+          # Under 20MB means assets are missing.
+          [ "$size" -lt 20 ] && { echo "::error::APK is too small. Check whether assets were omitted."; exit 1; }
+
+          # The itch.io direct-distribution APK must have no billing permission
+          # or SDK; only the Play AAB should contain BillingClient.
+          AAPT2=$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt2 \
+            -print | sort -V | tail -1)
+          if "$AAPT2" dump xmltree --file AndroidManifest.xml "$APK" \
+              | grep 'com.android.vending.BILLING' >/dev/null; then
+            echo "::error::Direct-distribution APK contains the BILLING permission"
+            exit 1
+          fi
+          if unzip -p "$APK" 'classes*.dex' | strings \
+              | grep 'com/android/billingclient' >/dev/null; then
+            echo "::error::Direct-distribution APK contains BillingClient code"
+            exit 1
+          fi
+
+          # Publishable config also stays on the channel boundary. Do not print
+          # the actual key; check entry count and format only.
+          APK_ENTRIES=$(unzip -Z1 "$APK")
+          if grep -Eq '(^|/)assets/(tests|tools)/' <<<"$APK_ENTRIES"; then
+            echo "::error::Direct-distribution APK contains tests or production tools"
+            exit 1
+          fi
+          if grep -Eq '(^|/)iapkit\.cfg$' <<<"$APK_ENTRIES"; then
+            echo "::error::Direct-distribution APK contains IAPKit config"
+            exit 1
+          fi
+
+          # Several build-tools versions are installed, so a glob expands to
+          # multiple paths. Passing them through puts the second path in as an
+          # argument and you get "Unsupported command". Pick the highest version.
+          APKSIGNER=$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner \
+            -print | sort -V | tail -1)
+          echo "apksigner: $APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+
+          if [ "$IS_FORK_PR" = "true" ]; then
+            echo "Fork PR: store AAB was skipped (no IAPKit secret). APK checks passed."
+            echo ok
+            exit 0
+          fi
+
+          test -f "$AAB" || { echo "::error::AAB was not produced"; exit 1; }
+          bundle_size=$(du -m "$AAB" | cut -f1)
+          echo "AAB ${bundle_size} MB"
+          [ "$bundle_size" -lt 20 ] && { echo "::error::AAB is too small. Check whether assets were omitted."; exit 1; }
+          if ! unzip -p "$AAB" 'base/dex/classes*.dex' | strings \
+              | grep 'com/android/billingclient' >/dev/null; then
+            echo "::error::Play AAB is missing BillingClient code"
+            exit 1
+          fi
+          if ! unzip -p "$AAB" base/manifest/AndroidManifest.xml | strings \
+              | grep 'com.android.vending.BILLING' >/dev/null; then
+            echo "::error::Play AAB manifest is missing the BILLING permission"
+            exit 1
+          fi
+          AAB_ENTRIES=$(unzip -Z1 "$AAB")
+          if grep -Eq '(^|/)assets/(tests|tools)/' <<<"$AAB_ENTRIES"; then
+            echo "::error::Play AAB contains tests or production tools"
+            exit 1
+          fi
+          IAPKIT_CFG_COUNT=$(grep -Ec '(^|/)iapkit\.cfg$' <<<"$AAB_ENTRIES")
+          if [ "$IAPKIT_CFG_COUNT" -ne 1 ]; then
+            echo "::error::Play AAB IAPKit config count is not 1"
+            exit 1
+          fi
+          IAPKIT_CFG=$(unzip -p "$AAB" '*/assets/iapkit.cfg')
+          if ! grep -Eq '^api_key="openiap-kit_pk_[A-Za-z0-9_-]{32,}"$' \
+              <<<"$IAPKIT_CFG"; then
+            echo "::error::Play AAB IAPKit publishable config format is invalid"
+            exit 1
+          fi
+          if [[ "$IAPKIT_CFG" == *"openiap-kit_sk_"* ]]; then
+            echo "::error::Play AAB contains an IAPKit secret/admin key"
+            exit 1
+          fi
+          if [ -e apps/game/android/build/assetPackInstallTime/src/main/assets/iapkit.cfg ]; then
+            echo "::error::IAPKit config remained in the Gradle template after export"
+            exit 1
+          fi
+
+          # jarsigner returns exit 0 for an unsigned archive too. Inspect the
+          # output and allow only a real cryptographic verification success.
+          AAB_VERIFY=$(LC_ALL=C LANG=C jarsigner -verify "$AAB" 2>&1)
+          if ! grep -Fx 'jar verified.' <<<"$AAB_VERIFY" >/dev/null \
+              || grep -Ei '\bunsigned\b' <<<"$AAB_VERIFY" >/dev/null; then
+            echo "::error::AAB is unsigned or the full signature is invalid"
+            exit 1
+          fi
+          echo ok
+
+      - uses: actions/upload-artifact@v5
+        # APK/AAB build, signing, and IAP checks already finished above.
+        # Repo artifact quota or a transient upload failure should only lose
+        # the convenience download, not block the PR.
+        continue-on-error: true
+        with:
+          name: MoonlitBeacon-debug-android
+          path: |
+            builds/android/MoonlitBeacon.apk
+            builds/android/MoonlitBeacon.aab
+          retention-days: 14

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="RoomKind" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/nature.png" id="tileset"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field.png" id="field"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field_props.png" id="obstacles"]
+
+[resource]
+script = ExtResource("script")
+display_name = "달빛 들판"
+encounter = 1
+tileset = ExtResource("tileset")
+floor_texture = ExtResource("field")
+floor_region = Rect2i(16, 64, 16, 16)
+tint = Color(0.44, 0.52, 0.62, 1)
+floor_tint = Color(0.88, 1.05, 0.92, 1)
+border_count = 168
+decor_count = 380
+clump_count = 20
+prop_tileset = ExtResource("field")
+prop_count = 32
+prop_kinds = PackedStringArray("field_grass_light", "field_grass_dark")
+obstacle_tileset = ExtResource("obstacles")
+obstacle_count = 28
+tree_kinds = PackedStringArray("sm0", "sm1", "sm2", "sm3", "mid", "bigA")
+decor_kinds = PackedStringArray("bush", "twig", "rockS", "rockS2", "stump2")

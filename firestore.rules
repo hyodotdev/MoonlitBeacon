@@ -1,0 +1,311 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validScore(data) {
+      return data.keys().hasOnly([
+          'name', 'hero', 'score', 'rank', 'cycles', 'version', 'at'
+        ])
+        && data.keys().hasAll(['name', 'hero', 'score', 'rank', 'cycles', 'at'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 8
+        && data.hero in [
+          'res://resources/heroes/warden.tres',
+          'res://resources/heroes/dancer.tres',
+          'res://resources/heroes/keeper.tres',
+          'res://resources/heroes/knight.tres',
+          'res://resources/heroes/eclipse.tres',
+          'res://resources/heroes/sage.tres'
+        ]
+        && data.score is int && data.score >= 0 && data.score <= 2000000000
+        && data.rank in ['S', 'A', 'B', 'C', 'D']
+        && data.cycles is int && data.cycles >= 0 && data.cycles <= 9999
+        && (!data.keys().hasAny(['version'])
+          || (data.version is string && data.version.size() > 0
+            && data.version.size() <= 32))
+        && data.at is timestamp
+        && data.at >= request.time - duration.value(1, 'd')
+        && data.at <= request.time + duration.value(10, 'm');
+    }
+
+    function activatedProperties(p) {
+      return p.keys().hasOnly(['cohort_version', 'cohort_day'])
+        && p.keys().hasAll(['cohort_version', 'cohort_day'])
+        && p.cohort_version is string && p.cohort_version.size() > 0
+        && p.cohort_version.size() <= 32
+        && p.cohort_day is string
+        && p.cohort_day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function retentionProperties(p) {
+      return p.keys().hasOnly(['day', 'cohort_version', 'cohort_day'])
+        && p.keys().hasAll(['day', 'cohort_version', 'cohort_day'])
+        && p.day in [1, 7, 30]
+        && p.cohort_version is string && p.cohort_version.size() > 0
+        && p.cohort_version.size() <= 32
+        && p.cohort_day is string
+        && p.cohort_day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function appOpenedProperties(p) {
+      return p.keys().hasOnly(['open_kind'])
+        && (!p.keys().hasAny(['open_kind'])
+          || p.open_kind in ['cold', 'resume']);
+    }
+
+    function heroProperties(p) {
+      return p.keys().hasOnly(['hero'])
+        && (!p.keys().hasAny(['hero']) || p.hero in [
+          'warden', 'dancer', 'keeper', 'knight', 'eclipse', 'sage'
+        ]);
+    }
+
+    function boonProperties(p) {
+      return p.keys().hasOnly(['boon', 'rank', 'shards_spent'])
+        && (!p.keys().hasAny(['boon']) || p.boon in [
+          'steady_heart', 'keen_edge', 'light_foot', 'first_gift',
+          'dew_sense', 'shard_sense'
+        ])
+        && (!p.keys().hasAny(['rank'])
+          || (p.rank is int && p.rank >= 1 && p.rank <= 20))
+        && (!p.keys().hasAny(['shards_spent'])
+          || (p.shards_spent is int && p.shards_spent >= 0
+            && p.shards_spent <= 1000000));
+    }
+
+    function runStartedProperties(p) {
+      return p.keys().hasOnly(['hero', 'boon_tier'])
+        && (!p.keys().hasAny(['hero']) || p.hero in [
+          'warden', 'dancer', 'keeper', 'knight', 'eclipse', 'sage'
+        ])
+        && (!p.keys().hasAny(['boon_tier'])
+          || (p.boon_tier is int && p.boon_tier >= 0 && p.boon_tier <= 100));
+    }
+
+    function tutorialProperties(p) {
+      return p.keys().hasOnly(['step', 'elapsed_ms'])
+        && (!p.keys().hasAny(['step'])
+          || p.step in ['move', 'dash', 'core', 'beacon', 'relic'])
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function relicProperties(p) {
+      return p.keys().hasOnly([
+          'relic', 'family', 'source', 'stack', 'cycle', 'elapsed_ms'
+        ])
+        && (!p.keys().hasAny(['relic']) || p.relic in [
+          'dew_hunter', 'heavy_arrow', 'light_step', 'long_blade',
+          'moon_dash', 'moon_ring', 'moon_ripple', 'pierce_arrow',
+          'quick_arrow', 'shadow_veil', 'sharp_moon', 'swift_hand',
+          'tough_life', 'twin_arrow', 'warm_beacon', 'wide_arc'
+        ])
+        && (!p.keys().hasAny(['family'])
+          || p.family in ['starfall', 'full_moon', 'moon_dance', 'support'])
+        && (!p.keys().hasAny(['source'])
+          || p.source in ['opening', 'level', 'beacon', 'guardian'])
+        && (!p.keys().hasAny(['stack'])
+          || (p.stack is int && p.stack >= 1 && p.stack <= 999))
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function beaconProperties(p) {
+      return p.keys().hasOnly(['beacon', 'cycle', 'terrain', 'mode', 'elapsed_ms'])
+        && (!p.keys().hasAny(['beacon'])
+          || (p.beacon is int && p.beacon >= 1 && p.beacon <= 9))
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['terrain'])
+          || p.terrain in ['forest', 'field', 'camp'])
+        && (!p.keys().hasAny(['mode'])
+          || p.mode in ['normal', 'overcharge'])
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function overchargeProperties(p) {
+      return p.keys().hasOnly([
+          'outcome', 'terrain', 'cycle', 'duration_ms', 'reward'
+        ])
+        && (!p.keys().hasAny(['outcome'])
+          || p.outcome in ['success', 'failed', 'abandoned', 'defeat'])
+        && (!p.keys().hasAny(['terrain'])
+          || p.terrain in ['forest', 'field', 'camp'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['duration_ms'])
+          || (p.duration_ms is int && p.duration_ms >= 0
+            && p.duration_ms <= 604800000))
+        && (!p.keys().hasAny(['reward'])
+          || p.reward in ['core', 'growth', 'relic', 'shards', 'none']);
+    }
+
+    function gateProperties(p) {
+      return p.keys().hasOnly(['cycle', 'terrain', 'elapsed_ms'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['terrain'])
+          || p.terrain in ['forest', 'field', 'camp'])
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function guardianProperties(p) {
+      return p.keys().hasOnly([
+          'guardian', 'terrain', 'cycle', 'duration_ms', 'elapsed_ms'
+        ])
+        && (!p.keys().hasAny(['guardian']) || p.guardian in [
+          'guardian', 'guardian_forest', 'guardian_forest_thorn',
+          'guardian_field', 'guardian_field_storm', 'guardian_camp',
+          'guardian_camp_siege'
+        ])
+        && (!p.keys().hasAny(['terrain'])
+          || p.terrain in ['forest', 'field', 'camp'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['duration_ms'])
+          || (p.duration_ms is int && p.duration_ms >= 0
+            && p.duration_ms <= 604800000))
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function evolutionProperties(p) {
+      return p.keys().hasOnly(['family', 'cycle', 'elapsed_ms'])
+        && (!p.keys().hasAny(['family'])
+          || p.family in ['starfall', 'full_moon', 'moon_dance', 'support'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function cycleDecisionProperties(p) {
+      return p.keys().hasOnly(['choice', 'cycle', 'overcharges', 'elapsed_ms'])
+        && (!p.keys().hasAny(['choice'])
+          || p.choice in ['cashout', 'continue'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['overcharges'])
+          || (p.overcharges is int && p.overcharges >= 0
+            && p.overcharges <= 3))
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function continueProperties(p) {
+      return p.keys().hasOnly(['cycle', 'elapsed_ms'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['elapsed_ms'])
+          || (p.elapsed_ms is int && p.elapsed_ms >= 0
+            && p.elapsed_ms <= 604800000));
+    }
+
+    function endedProperties(p) {
+      return p.keys().hasOnly([
+          'reason', 'cycle', 'duration_ms', 'score', 'kills', 'beacons',
+          'guardians', 'relics', 'continues'
+        ])
+        && (!p.keys().hasAny(['reason'])
+          || p.reason in ['defeat', 'restart', 'title', 'quit', 'cashout'])
+        && (!p.keys().hasAny(['cycle'])
+          || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
+        && (!p.keys().hasAny(['duration_ms'])
+          || (p.duration_ms is int && p.duration_ms >= 0
+            && p.duration_ms <= 604800000))
+        && (!p.keys().hasAny(['score'])
+          || (p.score is int && p.score >= 0 && p.score <= 2000000000))
+        && (!p.keys().hasAny(['kills'])
+          || (p.kills is int && p.kills >= 0 && p.kills <= 2000000000))
+        && (!p.keys().hasAny(['beacons'])
+          || (p.beacons is int && p.beacons >= 0 && p.beacons <= 9999))
+        && (!p.keys().hasAny(['guardians'])
+          || (p.guardians is int && p.guardians >= 0 && p.guardians <= 9999))
+        && (!p.keys().hasAny(['relics'])
+          || (p.relics is int && p.relics >= 0 && p.relics <= 9999))
+        && (!p.keys().hasAny(['continues'])
+          || (p.continues is int && p.continues >= 0 && p.continues <= 999));
+    }
+
+    function validProperties(event, p) {
+      return (event == 'analytics_activated' && activatedProperties(p))
+        || (event == 'app_opened' && appOpenedProperties(p))
+        || (event == 'retention_checkpoint' && retentionProperties(p))
+        || (event == 'hero_selected' && heroProperties(p))
+        || (event == 'boon_purchased' && boonProperties(p))
+        || (event == 'run_started' && runStartedProperties(p))
+        || (event == 'tutorial_step_completed' && tutorialProperties(p))
+        || (event == 'relic_chosen' && relicProperties(p))
+        || (event == 'beacon_choice' && beaconProperties(p))
+        || (event == 'beacon_lit' && beaconProperties(p))
+        || (event == 'overcharge_resolved' && overchargeProperties(p))
+        || (event == 'gate_crossed' && gateProperties(p))
+        || (event == 'guardian_started' && guardianProperties(p))
+        || (event == 'guardian_defeated' && guardianProperties(p))
+        || (event == 'cycle_decision' && cycleDecisionProperties(p))
+        || (event == 'evolution_unlocked' && evolutionProperties(p))
+        || (event == 'continue_used' && continueProperties(p))
+        || (event == 'run_ended' && endedProperties(p));
+    }
+
+    function validAnalyticsEvent(data) {
+      return data.keys().hasOnly([
+          'schema', 'event', 'client_at', 'client_day', 'expires_at',
+          'session_id', 'run_id', 'app_version', 'platform', 'locale',
+          'properties'
+        ])
+        && data.keys().hasAll([
+          'schema', 'event', 'client_at', 'client_day', 'expires_at',
+          'session_id', 'app_version', 'platform', 'locale', 'properties'
+        ])
+        && data.schema == 1
+        && data.event is string
+        && data.client_at is timestamp
+        && data.client_at >= request.time - duration.value(15, 'd')
+        && data.client_at <= request.time + duration.value(10, 'm')
+        && data.client_day is string
+        && data.client_day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.expires_at is timestamp
+        && data.expires_at > request.time
+        && data.expires_at <= request.time + duration.value(91, 'd')
+        && data.session_id is string
+        && data.session_id.matches('^[0-9a-f]{32}$')
+        && (!data.keys().hasAny(['run_id'])
+          || (data.run_id is string && data.run_id.matches('^[0-9a-f]{32}$')))
+        && data.app_version is string && data.app_version.size() > 0
+        && data.app_version.size() <= 32
+        && data.platform in [
+          'android', 'ios', 'macos', 'windows', 'linux', 'web', 'other'
+        ]
+        && data.locale in ['ko', 'en', 'ja', 'zh_CN', 'zh_TW']
+        && data.properties is map
+        && validProperties(data.event, data.properties);
+    }
+
+    match /scores/{scoreId} {
+      allow read: if true;
+      allow create: if validScore(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /analytics_events_v1/{eventId} {
+      allow create: if eventId.matches('^e_[0-9a-f]{40}$')
+        && validAnalyticsEvent(request.resource.data);
+      allow read, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

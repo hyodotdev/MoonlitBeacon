@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="Hero" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/hero.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/heroes/keeper/walk.png" id="2_walk"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/heroes/keeper/idle.png" id="3_idle"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/heroes/keeper/portrait.png" id="4_portrait"]
+
+[resource]
+script = ExtResource("1")
+display_name = "HERO_KEEPER_NAME"
+description = "HERO_KEEPER_DESC"
+unlock_cost = 140
+health = 5
+speed_scale = 0.85
+damage_scale = 1.25
+dash_scale = 1.3
+opening = Array[String](["res://resources/relics/moon_ripple.tres", "res://resources/relics/tough_life.tres"])
+accent = Color(0.96, 0.71, 0.36, 1)
+attack_profile = 2
+vfx_tier = 2
+projectile_primary = Color(0.32, 0.88, 0.52, 1)
+projectile_secondary = Color(1, 0.78, 0.28, 1)
+walk_sheet = ExtResource("2_walk")
+idle_sheet = ExtResource("3_idle")
+portrait = ExtResource("4_portrait")
+sprite_cell = Vector2i(48, 64)
+preview_crop = Rect2i(12, 32, 24, 24)
+walk_frames = 4
+idle_frames = 4
+walk_fps = 12.0
+idle_fps = 3.5

@@ -1,0 +1,120 @@
+diff --git a/apps/game/addons/godot-iap/godot_iap.gd b/apps/game/addons/godot-iap/godot_iap.gd
+index bdd5ed0..91c1b09 100644
+--- a/apps/game/addons/godot-iap/godot_iap.gd
++++ b/apps/game/addons/godot-iap/godot_iap.gd
+@@ -72,7 +72,11 @@ var _apple_async_terminal_keys: Dictionary = {}
+ var _apple_async_terminal_order: Array[String] = []
+ var _apple_async_cancellation_generation := 0
+ var _apple_async_timeout_seconds := 30.0
+-var _apple_async_restore_timeout_seconds := 120.0
++# AppStore.sync() can present Face ID, password, or account sheets.
++# Failing an explicit restore at 120s while native auth is still running
++# leaves the app UI failed and the system prompt alive. Moonlit Beacon
++# keeps the verified 10-minute restore limit.
++var _apple_async_restore_timeout_seconds := 600.0
+ var _apple_async_ui_timeout_seconds := 300.0
+ 
+ # Platform detection
+@@ -84,6 +88,10 @@ func _is_apple() -> bool:
+ 
+ 
+ func _ready() -> void:
++	# Direct-distribution APKs (itch.io) ship without a native store SDK.
++	# Keep the same autoload, but skip singleton lookup and error logs.
++	if OS.has_feature("direct_distribution"):
++		return
+ 	if _is_initialized:
+ 		return
+ 	_is_initialized = true
+diff --git a/apps/game/addons/godot-iap/godot_iap_plugin.gd b/apps/game/addons/godot-iap/godot_iap_plugin.gd
+index 35502be..d8fb762 100644
+--- a/apps/game/addons/godot-iap/godot_iap_plugin.gd
++++ b/apps/game/addons/godot-iap/godot_iap_plugin.gd
+@@ -34,6 +34,10 @@ class GodotIapExportPlugin extends EditorExportPlugin:
+ 		"res://addons/godot-iap/bin/ios/GodotIap.framework",
+ 		"res://addons/godot-iap/bin/ios/SwiftGodotRuntime.framework",
+ 	]
++	const IOS_GDEXTENSION_SOURCE = \
++		"res://addons/godot-iap/bin/godot_iap.gdextension.ios"
++	const IOS_GDEXTENSION_EXPORT = \
++		"res://addons/godot-iap/bin/godot_iap.gdextension"
+ 
+ 	func _get_name() -> String:
+ 		return PLUGIN_NAME
+@@ -49,6 +53,24 @@ class GodotIapExportPlugin extends EditorExportPlugin:
+ 		if not _is_ios_export(features):
+ 			return
+ 
++		# Keeping the iOS-only descriptor under the live `.gdextension` name
++		# makes the desktop editor hunt for a host-platform library and ERROR.
++		# Export still embeds the original name plus the extension list, so iOS
++		# runtime behavior stays the same and day-to-day editing stays quiet.
++		if FileAccess.file_exists(IOS_GDEXTENSION_SOURCE):
++			add_file(
++				IOS_GDEXTENSION_EXPORT,
++				FileAccess.get_file_as_bytes(IOS_GDEXTENSION_SOURCE),
++				false)
++			add_file(
++				"res://.godot/extension_list.cfg",
++				(IOS_GDEXTENSION_EXPORT + "\n").to_utf8_buffer(),
++				false)
++		else:
++			push_warning(
++				"[GodotIap] Missing iOS GDExtension descriptor: %s"
++				% IOS_GDEXTENSION_SOURCE)
++
+ 		for framework_path in IOS_FRAMEWORKS:
+ 			if not DirAccess.dir_exists_absolute(framework_path):
+ 				push_warning("[GodotIap] Missing iOS framework: %s" % framework_path)
+diff --git a/apps/game/addons/godot-iap/scripts/fix_ios_embed.sh b/apps/game/addons/godot-iap/scripts/fix_ios_embed.sh
+index d1bf53a..ef234a2 100755
+--- a/apps/game/addons/godot-iap/scripts/fix_ios_embed.sh
++++ b/apps/game/addons/godot-iap/scripts/fix_ios_embed.sh
+@@ -77,8 +77,24 @@ copy_framework_plists
+ # Backup original once per run.
+ cp "$PBXPROJ" "$PBXPROJ.backup"
+ 
++# Homebrew framework Python under Node spawnSync can stall loading
++# extension modules on some macOS setups. The Xcode-bundled system
++# Python has the stdlib this script needs, so prefer it.
++PYTHON_BIN="${PYTHON_BIN:-}"
++if [ -z "$PYTHON_BIN" ]; then
++    if [ "$(uname -s)" = "Darwin" ] && [ -x /usr/bin/python3 ]; then
++        PYTHON_BIN=/usr/bin/python3
++    else
++        PYTHON_BIN="$(command -v python3 || true)"
++    fi
++fi
++if [ -z "$PYTHON_BIN" ] || [ ! -x "$PYTHON_BIN" ]; then
++    echo "Error: python3 is required to fix iOS framework embedding." >&2
++    exit 1
++fi
++
+ export PBXPROJ IOS_EXPORT_DIR
+-python3 <<'PY'
++"$PYTHON_BIN" <<'PY'
+ import hashlib
+ import os
+ import plistlib
+@@ -147,13 +163,15 @@ for framework in frameworks:
+ missing = [framework for framework in frameworks if framework not in framework_refs]
+ if missing:
+     print(
+-        "Warning: framework references not found in Xcode project: "
+-        + ", ".join(f"{framework}.framework" for framework in missing)
++        "Error: framework references not found in Xcode project: "
++        + ", ".join(f"{framework}.framework" for framework in missing),
++        file=sys.stderr,
++    )
++    print(
++        "Enable the GodotIap plugin in the iOS export preset and export again.",
++        file=sys.stderr,
+     )
+-    print("Enable the GodotIap plugin in the iOS export preset and export again.")
+-    with open(pbxproj, "w", encoding="utf-8") as file:
+-        file.write(content)
+-    sys.exit(0)
++    sys.exit(1)
+ 
+ embed_phase_match = re.search(
+     r"([A-F0-9]{24}|\w+)\s*/\*\s*Embed Frameworks\s*\*/\s*=\s*\{.*?isa\s*=\s*PBXCopyFilesBuildPhase;.*?\n\t\t\};",

@@ -1,0 +1,351 @@
+---
+sidebar_position: 16
+title: Lesson 16 · Wrap-up and release
+---
+
+# Lesson 16 · Wrap-up and release
+
+The game is built. **Nobody can play it yet.**
+
+This lesson fixes the Back button, bumps the version to 1.0.0, makes a
+signed APK, and prepares what goes on the itch.io page.
+
+## 1. Finished screen
+
+<Video
+  src="video/chapter-16-complete.mp4"
+  poster="img/chapter-16-complete-poster.jpg"
+  title="Moonlit Beacon 1.0.0 — from title to results (silent)"
+  silent
+/>
+
+## 2. "Built" and "shippable" are different
+
+Put everything through Lesson 15 on a phone and it runs.
+Ship it in that state and the first reviews look like this.
+
+| Symptom | Cause |
+| --- | --- |
+| Back closed the game | Android default |
+| Version is 0.1.0 | never bumped |
+| "This app is from an unidentified developer" | signed with the debug key |
+| You cannot ship an update | you lost the keystore |
+
+**The last one is the scariest.** There is no way back.
+
+## 3. Check the official docs
+
+| Docs | What we take |
+| --- | --- |
+| Exporting for Android | signing, keystore |
+| `NOTIFICATION_WM_GO_BACK_REQUEST` | Back |
+| Feature tags | debug vs release |
+
+## 4. Back — the Android promise broken most often
+
+On the pause code from Lesson 11 we left this note (`pause_panel.gd`).
+
+> Android Back defaults to quit. That is Lesson 16.
+
+<Video
+  src="video/chapter-16-back.mp4"
+  poster="img/chapter-16-back-poster.jpg"
+  title="Back during play — the app does not quit; it pauses (silent)"
+  silent
+/>
+
+Leave the default and **the app just quits from any screen.**
+Survive 80 seconds, tap it by accident, and it quits. Open Settings and
+it quits.
+
+```ini
+[application]
+
+config/quit_on_go_back=false
+```
+
+Once that is off, we decide. What Android expects is
+**walking back through screens one at a time.**
+
+| Current screen | Back |
+| --- | --- |
+| Credits | to Settings |
+| Settings | to the previous screen |
+| Playing | **pause** |
+| Paused | title |
+| Result screen | nothing |
+| Title | ask whether to quit |
+
+```gdscript
+func _notification(what: int) -> void:
+	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
+		return
+	if _credits.visible:
+		_credits.close()
+	elif _settings.visible:
+		_settings.close()
+	elif _over:
+		return                                   # do nothing on the result screen
+	elif get_tree().paused:
+		get_tree().paused = false
+		get_tree().change_scene_to_file(TITLE_SCENE)
+	else:
+		_pause.request_pause()
+```
+
+:::warning Why the result screen does nothing
+You spent 90 seconds, the score appeared, and Back dumped you to the
+title — that is **leaving without seeing the record.**
+
+Here we only accept a tap on the screen to restart.
+When there is only one thing you can do, leave only that.
+:::
+
+:::danger The default on the quit prompt is "go back"
+If you show a prompt and **the dangerous choice already has focus**,
+asking was pointless.
+
+```gdscript
+func open() -> void:
+	visible = true
+	_no.grab_focus()                             # default is go back
+```
+
+Put `Cancel` on the left, `Quit` on the right, and give first focus to
+the left.
+:::
+
+## 5. Implement it yourself
+
+### 5-1. The version lives in two places
+
+```ini
+# project.godot — the value shown bottom-right on the title
+config/version="1.0.0"
+```
+
+```ini
+# export_presets.cfg — the value baked into the APK
+version/code=1
+version/name="1.0.0"
+```
+
+`version/code` is an **integer.** You cannot upload the same value twice.
+Forget to bump `code` to 2 for 1.0.1 and the store rejects it.
+
+The title screen reads the `project.godot` side.
+
+```gdscript
+	var version: String = str(ProjectSettings.get_setting("application/config/version", "0.0.0"))
+	_version.text = "v" + version
+```
+
+**Manage it in one place.** Hand-writing `v1.0.0` on the screen will
+diverge on the next version.
+
+### 5-2. Keystore — lose it and you are done
+
+Debug builds are signed with the shared debug key Godot makes.
+**Release must be signed with your key.**
+
+```bash
+keytool -v -genkeypair -keystore moonlit-release.keystore \
+  -alias moonlit -keyalg RSA -keysize 2048 -validity 10000
+```
+
+:::danger Lose this file or the password and you cannot ship updates
+An APK signed with a different key under the same package name
+**will not even install.** Users have to uninstall and reinstall, and
+saved records disappear.
+
+- Keep the keystore **outside the repo**, file mode `600` or tighter
+- Do not write the password anywhere in the repo
+- Back both up separately
+- The certificate expiry must be **after 22 October 2033**, per
+  [Google Play requirements](https://developer.android.com/studio/publish/app-signing)
+
+Godot puts the password in `.godot/export_credentials.cfg`.
+That is **the most important reason** `.godot/` is in `.gitignore`.
+:::
+
+This course repo commits `export_presets.cfg` and does not commit
+`.godot/export_credentials.cfg`.
+**Share settings. Do not share secrets.**
+
+### 5-3. Release build
+
+```bash
+pnpm android:release
+```
+
+When build and signature checks both finish, the script writes
+`builds/android/MoonlitBeacon-1.0.0.apk`. A mid-way failure also deletes
+the previous canonical APK and version file so an old file is not
+mistaken for a new release.
+
+:::danger Do not call Godot export yourself
+This project builds the Play AAB and the itch.io APK from the same Gradle
+template. `android:release` has to clean previous output and temporarily
+isolate the IAP plugin so the Play Billing SDK does not mix into the
+direct-distribution APK.
+:::
+
+Confirm the signature is right.
+
+```bash
+apksigner verify --print-certs builds/android/MoonlitBeacon-1.0.0.apk
+```
+
+A debug key prints `CN=Android Debug`. That is wrong.
+
+### 5-4. Check permissions
+
+```bash
+aapt dump permissions builds/android/MoonlitBeacon-1.0.0.apk
+```
+
+**If there is an internet permission, remove it.** This game does not
+talk to a server. An unused permission is one more reason not to install.
+
+### 5-5. On a wiped device
+
+The development device still has save files and old versions.
+
+```bash
+adb uninstall com.crossplatformkorea.moonlitbeacon
+adb install builds/android/MoonlitBeacon-1.0.0.apk
+adb shell monkey -p com.crossplatformkorea.moonlitbeacon -c android.intent.category.LAUNCHER 1
+```
+
+`uninstall`, not `pm clear`. Look at the same state as a first-time
+installer. This is where you confirm Lesson 14's `cfg.load()` does not
+die on failure.
+
+### 5-6. Store page
+
+Copy is not what the maker writes. It is **what a player reads.**
+
+| Do not write | Instead |
+| --- | --- |
+| "Enemy system built with custom resources" | "Spirits come out of the dark and chase you" |
+| "Made with Godot 4.7" | (credits only) |
+| "Update coming soon" | (do not write it) |
+
+3–5 screenshots. **The first one matters most.**
+That is all the listing shows.
+
+Write credits on the page too. Inside the game only, nobody sees them
+before they download.
+
+### 5-7. Private first
+
+itch.io can stay `Restricted` so only people with the link can see it.
+
+- Does download and install work
+- Does page text break
+- Are screenshots cropped
+
+Then switch to `Public`.
+**Better than fixing it after it is public.**
+
+## 6. Check that this much is working
+
+Before shipping, rank what you check.
+
+```text
+P0: cannot launch, save corruption, cannot progress
+P1: win · lose · restart failures
+P2: broken UI, sound issues, small balance issues
+P3: minor visual issues
+```
+
+**Do not ship if any P0 or P1 remains.** P2 and P3 wait for 1.0.1.
+
+| What | How |
+| --- | --- |
+| A full run | start → three beacons → guardian → gate → results → again |
+| Repeat | ten restarts in a row |
+| Interruption | Home · a call · screen off, then return |
+| Save | best record after quit, first launch after deleting the save |
+| Screen | UI does not overlap at 16:9 · 20:9 · 21:9 |
+| Language | text does not clip in Korean or English |
+
+Especially these six, press them on a real device.
+
+- Back during play → pause (the app does not quit)
+- Back while paused → title
+- Back on the title → ask whether to quit
+- Same with gesture navigation (swipe)
+- `apksigner` shows a certificate that is **not debug**
+- Uninstall and reinstall, first launch is healthy
+
+## 7. Break it on purpose
+
+**① Leave `quit_on_go_back` as it is**
+→ Back quits the app from any screen. Even after 80 seconds.
+
+**② Handle Back on the result screen**
+→ You leave without seeing the score.
+
+**③ Put first focus of the quit prompt on `Quit`**
+→ Asking was pointless.
+
+**④ Redistribute without bumping `version/code`**
+→ You cannot upload the same value.
+
+**⑤ Sign release with the debug key**
+→ `CN=Android Debug` is baked in. Switching to a release key later means
+existing users cannot update.
+
+**⑥ Put the keystore in the repo**
+→ Anyone can ship an app in your name.
+
+## 8. Completion checklist
+
+- [ ] Back walks through screens one at a time
+- [ ] The title asks whether to quit
+- [ ] Version is 1.0.0 in both places
+- [ ] Signed with the release key (`apksigner` check)
+- [ ] No internet permission
+- [ ] Uninstall and reinstall still works
+- [ ] Store page copy and screenshots are ready
+- [ ] `pnpm verify` exits with code 0
+
+## 9. Last homework
+
+1. **Back up the keystore.** Do it now.
+   The least reversible mistake in this course.
+
+2. Upload as `Restricted` and send the link to one friend.
+   Watching it launch **somewhere that is not your device** is the last test.
+
+3. Write three lines on what goes into 1.0.1.
+   Thinking after you ship is too late. Write it now and the next one is easier.
+
+---
+
+## After sixteen lessons
+
+In Lesson 1 you opened an empty project. In Lesson 16 you launch a game
+installed on a phone.
+
+Along the way you reversed things more than once.
+Lesson 6's bounds widened in Lesson 9, and Lesson 8's hit detection was
+rewritten in Lesson 9.
+Lesson 1's brightness was changed twice in Lesson 2.
+
+**That is the healthy case.** Trying to get it right from the start means
+you never start.
+Because we kept it simple, knowing it would change later, the later fix
+was two lines.
+
+If you take only one thing, take this.
+
+> **You do not know until you put it on screen.**
+>
+> Lesson 14's beacon bug sat there for five lessons. The moment we printed
+> a number on the result screen, it showed.
+> Lesson 15's settings window only revealed the logo showing through after
+> we rendered it.
+>
+> "Fine to read" and "fine to run" are different.

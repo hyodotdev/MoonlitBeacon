@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_thorn.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_thorn_windup.png" id="windup"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_thorn_charge.png" id="charge"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/forest_thorn_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_FOREST_THORN_NAME"
+behavior = 4
+guardian_style = 0
+boss_accent = Color(0.72, 0.42, 1, 1)
+guardian_rule = "GUARDIAN_FOREST_THORN_RULE"
+guardian_burst_fraction = 0.14
+guardian_sustain_fraction = 0.12
+guardian_windup_sheet = ExtResource("windup")
+guardian_alt_windup_sheet = ExtResource("windup")
+guardian_charge_sheet = ExtResource("charge")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+guardian_combo = 2
+charge_windup = 0.62
+charge_speed = 340.0
+charge_seconds = 0.38
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 74.0
+turn_rate = 3.8
+health = 860
+score_value = 1200
+stagger_seconds = 0.05
+body_scale = 1.08
+tint = Color(1, 1, 1, 1)
+anim_fps = 4.6

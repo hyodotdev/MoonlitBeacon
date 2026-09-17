@@ -1,0 +1,8 @@
+packages:
+  - 'apps/*'
+
+# pnpm 11 blocks dependency postinstall scripts by default and requires an
+# explicit allow. core-js's postinstall only prints a sponsorship notice,
+# so there is no reason to run it.
+allowBuilds:
+  core-js: false

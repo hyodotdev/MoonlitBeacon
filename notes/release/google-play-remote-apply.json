@@ -1,0 +1,151 @@
+{
+  "changesInReviewBehavior": "ERROR_IF_IN_REVIEW",
+  "legalDeclarations": {
+    "googlePlayDeveloperProgramPoliciesAccepted": true,
+    "recordedFrom": "account_owner_explicit_approval",
+    "unitedStatesExportLawsAccepted": true
+  },
+  "oneTimeProducts": {
+    "excludedRegions": [
+      "CN"
+    ],
+    "legacyProductId": "com.crossplatformkorea.moonlitbeacon.hero_bundle",
+    "newRegionsAutomaticallyAvailable": false,
+    "products": [
+      {
+        "basePrice": {
+          "currencyCode": "KRW",
+          "nanos": 0,
+          "units": "3300"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "KRW",
+            "nanos": 0,
+            "units": "3300"
+          },
+          "regionCode": "KR",
+          "taxAmount": {
+            "currencyCode": "KRW",
+            "nanos": 0,
+            "units": "0"
+          }
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.supporter"
+      },
+      {
+        "basePrice": {
+          "currencyCode": "USD",
+          "nanos": 990000000,
+          "units": "4"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "USD",
+            "nanos": 990000000,
+            "units": "4"
+          },
+          "regionCode": "US",
+          "taxAmount": null
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.hero_dancer"
+      },
+      {
+        "basePrice": {
+          "currencyCode": "USD",
+          "nanos": 990000000,
+          "units": "9"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "USD",
+            "nanos": 990000000,
+            "units": "9"
+          },
+          "regionCode": "US",
+          "taxAmount": null
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.hero_keeper"
+      },
+      {
+        "basePrice": {
+          "currencyCode": "USD",
+          "nanos": 990000000,
+          "units": "14"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "USD",
+            "nanos": 990000000,
+            "units": "14"
+          },
+          "regionCode": "US",
+          "taxAmount": null
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.hero_knight"
+      },
+      {
+        "basePrice": {
+          "currencyCode": "USD",
+          "nanos": 990000000,
+          "units": "19"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "USD",
+            "nanos": 990000000,
+            "units": "19"
+          },
+          "regionCode": "US",
+          "taxAmount": null
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.hero_eclipse"
+      },
+      {
+        "basePrice": {
+          "currencyCode": "USD",
+          "nanos": 990000000,
+          "units": "24"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "USD",
+            "nanos": 990000000,
+            "units": "24"
+          },
+          "regionCode": "US",
+          "taxAmount": null
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.hero_sage"
+      },
+      {
+        "basePrice": {
+          "currencyCode": "KRW",
+          "nanos": 0,
+          "units": "1100"
+        },
+        "expectedAnchor": {
+          "price": {
+            "currencyCode": "KRW",
+            "nanos": 0,
+            "units": "1100"
+          },
+          "regionCode": "KR",
+          "taxAmount": {
+            "currencyCode": "KRW",
+            "nanos": 0,
+            "units": "0"
+          }
+        },
+        "productId": "com.crossplatformkorea.moonlitbeacon.lantern_colors"
+      }
+    ],
+    "purchaseOptionId": "buy",
+    "regionalAvailability": "AVAILABLE"
+  },
+  "packageName": "com.crossplatformkorea.moonlitbeacon",
+  "releaseStatus": "completed",
+  "schemaVersion": 2,
+  "sendChangesForReview": true,
+  "track": "internal"
+}
