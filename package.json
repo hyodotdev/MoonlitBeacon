@@ -75,7 +75,10 @@
     "check:assets": "node --test scripts/lib/custom-asset-reference.test.mjs && node .github/scripts/check-manifest.mjs && node .github/scripts/check-media.mjs && node scripts/python.mjs -B apps/game/tools/check_custom_assets.py && node scripts/python.mjs -B apps/game/tools/build_app_icon_assets.py --check && node scripts/python.mjs -B apps/game/tools/build_warden_assets.py --check && node scripts/python.mjs -B apps/game/tools/build_companion_hero_assets.py --check && node scripts/python.mjs -B apps/game/tools/build_spirit_guardian_assets.py --check && node scripts/python.mjs -B apps/game/tools/pack_grok_spirits.py --check && node scripts/python.mjs -B apps/game/tools/pack_ludo_guardians.py --check && node scripts/python.mjs -B apps/game/tools/build_moon_slash_asset.py --check && node scripts/python.mjs -B apps/game/tools/build_terrain_obstacles.py --check && node scripts/python.mjs -B apps/game/tools/build_missile_core_asset.py --check && node scripts/python.mjs -B apps/game/tools/build_custom_ui_panels.py --check && node scripts/python.mjs -B apps/game/tools/build_world_assets.py --check && node scripts/python.mjs -B apps/game/tools/build_gate_projectile_assets.py --check",
     "check:store-graphics": "node scripts/python.mjs -B apps/game/tools/build_store_graphics.py --check",
     "check:docs": "node scripts/strip-nul.mjs --check apps/docs/build && node .github/scripts/check-anchors.mjs",
-    "check:scripts": "node scripts/godot.mjs --headless --path apps/game res://tools/check_scripts.tscn"
+    "check:scripts": "node scripts/godot.mjs --headless --path apps/game res://tools/check_scripts.tscn",
+    "growth:report": "node scripts/growth-report.mjs",
+    "growth:check": "node scripts/growth-report.mjs --check",
+    "test:growth": "node --test scripts/lib/growth-report.test.mjs"
   },
   "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd"
 }
