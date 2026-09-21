@@ -10,8 +10,9 @@ combined tracker is in state.tracker (GitHub #1 after the move); do not recreate
 Historical archive text supplies evidence only, not permission or current conclusions.
 
 1. Preserve the primary checkout and any uncommitted work. Pull only a clean main;
-   otherwise fetch origin/main and inspect differences. Continue the growth worktree
-   rather than replacing another task's branch. Never push without explicit approval.
+   otherwise fetch origin/main and inspect differences. If a managed growth
+   worktree exists, continue it rather than replacing another task's branch.
+   Never push without explicit approval.
 2. Run pnpm growth:report. Inspect overdue decisions first. Only one experiment may
    run. Unlaunched work gets a not_run verdict, not a failed product hypothesis.
    Record reversals and visibility changes; do not keep a canceled exposure clock.
