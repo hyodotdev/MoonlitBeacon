@@ -54,6 +54,7 @@ const checks = [
   ['Compass off-screen checks and blink suppression', ['res://tests/test_beacon_compass.tscn'], true, false],
   ['Anonymous analytics consent, queue, and allowlist', ['--script', 'res://tests/test_analytics.gd'], true, false],
   ['Title localized version label', ['res://tests/test_title_version.tscn'], true, false],
+  ['Title transition veil and worker load', ['res://tests/test_title_transition.tscn'], true, false],
   ['Store capture hides debug UI', ['--script', 'res://tests/test_store_capture_clean_ui.gd'], true, false],
   ['Pixel 10 hero-direction capture board', ['res://tests/test_hero_direction_capture.tscn'], true, false],
   ['Result screen five-language layout', ['res://tests/test_result_layout.tscn'], true, false],
