@@ -17,15 +17,16 @@ are not authoritative over the current user instructions or newer observations.
   user's explicit request with no backup: its three campaign drafts survive
   only as described in the archive. Strategy no longer references them as
   live files.
-- This round works on `feat/first-play-and-growth`, unmerged. No push yet.
+- This round works on `feat/first-play-and-growth`, pushed as PR #2, unmerged.
+  Loop-review runs before any merge decision.
 
 ### Device playtest (main build, Pixel_10 emulator, software GL 1–20fps)
 
 - Covered: boot, title, tap-to-start, intro dialogue (2 lines), objective
-  teach, swipe move, auto-attack, chains, embers, missile hints, five
-  level-ups, Starfall pick, Moon Dance T1/T2 evolution, three deaths, result
-  count-up with grade and shards, three retries, debug beacon plus Blue Dawn
-  brightening, tutorial announces (move, dash, beacon, embers).
+  teach, swipe move, auto-attack, chains, embers, missile hints, six
+  level-ups with evolution picks, Moon Dance T1 completion, three deaths,
+  result count-up with grade and shards, three retries, debug beacon plus
+  Blue Dawn brightening, tutorial announces (move, dash, beacon, embers).
 - Checked and cleared: result tappability (known prior block, works),
   missile-core timer during modals (tree pause freezes it, correct), a
   suspected "cooldwon" typo (font misread; CSV, engine-loaded value, and 4x

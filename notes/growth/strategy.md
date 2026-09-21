@@ -16,8 +16,8 @@ campaign drafts (cowork-handoff, trailer-distribution, youtube-aeo) survive
 only as described inside `archive-20260918.md`. Do not reference them as live
 files.
 
-This round works on `feat/first-play-and-growth`, unmerged. No visibility
-changes are part of growth monitoring.
+This round works on `feat/first-play-and-growth`, pushed as PR #2, unmerged.
+No visibility changes are part of growth monitoring.
 
 ## Diagnosis: the constraint is the top of the funnel
 
@@ -127,10 +127,11 @@ explicitly instead of running a phantom experiment.
 ## First-play evidence (Sep 22 device round, recorded not acted on)
 
 Played the main build on the Pixel_10 emulator (shared instance, software
-rendering, 1–20fps): title, tap-to-start, intro dialogue, move, auto-attack,
-chains, embers, missile hints, five level-ups, two evolutions, three deaths,
-result count-up with grade and shards, three retries, debug beacon plus
-brightening, tutorial announces. Result tappability, core-timer pause
+rendering, 1–27fps): title, tap-to-start, intro dialogue, move, auto-attack,
+chains, embers, missile hints, six level-ups with evolution picks, Moon Dance
+T1 completion, three deaths, result count-up with grade and shards, three
+retries, debug beacon plus brightening, tutorial announces. Result
+tappability, core-timer pause
 behavior, and a suspected copy typo were all checked and cleared — the typo
 was a font misread, confirmed against the CSV and the engine-loaded value.
 
