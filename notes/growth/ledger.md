@@ -4,6 +4,55 @@ Current strategy: strategy.md. Structured evidence: state.json. Tracker: #1.
 Preserved Sep 18 history: archive-20260918.md. Its old conclusions and permissions
 are not authoritative over the current user instructions or newer observations.
 
+## 2026-09-22 — Strategy round and first-play verification
+
+### Repository and continuity
+
+- Main is `f4b283f` after merging the CI fix, growth monitoring, and the MCP
+  untrack. CI and Android packages both success on the push. Remote still
+  reports **private**.
+- `fix/ci-pnpm-version-conflict` deleted (merged, no unique content).
+  `chore/growth-monitoring` deleted with its managed worktree (merged via
+  `f66077a`; worktree was clean). `private/pre-public-full` deleted at the
+  user's explicit request with no backup: its three campaign drafts survive
+  only as described in the archive. Strategy no longer references them as
+  live files.
+- This round works on `feat/first-play-and-growth`, unmerged. No push yet.
+
+### Device playtest (main build, Pixel_10 emulator, software GL 1–20fps)
+
+- Covered: boot, title, tap-to-start, intro dialogue (2 lines), objective
+  teach, swipe move, auto-attack, chains, embers, missile hints, five
+  level-ups, Starfall pick, Moon Dance T1/T2 evolution, three deaths, result
+  count-up with grade and shards, three retries, debug beacon plus Blue Dawn
+  brightening, tutorial announces (move, dash, beacon, embers).
+- Checked and cleared: result tappability (known prior block, works),
+  missile-core timer during modals (tree pause freezes it, correct), a
+  suspected "cooldwon" typo (font misread; CSV, engine-loaded value, and 4x
+  magnification all read "cooldown").
+- Shipped: title-to-arena transition veil with threaded load. The load hung
+  on dead black with no feedback; the load now overlaps the flare and the
+  veil covers only the leftover. Fast devices see no change. Regression test
+  `test_title_transition` (11 cases) plus device tap-to-arena pass.
+- Recorded, not acted on: three unassisted runs ended under 25s with zero
+  beacons. Confounded by emulator lag and tester skill; tuning waits on
+  funnel telemetry (G10). Follow-ups noted in strategy, none implemented.
+
+### Strategy and state
+
+- Diagnosis: top of funnel is the binding constraint (3 acquisitions/28d, 1
+  iOS download); all rates are noise. KR focus stays provisional (observed
+  traffic is Browse/India). Geo-agnostic until data says otherwise.
+- **G13 done:** itch.io launch approval package (P1). Staged Sep 17 set must
+  be re-verified against a fresh build; upload and public switch stay
+  user-side. UTM attribution, 7-day read, stop rule included.
+- **G14 done:** E02 design. Starts after the E03 verdict; runs only on
+  channels actually live; decision moved Oct 2 → Oct 9. Queued, not launched.
+- P2 (YouTube public switch), P3 (recruitment without community posts), P4
+  (course deploy dependency) prepared as yes/no packages in strategy.md.
+- E03 unchanged and still the only running experiment. Budget still 0 KRW.
+  No ads, posts, uploads, or telemetry activation in this round.
+
 ## 2026-09-21 — Monday review and operating-memory repair
 
 ### Repository and continuity
