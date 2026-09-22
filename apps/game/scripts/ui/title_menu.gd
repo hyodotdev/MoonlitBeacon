@@ -107,6 +107,12 @@ const BEACON_POSITION: Vector2 = Vector2(404, 250)
 ## the screen.
 const BGM_FADE_OUT_SECONDS: float = 0.55
 
+## Cover a slow arena load so the screen never hangs on dead black.
+##
+## The load overlaps the beacon flare for free; the veil only appears when
+## the load outlasts the flare. Fast devices see no change.
+const VEIL_FADE_SECONDS: float = 0.3
+
 @onready var _forest: Node2D = $NightForest
 @onready var _vignette: Sprite2D = $NightForest/Vignette
 @onready var _beacon: Node2D = $Beacon
@@ -131,6 +137,9 @@ var _ready_draw_frame: int = CAPTURE_DRAW_FRAME_UNSET
 ## stops on. Turn this on only after a debug capture request actually arrives;
 ## the normal title's blink autoplay stays.
 var _debug_title_capture_active: bool = false
+var _veil: ColorRect = null
+var _threaded_arena: bool = false
+var _awaiting_arena: bool = false
 
 
 func _ready() -> void:
@@ -168,11 +177,24 @@ func _ready() -> void:
 		_open_iap_shop()
 	elif _take_open_shrine_request():
 		_open_shrine()
+	# Transition veil only. Built in code so the title scene file stays
+	# untouched; appended last so it draws above Screen and panels. Hidden
+	# at rest, so capture enumeration never sees it.
+	_veil = ColorRect.new()
+	_veil.name = &"TransitionVeil"
+	_veil.color = Color.BLACK
+	_veil.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_veil.modulate.a = 0.0
+	_veil.visible = false
+	$Ui.add_child(_veil)
 
 
 func _process(_delta: float) -> void:
 	if _debug_title_capture_active:
 		_debug_hold_title_capture_prompt()
+	if _awaiting_arena:
+		_poll_arena_load()
 
 
 ## While settings are open, tapping the screen does not start the game.
@@ -1024,6 +1046,10 @@ func request_start() -> void:
 	# `BeaconFx` sits later than the beacon in the tree, so this wins while they overlap.
 	_beacon_player.play(&"flare")
 
+	# Load the arena on a worker thread while the flare plays. The swap below
+	# then rarely waits; the veil covers only the leftover.
+	_threaded_arena = ResourceLoader.load_threaded_request(ARENA_SCENE) == Error.OK
+
 	await get_tree().create_timer(FLARE_SECONDS).timeout
 	# During the 0.85s wait this scene may leave the tree. Emit anyway and
 	# you touch a freed instance. `_fade_in_music()` is gated for the same reason.
@@ -1049,4 +1075,52 @@ func _enter_arena() -> void:
 	# line. Tell the arena this run was started by a person. The story
 	# dialogue that opens a run appears only then.
 	RunEntry.mark_from_title()
-	get_tree().change_scene_to_file(ARENA_SCENE)
+	if _swap_if_arena_ready():
+		return
+	if not _threaded_arena:
+		# Threaded request failed (dev-only bad path): today's sync swap.
+		get_tree().change_scene_to_file(ARENA_SCENE)
+		return
+	_awaiting_arena = true
+	_veil.visible = true
+	var fade: Tween = create_tween()
+	fade.tween_property(_veil, "modulate:a", 1.0, VEIL_FADE_SECONDS)
+
+
+## Swap to the arena if the worker load finished. Returns whether it swapped.
+func _swap_if_arena_ready() -> bool:
+	var progress: Array = []
+	var status: ResourceLoader.ThreadLoadStatus = \
+		ResourceLoader.load_threaded_get_status(ARENA_SCENE, progress)
+	if status != ResourceLoader.THREAD_LOAD_LOADED:
+		return false
+	var packed: PackedScene = \
+		ResourceLoader.load_threaded_get(ARENA_SCENE) as PackedScene
+	if packed == null:
+		return false
+	get_tree().change_scene_to_packed(packed)
+	return true
+
+
+## Wait out a slow arena load behind the veil. A threaded failure falls back
+## to the sync swap instead of stranding the player on black.
+func _poll_arena_load() -> void:
+	if not _awaiting_arena or not is_inside_tree():
+		return
+	var progress: Array = []
+	var status: ResourceLoader.ThreadLoadStatus = \
+		ResourceLoader.load_threaded_get_status(ARENA_SCENE, progress)
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		_awaiting_arena = false
+		var packed: PackedScene = \
+			ResourceLoader.load_threaded_get(ARENA_SCENE) as PackedScene
+		if packed == null:
+			push_warning("title_menu: arena load returned null; sync swap")
+			get_tree().change_scene_to_file(ARENA_SCENE)
+			return
+		get_tree().change_scene_to_packed(packed)
+	elif status == ResourceLoader.THREAD_LOAD_FAILED \
+			or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		_awaiting_arena = false
+		push_warning("title_menu: threaded arena load failed; sync swap")
+		get_tree().change_scene_to_file(ARENA_SCENE)

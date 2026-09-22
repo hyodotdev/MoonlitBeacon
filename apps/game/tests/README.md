@@ -38,6 +38,8 @@ Coverage:
 - Title consuming a shrine-open request only once
 - Project version in the title's bottom-right corner and layout in the 5
   release languages
+- Title transition veil hidden at rest, and a tap kicking the worker arena
+  load without swapping scenes out from under the test
 
 Godot can print a runtime error and still return exit code `0`. The runner
 treats `ERROR:` logs as failure as well as the exit code.

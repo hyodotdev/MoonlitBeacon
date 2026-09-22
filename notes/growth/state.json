@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-09-21",
+  "updatedAt": "2026-09-22",
   "tracker": {
     "url": "https://github.com/hyodotdev/MoonlitBeacon/issues/1",
     "previousUrl": "https://github.com/hyodotdev/MoonlitBeacon/issues/44",
@@ -523,7 +523,8 @@
       "nextReview": "2026-09-24",
       "evidence": [
         "Prior G08 design reported Sep 14 in this conversation, but old commit 1380e68 is absent from new Git objects; implementation not recovered or done",
-        "This round prioritizes broken operating memory and the already-published video measurement contract; original due date preserved"
+        "This round prioritizes broken operating memory and the already-published video measurement contract; original due date preserved",
+        "Sep 22 device playtest: 3 unassisted runs ended under 25s with 0 beacons; confounded by emulator lag, recorded as funnel-telemetry motivation, not a tuning trigger"
       ]
     },
     {
@@ -552,6 +553,30 @@
         "Published default listing video 2JeLS582sRA directly read Sep 21; last publish Sep 18 shown in publishing overview",
         "Matched pre/transition/post windows, incomplete first-open rule and inconclusive verdict criteria documented"
       ]
+    },
+    {
+      "owner": "Muse",
+      "id": "G13",
+      "title": "Prepare itch.io launch approval package",
+      "status": "done",
+      "due": "2026-09-22",
+      "nextReview": "2026-09-24",
+      "evidence": [
+        "notes/growth/strategy.md P1: staged-asset re-verification step, user-side upload and public-switch steps, UTM attribution, 7-day read, stop rule",
+        "Package prepared only; no upload, no spend, no execution"
+      ]
+    },
+    {
+      "owner": "Muse",
+      "id": "G14",
+      "title": "Design E02 attributed-channel experiment",
+      "status": "done",
+      "due": "2026-09-22",
+      "nextReview": "2026-09-24",
+      "evidence": [
+        "notes/growth/strategy.md E02 section: live-channel candidacy rule, attribution, 7-day window, Oct 9 decision, winner criteria",
+        "E02 stays queued until the E03 verdict; design only, no launch"
+      ]
     }
   ],
   "experiments": [
@@ -571,9 +596,10 @@
       "status": "queued",
       "startedAt": null,
       "launchEvidence": null,
-      "decisionDue": "2026-10-02",
+      "decisionDue": "2026-10-09",
       "nextReview": "2026-09-24",
-      "result": null
+      "result": null,
+      "plan": "notes/growth/strategy.md"
     },
     {
       "id": "H3-public",
