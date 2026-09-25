@@ -9,7 +9,7 @@ const EDIT_BASE = `https://github.com/${ORG}/${REPO}/tree/main/apps/docs/`;
 const config: Config = {
   title: 'Moonlit Beacon',
   tagline: 'Your first 2D game in Godot 4 — from design to an itch.io release',
-  favicon: 'img/favicon.svg',
+  favicon: 'img/favicon.png',
 
   url: `https://${ORG}.github.io`,
   baseUrl: `/${REPO}/`,
@@ -77,7 +77,7 @@ const config: Config = {
     },
     navbar: {
       title: 'Moonlit Beacon',
-      logo: {alt: 'Moonlit Beacon', src: 'img/logo.svg'},
+      logo: {alt: 'Moonlit Beacon', src: 'img/logo.png'},
       items: [
         {
           type: 'docSidebar',

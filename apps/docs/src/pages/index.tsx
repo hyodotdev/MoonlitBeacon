@@ -36,28 +36,40 @@ export default function Home(): React.ReactElement {
   return (
     <Layout title="Moonlit Beacon" description={siteConfig.tagline}>
       <header className="mb-hero">
-        <h1 className="mb-hero__title">Moonlit Beacon</h1>
-        <p className="mb-hero__subtitle">
-          Light the beacons in the forest, field, and camp. Grow three weapon
-          paths with spirit embers and relics, then take on guardians and
-          harder cycles. The sixteen-lesson first complete build is the
-          starting point; this site also records the version that grew from
-          actually playing it.
-        </p>
-        <div className="mb-hero__buttons">
-          <Link className="button button--primary button--lg" to="/course">
-            View the course
-          </Link>
-          <Link
-            className="button button--secondary button--lg"
-            to="/docs/intro">
-            Read the docs
-          </Link>
-        </div>
-        <div className="mb-specs">
-          {SPECS.map((s) => (
-            <span key={s}>{s}</span>
-          ))}
+        <div className="container mb-hero__grid">
+          <div>
+            <h1 className="mb-hero__title">Moonlit Beacon</h1>
+            <p className="mb-hero__subtitle">
+              Light three beacons a night across forest, field, and camp.
+              Grow three weapon paths from spirit embers and relics, down
+              the guardians, and push into deeper cycles. Sixteen lessons
+              build this game from a blank Godot project — and record what
+              changed from actually playing it.
+            </p>
+            <div className="mb-hero__buttons">
+              <Link className="button button--primary button--lg" to="/course">
+                View the course
+              </Link>
+              <Link
+                className="button button--secondary button--lg"
+                to="/docs/intro">
+                Read the docs
+              </Link>
+            </div>
+            <div className="mb-specs">
+              {SPECS.map((s) => (
+                <span key={s}>{s}</span>
+              ))}
+            </div>
+          </div>
+          <figure className="mb-hero__shot">
+            <img
+              src="img/home-hero.jpg"
+              alt="Moonlit Beacon title screen: a lit beacon in a night forest clearing"
+              width={1616}
+              height={720}
+            />
+          </figure>
         </div>
       </header>
 
