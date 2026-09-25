@@ -5,16 +5,17 @@ The new app icon is painted art of the final Moonlit Warden cupping a glowing be
 From the tracked source it builds the iOS 1024 master and Android legacy/adaptive sets, and
 This script inspects live production PNG size, alpha, safe circle, and platform paths.
 
-The 108×108 fixed shape defs stay for docs favicon/logo and older marketing-graphic determinism.
-Keep them for that. These files are managed:
+The 108×108 fixed shape defs stay for the editor icon and older
+marketing-graphic determinism. Keep them for that. The docs site uses
+the painted launcher art instead, so these files are managed:
 
     assets/custom/ui/app_icon_master.png      1024×1024, opaque
     assets/custom/ui/app_icon_main.png        192×192, opaque
     assets/custom/ui/app_icon_foreground.png  432×432, graded alpha
     assets/custom/ui/app_icon_background.png  432×432, opaque
     icon.svg                                  legacy vector mark
-    ../docs/static/img/favicon.svg
-    ../docs/static/img/logo.svg
+    ../docs/static/img/favicon.png            32×32, from app_icon_main.png
+    ../docs/static/img/logo.png               192×192, app_icon_main.png bytes
     builds/art-review/a4-ui/app-icon-preview.png
 
 Every visible pixel of the Android adaptive foreground must sit inside the official
@@ -976,9 +977,9 @@ def _validate_repository_links() -> None:
     docusaurus = (
         REPO_ROOT / "apps/docs/docusaurus.config.ts"
     ).read_text(encoding="utf-8")
-    if "favicon: 'img/favicon.svg'" not in docusaurus:
+    if "favicon: 'img/favicon.png'" not in docusaurus:
         raise RuntimeError("Docusaurus favicon path contract changed")
-    if "logo: {alt: 'Moonlit Beacon', src: 'img/logo.svg'}" not in docusaurus:
+    if "logo: {alt: 'Moonlit Beacon', src: 'img/logo.png'}" not in docusaurus:
         raise RuntimeError("Docusaurus logo path contract changed")
 
     contracts_path = GAME_ROOT / "tools/custom_asset_contracts.json"
@@ -1066,11 +1067,17 @@ def main() -> int:
     #
     # Keep the shape defs (`build_outputs`) and safe-circle check (`validate_outputs`) —
     # New art must keep the same 132px radius rule, and that number lives here.
-    # The three SVGs (editor icon, docs favicon, logo) still come from this definition.
+    # Only the editor icon.svg still comes from the shape definition. The docs
+    # site shows the painted launcher art: logo.png is app_icon_main.png bytes,
+    # favicon.png its exact 6x nearest decimation to 32×32.
     production: dict[Path, bytes] = {
         GAME_ROOT / "icon.svg": svg,
-        DOCS_IMAGE_DIR / "favicon.svg": svg,
-        DOCS_IMAGE_DIR / "logo.svg": svg,
+        DOCS_IMAGE_DIR / "logo.png": (
+            CUSTOM_UI_DIR / "app_icon_main.png"
+        ).read_bytes(),
+        DOCS_IMAGE_DIR / "favicon.png": main_icon.resized_nearest(
+            32, 32
+        ).to_png(),
     }
     for name in (
         "app_icon_master.png",

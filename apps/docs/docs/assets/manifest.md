@@ -38,12 +38,14 @@ The approved art is `app-icon-approved.png`. Android splits are
 gold crescent, and beacon flame are meant to read large. Type, weapons,
 and platform rounded corners are not in the source.
 
-## Icon (docs favicon · logo vector)
+## Icon (docs favicon · logo)
 
-The docs site's `static/img/favicon.svg`, `static/img/logo.svg`, and the
-archive copy `apps/game/icon.svg` are still produced deterministically
-from the 108×108 fixed-shape definition in `tools/build_app_icon_assets.py`.
-They are not used for the app launcher or store icon.
+The docs site shows the painted launcher art: `static/img/logo.png` is
+`app_icon_main.png` bytes and `static/img/favicon.png` its exact 6x
+nearest decimation to 32×32, both written deterministically by
+`tools/build_app_icon_assets.py`. The archive copy `apps/game/icon.svg`
+still comes from the 108×108 fixed-shape definition. None of these are
+used for the app launcher or store icon.
 
 ## Icon (Android launcher icon)
 
@@ -64,10 +66,10 @@ Modification:   the new launcher icon uses the same Moonlit Warden · beacon
                 and scales to 192. The splash keeps the existing 2048×1152
                 production art. Size, alpha, and safe circle are contract-
                 enforced.
-                the three vectors icon.svg · favicon.svg · logo.svg still
-                come from the 108×108 shape definition in
-                tools/build_app_icon_assets.py —
-                they are for the docs site, so determinism is kept
+                docs favicon.png · logo.png are derived from
+                app_icon_main.png in tools/build_app_icon_assets.py —
+                only the editor icon.svg still comes from the 108×108
+                shape definition
 ```
 
 :::note Where the art moved from pixels to a painting
