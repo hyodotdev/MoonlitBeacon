@@ -101,6 +101,12 @@ Here we only accept a tap on the screen to restart.
 When there is only one thing you can do, leave only that.
 :::
 
+:::info The final results screen has buttons, Back still does nothing
+The complete clip shows Retry and Upgrade buttons on the results
+screen. Those arrived in later updates. The Back rule from this lesson
+never changed: on results, Back does nothing.
+:::
+
 :::danger The default on the quit prompt is "go back"
 If you show a prompt and **the dangerous choice already has focus**,
 asking was pointless.
@@ -206,6 +212,13 @@ aapt dump permissions builds/android/MoonlitBeacon-1.0.0.apk
 
 **If there is an internet permission, remove it.** This game does not
 talk to a server. An unused permission is one more reason not to install.
+
+:::info The current builds keep the internet permission
+At 1.0.0 there was no server, so the permission went out. IAP purchase
+verification and analytics arrived in later updates, and both need a
+network — the current presets set `permissions/internet=true`. The rule
+stands: keep only the permissions the game actually uses.
+:::
 
 ### 5-5. On a wiped device
 

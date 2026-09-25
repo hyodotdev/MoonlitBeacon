@@ -23,8 +23,7 @@ improvements back: contributions are welcome
 ([CONTRIBUTING.md](CONTRIBUTING.md)).
 
 Docs site: **https://hyodotdev.github.io/MoonlitBeacon/**
-(publishes when the repo goes public — run the Deploy Docs workflow once
-Pages is enabled)
+(auto-deploys when `apps/docs/` changes land on `main`)
 
 | | |
 | --- | --- |

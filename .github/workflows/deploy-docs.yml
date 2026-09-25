@@ -1,12 +1,15 @@
 name: Deploy Docs
 
-# Manually deploy the docs site (apps/docs) to GitHub Pages.
-# A private repo in the hyodotdev Free org cannot use Pages.
-# Make the repo public or raise the org to Team or above, then set
-# Settings > Pages > Source to "GitHub Actions".
+# Deploy the docs site (apps/docs) to GitHub Pages.
+# The repo is public, so the Pages site exists with Source = "GitHub Actions".
 on:
-  # Do not auto-deploy while Pages enablement keeps failing on a private repo.
-  # Build and deploy only when a human starts it from the Actions UI.
+  # Docs-only auto-deploy. Game, workflow, and repo changes do not rebuild.
+  push:
+    branches: [main]
+    paths:
+      - 'apps/docs/**'
+      - '.github/workflows/deploy-docs.yml'
+  # Manual re-deploy from the Actions UI, e.g. after a failed run.
   workflow_dispatch:
 
 # Receive only the permissions the job declares.
@@ -53,8 +56,8 @@ jobs:
           node-version: '22'
           cache: pnpm
 
-      # Passes only after Pages is enabled on a supported plan / visibility.
-      # The default GITHUB_TOKEN cannot create the site.
+      # Reads the existing Pages site metadata. It cannot create the site;
+      # a repo admin creates it once (API or Settings > Pages).
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
