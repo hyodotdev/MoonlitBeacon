@@ -972,3 +972,12 @@ Play 7/10-inch and App Store iPad 13 derivatives were also opened directly
 to confirm HUD, boss, and shrine are not clipped. Previous-build screens,
 other emulators, wrong panels, clipped product cards, or stale derivatives
 now fail at verification.
+
+### 2026-09-26 — docs site moves to painted launcher art
+
+`apps/docs/static/img/favicon.svg` and `logo.svg` (old fixed-shape art)
+are replaced by `favicon.png` (32×32) and `logo.png` (192×192) derived
+deterministically from `app_icon_main.png` in
+`tools/build_app_icon_assets.py`. Only `apps/game/icon.svg` still comes
+from the 108×108 shape definition. Docusaurus config and the path
+contract now pin the `.png` files.

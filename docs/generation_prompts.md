@@ -333,9 +333,10 @@ mask, glowing eyeless face, watermark, or an existing character.
 
 Production contract:
 
-- Generate 3 SVGs and 3 PNGs together from one 108×108 logical grid and a
-  locked palette
-- `icon.svg`, docs `favicon.svg`, and `logo.svg` are byte-identical
+- Generate 1 SVG and 5 PNGs together: the SVG from one 108×108 logical
+  grid and a locked palette, the docs PNGs from the painted launcher art
+- `icon.svg` stays vector; docs `favicon.png` (32) and `logo.png` (192)
+  derive from `app_icon_main.png`
 - Android legacy `192×192` is opaque
 - Android adaptive foreground `432×432` is graded alpha; background is 5
   opaque colors
