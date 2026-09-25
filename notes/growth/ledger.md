@@ -143,3 +143,18 @@ are not authoritative over the current user instructions or newer observations.
 - Final checks: saved heartbeat target/cadence/thread re-read successfully; existing #1
   updated and re-fetched body matched exactly. G11 completed. Repository hygiene and
   diff checks passed. The primary checkout was preserved; source commit stays local.
+
+## 2026-09-26 round (PR #3, merged da0e0db)
+
+- English course-clip reshoot shipped: 33 clips + 32 posters, Lesson 15-16
+  staged via Movie Maker, 3 prose notes where the final game differs.
+  `pnpm verify` exit 0; review-self loop ran 5 rounds, last two clean.
+- Course site dependency (strategy P4) closed: repo API visibility PUBLIC
+  verified Sep 26, Pages deploy workflow success, 16/16 lesson pages and
+  70/70 media assets HTTP 200 by direct fetch. E02 still needs tracked
+  store links on the course pages for attribution.
+- Sep 24 scheduled review was missed (no successful heartbeat run evidenced;
+  none invented). Next review Sep 28. Overdue items carried unchanged:
+  G03/G09/G10 ready-overdue, G06 blocked on recruitment approval, E01
+  not_run. E03 running, decision Oct 2. Budget stays 0 KRW.
+- Tracker #1 body updated with this round; "API reports private" corrected.

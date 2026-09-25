@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-09-22",
+  "updatedAt": "2026-09-26",
   "tracker": {
     "url": "https://github.com/hyodotdev/MoonlitBeacon/issues/1",
     "previousUrl": "https://github.com/hyodotdev/MoonlitBeacon/issues/44",
-    "migration": "Old #44 returns 404; existing replacement #1 verified Sep 21. Repository API visibility private."
+    "migration": "Old #44 returns 404; existing replacement #1 verified Sep 21. Repository API visibility PUBLIC verified Sep 26."
   },
   "focus": {
     "market": "KR",
@@ -631,7 +631,7 @@
   },
   "monitoring": {
     "cadence": "Monday/Thursday 10:00 Asia/Seoul",
-    "nextReview": "2026-09-24",
+    "nextReview": "2026-09-28",
     "monthlyDecision": "2026-10-02",
     "automationId": "automation",
     "lastScheduledReview": "2026-09-21",

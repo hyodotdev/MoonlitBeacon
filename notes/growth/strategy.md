@@ -1,15 +1,15 @@
 # Growth strategy
 
-Revised 2026-09-22. `state.json` holds sourced observations, attempts, work and
+Revised 2026-09-26. `state.json` holds sourced observations, attempts, work and
 verdicts; `ledger.md` explains decisions. The current tracker is GitHub **#1**.
 The preserved `archive-20260918.md` is historical evidence, not current
 instructions or permission.
 
 ## Operating source after the repository move
 
-Main is `f4b283f`. The remote API still reports **private** despite the
-public-release commit title; do not infer visibility or permission to publish
-internal analytics from a title. The Sep 21 growth branch and the CI fix are
+Main is `da0e0db`. The remote API reports **PUBLIC** (verified Sep 26);
+the Sep 22 "still private" note is superseded. Do not publish internal
+analytics numbers anywhere public without a separate decision. The Sep 21 growth branch and the CI fix are
 merged; the managed growth worktree is removed. The `private/pre-public-full`
 snapshot branch was deleted at the user's request on Sep 22 — its three
 campaign drafts (cowork-handoff, trailer-distribution, youtube-aeo) survive
@@ -101,13 +101,13 @@ after P4. Target: five observations.
 - No PII, no recording without consent, manual notes until G10 lands.
 - Exact copy is drafted after the destination pick, never before.
 
-### P4 — Course site deploy (dependency, growth does not own it)
+### P4 — Course site deploy (shipped Sep 26, was a dependency)
 
-Sixteen chapters are written and the site is undeployed; the repo is private
-and Pages needs a public repo or a Team-or-above org. Growth value if it
-ships: a course-to-game funnel with tracked store links (E02 attribution
-input) plus a search/AEO surface that compounds. Action belongs to the user:
-decide repo visibility first.
+Sixteen lessons live at `hyodotdev.github.io/MoonlitBeacon/` with all clips
+re-shot in English: PR #3 merged (`da0e0db`), deploy workflow success,
+16/16 lesson pages plus nav targets HTTP 200 and 70/70 media assets 200,
+verified by direct fetch Sep 26. Remaining growth value: add tracked store
+links for the course-to-game funnel (E02 attribution input).
 
 ## E02 design (queued, starts after the E03 verdict)
 
