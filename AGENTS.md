@@ -460,7 +460,7 @@ x = 3840.
 | --- | --- | --- |
 | `ci.yml` | PR and push to main | Docs build · game/IAP regressions · headless game · 10 `project.godot` values · repo rules |
 | `android.yml` | PRs that touch `apps/game/**` | Direct-distribution APK and Play debug AAB builds, channel isolation, then artifact upload |
-| `deploy-docs.yml` | Manual run from Actions | GitHub Pages deploy |
+| `deploy-docs.yml` | Push to main touching `apps/docs/**`, or manual run | GitHub Pages deploy |
 
 The **repo rules** job in `ci.yml` calls `.github/scripts/check-hygiene.mjs` —
 the "Phase" term, the do-not-commit list, clip budget (silent · 1MB), Godot
@@ -471,27 +471,16 @@ and music `loop=true`.
 checks, so they drifted — lowercase `phase` passed locally and died only in
 CI.
 
-:::danger A human has to enable Pages once
-This repo is a **private repo in the hyodotdev Free org**, so it is not a
-Pages target. First make the repo public or raise the org to Team or above.
-Then set `Settings > Pages > Source` to **GitHub Actions** or
-`deploy-docs.yml` will not work. Manual runs before that also 404.
-It never runs automatically; it only attempts a deploy when someone starts
-it from the Actions UI.
+:::info Pages is live — keep it that way
+The repo is public and the Pages site exists with Source = **GitHub Actions**,
+so `deploy-docs.yml` auto-deploys on docs changes. Do not revert it to
+manual-only without a reason.
 
-The workflow does not try to *create* the Pages site via `enablement`. The
-default `GITHUB_TOKEN` cannot create a Pages site, so turning that on fails
-like this:
-
-```text
-Get Pages site failed. Error: Not Found
-Create Pages site failed. Error: Resource not accessible by integration
-```
-
-`permissions: pages: write` is not enough. Creating the site is a repo-admin
-action, so you need a PAT or a human in Settings. **We use Settings.**
-Once it exists, `configure-pages` only reads site metadata and prepares the
-deploy.
+History: while the repo was private in the hyodotdev Free org, Pages was not
+a target and the workflow was manual-only. Creating the site is a repo-admin
+action — the default `GITHUB_TOKEN` cannot do it (`Resource not accessible
+by integration`), so an admin creates it once via API or Settings. If the
+site is ever deleted, recreate it before expecting deploys to work.
 :::
 
 ## Commands used often

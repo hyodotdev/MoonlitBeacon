@@ -4,6 +4,7 @@
   "private": true,
   "description": "Moonlit Beacon — Godot 4 first 2D game course monorepo",
   "license": "MIT",
+  "repository": "github:hyodotdev/MoonlitBeacon",
   "engines": {
     "node": ">=20"
   },
