@@ -141,7 +141,15 @@ No painted shadows (the engine draws foot shadows), no JPG.
 ## Batch G — guardian re-art, all six bosses (prompt pack)
 
 Drop into `_asset_sources/gpt/batch-g/`. One generation per sheet
-(22 total). Ask for exact canvas sizes; intake validates frames.
+(22 total). Proven 2026-09-26: request grids, never strips — every
+sheet is 6 frames as a 2x3 grid on a square canvas (4-frame states
+look choppy; minimum 6 connected frames everywhere). Direct
+strip requests come back portrait and cannot fill square
+cells. Slice with `apps/game/tools/slice_gpt_grid.py`, which validates
+frames (empty/bleed/size warnings). Always add: "high contrast",
+"keep every creature smaller with wide transparent margins on all
+sides including the outer canvas edges, nothing may touch any
+edge", "no floating debris".
 
 Common suffix for every prompt: "top-down 2.5D pixel art game sprite
 sheet, single horizontal row of animation frames on transparent
@@ -150,48 +158,48 @@ faces, moon rim light from top-left, deep navy and amber night
 palette, same creature and silhouette in every frame, no shadow, no
 background, no text".
 
-Layout: idle sheets are 384×64 (six 64×64 frames); state sheets are
-256×64 (four 64×64 frames).
+Layout: every sheet is 384×64 (six 64×64 frames). Same strip size
+for idle and states, so `guardian_state_frames = 6` everywhere.
 
 Forest Thornwood Pursuer (horns, long tree-arms, rooted feet):
 
 1. `forest`: idle breathing, arms swaying, 6 frames.
-2. `forest_windup`: rearing back, arms raised, about to rush, 4 frames.
-3. `forest_charge`: full rushing lunge forward, motion lean, 4 frames.
-4. `forest_recover`: skidding to a stop, arms dropping, 4 frames.
+2. `forest_windup`: rearing back, arms raised, about to rush, 6 frames.
+3. `forest_charge`: full rushing lunge forward, motion lean, 6 frames.
+4. `forest_recover`: skidding to a stop, arms dropping, 6 frames.
 
 Thorn King Pursuer (older, thorn-crowned, deeper bark):
 
 5. `forest_thorn`: idle, heavier sway, thorns glinting, 6 frames.
-6. `forest_thorn_windup`: rearing with thorns flared, 4 frames.
-7. `forest_thorn_charge`: crushing lunge, thorns first, 4 frames.
-8. `forest_thorn_recover`: grinding halt, thorns settling, 4 frames.
+6. `forest_thorn_windup`: rearing with thorns flared, 6 frames.
+7. `forest_thorn_charge`: crushing lunge, thorns first, 6 frames.
+8. `forest_thorn_recover`: grinding halt, thorns settling, 6 frames.
 
 Azure Fieldwing (wide crescent wings, mask, cloud tentacles):
 
 9. `field`: idle hover, wings beating slowly, 6 frames.
-10. `field_windup_cross`: wings folding into a cross pose, 4 frames.
-11. `field_windup_radial`: wings spreading into a full ring pose, 4 frames.
-12. `field_recover`: wings drooping, sinking lower, 4 frames.
+10. `field_windup_cross`: wings folding into a cross pose, 6 frames.
+11. `field_windup_radial`: wings spreading into a full ring pose, 6 frames.
+12. `field_recover`: wings drooping, sinking lower, 6 frames.
 
 Storm Fieldwing (charged feathers, lightning veins, torn wing edges):
 
 13. `field_storm`: idle hover in rising wind, sparks, 6 frames.
-14. `field_storm_windup_cross`: cross pose crackling, 4 frames.
-15. `field_storm_windup_radial`: ring pose crackling, 4 frames.
-16. `field_storm_recover`: discharged droop, last sparks fading, 4 frames.
+14. `field_storm_windup_cross`: cross pose crackling, 6 frames.
+15. `field_storm_windup_radial`: ring pose crackling, 6 frames.
+16. `field_storm_recover`: discharged droop, last sparks fading, 6 frames.
 
 Emberclad Warden (brazier helm, hammer, gate shield):
 
 17. `camp`: idle guard stance, brazier breathing, 6 frames.
-18. `camp_windup`: hammer raised, shield braced, aiming, 4 frames.
-19. `camp_recover`: armor open, hammer lowered, exposed core, 4 frames.
+18. `camp_windup`: hammer raised, shield braced, aiming, 6 frames.
+19. `camp_recover`: armor open, hammer lowered, exposed core, 6 frames.
 
 Siegeclad Warden (heavier plates, siege hammer, cracked shield):
 
 20. `camp_siege`: idle siege stance, embers leaking, 6 frames.
-21. `camp_siege_windup`: siege hammer raised high, 4 frames.
-22. `camp_siege_recover`: plates parted, core glowing, 4 frames.
+21. `camp_siege_windup`: siege hammer raised high, 6 frames.
+22. `camp_siege_recover`: plates parted, core glowing, 6 frames.
 
 Intake: validate canvas + frame counts, wire into
 `assets/custom/actors/guardians/`, manifest rows with batch G,
