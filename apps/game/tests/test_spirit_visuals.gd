@@ -246,15 +246,15 @@ func _test_guardians() -> void:
 			kind.guardian_recover_sheet,
 		]:
 			_expect_true(
-				state_texture.get_size().x >= 256
+				state_texture.get_size().x >= 384
 					and state_texture.get_size().y == 64,
-				"%s state sheet at least 4 frames" % guardian_id)
+				"%s state sheet at least 6 frames" % guardian_id)
 		_expect_equal(kind.cell, GUARDIAN_CELL, "%s cell size" % guardian_id)
 		_expect_equal(kind.facings, 1, "%s facing count" % guardian_id)
 		_expect_equal(kind.frames, 6, "%s idle frame count" % guardian_id)
 		_expect_equal(
 			kind.guardian_state_frames,
-			4,
+			6,
 			"%s state frame count" % guardian_id)
 		_expect_equal(kind.lift, -24.0, "%s shadow foot origin" % guardian_id)
 		_expect_equal(kind.tint, Color.WHITE, "%s original palette preserved" % guardian_id)
@@ -342,7 +342,7 @@ func _test_runtime_kind(
 						continue
 					_expect_equal(
 						frames.get_frame_count(state_animation),
-						4,
+						6,
 						"%s %s frame count" % [actor_id, state_animation])
 					var expected_texture: Texture2D = [
 						kind.guardian_windup_sheet,
@@ -350,7 +350,7 @@ func _test_runtime_kind(
 						kind.guardian_charge_sheet,
 						kind.guardian_recover_sheet,
 					][animation_index]
-					for frame_index in 4:
+					for frame_index in 6:
 						_expect_atlas(
 							frames.get_frame_texture(
 								state_animation, frame_index),

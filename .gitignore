@@ -94,3 +94,5 @@ firebase.cfg
 # .mcp.json holds per-machine server credentials. Keep it local; each tool
 # reads its own user-level config instead.
 .mcp.json
+# Playwright MCP screenshots, console logs, and evaluation files.
+.playwright-mcp/
