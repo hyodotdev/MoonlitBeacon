@@ -23,7 +23,24 @@ const LINES: Dictionary = {
 	"guardian_down": ["VOICE_GUARDIAN_DOWN_1", "VOICE_GUARDIAN_DOWN_2"],
 	"low_health": ["VOICE_LOW_1", "VOICE_LOW_2"],
 	"moonfire": ["VOICE_MOONFIRE_1", "VOICE_MOONFIRE_2"],
-	"cycle": ["VOICE_CYCLE_1", "VOICE_CYCLE_2"],
+	"cycle": [
+		"VOICE_CYCLE_1", "VOICE_CYCLE_2", "VOICE_CYCLE_3",
+		"VOICE_CYCLE_4", "VOICE_CYCLE_5", "VOICE_CYCLE_6",
+	],
+	"meet_drifter": ["VOICE_MEET_DRIFTER_1"],
+	"meet_ember": ["VOICE_MEET_EMBER_1"],
+	"meet_caster": ["VOICE_MEET_CASTER_1"],
+	"meet_weaver": ["VOICE_MEET_WEAVER_1"],
+	"meet_stalker": ["VOICE_MEET_STALKER_1"],
+	"meet_swarm": ["VOICE_MEET_SWARM_1"],
+	"meet_wisp": ["VOICE_MEET_WISP_1"],
+	"meet_guardian_forest": ["VOICE_MEET_GUARDIAN_FOREST_1"],
+	"meet_guardian_field": ["VOICE_MEET_GUARDIAN_FIELD_1"],
+	"meet_guardian_camp": ["VOICE_MEET_GUARDIAN_CAMP_1"],
+	"meet_guardian_forest_thorn": ["VOICE_MEET_GUARDIAN_FOREST_THORN_1"],
+	"meet_guardian_field_storm": ["VOICE_MEET_GUARDIAN_FIELD_STORM_1"],
+	"meet_guardian_camp_siege": ["VOICE_MEET_GUARDIAN_CAMP_SIEGE_1"],
+	"call_dark": ["VOICE_CALL_DARK_1", "VOICE_CALL_DARK_2"],
 }
 
 ## Translation keys already used this run.

@@ -379,3 +379,22 @@ STORY_CYCLE_8_A,셋으로는 모자란다. 밤마다 다시 먹힌다,Three is n
 STORY_CYCLE_8_B,봉화를 하나로 이어야 한다. 끝까지 가자,The beacons must join into one line. Go to the end,烽火をひとつに繋がねばならない。最後まで行こう,必须把烽火连成一条线。走到最后,必須把烽火連成一條線。走到最後
 STORY_CYCLE_9_A,여덟 번째 선이 이어졌다. 약속은 지켰다,The eighth line is joined. The promise is kept,八本目の線が繋がった。約束は守った,第八道界线连上了。承诺已经兑现,第八道界線連上了。承諾已經兌現
 STORY_CYCLE_9_B,여기부터는 지도에 없는 밤이다. 얼마나 깊은지 보자,Past here the night is off the map. Let us see how deep it goes,ここから先は地図にない夜だ。どこまで深いか見てやろう,再往前是地图上没有的黑夜。看看它有多深,再往前是地圖上沒有的黑夜。看看它有多深
+VOICE_MEET_DRIFTER_1,밤박쥐다 · 움직이는 빛을 문다,Night bats · they bite what moves and glows,夜蝠だ · 動く光に噛みつく,夜蝠 · 专咬会动的光,夜蝠 · 專咬會動的光
+VOICE_MEET_EMBER_1,꺼지지 않은 불씨다 · 타는 데 동무를 구한다,A cinder unquenched · it wants company in burning,消え残った火種だ · 燃える仲間を求めている,没熄透的火种 · 想找个一起烧的伴,沒熄透的火種 · 想找個一起燒的伴
+VOICE_MEET_CASTER_1,주목을 구해 주문을 외운다 · 그 탄은 기도다,It chants to be noticed · its shots are prayers,闇に呪文を唱える · その弾は祈りだ,它向黑暗念咒求关注 · 那些弹是祷告,它向黑暗念咒求關注 · 那些彈是禱告
+VOICE_MEET_WEAVER_1,빛 위에 어둠을 깁는다 · 꿰매는 중이라 믿는다,Stitching dark over light · it thinks it mends,光の上に闇を縫う · 繕っているつもりだ,它把黑暗缝在光上 · 以为自己在缝补,它把黑暗縫在光上 · 以為自己在縫補
+VOICE_MEET_STALKER_1,지기였던 걸 기억한다 · 잃은 불을 사냥한다,Once a keeper · it hunts the flame it lost,守り人だったことを覚えている · 失くした火を狩る,它记得自己当过守烽人 · 在猎它弄丢的火,它記得自己當過守烽人 · 在獵它弄丟的火
+VOICE_MEET_SWARM_1,날개 달린 허기다 · 생각 없이 입만 있다,Hunger with wings · mouths without minds,翼ある飢えだ · 考えはなく口だけだ,长翅膀的饥饿 · 没脑子只有嘴,長翅膀的飢餓 · 沒腦子只有嘴
+VOICE_MEET_WISP_1,호기심 많은 불씨 · 몰리면 무서워 쏜다,Curious little flame · it stings when crowded,好奇心の強い小さな火 · 群れると怖くて刺す,好奇的小火 · 被围住吓到就蜇人,好奇的小火 · 被圍住嚇到就蜇人
+VOICE_MEET_GUARDIAN_FOREST_1,숲이 빚은 추격자 · 돌진도 빛의 기억이다,Forest pursuer · even its charges remember light,森が練った追跡者 · 突進すら光の記憶だ,森林捏出的追猎者 · 连冲撞都是光的记忆,森林捏出的追獵者 · 連衝撞都是光的記憶
+VOICE_MEET_GUARDIAN_FIELD_1,들에 깔린 빛이 날개가 됐다 · 쏘는 것도 빛이다,Field light grew wings · its shots are light too,野に散った光が翼になった · 放つ弾も光だ,撒在原野的光长出了翅膀 · 射出的也是光,撒在原野的光長出了翅膀 · 射出的也是光
+VOICE_MEET_GUARDIAN_CAMP_1,화덕의 불을 삼킨 장군 · 갑옷 아래 아직 온기가 있다,Hearthswallower · warm under the armor,かまどの火を飲んだ将 · 甲の下はまだ温かい,吞了灶火的将军 · 铠甲下面还温着,吞了灶火的將軍 · 鎧甲下面還溫著
+VOICE_MEET_GUARDIAN_FOREST_THORN_1,가시왕 · 오래된 빛일수록 가시가 깊다,The Thorn King · older light · deeper thorns,茨王 · 古い光ほど茨は深い,荆棘王 · 光越老刺越深,荊棘王 · 光越老刺越深
+VOICE_MEET_GUARDIAN_FIELD_STORM_1,폭풍의 날개 · 화가 난 밤이 벼락을 얹었다,Storm wings · the angry night loaded lightning,嵐の翼 · 怒った夜が雷を載せた,风暴之翼 · 发怒的夜装上了雷,風暴之翼 · 發怒的夜裝上了雷
+VOICE_MEET_GUARDIAN_CAMP_SIEGE_1,공성 장군 · 문을 두드리던 게 이제 문을 부순다,Siege general · what knocked now breaks in,攻城将 · 叩いていたものが今は門を砕く,攻城将军 · 从前敲门的如今破门,攻城將軍 · 從前敲門的如今破門
+VOICE_CYCLE_3,지도 밖 밤은 깊이를 모른다 · 한 선씩 긋자,No bottom out here · draw one line at a time,地図外れの夜に底はない · 一本ずつ線を引こう,地图外的夜没底 · 一条一条画线吧,地圖外的夜沒底 · 一條一條畫線吧
+VOICE_CYCLE_4,꺼진 봉화가 밤을 먹인다 · 굶겨라,Each snuffed beacon feeds the night · starve it,烽火が消えるたび夜が息をする · 休ませるな,每灭一座烽火夜就喘口气 · 别让它歇,每滅一座烽火夜就喘口氣 · 別讓它歇
+VOICE_CYCLE_5,수호자도 지친다 · 빛은 지치지 않는다,Even guardians tire · light does not,守護者も疲れる · 光は疲れない,守护者也会累 · 光不会,守護者也會累 · 光不會
+VOICE_CYCLE_6,몇 번째 밤인지 세지 마라 · 선이 몇 개인지 세라,Do not count the nights · count the lines,夜を数えるな · 線を数えろ,别数第几夜 · 数几条线,別數第幾夜 · 數幾條線
+VOICE_CALL_DARK_1,어둠을 부른다 · 날개들이 대답한다,It calls the dark · wings answer,闇を呼ぶ · 翼が答える,它在喊黑暗 · 翅膀应了,它在喊黑暗 · 翅膀應了
+VOICE_CALL_DARK_2,혼자 못 이기겠지 · 그래서 무리를 부른다,It cannot win alone · so it calls the pack,独りでは勝てない · だから群れを呼ぶ,单挑赢不了 · 所以喊群,單挑贏不了 · 所以喊群

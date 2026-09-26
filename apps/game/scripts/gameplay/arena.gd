@@ -446,6 +446,12 @@ var _debug_hero_direction_request_signature: String = ""
 ## Cycles keep "where's the next beacon" coming.
 ## Hero voice lines. Reset each run so the same line is not heard twice.
 var _voice: HeroVoice = HeroVoice.new()
+## First-sight moments already said this run, by HeroVoice moment key.
+## Balloons have no queue, so each kind speaks once and never steals
+## the strip again. See notes/plans/world-story-pass.md.
+var _seen_spirits: Dictionary = {}
+var _seen_guardians: Dictionary = {}
+var _guardian_called: bool = false
 var _voice_panel: VoicePanel = null
 
 var _cycle: int = 1
@@ -658,6 +664,9 @@ func _ready() -> void:
 	# all three store screenshots went out that way. Built in code, not a scene file, so it also
 	# follows the reduced arenas capture and tests use.
 	_voice.reset()
+	_seen_spirits.clear()
+	_seen_guardians.clear()
+	_guardian_called = false
 	_voice_panel = VOICE_PANEL.new()
 	var ui_layer: CanvasLayer = get_node_or_null("Ui") as CanvasLayer
 	if ui_layer != null:
@@ -1377,7 +1386,7 @@ func _publish_debug_missile_capture(missile_power_before: int) -> void:
 	var world_key: String = str(_world_step().get("name", ""))
 	var time_step: Dictionary = _time_step()
 	var time_key: String = str(time_step.get("name", ""))
-	var expected_tone: Color = time_step.get("tone", Color.TRANSPARENT)
+	var expected_tone: Color = time_step.get("tone", Color.TRANSPARENT) * _cycle_shade()
 	var applied_tone: Color = _rooms_root.modulate
 	var time_tone_applied: bool = applied_tone.is_equal_approx(expected_tone)
 	# 03 is an ad shot of the night forest at Lv10 · cycle 1. Pin real Arena state too so the same
@@ -2374,7 +2383,7 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 		var world_key: String = str(_world_step().get("name", ""))
 		var time_step: Dictionary = _time_step()
 		var time_key: String = str(time_step.get("name", ""))
-		var expected_tone: Color = time_step.get("tone", Color.TRANSPARENT)
+		var expected_tone: Color = time_step.get("tone", Color.TRANSPARENT) * _cycle_shade()
 		var applied_tone: Color = _rooms_root.modulate
 		var expected_barrage_banner: String = tr("MISSILE_COMPLETE") % [
 			_missile_power, MissileProgression.MAX_POWER]
@@ -2468,7 +2477,7 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 	var world_key: String = str(_world_step().get("name", ""))
 	var time_step: Dictionary = _time_step()
 	var time_key: String = str(time_step.get("name", ""))
-	var expected_tone: Color = time_step.get("tone", Color.TRANSPARENT)
+	var expected_tone: Color = time_step.get("tone", Color.TRANSPARENT) * _cycle_shade()
 	var applied_tone: Color = _rooms_root.modulate
 	var guardian_banner: Dictionary = _hud.debug_capture_banner_snapshot()
 	var guardian_expected_banner: String = ""
@@ -2927,6 +2936,7 @@ func _process(delta: float) -> void:
 	_tick_tutorial()
 	_tick_shake(delta)
 	_tick_overcharge(delta)
+	_tick_guardian_call()
 
 	_dash_button.set_ratio(_player.get_dash_ratio())
 	_point_compass(delta)
@@ -3098,6 +3108,16 @@ func _guardian_resource_path() -> String:
 ## Time of day matching how many beacons are lit.
 func _time_step() -> Dictionary:
 	return TIME_STEPS[clampi(_lit_count, 0, TIME_STEPS.size() - 1)]
+
+
+## Later cycles read colder at the same beacons. Capture-state checks
+## compare against the shaded tone, so update them together.
+func _cycle_shade() -> Color:
+	if _cycle >= 7:
+		return Color(0.88, 0.92, 1.0, 1.0)
+	if _cycle >= 4:
+		return Color(0.95, 0.96, 1.0, 1.0)
+	return Color.WHITE
 
 
 ## Bake one room.
@@ -3381,7 +3401,7 @@ func _announce_world_rule_if_current(serial: int) -> void:
 ## Show beacon progress as night → blue dawn → sunrise → day.
 func _apply_time_tone(animated: bool = true) -> void:
 	var time: Dictionary = _time_step()
-	var tone: Color = time["tone"]
+	var tone: Color = time["tone"] * _cycle_shade()
 
 	if _brighten != null and _brighten.is_valid():
 		_brighten.kill()
@@ -5130,7 +5150,21 @@ func _summon(
 	add_child(spirit)
 	_register_spirit(spirit)
 	spirit.materialize()
+	_announce_first_sight(kind_path)
 	return spirit
+
+
+## Say why this kind fights, once per run on first sight.
+##
+## The moment key is `meet_<kind id>` from the resource filename, so a new
+## spirit is one `.tres` plus one HeroVoice row. Unknown kinds stay quiet
+## instead of swallowing the strip with an empty take.
+func _announce_first_sight(kind_path: String) -> void:
+	var moment: String = "meet_" + kind_path.get_file().get_basename()
+	if _seen_spirits.has(moment) or not HeroVoice.LINES.has(moment):
+		return
+	_seen_spirits[moment] = true
+	_say(moment)
 
 
 ## How tough this cycle's spirits are.
@@ -5392,7 +5426,41 @@ func _summon_guardian() -> void:
 	# in HP and color — learn this terrain's rule before taking the first pattern.
 	_hud.announce(tr("GUARDIAN_INTRO") % [
 		tr(boss.display_name), tr(boss.guardian_rule)], boss.boss_accent)
+	_guardian_called = false
+	_announce_guardian_meet()
+
+
+## First meeting per guardian per run speaks its own line; later meetings
+## fall back to the generic guardian moment. Only one `_say` per spawn —
+## the strip has no queue and the last call wins.
+func _announce_guardian_meet() -> void:
+	var moment: String = "meet_" + _guardian_resource_path().get_file().get_basename()
+	if not _seen_guardians.has(moment) and HeroVoice.LINES.has(moment):
+		_seen_guardians[moment] = true
+		_say(moment)
+		return
 	_say("guardian")
+
+
+## At half health, once per guardian, it calls two swarm escorts.
+##
+## Skipped while capture progress is frozen: a mid-shot summon changes
+## the store frame and ejects the capture.
+func _tick_guardian_call() -> void:
+	if _guardian_called or _over or _transitioning or _capture_progress_frozen:
+		return
+	if _guardian == null or not is_instance_valid(_guardian):
+		return
+	# `_health` is 0 until materialize runs, so the ratio reads 0 at spawn.
+	# Firing there would overwrite the first-meeting line on the same strip.
+	if int(_guardian.get("_health")) <= 0:
+		return
+	if _guardian.get_health_ratio() >= 0.5:
+		return
+	_guardian_called = true
+	_summon(_guardian.position + Vector2(60, 0), "res://resources/swarm.tres")
+	_summon(_guardian.position + Vector2(-60, 0), "res://resources/swarm.tres")
+	_say("call_dark")
 
 	# Music changes. The ear knows the finale first.
 	_bgm.stop()
