@@ -3061,8 +3061,16 @@ func _flush_cycle_story() -> void:
 ## `_A` reacts to what just happened; `_B` is what to do next. One line cannot hold both
 ## "what happened" and "so what now," so neither sticks.
 ## Missing lines are skipped quietly, so a cycle with only one line still works.
+##
+## Cycle 1 opens the run, so the Warden's debt comes first: who remains and what is
+## owed. Without it the run starts with instructions and never says why.
 func _story_lines(cycle: int) -> Array[String]:
 	var lines: Array[String] = []
+	if cycle == 1:
+		for key in ["STORY_OPEN_A", "STORY_OPEN_B"]:
+			var open_line: String = tr(key)
+			if open_line != key:
+				lines.append(open_line)
 	for suffix in ["A", "B"]:
 		var key: String = "STORY_CYCLE_%d_%s" % [cycle, suffix]
 		var line: String = tr(key)

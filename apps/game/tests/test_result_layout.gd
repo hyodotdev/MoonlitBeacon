@@ -45,6 +45,11 @@ func _ready() -> void:
 			(win_panel.get_node("Title") as Label).text == tr("RESULT_ESCAPE"),
 			"%s pre-cycle-8 settlement uses the safe-return title" % locale)
 		_expect_fits(win_panel.get_node("Title") as Label, "%s safe-return title" % locale)
+		_expect_true(
+			(win_panel.get_node("Epitaph") as Label).text == tr("STORY_EPITAPH_ESCAPE"),
+			"%s safe return shows the ember-keeping epitaph" % locale)
+		_expect_fits(
+			win_panel.get_node("Epitaph") as Label, "%s safe-return epitaph" % locale)
 		win_panel.queue_free()
 		await get_tree().process_frame
 
@@ -56,6 +61,11 @@ func _ready() -> void:
 		_expect_true(
 			(legend_panel.get_node("Title") as Label).text == tr("RESULT_WIN"),
 			"%s cycle-8 settlement uses the victory title" % locale)
+		_expect_true(
+			(legend_panel.get_node("Epitaph") as Label).text == tr("STORY_EPITAPH_WIN"),
+			"%s cycle-8 settlement shows the line-joined epitaph" % locale)
+		_expect_fits(
+			legend_panel.get_node("Epitaph") as Label, "%s victory epitaph" % locale)
 		legend_panel.queue_free()
 		await get_tree().process_frame
 
@@ -70,6 +80,7 @@ func _ready() -> void:
 
 func _check_locale(panel: Control, locale: String) -> void:
 	var title: Label = panel.get_node("Title") as Label
+	var epitaph: Label = panel.get_node("Epitaph") as Label
 	var detail: Label = panel.get_node("Detail") as Label
 	var stamp: Label = panel.get_node("Stamp") as Label
 	var hint: Label = panel.get_node("Hint") as Label
@@ -80,6 +91,10 @@ func _check_locale(panel: Control, locale: String) -> void:
 	var shrine: Button = panel.get_node("Actions/Shrine") as Button
 
 	_expect_fits(title, "%s title" % locale)
+	_expect_fits(epitaph, "%s closing story line" % locale)
+	_expect_true(
+		epitaph.text == tr("STORY_EPITAPH_LOSE"),
+		"%s defeat shows the debt-passing epitaph" % locale)
 	_expect_fits(detail, "%s score table" % locale)
 	_expect_fits(hint, "%s record and shards" % locale)
 	_expect_fits(goal, "%s purchase goal" % locale)
@@ -88,6 +103,7 @@ func _check_locale(panel: Control, locale: String) -> void:
 	_expect_fits(shrine, "%s Shrine button" % locale)
 
 	var title_rect: Rect2 = title.get_global_rect()
+	var epitaph_rect: Rect2 = epitaph.get_global_rect()
 	var detail_rect: Rect2 = detail.get_global_rect()
 	var stamp_rect: Rect2 = stamp.get_global_rect()
 	var hint_rect: Rect2 = hint.get_global_rect()
@@ -96,6 +112,10 @@ func _check_locale(panel: Control, locale: String) -> void:
 	_expect_true(
 		title_rect.end.y + SAFE_GAP <= detail_rect.position.y,
 		"%s gap between title and score table" % locale)
+	_expect_true(
+		title_rect.end.y <= epitaph_rect.position.y
+		and epitaph_rect.end.y <= detail_rect.position.y,
+		"%s closing line sits between title and score table" % locale)
 	_expect_true(
 		detail_rect.end.x + SAFE_GAP <= stamp_rect.position.x,
 		"%s gap between score table and rank (%s / %s)" % [

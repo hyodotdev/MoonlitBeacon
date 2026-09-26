@@ -379,6 +379,11 @@ STORY_CYCLE_8_A,셋으로는 모자란다. 밤마다 다시 먹힌다,Three is n
 STORY_CYCLE_8_B,봉화를 하나로 이어야 한다. 끝까지 가자,The beacons must join into one line. Go to the end,烽火をひとつに繋がねばならない。最後まで行こう,必须把烽火连成一条线。走到最后,必須把烽火連成一條線。走到最後
 STORY_CYCLE_9_A,여덟 번째 선이 이어졌다. 약속은 지켰다,The eighth line is joined. The promise is kept,八本目の線が繋がった。約束は守った,第八道界线连上了。承诺已经兑现,第八道界線連上了。承諾已經兌現
 STORY_CYCLE_9_B,여기부터는 지도에 없는 밤이다. 얼마나 깊은지 보자,Past here the night is off the map. Let us see how deep it goes,ここから先は地図にない夜だ。どこまで深いか見てやろう,再往前是地图上没有的黑夜。看看它有多深,再往前是地圖上沒有的黑夜。看看它有多深
+STORY_OPEN_A,파수단은 무너졌다. 나만 남았다,The Wardens fell. Only I remain,見張り団は倒れた。残ったのは私だけだ,守烽人倒下了。只剩下我,守烽人倒下了。只剩下我
+STORY_OPEN_B,봉화를 잇는 게 내가 밤에 진 빚이다,Joining the beacons is my debt to the night,烽火を繋ぐのが夜への借りだ,连起烽火是我欠黑夜的债,連起烽火是我欠黑夜的債
+STORY_EPITAPH_WIN,선이 이어졌다. 이 땅의 밤은 다시 지도에 있다,The line is joined. This land's night is on the map again,線は繋がった。この地の夜は再び地図にある,界线连上了。这片土地的夜重回地图,界線連上了。這片土地的夜重回地圖
+STORY_EPITAPH_ESCAPE,오늘 밤은 여기까지다. 불씨를 간직하자,Tonight ends here. Keep the ember,今宵はここまでだ。火種を守ろう,今夜到此为止。守住火种,今夜到此為止。守住火種
+STORY_EPITAPH_LOSE,빚은 다음 밤으로 넘어간다,The debt passes to the next night,借りは次の夜へ渡る,债传给了下一夜,債傳給了下一夜
 VOICE_MEET_DRIFTER_1,밤박쥐다 · 움직이는 빛을 문다,Night bats · they bite what moves and glows,夜蝠だ · 動く光に噛みつく,夜蝠 · 专咬会动的光,夜蝠 · 專咬會動的光
 VOICE_MEET_EMBER_1,꺼지지 않은 불씨다 · 타는 데 동무를 구한다,A cinder unquenched · it wants company in burning,消え残った火種だ · 燃える仲間を求めている,没熄透的火种 · 想找个一起烧的伴,沒熄透的火種 · 想找個一起燒的伴
 VOICE_MEET_CASTER_1,주목을 구해 주문을 외운다 · 그 탄은 기도다,It chants to be noticed · its shots are prayers,注目を求めて呪文を唱える · その弾は祈りだ,它念咒求关注 · 那些弹是祷告,它念咒求關注 · 那些彈是禱告

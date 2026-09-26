@@ -71,6 +71,18 @@ cycles read colder even at the same beacons: cycles 1-3 identity,
 4-6 ×(0.95, 0.96, 1.0), 7+ ×(0.88, 0.92, 1.0). GPT obstacle batch lands
 in room Details later; art first, collision never without a decision.
 
+## Story frame: the debt arc
+
+Every run opens and closes with the same debt. `_story_lines(1)`
+prepends STORY_OPEN_A/B before the cycle-1 lines: the Wardens fell,
+one remains, and joining the beacons is what is owed to the night.
+The result screen closes it with one epitaph line under the title,
+using the same outcome split as the title: STORY_EPITAPH_WIN at a
+cycle-8+ settlement (the line is joined), STORY_EPITAPH_ESCAPE on an
+early return (keep the ember), STORY_EPITAPH_LOSE on defeat (the debt
+passes to the next night). Defeat is therefore a handoff, not an end —
+that is what makes the next run feel like the same story.
+
 ## Follow-ups (not this slice)
 
 - Per-hero voices (table is hero-agnostic today).
