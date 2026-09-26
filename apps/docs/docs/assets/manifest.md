@@ -795,7 +795,8 @@ Used:           4-facing float motion for 7 normal enemies
 Modification:   generation-model concepts used only for material and silhouette comparison.
                 tools/build_spirit_guardian_assets.py regenerated 18 final
                 binary-alpha RGBA PNGs at 1x with integer coordinates and a
-                limited palette
+                limited palette; batch G re-cut all 22 guardian sheets to
+                6-frame ChatGPT grid drops via tools/slice_gpt_grid.py
 ```
 
 | Normal enemy | Silhouette that reads in combat | Behavior cue |
@@ -815,14 +816,19 @@ hashes differ.
 
 | Guardian | Idle | State sheets | Combat silhouette |
 | --- | --- | --- | --- |
-| Forest | `forest.png` 6 frames | wind-up, charge, recover 4 frames each | horns, long tree-arms, roots in the ground |
-| Field | `field.png` 6 frames | cross wind-up, radial wind-up, recover 4 frames each | wide crescent wings, mask, cloud tentacles |
-| Camp | `camp.png` 6 frames | wind-up, recover 4 frames each | beacon brazier, hammer, gate shield |
+| Forest | `forest.png` 6 frames | wind-up, charge, recover 6 frames each | horns, long tree-arms, roots in the ground |
+| Forest Thorn | `forest_thorn.png` 6 frames | wind-up, charge, recover 6 frames each | thorn crown, deeper bark, heavier arms |
+| Field | `field.png` 6 frames | cross wind-up, radial wind-up, recover 6 frames each | wide crescent wings, mask, cloud tentacles |
+| Field Storm | `field_storm.png` 6 frames | cross wind-up, radial wind-up, recover 6 frames each | lightning veins, torn wings, crackling tips |
+| Camp | `camp.png` 6 frames | wind-up, recover 6 frames each | brazier helm, hammer, gate shield |
+| Camp Siege | `camp_siege.png` 6 frames | wind-up, recover 6 frames each | siege plates, siege hammer, cracked shield |
 
-Guardian cells are `64×64`. Idle is `384×64`, state sheets `256×64`,
+Guardian cells are `64×64`. Idle and state sheets are all `384×64`,
 horizontal layout with no facing. Every `SpiritKind` state slot is filled
 with a custom sheet so mid-states do not fall back to the old free boss
-picture.
+picture. State sheets were re-cut to 6 frames (batch G) because 4-frame
+combat motion reads choppy; the runtime stretches each sheet over its
+state duration, so frame count only changes smoothness.
 
 ---
 
