@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_forest_ring()
 	_test_field_poke()
 	_test_camp_double_fan()
+	_test_guardian_landing()
 	_finish()
 
 
@@ -112,6 +113,28 @@ func _test_camp_double_fan() -> void:
 	_expect_equal(_bolt_count() - before, 14, "camp double fan fires both volleys")
 	_expect_true(loop_closed, "camp loop closes back to approach")
 	spirit.free()
+
+
+func _test_guardian_landing() -> void:
+	var boss: Node2D = _spawn("res://resources/guardian_forest.tres")
+	var landed_count: Array[int] = [0]
+	boss.connect("landed", func() -> void: landed_count[0] += 1)
+	boss.call("_finish_materialize")
+	_expect_equal(landed_count[0], 1, "guardian landing emits once")
+	_expect_equal(
+		float(boss.get("_slam_left")), SPIRIT_SCRIPT.SLAM_SECONDS,
+		"guardian landing starts the slam ring")
+	boss.call("_physics_process", 0.5)
+	_expect_equal(
+		float(boss.get("_slam_left")), 0.0,
+		"slam ring drains within half a second")
+	boss.free()
+	var trash: Node2D = _spawn("res://resources/wisp.tres")
+	trash.call("_finish_materialize")
+	_expect_equal(
+		float(trash.get("_slam_left")), 0.0,
+		"trash landing starts no slam ring")
+	trash.free()
 
 
 func _spawn(resource_path: String) -> Node2D:

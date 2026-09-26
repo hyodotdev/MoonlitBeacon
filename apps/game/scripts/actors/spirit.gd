@@ -18,6 +18,9 @@ signal touched_player(from_position: Vector2)
 ## So it passes where it died (`at`) and whether it was elite. Without elite status
 ## Arena cannot keep the promise that "elites always drop a reward."
 signal perished(kind: SpiritKind, at: Vector2, was_elite: bool)
+## Fired when materialize finishes. Arena shakes the screen for guardians only;
+## trash landing every second must not rattle the camera.
+signal landed()
 
 ## Which spirit. One `.tres` is one kind.
 ##
@@ -49,6 +52,9 @@ const PLAYER_BODY_OFFSET: Vector2 = Vector2(0, -4)
 
 ## Time to appear from the dark. Untouchable while materializing.
 const MATERIALIZE_SECONDS: float = 0.9
+## Guardian landing ring after materialize. A boss should hit the ground,
+## not fade in like trash.
+const SLAM_SECONDS: float = 0.4
 
 ## Names `_face()` uses every frame. Prebuilt so it does not concatenate on the spot.
 const FLOAT_NAMES: Array[StringName] = [
@@ -176,6 +182,8 @@ var _guardian_pattern: int = 0
 var _guardian_poke_left: float = FIELD_POKE_INTERVAL * 0.5
 ## Short white edge flash when camp armor blocks damage.
 var _camp_guard_flash: float = 0.0
+## Guardian landing-ring time left. Trash never sets this.
+var _slam_left: float = 0.0
 var _telegraph: Telegraph = Telegraph.NONE
 var _telegraph_direction: Vector2 = Vector2.RIGHT
 var _telegraph_ratio: float = 0.0
@@ -412,10 +420,14 @@ func _perish() -> void:
 	perished.emit(kind, global_position, elite)
 
 	set_physics_interpolation_mode(Node.PHYSICS_INTERPOLATION_MODE_OFF)
+	# A boss bursts bigger than trash. Same fade length, wider pop.
+	var burst: float = 1.6 \
+		if kind != null and kind.behavior == SpiritKind.Behavior.GUARDIAN \
+		else 1.35
 	var out: Tween = create_tween()
 	out.set_parallel(true)
 	out.tween_property(self, "modulate:a", 0.0, PERISH_SECONDS)
-	out.tween_property(self, "scale", scale * 1.35, PERISH_SECONDS) \
+	out.tween_property(self, "scale", scale * burst, PERISH_SECONDS) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	out.chain().tween_callback(queue_free)
 
@@ -566,11 +578,20 @@ func materialize() -> void:
 	await fade.finished
 	if not is_inside_tree():
 		return
+	_finish_materialize()
+
+
+## End of the appear fade, split out so tests can land a spirit without frames.
+func _finish_materialize() -> void:
 	# Off the target list while appearing, but already-flying AoE can still call
 	# `take_damage()` directly. When materialization ends, reopen the opening shock budget
 	# so the first on-screen frame still leaves real seconds of fight.
 	_reset_guardian_damage_budget()
 	_materialized = true
+	if kind != null and kind.behavior == SpiritKind.Behavior.GUARDIAN:
+		_slam_left = SLAM_SECONDS
+		queue_redraw()
+	landed.emit()
 
 
 ## Retreat. When a guardian appears, fodder fades into the dark.
@@ -620,6 +641,9 @@ func _physics_process(delta: float) -> void:
 		_drain_guardian_damage()
 	if _camp_guard_flash > 0.0:
 		_camp_guard_flash = maxf(_camp_guard_flash - delta * 7.0, 0.0)
+		queue_redraw()
+	if _slam_left > 0.0:
+		_slam_left = maxf(_slam_left - delta, 0.0)
 		queue_redraw()
 
 	# Do nothing while perishing. The tween frees itself when done.
@@ -1151,6 +1175,11 @@ func _clear_telegraph() -> void:
 func _draw() -> void:
 	if kind != null and kind.behavior == SpiritKind.Behavior.GUARDIAN:
 		_draw_guardian_silhouette()
+	if _slam_left > 0.0:
+		_draw_slam_ring()
+	if kind != null and kind.behavior == SpiritKind.Behavior.GUARDIAN \
+			and _guardian_move == GuardianMove.CHARGE:
+		_draw_charge_streaks()
 
 	match _telegraph:
 		Telegraph.AIM:
@@ -1165,6 +1194,28 @@ func _draw() -> void:
 				_draw_camp_fan_telegraph()
 			else:
 				_draw_field_volley_telegraph()
+
+
+## Landing ring. Expands and thins in the boss accent, then gone in 0.4s.
+func _draw_slam_ring() -> void:
+	var t: float = 1.0 - _slam_left / SLAM_SECONDS
+	var radius: float = 12.0 + 46.0 * t
+	draw_arc(Vector2(0, -6), radius, 0.0, TAU, 40,
+		_boss_color(0.85 * (1.0 - t), 1.9),
+		0.6 + 2.2 * (1.0 - t), false)
+
+
+## Charge streaks. Three speed lines trail the rushing boss so the corridor
+## telegraph's promise reads in motion too.
+func _draw_charge_streaks() -> void:
+	if _locked.length_squared() < 0.001:
+		return
+	var back: Vector2 = -_locked.normalized()
+	var side := Vector2(-back.y, back.x)
+	for i in [-1.0, 0.0, 1.0]:
+		var off: Vector2 = side * (i * 9.0) + Vector2(0, -6)
+		draw_line(off + back * 6.0, off + back * 30.0,
+			_boss_color(0.5, 1.7), 2.4 - absf(i) * 0.7)
 
 
 ## Procedurally add crown, wings, and armor on the same 50px sheet so silhouettes split first.
