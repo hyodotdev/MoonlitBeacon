@@ -41,6 +41,7 @@ const checks = [
   ['IAP hero full-body previews', ['res://tests/test_iap_hero_previews.tscn'], true, false],
   ['Spirit and guardian custom sheets', ['--script', 'res://tests/test_spirit_visuals.gd'], true, false],
   ['Guardian burst vs normal-hit balance', ['--script', 'res://tests/test_guardian_balance.gd'], true, false],
+  ['Guardian second-answer moves', ['--script', 'res://tests/test_guardian_moves.gd'], true, false],
   ['Relic dual-effect resonance and loss clear', ['--script', 'res://tests/test_relic_resonance.gd'], true, false],
   ['Missile growth curve', ['--script', 'res://tests/test_missile_progression.gd'], true, false],
   ['Missile combat loop', ['res://tests/test_missile_loop.tscn'], true, false],

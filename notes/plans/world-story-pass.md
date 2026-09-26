@@ -87,4 +87,14 @@ that is what makes the next run feel like the same story.
 
 - Per-hero voices (table is hero-agnostic today).
 - A fourth terrain (needs GPT art + room scene + world-step wiring).
-- New guardian attack patterns per family.
+
+## Guardian pressure pass (done)
+
+Each guardian now has a second answer so fights alternate instead of
+looping one trick. Forest slams a shockwave ring after its charge combo
+(gap faces the player — hold ground, the opposite of the charges).
+Field fires one aimed bolt per strafe with a short aim line. Camp fires
+a re-aimed second fan before its armor opens. All reuse existing
+telegraphs, sheets, and bolts; HP and damage budgets are untouched, so
+the balance contract still holds. HUD dodge rules stay as they are —
+the main lesson per boss did not change.
