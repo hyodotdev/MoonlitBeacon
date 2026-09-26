@@ -28,16 +28,16 @@ calls; drops still come from the user's ChatGPT project.
   for re-art batches only. Batch 1-3 decor keeps the old spec until its
   own redraw batch.
 
-## Inventory (85 sheets + optional)
+## Inventory (105 sheets + optional)
 
 | Group | Sheets | Spec | Batch |
 | --- | --- | --- | --- |
-| Guardians ×6 | 22 | 64px, idle 6f + states 4f | G (first) |
+| Guardians ×6 | 22 | 64px, idle 6f + states 6f | G (first) |
 | Heroes ×6 | 18 | portrait/idle/walk | H |
-| Spirits ×7 | 7 | 96×96, 4×4 | S |
+| Spirits ×7 | 7 | 288×48 strip, 6f facing-less | S |
 | World (terrain/beacon/gate/atmosphere) | 15 | atlas + singles | W |
 | Items (slash/arrow/bolt/gem) | 4 | singles | U |
-| Custom UI (buttons/panels/hearts/busts/icons) | 19 | mixed | U |
+| Custom UI (buttons/panels/hearts/busts/icons) | 39 | mixed, incl. 4 relic cards + 16 relic icons | U |
 | Ninja Adventure third-party | 63 | keep (see below) | N? |
 
 - Ninja pack: Recommended keep. It is the course's Lesson 1-2 starting
