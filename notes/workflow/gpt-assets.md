@@ -61,3 +61,71 @@ After the drop lands: intake review, convert to the `nature.png` atlas
 cells or standalone 32/64px sprites, place a test scatter in
 `night_forest.tscn` on a branch, screenshot-verify on the emulator,
 then PR.
+
+## Batch 2 — spirit redesigns (prompt pack)
+
+Engine side is ready: spirits run facing-less like guardians
+(`facings=1`, one horizontal strip, `float_down` always). Do NOT ask
+for 4-facings grids — image gen cannot keep 16 cells consistent.
+
+Drop into `_asset_sources/gpt/batch-2/`, one PNG per kind.
+
+Common suffix for every prompt: "pixel art sprite sheet, exactly 4
+frames in ONE horizontal row, each frame 48x48 pixels, transparent
+background, same character same size same center in all 4 frames, only
+subtle hover bob differences between frames, chunky visible pixels,
+dark night palette with amber glow accents, no background, no shadow,
+no text, no grid lines, no frame numbers".
+
+1. `drifter`: tattered moon-moth bat, glowing pale eyes, wings mid-flap.
+2. `ember`: living cracked coal cinder leaking amber light from cracks.
+3. `caster`: small hooded wisp-mage, staff orb pulsing, chanting pose.
+4. `weaver`: spider-like stitcher with needle legs, weaving gesture.
+5. `stalker`: gaunt keeper-ghost in a broken helm, low lunge crouch.
+6. `swarm`: one tiny ember gnat, big wings blurred, hungry eyes.
+7. `wisp`: curious droplet flame with eyes, bouncing happily.
+
+Intake validation per strip: 192×48 canvas, 4 non-empty 48px cells,
+alpha-mask overlap between frames ≥80% (pose may bob, design must not
+drift). Failures are rejected back to the ChatGPT project, not fixed
+by hand. Wire: replace sheet in each `.tres`, set `facings=1
+frames=4`, render-verify every kind, emulator screenshot, PR.
+
+## Batch 3 — choice card art (prompt pack)
+
+Relic cards are 168×112 Buttons with Name+Desc labels. Art replaces
+the flat 9-patch style only — text stays rendered (localization).
+No Godot-drawn boxes; all states are art.
+
+Drop into `_asset_sources/gpt/batch-3/`.
+
+Frames (ask at 336×224, downscaled to 168×112 on intake):
+
+Common suffix: "game UI card art, single card, top-down flat front
+view, transparent outside the card, chunky pixel style, deep navy
+card with amber border and small carved corner moons, no text, no
+letters, no numbers".
+
+1. `card-normal`: calm resting card.
+2. `card-hover`: same card, border brightened, faint amber shimmer.
+3. `card-pressed`: same card pressed in, darker, border dimmed.
+
+Relic icons (ask at 96×96, downscaled to 48×48, transparent):
+
+Common suffix: "pixel art game item icon, single centered icon,
+transparent background, chunky visible pixels, amber and bone-white
+on dark navy, no text".
+
+`dew_hunter` crescent arrow dripping dew · `heavy_arrow` thick
+broadhead arrow · `light_step` winged boot · `long_blade` long
+curved moonblade · `moon_dash` crescent with speed lines ·
+`moon_ring` full ring halo · `moon_ripple` expanding ripple rings ·
+`pierce_arrow` needle arrow through a disc · `quick_arrow` three
+small swift arrows · `shadow_veil` dark veil with eyes ·
+`sharp_moon` crescent blade edge · `swift_hand` quick open hand ·
+`tough_life` heart with bark skin · `twin_arrow` two crossed arrows ·
+`warm_beacon` tiny lit brazier · `wide_arc` wide bow arc.
+
+Intake: swap card StyleBoxTexture set, add icon TextureRect per card,
+map relic id → icon in `relic_panel.gd`, render-verify the 3-pick
+panel in all states, emulator screenshot, PR.

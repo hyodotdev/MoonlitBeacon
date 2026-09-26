@@ -38,6 +38,7 @@ const ROW_GAP: float = 0.08
 const SUM_SECONDS: float = 0.42
 
 @onready var _title: Label = $Title
+@onready var _epitaph: Label = $Epitaph
 @onready var _detail: Label = $Detail
 @onready var _stamp: Label = $Stamp
 @onready var _hint: Label = $Hint
@@ -88,6 +89,11 @@ func show_result(
 		if won and score.cycles >= LEGEND_CYCLE \
 		else (tr("RESULT_ESCAPE") if won else tr("RESULT_LOSE"))
 	_title.add_theme_color_override("font_color", WIN_COLOR if won else LOSE_COLOR)
+	# One closing story line under the title. Same outcome split as the title:
+	# kept-promise win, safe early return, or a debt passed to the next night.
+	_epitaph.text = tr("STORY_EPITAPH_WIN") \
+		if won and score.cycles >= LEGEND_CYCLE \
+		else (tr("STORY_EPITAPH_ESCAPE") if won else tr("STORY_EPITAPH_LOSE"))
 
 	# Every line holds its place from the start; only the numbers count from 0.
 	#

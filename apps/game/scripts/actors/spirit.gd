@@ -83,14 +83,23 @@ const FOREST_FOLLOWUP_WINDUP: float = 0.46
 const FOREST_CHARGE_SECONDS: float = 0.40
 const FOREST_BETWEEN_CHARGES: float = 0.24
 const FOREST_RECOVER_SECONDS: float = 0.82
+## After the charge combo lands, slam a shockwave ring. Charges punish standing
+## still; the ring punishes the sidestep they taught — hold ground in the gap.
+const FOREST_RING_WINDUP: float = 0.78
 
 const FIELD_STRAFE_SECONDS: float = 2.15
 const FIELD_VOLLEY_WINDUP: float = 0.78
 const FIELD_RECOVER_SECONDS: float = 0.82
+## Strafe used to be dead time. One aimed bolt per strafe keeps the dodge honest.
+const FIELD_POKE_INTERVAL: float = 2.1
+const FIELD_POKE_WINDUP: float = 0.35
 
 const CAMP_APPROACH_SECONDS: float = 2.35
 const CAMP_VOLLEY_WINDUP: float = 1.0
 const CAMP_RECOVER_SECONDS: float = 1.45
+## The second fan re-aims at where the player fled. One fan is a checkpoint;
+## two is a question.
+const CAMP_FOLLOWUP_WINDUP: float = 0.55
 
 enum GuardianMove {
 	CHASE,
@@ -162,6 +171,9 @@ var _guardian_move_haste: float = 1.0
 var _guardian_combo_left: int = 0
 ## Field barrage 0=cross, 1=radial with a safe gap.
 var _guardian_pattern: int = 0
+## Time until the field guardian's next aimed bolt while strafing.
+## Starts half-ready so the opening strafe pokes once, never on frame one.
+var _guardian_poke_left: float = FIELD_POKE_INTERVAL * 0.5
 ## Short white edge flash when camp armor blocks damage.
 var _camp_guard_flash: float = 0.0
 var _telegraph: Telegraph = Telegraph.NONE
@@ -884,9 +896,27 @@ func _do_guardian_forest(delta: float, to_player: Vector2) -> Vector2:
 			velocity = _locked * _guardian_charge_speed()
 			if _guardian_left <= 0.0:
 				velocity *= 0.2
-				var rest: float = FOREST_BETWEEN_CHARGES \
-					if _guardian_combo_left > 0 else FOREST_RECOVER_SECONDS
-				_start_guardian_move(GuardianMove.RECOVER, rest)
+				if _guardian_combo_left > 0:
+					_start_guardian_move(
+						GuardianMove.RECOVER, FOREST_BETWEEN_CHARGES)
+				else:
+					# Combo spent. Slam the ring before resting — the gap faces
+					# the player, so the answer is the opposite of the charges.
+					_locked = inward
+					_guardian_pattern = 1
+					_start_guardian_move(
+						GuardianMove.VOLLEY_WINDUP, FOREST_RING_WINDUP)
+			return _locked
+
+		GuardianMove.VOLLEY_WINDUP:
+			velocity = velocity.lerp(Vector2.ZERO, 7.0 * delta)
+			_set_telegraph(Telegraph.VOLLEY, _locked,
+				1.0 - _guardian_left / _guardian_move_duration)
+			if _guardian_left <= 0.0:
+				_fire_forest_ring()
+				_clear_telegraph()
+				_start_guardian_move(
+					GuardianMove.RECOVER, FOREST_RECOVER_SECONDS)
 			return _locked
 
 		_:
@@ -911,10 +941,22 @@ func _do_guardian_field(delta: float, to_player: Vector2) -> Vector2:
 	match _guardian_move:
 		GuardianMove.CHASE:
 			var wish: Vector2 = _field_strafe(delta, to_player)
+			# Transition first. When the poke timer and the strafe end on the
+			# same tick, firing the poke as well stacks a bolt onto the volley.
 			if _guardian_left <= 0.0:
 				_locked = inward
 				_start_guardian_move(
 					GuardianMove.VOLLEY_WINDUP, FIELD_VOLLEY_WINDUP)
+				return wish
+			_guardian_poke_left -= delta * _guardian_move_haste
+			if _guardian_poke_left <= FIELD_POKE_WINDUP \
+					and _guardian_poke_left > 0.0:
+				_set_telegraph(Telegraph.AIM, inward,
+					1.0 - _guardian_poke_left / FIELD_POKE_WINDUP)
+			if _guardian_poke_left <= 0.0:
+				_clear_telegraph()
+				_fire(inward)
+				_guardian_poke_left = FIELD_POKE_INTERVAL
 			return wish
 
 		GuardianMove.VOLLEY_WINDUP:
@@ -932,6 +974,7 @@ func _do_guardian_field(delta: float, to_player: Vector2) -> Vector2:
 		_:
 			velocity = velocity.lerp(Vector2.ZERO, 5.0 * delta)
 			if _guardian_left <= 0.0:
+				_guardian_poke_left = FIELD_POKE_INTERVAL * 0.5
 				_start_guardian_move(
 					GuardianMove.CHASE, FIELD_STRAFE_SECONDS)
 			return inward
@@ -965,6 +1008,7 @@ func _do_guardian_camp(delta: float, to_player: Vector2) -> Vector2:
 				kind.turn_rate * delta)
 			if _guardian_left <= 0.0:
 				_locked = inward
+				_guardian_combo_left = 1
 				_start_guardian_move(
 					GuardianMove.VOLLEY_WINDUP, CAMP_VOLLEY_WINDUP)
 			return inward
@@ -976,8 +1020,14 @@ func _do_guardian_camp(delta: float, to_player: Vector2) -> Vector2:
 			if _guardian_left <= 0.0:
 				_fire_camp_fan()
 				_clear_telegraph()
-				_start_guardian_move(
-					GuardianMove.RECOVER, _camp_recover_seconds())
+				if _guardian_combo_left > 0:
+					_guardian_combo_left -= 1
+					_locked = inward
+					_start_guardian_move(
+						GuardianMove.VOLLEY_WINDUP, CAMP_FOLLOWUP_WINDUP)
+				else:
+					_start_guardian_move(
+						GuardianMove.RECOVER, _camp_recover_seconds())
 			return _locked
 
 		_:
@@ -1022,6 +1072,21 @@ func _fire_field_volley() -> void:
 		var bolt: Node2D = _fire(shot)
 		if bolt != null and bolt.has_method("set_speed_scale"):
 			bolt.set_speed_scale(0.72)
+
+
+## Shockwave ring after the charge combo. Fewer spokes than the field radial,
+## same promise: the gap faces the player, so the dodge is to hold ground.
+func _fire_forest_ring() -> void:
+	var base: float = _locked.angle()
+	var extra: int = maxi(guardian_cycle - 1, 0)
+	if kind != null:
+		extra += kind.guardian_volley_extra
+	var spokes: int = 8 + mini(extra, 4 + _late_cycles())
+	var hole: int = 2 if extra <= 0 else 1
+	for i in spokes:
+		if i <= hole or i >= spokes - hole:
+			continue
+		_fire(Vector2.RIGHT.rotated(base + TAU * float(i) / float(spokes)))
 
 
 ## Aim fan. Higher cycles add spokes and narrow the safe lane.
