@@ -67,6 +67,9 @@ then PR.
 Engine side is ready: spirits run facing-less like guardians
 (`facings=1`, one horizontal strip, `float_down` always). Do NOT ask
 for 4-facings grids — image gen cannot keep 16 cells consistent.
+As built 2026-09-26: every kind is 6 frames as a 2x3 grid on a
+square canvas (4-frame strips read choppy and come back portrait),
+sliced to `288x48` with `slice_gpt_grid.py --cell 48`.
 
 Drop into `_asset_sources/gpt/batch-2/`, one PNG per kind.
 
@@ -98,6 +101,9 @@ the flat 9-patch style only — text stays rendered (localization).
 No Godot-drawn boxes; all states are art.
 
 Drop into `_asset_sources/gpt/batch-3/`.
+As built 2026-09-26: the 4 card states came as ONE 2x2 grid (keeps
+states pixel-aligned) via `slice_gpt_cells.py` full-cell mode; the
+16 icons came as ONE 4x4 grid via `--fit` bbox mode.
 
 Frames (ask at 336×224, downscaled to 168×112 on intake):
 

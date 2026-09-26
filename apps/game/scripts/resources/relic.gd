@@ -223,3 +223,6 @@ static func evolution_states(relics: Array) -> Dictionary:
 
 ## Color for the card. Kind is told apart by color.
 @export var accent: Color = Color(1, 0.86, 0.5, 1)
+
+## 48x48 card emblem for this relic.
+@export var icon: Texture2D = null

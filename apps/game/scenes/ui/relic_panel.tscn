@@ -1,271 +1,210 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=10 format=3 uid="uid://b6an0k3j9f2qe"]
 
-[ext_resource type="Script" path="res://scripts/ui/relic_panel.gd" id="script"]
-[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="Texture2D" path="res://assets/custom/ui/button_normal_moonlit.png" id="button_normal_texture"]
-[ext_resource type="Texture2D" path="res://assets/custom/ui/button_hover_moonlit.png" id="button_hover_texture"]
-[ext_resource type="Texture2D" path="res://assets/custom/ui/button_pressed_moonlit.png" id="button_pressed_texture"]
-[ext_resource type="Texture2D" path="res://assets/custom/ui/button_disabled_moonlit.png" id="button_disabled_texture"]
-[ext_resource type="Texture2D" path="res://assets/custom/ui/button_focus_moonlit.png" id="button_focus_texture"]
+[ext_resource type="Script" path="res://scripts/ui/relic_panel.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_normal.png" id="card_normal"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_hover.png" id="card_hover"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_pressed.png" id="card_pressed"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_disabled.png" id="card_disabled"]
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_normal"]
-texture = ExtResource("button_normal_texture")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 6.0
+[sub_resource type="LabelSettings" id="title"]
+font_size = 22
+font_color = Color(1, 0.93, 0.75, 1)
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hover"]
-texture = ExtResource("button_hover_texture")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 6.0
+[sub_resource type="StyleBoxTexture" id="card_normal_sb"]
+texture = ExtResource("card_normal")
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pressed"]
-texture = ExtResource("button_pressed_texture")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 6.0
-modulate_color = Color(1, 1, 1, 0.96)
+[sub_resource type="StyleBoxTexture" id="card_hover_sb"]
+texture = ExtResource("card_hover")
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_disabled"]
-texture = ExtResource("button_disabled_texture")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 6.0
-modulate_color = Color(1, 1, 1, 0.78)
+[sub_resource type="StyleBoxTexture" id="card_pressed_sb"]
+texture = ExtResource("card_pressed")
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_focus"]
-texture = ExtResource("button_focus_texture")
-texture_margin_left = 6.0
-texture_margin_top = 6.0
-texture_margin_right = 6.0
-texture_margin_bottom = 6.0
-draw_center = false
+[sub_resource type="StyleBoxTexture" id="card_disabled_sb"]
+texture = ExtResource("card_disabled")
 
 [node name="RelicPanel" type="Control"]
-process_mode = 3
-layout_mode = 3
+visible = false
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 1
-script = ExtResource("script")
-
-[node name="Dim" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.02, 0.03, 0.07, 0.72)
+script = ExtResource("1")
 
 [node name="Center" type="CenterContainer" parent="."]
-layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
 
 [node name="Rows" type="VBoxContainer" parent="Center"]
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 14
 alignment = 1
 
 [node name="Title" type="Label" parent="Center/Rows"]
 layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(1, 0.92, 0.72, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 18
+label_settings = SubResource("title")
 text = "RELIC_PICK"
 horizontal_alignment = 1
 
 [node name="Cards" type="HBoxContainer" parent="Center/Rows"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 alignment = 1
 
 [node name="C0" type="Button" parent="Center/Rows/Cards"]
 custom_minimum_size = Vector2(168, 112)
 layout_mode = 2
-clip_contents = true
-theme_override_styles/normal = SubResource("StyleBoxTexture_normal")
-theme_override_styles/hover = SubResource("StyleBoxTexture_hover")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_disabled")
-theme_override_styles/focus = SubResource("StyleBoxTexture_focus")
+theme_override_styles/normal = SubResource("card_normal_sb")
+theme_override_styles/hover = SubResource("card_hover_sb")
+theme_override_styles/pressed = SubResource("card_pressed_sb")
+theme_override_styles/disabled = SubResource("card_disabled_sb")
+
+[node name="Icon" type="TextureRect" parent="Center/Rows/Cards/C0"]
+layout_mode = 1
+anchors_preset = -1
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 46.0
+offset_bottom = 46.0
+mouse_filter = 2
+texture = ExtResource("card_normal")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Name" type="Label" parent="Center/Rows/Cards/C0"]
 layout_mode = 1
 anchors_preset = 10
-anchor_right = 1.0
-offset_top = 12.0
+offset_left = 56.0
+offset_top = 10.0
+offset_right = -8.0
 offset_bottom = 34.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-horizontal_alignment = 1
+text = "Name"
+vertical_alignment = 1
 
 [node name="Desc" type="Label" parent="Center/Rows/Cards/C0"]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 37.0
-offset_right = -12.0
-offset_bottom = -29.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.85, 0.89, 0.98, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 10
-horizontal_alignment = 1
+anchors_preset = 10
+offset_left = 10.0
+offset_top = 50.0
+offset_right = -10.0
+offset_bottom = 84.0
+theme_override_font_sizes/font_size = 9
+text = "Desc"
 autowrap_mode = 2
 
 [node name="Route" type="Label" parent="Center/Rows/Cards/C0"]
 layout_mode = 1
-anchors_preset = 12
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = -27.0
-offset_right = -8.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 9
+anchors_preset = 10
+offset_left = 14.0
+offset_top = 84.0
+offset_right = -14.0
+offset_bottom = 102.0
+theme_override_font_sizes/font_size = 8
+text = "Route"
 horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="C1" type="Button" parent="Center/Rows/Cards"]
 custom_minimum_size = Vector2(168, 112)
 layout_mode = 2
-clip_contents = true
-theme_override_styles/normal = SubResource("StyleBoxTexture_normal")
-theme_override_styles/hover = SubResource("StyleBoxTexture_hover")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_disabled")
-theme_override_styles/focus = SubResource("StyleBoxTexture_focus")
+theme_override_styles/normal = SubResource("card_normal_sb")
+theme_override_styles/hover = SubResource("card_hover_sb")
+theme_override_styles/pressed = SubResource("card_pressed_sb")
+theme_override_styles/disabled = SubResource("card_disabled_sb")
+
+[node name="Icon" type="TextureRect" parent="Center/Rows/Cards/C1"]
+layout_mode = 1
+anchors_preset = -1
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 46.0
+offset_bottom = 46.0
+mouse_filter = 2
+texture = ExtResource("card_normal")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Name" type="Label" parent="Center/Rows/Cards/C1"]
 layout_mode = 1
 anchors_preset = 10
-anchor_right = 1.0
-offset_top = 12.0
+offset_left = 56.0
+offset_top = 10.0
+offset_right = -8.0
 offset_bottom = 34.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-horizontal_alignment = 1
+text = "Name"
+vertical_alignment = 1
 
 [node name="Desc" type="Label" parent="Center/Rows/Cards/C1"]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 37.0
-offset_right = -12.0
-offset_bottom = -29.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.85, 0.89, 0.98, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 10
-horizontal_alignment = 1
+anchors_preset = 10
+offset_left = 10.0
+offset_top = 50.0
+offset_right = -10.0
+offset_bottom = 84.0
+theme_override_font_sizes/font_size = 9
+text = "Desc"
 autowrap_mode = 2
 
 [node name="Route" type="Label" parent="Center/Rows/Cards/C1"]
 layout_mode = 1
-anchors_preset = 12
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = -27.0
-offset_right = -8.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 9
+anchors_preset = 10
+offset_left = 14.0
+offset_top = 84.0
+offset_right = -14.0
+offset_bottom = 102.0
+theme_override_font_sizes/font_size = 8
+text = "Route"
 horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="C2" type="Button" parent="Center/Rows/Cards"]
 custom_minimum_size = Vector2(168, 112)
 layout_mode = 2
-clip_contents = true
-theme_override_styles/normal = SubResource("StyleBoxTexture_normal")
-theme_override_styles/hover = SubResource("StyleBoxTexture_hover")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_pressed")
-theme_override_styles/disabled = SubResource("StyleBoxTexture_disabled")
-theme_override_styles/focus = SubResource("StyleBoxTexture_focus")
+theme_override_styles/normal = SubResource("card_normal_sb")
+theme_override_styles/hover = SubResource("card_hover_sb")
+theme_override_styles/pressed = SubResource("card_pressed_sb")
+theme_override_styles/disabled = SubResource("card_disabled_sb")
+
+[node name="Icon" type="TextureRect" parent="Center/Rows/Cards/C2"]
+layout_mode = 1
+anchors_preset = -1
+offset_left = 12.0
+offset_top = 12.0
+offset_right = 46.0
+offset_bottom = 46.0
+mouse_filter = 2
+texture = ExtResource("card_normal")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="Name" type="Label" parent="Center/Rows/Cards/C2"]
 layout_mode = 1
 anchors_preset = 10
-anchor_right = 1.0
-offset_top = 12.0
+offset_left = 56.0
+offset_top = 10.0
+offset_right = -8.0
 offset_bottom = 34.0
-grow_horizontal = 2
-mouse_filter = 2
-theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-horizontal_alignment = 1
+text = "Name"
+vertical_alignment = 1
 
 [node name="Desc" type="Label" parent="Center/Rows/Cards/C2"]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 37.0
-offset_right = -12.0
-offset_bottom = -29.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.85, 0.89, 0.98, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 10
-horizontal_alignment = 1
+anchors_preset = 10
+offset_left = 10.0
+offset_top = 50.0
+offset_right = -10.0
+offset_bottom = 84.0
+theme_override_font_sizes/font_size = 9
+text = "Desc"
 autowrap_mode = 2
 
 [node name="Route" type="Label" parent="Center/Rows/Cards/C2"]
 layout_mode = 1
-anchors_preset = 12
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = -27.0
-offset_right = -8.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.68, 0.88, 1, 1)
-theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 9
+anchors_preset = 10
+offset_left = 14.0
+offset_top = 84.0
+offset_right = -14.0
+offset_bottom = 102.0
+theme_override_font_sizes/font_size = 8
+text = "Route"
 horizontal_alignment = 1
-vertical_alignment = 1

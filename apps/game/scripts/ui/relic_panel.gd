@@ -97,10 +97,10 @@ const DISC_EVOLVE_AT: int = 3
 const CARD_COUNT: int = 3
 const NAME_FONT_MAX: int = 14
 const NAME_FONT_MIN: int = 9
-const NAME_AVAILABLE_WIDTH: float = 156.0
+const NAME_AVAILABLE_WIDTH: float = 100.0
 const ROUTE_FONT_MAX: int = 9
 const ROUTE_FONT_MIN: int = 7
-const ROUTE_AVAILABLE_WIDTH: float = 152.0
+const ROUTE_AVAILABLE_WIDTH: float = 148.0
 
 @onready var _cards: Array[Button] = [$Center/Rows/Cards/C0, $Center/Rows/Cards/C1, $Center/Rows/Cards/C2]
 @onready var _title: Label = $Center/Rows/Title
@@ -110,6 +110,8 @@ const ROUTE_AVAILABLE_WIDTH: float = 152.0
 	$Center/Rows/Cards/C0/Desc, $Center/Rows/Cards/C1/Desc, $Center/Rows/Cards/C2/Desc]
 @onready var _routes: Array[Label] = [
 	$Center/Rows/Cards/C0/Route, $Center/Rows/Cards/C1/Route, $Center/Rows/Cards/C2/Route]
+@onready var _icons: Array[TextureRect] = [
+	$Center/Rows/Cards/C0/Icon, $Center/Rows/Cards/C1/Icon, $Center/Rows/Cards/C2/Icon]
 
 var _offer: Array[Relic] = []
 ## First pick shows the three paths one card each at equal weight. Shuffle
@@ -197,6 +199,7 @@ func _open_offer(offer: Array[Relic], title: String) -> void:
 		_fit_name(_names[i])
 		_names[i].add_theme_color_override("font_color", _offer[i].accent)
 		_descs[i].text = tr(_offer[i].description)
+		_icons[i].texture = _offer[i].icon
 		_set_route_label(i, _offer[i])
 
 	banner_cleared.emit()
