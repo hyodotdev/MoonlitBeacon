@@ -100,7 +100,7 @@ const NAME_FONT_MIN: int = 9
 const NAME_AVAILABLE_WIDTH: float = 100.0
 const ROUTE_FONT_MAX: int = 9
 const ROUTE_FONT_MIN: int = 7
-const ROUTE_AVAILABLE_WIDTH: float = 148.0
+const ROUTE_AVAILABLE_WIDTH: float = 140.0
 
 @onready var _cards: Array[Button] = [$Center/Rows/Cards/C0, $Center/Rows/Cards/C1, $Center/Rows/Cards/C2]
 @onready var _title: Label = $Center/Rows/Title

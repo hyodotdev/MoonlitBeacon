@@ -1,12 +1,14 @@
-[gd_scene load_steps=10 format=3 uid="uid://b6an0k3j9f2qe"]
+[gd_scene load_steps=11 format=3 uid="uid://b6an0k3j9f2qe"]
 
 [ext_resource type="Script" path="res://scripts/ui/relic_panel.gd" id="1"]
+[ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
 [ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_normal.png" id="card_normal"]
 [ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_hover.png" id="card_hover"]
 [ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_pressed.png" id="card_pressed"]
 [ext_resource type="Texture2D" path="res://assets/custom/ui/relic_card_disabled.png" id="card_disabled"]
 
 [sub_resource type="LabelSettings" id="title"]
+font = ExtResource("font")
 font_size = 22
 font_color = Color(1, 0.93, 0.75, 1)
 
@@ -77,6 +79,7 @@ offset_left = 56.0
 offset_top = 10.0
 offset_right = -8.0
 offset_bottom = 34.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
 text = "Name"
 vertical_alignment = 1
@@ -88,6 +91,7 @@ offset_left = 10.0
 offset_top = 50.0
 offset_right = -10.0
 offset_bottom = 84.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 9
 text = "Desc"
 autowrap_mode = 2
@@ -99,6 +103,7 @@ offset_left = 14.0
 offset_top = 84.0
 offset_right = -14.0
 offset_bottom = 102.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 8
 text = "Route"
 horizontal_alignment = 1
@@ -130,6 +135,7 @@ offset_left = 56.0
 offset_top = 10.0
 offset_right = -8.0
 offset_bottom = 34.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
 text = "Name"
 vertical_alignment = 1
@@ -141,6 +147,7 @@ offset_left = 10.0
 offset_top = 50.0
 offset_right = -10.0
 offset_bottom = 84.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 9
 text = "Desc"
 autowrap_mode = 2
@@ -152,6 +159,7 @@ offset_left = 14.0
 offset_top = 84.0
 offset_right = -14.0
 offset_bottom = 102.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 8
 text = "Route"
 horizontal_alignment = 1
@@ -183,6 +191,7 @@ offset_left = 56.0
 offset_top = 10.0
 offset_right = -8.0
 offset_bottom = 34.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
 text = "Name"
 vertical_alignment = 1
@@ -194,6 +203,7 @@ offset_left = 10.0
 offset_top = 50.0
 offset_right = -10.0
 offset_bottom = 84.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 9
 text = "Desc"
 autowrap_mode = 2
@@ -205,6 +215,7 @@ offset_left = 14.0
 offset_top = 84.0
 offset_right = -14.0
 offset_bottom = 102.0
+theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 8
 text = "Route"
 horizontal_alignment = 1
