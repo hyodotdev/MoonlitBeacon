@@ -129,3 +129,72 @@ small swift arrows · `shadow_veil` dark veil with eyes ·
 Intake: swap card StyleBoxTexture set, add icon TextureRect per card,
 map relic id → icon in `relic_panel.gd`, render-verify the 3-pick
 panel in all states, emulator screenshot, PR.
+
+## Style addendum for re-art batches (G/H/S/W/U)
+
+Supersedes the house spec above for re-art only. Same top-down camera
+and layout; new pixels with volume: lit top faces, shaded lower faces,
+moon rim light from top-left, 3-tone ramps on the night palette
+(navy/moonlight/amber). Keep the pixel grid and silhouette families.
+No painted shadows (the engine draws foot shadows), no JPG.
+
+## Batch G — guardian re-art, all six bosses (prompt pack)
+
+Drop into `_asset_sources/gpt/batch-g/`. One generation per sheet
+(22 total). Ask for exact canvas sizes; intake validates frames.
+
+Common suffix for every prompt: "top-down 2.5D pixel art game sprite
+sheet, single horizontal row of animation frames on transparent
+background, chunky visible pixels, lit top faces with shaded lower
+faces, moon rim light from top-left, deep navy and amber night
+palette, same creature and silhouette in every frame, no shadow, no
+background, no text".
+
+Layout: idle sheets are 384×64 (six 64×64 frames); state sheets are
+256×64 (four 64×64 frames).
+
+Forest Thornwood Pursuer (horns, long tree-arms, rooted feet):
+
+1. `forest`: idle breathing, arms swaying, 6 frames.
+2. `forest_windup`: rearing back, arms raised, about to rush, 4 frames.
+3. `forest_charge`: full rushing lunge forward, motion lean, 4 frames.
+4. `forest_recover`: skidding to a stop, arms dropping, 4 frames.
+
+Thorn King Pursuer (older, thorn-crowned, deeper bark):
+
+5. `forest_thorn`: idle, heavier sway, thorns glinting, 6 frames.
+6. `forest_thorn_windup`: rearing with thorns flared, 4 frames.
+7. `forest_thorn_charge`: crushing lunge, thorns first, 4 frames.
+8. `forest_thorn_recover`: grinding halt, thorns settling, 4 frames.
+
+Azure Fieldwing (wide crescent wings, mask, cloud tentacles):
+
+9. `field`: idle hover, wings beating slowly, 6 frames.
+10. `field_windup_cross`: wings folding into a cross pose, 4 frames.
+11. `field_windup_radial`: wings spreading into a full ring pose, 4 frames.
+12. `field_recover`: wings drooping, sinking lower, 4 frames.
+
+Storm Fieldwing (charged feathers, lightning veins, torn wing edges):
+
+13. `field_storm`: idle hover in rising wind, sparks, 6 frames.
+14. `field_storm_windup_cross`: cross pose crackling, 4 frames.
+15. `field_storm_windup_radial`: ring pose crackling, 4 frames.
+16. `field_storm_recover`: discharged droop, last sparks fading, 4 frames.
+
+Emberclad Warden (brazier helm, hammer, gate shield):
+
+17. `camp`: idle guard stance, brazier breathing, 6 frames.
+18. `camp_windup`: hammer raised, shield braced, aiming, 4 frames.
+19. `camp_recover`: armor open, hammer lowered, exposed core, 4 frames.
+
+Siegeclad Warden (heavier plates, siege hammer, cracked shield):
+
+20. `camp_siege`: idle siege stance, embers leaking, 6 frames.
+21. `camp_siege_windup`: siege hammer raised high, 4 frames.
+22. `camp_siege_recover`: plates parted, core glowing, 4 frames.
+
+Intake: validate canvas + frame counts, wire into
+`assets/custom/actors/guardians/`, manifest rows with batch G,
+`pnpm verify` + `check:assets`, render-verify idle + all mid-states
+(no fallback to old art), emulator screenshot, PR. H/S/W/U packs
+follow once G proves the style on screen.
