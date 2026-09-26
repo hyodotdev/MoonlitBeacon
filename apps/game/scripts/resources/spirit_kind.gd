@@ -107,7 +107,7 @@ static func guardian_toughness_scale(cycle: int) -> float:
 @export var guardian_alt_windup_sheet: Texture2D = null
 @export var guardian_charge_sheet: Texture2D = null
 @export var guardian_recover_sheet: Texture2D = null
-@export_range(1, 12, 1) var guardian_state_frames: int = 4
+@export_range(1, 12, 1) var guardian_state_frames: int = 6
 @export_range(1.0, 24.0, 0.5) var guardian_state_fps: float = 6.0
 ## Extra follow-up count for the forest charge. 1 means two telegraphed charges.
 @export_range(1, 6, 1) var guardian_combo: int = 1

@@ -3467,7 +3467,21 @@ func _register_spirit(spirit: Node2D) -> void:
 	spirit.set_projectile_hit_handler(_on_player_hit)
 	spirit.touched_player.connect(_on_player_hit)
 	spirit.perished.connect(_on_spirit_perished)
+	spirit.landed.connect(_on_spirit_landed.bind(spirit))
 	_spirits.append(spirit)
+
+
+## Guardian landing slam. Skipped while capture is frozen — a mid-shot
+## camera kick ejects the capture the same way a summon does.
+func _on_spirit_landed(spirit: Node2D) -> void:
+	if _over or _transitioning or _capture_progress_frozen:
+		return
+	if spirit == null or not is_instance_valid(spirit):
+		return
+	var kind: SpiritKind = spirit.get("kind") as SpiritKind
+	if kind == null or kind.behavior != SpiritKind.Behavior.GUARDIAN:
+		return
+	_shake(2.2)
 
 
 func _clear_hostile_projectiles() -> void:
@@ -4289,6 +4303,12 @@ func _on_spirit_perished(kind: SpiritKind, at: Vector2, was_elite: bool) -> void
 	_gain_missile_progress(at, was_elite, was_guardian)
 	_gain_progress(not was_guardian)
 	_heat_up()
+	if was_guardian:
+		# A boss kill kicks the full shake budget. Frozen capture skips it —
+		# the boss vanishing already changes that frame enough.
+		if not _capture_progress_frozen:
+			_shake(4.0)
+		return
 	# Pricier heroes get a heavier kill recoil. **Presentation only** —
 	# damage, fire rate, and pierce stay sidegrade-equal; only the weight in the hand
 	# follows the tier.

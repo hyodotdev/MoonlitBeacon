@@ -10,8 +10,8 @@ behavior = 0
 
 sheet = ExtResource("sheet")
 cell = 48
-facings = 4
-frames = 4
+facings = 1
+frames = 6
 lift = -8.0
 speed = 118.0
 turn_rate = 9.0

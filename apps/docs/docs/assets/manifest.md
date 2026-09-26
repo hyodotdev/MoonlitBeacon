@@ -577,11 +577,14 @@ Project path:   res://assets/custom/ui/
 Used:           heart.png, panel_moonlit.png, nine_path_panel_moonlit.png,
                 button_normal_moonlit.png, button_hover_moonlit.png,
                 button_pressed_moonlit.png, button_disabled_moonlit.png,
-                button_focus_moonlit.png
+                button_focus_moonlit.png, relic_card_*.png (4 states),
+                icons/*.png (16 relic emblems)
 Modification:   tools/build_world_assets.py builds the 5-step moonlight heart;
                 tools/build_custom_ui_panels.py generates ink-navy, moon-silver,
                 teal, vermilion panels and button states that keep the existing
-                5px and 6px nine-patch margins
+                5px and 6px nine-patch margins; batch 3 drew the relic-pick
+                cards (168x112, carved corner moons) and 16 48x48 relic
+                emblems as ChatGPT grid drops via tools/slice_gpt_cells.py
 ```
 
 | File | Size | Use |
@@ -594,6 +597,11 @@ Modification:   tools/build_world_assets.py builds the 5-step moonlight heart;
 | `button_pressed_moonlit.png` | 16×16 | darkened face and lower vermilion rivets |
 | `button_disabled_moonlit.png` | 16×16 | desaturated disabled state |
 | `button_focus_moonlit.png` | 16×16 | transparent focus ring stacked on the default state |
+| `relic_card_normal.png` | 168×112 | relic-pick card, resting state. navy face, amber border |
+| `relic_card_hover.png` | 168×112 | brightened border with amber shimmer |
+| `relic_card_pressed.png` | 168×112 | pressed in, darker, dimmed border |
+| `relic_card_disabled.png` | 168×112 | grayed, faded |
+| `icons/dew_hunter.png` … `icons/wide_arc.png` | 48×48 ×16 | one emblem per relic, named by relic id |
 
 The heart has 5 steps but **we only use the one full frame.** Empty slots
 lower that one frame's opacity to 0.24. Swapping two pictures makes the
@@ -790,39 +798,45 @@ Source:         original (AI-assisted concept, deterministic pixel production)
 Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/actors/spirits/, res://assets/custom/actors/guardians/
-Used:           4-facing float motion for 7 normal enemies
+Used:           facing-less float motion for 7 normal enemies
                 idle, wind-up, charge, recover motion for forest, field, and camp guardians
 Modification:   generation-model concepts used only for material and silhouette comparison.
                 tools/build_spirit_guardian_assets.py regenerated 18 final
                 binary-alpha RGBA PNGs at 1x with integer coordinates and a
-                limited palette
+                limited palette; batch G re-cut all 22 guardian sheets to
+                6-frame ChatGPT grid drops via tools/slice_gpt_grid.py;
+                batch 2 re-cut all 7 normal-enemy sheets the same way
 ```
 
 | Normal enemy | Silhouette that reads in combat | Behavior cue |
 | --- | --- | --- |
-| Wisp | crescent core and long smoke tail | default chase |
-| Stalker | low four-legged body and backward spike horns | straight charge |
-| Swarm | three moon-embers swapping places | weak and fast cluster |
-| Ember | charcoal body and a large swaying flame crown | fast chase |
-| Drifter | wide asymmetric moon-moth wings and a thin tail | high-inertia float |
-| Weaver | broken orbit ring and four tentacles | orbit around the player |
-| Caster | moon mask, long robe, and a forward staff | keep-distance fire |
+| Wisp | round glowing body, sleepy face, light tail | default chase |
+| Stalker | sleek shadow-cat, crescent marks, tail sway | straight charge |
+| Swarm | tattered bat wings, glowing eyes | weak and fast cluster |
+| Ember | cracked coal body, glowing seams, top flame | fast chase |
+| Drifter | translucent bell head, trailing tentacles | high-inertia float |
+| Weaver | round silver body, thin skitter legs | orbit around the player |
+| Caster | wide-brim hat, tattered cloak, raised staff | keep-distance fire |
 
-Normal-enemy sheets are all `96×96` with `24×24` cells in four columns
-down·up·left·right and four frame rows. They are not recolors. Asset
-regression checks that all 7 alpha silhouettes and all 7 full-image
-hashes differ.
+Normal-enemy sheets are all `288×48` with six `48×48` frames in one
+facing-less row. They are not recolors. Asset regression checks that
+all 7 alpha silhouettes and all 7 full-image hashes differ.
 
 | Guardian | Idle | State sheets | Combat silhouette |
 | --- | --- | --- | --- |
-| Forest | `forest.png` 6 frames | wind-up, charge, recover 4 frames each | horns, long tree-arms, roots in the ground |
-| Field | `field.png` 6 frames | cross wind-up, radial wind-up, recover 4 frames each | wide crescent wings, mask, cloud tentacles |
-| Camp | `camp.png` 6 frames | wind-up, recover 4 frames each | beacon brazier, hammer, gate shield |
+| Forest | `forest.png` 6 frames | wind-up, charge, recover 6 frames each | horns, long tree-arms, roots in the ground |
+| Forest Thorn | `forest_thorn.png` 6 frames | wind-up, charge, recover 6 frames each | thorn crown, deeper bark, heavier arms |
+| Field | `field.png` 6 frames | cross wind-up, radial wind-up, recover 6 frames each | wide crescent wings, mask, cloud tentacles |
+| Field Storm | `field_storm.png` 6 frames | cross wind-up, radial wind-up, recover 6 frames each | lightning veins, torn wings, crackling tips |
+| Camp | `camp.png` 6 frames | wind-up, recover 6 frames each | brazier helm, hammer, gate shield |
+| Camp Siege | `camp_siege.png` 6 frames | wind-up, recover 6 frames each | siege plates, siege hammer, cracked shield |
 
-Guardian cells are `64×64`. Idle is `384×64`, state sheets `256×64`,
+Guardian cells are `64×64`. Idle and state sheets are all `384×64`,
 horizontal layout with no facing. Every `SpiritKind` state slot is filled
 with a custom sheet so mid-states do not fall back to the old free boss
-picture.
+picture. State sheets were re-cut to 6 frames (batch G) because 4-frame
+combat motion reads choppy; the runtime stretches each sheet over its
+state duration, so frame count only changes smoothness.
 
 ---
 
