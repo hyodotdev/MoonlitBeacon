@@ -159,10 +159,10 @@ func _test_enemies() -> void:
 		_expect_false(
 			kind.sheet.resource_path.contains("/third_party/"),
 			"%s does not use free-pack assets" % enemy_id)
-		_expect_equal(kind.sheet.get_size(), Vector2(192, 192), "%s sheet size" % enemy_id)
+		_expect_equal(kind.sheet.get_size(), Vector2(288, 48), "%s sheet size" % enemy_id)
 		_expect_equal(kind.cell, ENEMY_CELL, "%s cell size" % enemy_id)
-		_expect_equal(kind.facings, 4, "%s facing count" % enemy_id)
-		_expect_equal(kind.frames, 4, "%s frame count" % enemy_id)
+		_expect_equal(kind.facings, 1, "%s facing count" % enemy_id)
+		_expect_equal(kind.frames, 6, "%s frame count" % enemy_id)
 		_expect_equal(kind.lift, -8.0, "%s shadow foot origin" % enemy_id)
 		_expect_equal(kind.tint, Color.WHITE, "%s original palette preserved" % enemy_id)
 
@@ -184,7 +184,7 @@ func _test_enemies() -> void:
 			alpha_masks[alpha_digest] = true
 			full_images[full_digest] = true
 
-		_test_runtime_kind(enemy_id, kind, expected_sheet, 4, 4, ENEMY_CELL)
+		_test_runtime_kind(enemy_id, kind, expected_sheet, 1, 6, ENEMY_CELL)
 
 	_expect_equal(sheet_paths.size(), 7, "7 dedicated regular-enemy sheets")
 	_expect_equal(alpha_masks.size(), 7, "7 regular-enemy silhouettes")

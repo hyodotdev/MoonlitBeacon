@@ -106,10 +106,11 @@ def fit_cell(
     width: int,
     bbox: tuple[int, int, int, int],
     cell: int,
+    fill: int = FRAME_FILL,
 ) -> Canvas:
     bx, by, bw, bh = bbox
     longest = max(bw, bh)
-    scale = FRAME_FILL / longest
+    scale = fill / longest
     dw, dh = max(1, round(bw * scale)), max(1, round(bh * scale))
     ox, oy = (cell - dw) // 2, (cell - dh) // 2
     canvas = Canvas(cell, cell)
@@ -169,7 +170,9 @@ def main() -> int:
         if touches:
             print(f"  frame {index}: WARN touches cell edge (bleed?)")
         sizes.append(max(bw, bh))
-        frames.append(fit_cell(buf, width, bbox, args.cell))
+        frames.append(
+            fit_cell(buf, width, bbox, args.cell,
+                     args.cell * FRAME_FILL // 64))
     if failed:
         return 1
     median = sorted(sizes)[len(sizes) // 2]

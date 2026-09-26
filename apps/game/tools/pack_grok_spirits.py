@@ -161,20 +161,19 @@ def pack_all(*, check: bool) -> None:
             f"spirit_grok source missing (allowed during transition): "
             f"{', '.join(missing)}"
         )
-    for kind in targets:
-        sheet = build_sheet(kind)
+    for kind in HEIGHTS:
         path = SPIRIT_ROOT / f"{kind}.png"
         if check:
+            # Batch 2 replaced the Grok pack with ChatGPT grid drops, so
+            # byte equality is void. Like pack_ludo_guardians, only the
+            # file presence is gated; geometry is pinned by contracts.
             if not path.is_file():
                 raise RuntimeError(f"production spirit PNG is missing: {path}")
-            committed = Image.open(path).convert("RGBA")
-            if committed.size != sheet.size \
-                    or committed.tobytes() != sheet.convert("RGBA").tobytes():
-                raise RuntimeError(
-                    f"production spirit PNG differs from the Grok pack: {path}"
-                )
-        else:
-            path.write_bytes(_png_bytes(sheet))
+            continue
+        if kind not in targets:
+            continue
+        sheet = build_sheet(kind)
+        path.write_bytes(_png_bytes(sheet))
 
 
 def main() -> int:
