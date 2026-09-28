@@ -32,7 +32,7 @@ Docs site: **https://hyodotdev.github.io/MoonlitBeacon/**
 | Stretch | `canvas_items` + `expand`, nearest-neighbor filter |
 | Reference device | Pixel 10 — 2424 × 1080 landscape, arm64-v8a |
 | Controls | Full-screen floating move stick, auto-attack, dash button |
-| IAP | **godot-iap 3.5.1** + IAPKit (publishable key at export time) |
+| IAP | **godot-iap 3.6.1** + IAPKit (publishable key at export time) |
 | Application id | `com.crossplatformkorea.moonlitbeacon` |
 | Version | **2.1.0** (both stores live) |
 | License | MIT code; third-party credits below |
@@ -45,23 +45,59 @@ Windows / Web are out of the current ship scope. Desktop runs are for
 development. `pointing/emulate_touch_from_mouse=true` lets the virtual stick
 work with a mouse.
 
-## godot-iap example
+## Using this as a reference
 
-Store purchases go through the official OpenIAP Godot addon, not a bespoke
-billing bridge.
+Moonlit Beacon is a shipping example of
+[godot-iap](https://openiap.dev/docs/setup/godot) **3.6.1** with
+[IAPKit](https://kit.openiap.dev) purchase verification. It sells one-time
+products and consumables on the App Store and Google Play. There are no
+subscriptions.
 
-- Plugin: `apps/game/addons/godot-iap/` from
-  [`godot-iap-3.5.1`](https://github.com/hyodotdev/openiap/releases/tag/godot-iap-3.5.1)
-- Game adapter: `apps/game/scripts/iap/`
-- Server verification: IAPKit (`openiap-kit_pk_…` publishable key only;
-  admin/secret keys never enter the app)
-- Android remote dependency: `io.github.hyochan.openiap:openiap-google:3.5.2`
-- Direct-distribution APKs (itch.io) skip the native store singleton via
-  `OS.has_feature("direct_distribution")`
+What the code shows:
 
-The project patch on top of the official zip is small and documented in
-[`vendor/godot-iap/README.md`](vendor/godot-iap/README.md).
-`pnpm test:godot-iap-vendor` checks that it reverses to the official bytes.
+- Fetch products, purchase, verify the receipt with IAPKit, then finish the
+  transaction (permanent unlocks) or consume it (continue coins) only after
+  the entitlement is saved.
+- Restore purchases, re-sync when the app resumes, and take back only a
+  purchase the store and IAPKit report as refunded or revoked.
+- Read purchases with `get_available_purchases_result()`, so a failed store
+  query is never mistaken for "no purchases".
+
+Start with `apps/game/scripts/iap/iap_store.gd` (the `Shop` autoload: catalog,
+ledger, restore, refunds) and `godot_iap_backend.gd`, the only file that calls
+godot-iap.
+
+To run purchases in your own copy, change:
+
+1. **Application id.** `com.crossplatformkorea.moonlitbeacon` is this game's
+   store identity. Replace it everywhere (`git grep` finds each place);
+   product IDs are built from `APP_ID` in `iap_store.gd`.
+2. **Signing and team.** Store builds need your own Android upload keystore
+   (`GODOT_ANDROID_KEYSTORE_RELEASE_*` in [`.env.example`](.env.example)).
+   iOS builds sign with `MOONLIT_APPLE_TEAM_ID`, which defaults to this
+   project's team.
+3. **Store products.** Create the SKUs listed in
+   [Monetize](apps/docs/docs/monetize.md) in App Store Connect and Play
+   Console, or change the catalog in `iap_store.gd`.
+4. **IAPKit key.** Set `IAPKIT_API_KEY` to your project's `openiap-kit_pk_…`
+   publishable key; never ship an `openiap-kit_sk_…` key. Store exports write
+   it to `apps/game/iapkit_publishable.cfg` and delete the file afterwards.
+   Do not use `res://iapkit.cfg`: godot-iap 3.6 leaves it out of release
+   exports.
+
+How the pieces fit:
+
+- `apps/game/addons/godot-iap/` is the official 3.6.1 addon plus two small
+  patches, documented in [`vendor/godot-iap/README.md`](vendor/godot-iap/README.md).
+  `pnpm test:godot-iap-vendor` checks them against the release.
+- The iOS frameworks live in `vendor/godot-iap-ios/bin/`, outside `res://`,
+  because desktop Godot 4.7 logs errors for an iOS-only extension. Every
+  `pnpm ios:*` export copies them into the addon, puts the descriptor in the
+  PCK, runs `fix_ios_embed.sh` to embed the frameworks in Xcode, and removes
+  the copy again.
+- The direct-distribution APK (itch.io) has no store SDK: `pnpm android:build`
+  moves the Android plugin aside, and the `direct_distribution` feature keeps
+  the shop off.
 
 See also [Monetize](apps/docs/docs/monetize.md) and
 [IAP store setup](notes/release/iap-store-setup.md).
@@ -211,7 +247,7 @@ Font
   Noto Sans CJK SC — Google — SIL Open Font License 1.1
 
 Store SDK
-  godot-iap 3.5.1 — OpenIAP contributors — MIT License
+  godot-iap 3.6.1 — OpenIAP contributors — MIT License
 
 Made by
   Hyo Dev
