@@ -30,7 +30,7 @@ const ROWS: Array = [
 		"Maplestory · ⓒ NEXON Korea\nNoto Sans CJK SC · Google\n"
 		+ "SIL Open Font License 1.1",
 	],
-	["CREDITS_IAP", "godot-iap 3.5.1\nOpenIAP contributors · MIT License"],
+	["CREDITS_IAP", "godot-iap 3.6.1\nOpenIAP contributors · MIT License"],
 	["CREDITS_MADE_BY", "Hyo Dev"],
 ]
 
@@ -65,7 +65,7 @@ func _redraw() -> void:
 		# If the name is two lines, pad the left column to keep the rows aligned.
 		for i in value.count("\n"):
 			roles.append("")
-	var store: Node = get_node_or_null("/root/IapStore")
+	var store: Node = get_node_or_null("/root/Shop")
 	if store != null and store.owns(store.SUPPORTER):
 		var supporter_name: String = str(Ladder.last_name).strip_edges()
 		if supporter_name.is_empty():

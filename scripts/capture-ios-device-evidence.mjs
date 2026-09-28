@@ -345,7 +345,7 @@ function writeJson(path, value) {
 function runtimeSha256() {
   const gameRoot = join(REPO_ROOT, 'apps/game');
   const excludedRoots = new Set(['.godot', 'android', 'docs', 'ios', 'tests', 'tools']);
-  const excludedFiles = new Set(['export_presets.cfg', 'iapkit.cfg']);
+  const excludedFiles = new Set(['export_presets.cfg', 'iapkit_publishable.cfg']);
   const files = [];
   function visit(directory, relativeDirectory = '') {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {

@@ -27,6 +27,7 @@ import {
 import { inflateSync } from 'node:zlib';
 import {
   assertIosReleaseMetadata,
+  DEFAULT_APPLE_TEAM_ID,
   readAppStoreCredentials,
   readIosReleaseMetadata,
 } from './ios-distribution.mjs';
@@ -210,7 +211,6 @@ export const APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH =
 export const APP_STORE_CAPTURE_REPORT_RELATIVE_PATH =
   'builds/shots/store-localized/capture-report.json';
 const APP_STORE_BUNDLE_ID = 'com.crossplatformkorea.moonlitbeacon';
-const APP_STORE_TEAM_ID = 'PRDQGB267K';
 const SCREENSHOT_PROVENANCE_CONTRACT =
   'moonlit-app-store-screenshot-provenance-v1';
 const SCREENSHOT_PROVENANCE_SCHEMA_VERSION = 1;
@@ -1230,7 +1230,7 @@ export function buildAppStoreReleasePayload({
   );
   assertIosReleaseMetadata(releaseMetadata, {
     expectedBundleId: APP_STORE_BUNDLE_ID,
-    expectedTeamId: APP_STORE_TEAM_ID,
+    expectedTeamId: DEFAULT_APPLE_TEAM_ID,
   });
   const storeVersion = parseVersion(markdown);
   if (storeVersion !== releaseMetadata.shortVersion) {

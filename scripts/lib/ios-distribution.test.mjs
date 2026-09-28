@@ -4,6 +4,7 @@ import {
   chmodSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
   utimesSync,
@@ -12,6 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   APP_STORE_CREDENTIAL_ENV,
   altoolAuthenticationArguments,
@@ -30,6 +32,7 @@ import {
   assertSafeIpaEntries,
   assertSigningCertificateValid,
   codeSigningCertificateArguments,
+  DEFAULT_APPLE_TEAM_ID,
   extractPlistDataValues,
   iosCommandNeedsExclusiveWorkflow,
   IOS_RELEASE_BUILD_CHAIN_INPUTS,
@@ -38,6 +41,7 @@ import {
   redactSensitiveValues,
   readAppStoreCredentials,
   readIosReleaseMetadata,
+  resolveAppleTeamId,
   runExclusiveIosWorkflow,
   runWithStableReleaseSources,
   xcodebuildAuthenticationArguments,
@@ -843,4 +847,27 @@ test('iOS release freshness check is serialized with Android export temporary so
     },
   });
   assert.deepEqual(events, ['nested-scan']);
+});
+
+test('Apple team comes from MOONLIT_APPLE_TEAM_ID and defaults to the preset team', () => {
+  assert.equal(resolveAppleTeamId({}), DEFAULT_APPLE_TEAM_ID);
+  assert.equal(resolveAppleTeamId({ MOONLIT_APPLE_TEAM_ID: ' ' }), DEFAULT_APPLE_TEAM_ID);
+  assert.equal(
+    resolveAppleTeamId({ MOONLIT_APPLE_TEAM_ID: ' ABCDE12345 ' }),
+    'ABCDE12345',
+  );
+  for (const invalid of ['abcde12345', 'ABCDE1234', 'ABCDE123456', 'ABCDE-1234']) {
+    assert.throws(
+      () => resolveAppleTeamId({ MOONLIT_APPLE_TEAM_ID: invalid }),
+      /MOONLIT_APPLE_TEAM_ID/,
+    );
+  }
+  const presets = readFileSync(
+    fileURLToPath(new URL('../../apps/game/export_presets.cfg', import.meta.url)),
+    'utf8',
+  );
+  assert.ok(
+    presets.includes(`application/app_store_team_id="${DEFAULT_APPLE_TEAM_ID}"`),
+    'the iOS preset and DEFAULT_APPLE_TEAM_ID name the same team',
+  );
 });

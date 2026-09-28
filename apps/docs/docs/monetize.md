@@ -24,8 +24,8 @@ business information with it.
 If you do not make that decision first, everything else is wasted work.
 
 The direct-distribution APK and the itch.io build still ship without
-payments. Store-build shop code is implemented, but live sales stay off
-until each platform's product listing and review are done.
+payments. The Google Play and App Store builds sell the items in
+[section 8](#8-so-what-does-this-game-sell).
 
 ## 2. In an endless roguelike, only three things can be sold
 
@@ -168,14 +168,14 @@ Godot has no official IAP support. This course uses **[godot-iap][iap]** —
 a cross-platform plugin that follows the OpenIAP spec and covers iOS
 StoreKit 2 and Android Play Billing with one API. MIT.
 
-[iap]: https://github.com/hyodotdev/openiap/releases/tag/godot-iap-3.5.1
+[iap]: https://github.com/hyodotdev/openiap/releases/tag/godot-iap-3.6.1
 
 | | |
 | --- | --- |
 | Requires | Godot 4.3+ · iOS 17+ · Android API 24+ |
-| Version | godot-iap 3.5.1 |
+| Version | godot-iap 3.6.1 |
 | Repo | `libraries/godot-iap` in `hyodotdev/openiap` |
-| Docs | `openiap.dev` — `llms-full.txt` can fetch the whole API at once |
+| Docs | [Godot setup](https://openiap.dev/docs/setup/godot) · `llms-full.txt` fetches the whole API at once |
 
 Moonlit Beacon is Godot 4.7.1, so it meets the requirement.
 
@@ -207,6 +207,9 @@ GodotIapPlugin.request_purchase(props)
 
 # Always finish after the grant
 await GodotIapPlugin.finish_transaction(purchase, is_consumable)
+
+# Restore and re-sync: the result form keeps a failed query apart from "none"
+var owned: Dictionary = await GodotIapPlugin.get_available_purchases_result()
 ```
 
 :::danger Do not skip `finish_transaction()`
@@ -308,7 +311,7 @@ Continues exist, but **there is no urgency-payment timer, energy, or
 gacha.** Coins are bought ahead in the shop after checking quantity and
 price, and unused coins stay.
 
-## 9. Implementation status and pre-ship blockers
+## 9. Implementation status and store-side steps
 
 Shop UI, IAPKit server verification, permanent entitlement storage,
 duplicate-transaction prevention, purchase restore, and hero-origin
@@ -326,7 +329,9 @@ missing list does not revoke an already saved entitlement.
 On a desktop run you launched yourself, and on the itch.io APK, the shop
 not opening is expected.
 
-The following, though, are **external blockers** code cannot stand in for.
+Both store listings sell the 10 items today. The steps below are the
+store-side work code cannot stand in for; a copy of this project has to do
+them again with its own accounts.
 
 1. The actual selling party must enter and get approved developer
    accounts, contracts, tax, and payout information in App Store Connect
@@ -352,5 +357,5 @@ The following, though, are **external blockers** code cannot stand in for.
 
 Follow `notes/release/iap-store-setup.md` in the repo for the actual
 console input and test order.
-Until this checklist is finished, keep direct-distribution APK and
-itch.io copy at "no payments."
+The direct-distribution APK and itch.io copy stay at "no payments" either
+way: itch.io cannot sell in-app purchases.

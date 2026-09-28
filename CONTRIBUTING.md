@@ -19,7 +19,8 @@ pnpm verify        # same checks CI runs
 
 Store signing keys, IAPKit secrets, and App Store Connect keys stay on the
 machine. Copy `.env.example` to `.env` and fill only what you need. Never
-commit `.env`, `.godot/`, `*.jks`, `*.p8`, or `iapkit.cfg`.
+commit `.env`, `.godot/`, `*.jks`, `*.p8`, `iapkit_publishable.cfg`, or
+`iapkit.cfg`.
 
 Fork pull requests build the debug APK only. GitHub withholds secrets from
 forks, so the store AAB step (it needs `IAPKIT_API_KEY`) and its checks are
@@ -38,7 +39,7 @@ skipped there — that skip is expected, not a failure.
 
 ## godot-iap
 
-The plugin is vendored from the official `godot-iap-3.5.1` zip with a small
+The plugin is vendored from the official `godot-iap-3.6.1` zip with a small
 project patch documented in `vendor/godot-iap/README.md`.
 `pnpm test:godot-iap-vendor` checks that the patch reverses to the official
 bytes.

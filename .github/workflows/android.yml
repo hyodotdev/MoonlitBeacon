@@ -178,7 +178,7 @@ jobs:
             echo "::error::Direct-distribution APK contains tests or production tools"
             exit 1
           fi
-          if grep -Eq '(^|/)iapkit\.cfg$' <<<"$APK_ENTRIES"; then
+          if grep -Eq '(^|/)iapkit_publishable\.cfg$' <<<"$APK_ENTRIES"; then
             echo "::error::Direct-distribution APK contains IAPKit config"
             exit 1
           fi
@@ -216,12 +216,12 @@ jobs:
             echo "::error::Play AAB contains tests or production tools"
             exit 1
           fi
-          IAPKIT_CFG_COUNT=$(grep -Ec '(^|/)iapkit\.cfg$' <<<"$AAB_ENTRIES")
+          IAPKIT_CFG_COUNT=$(grep -Ec '(^|/)iapkit_publishable\.cfg$' <<<"$AAB_ENTRIES")
           if [ "$IAPKIT_CFG_COUNT" -ne 1 ]; then
             echo "::error::Play AAB IAPKit config count is not 1"
             exit 1
           fi
-          IAPKIT_CFG=$(unzip -p "$AAB" '*/assets/iapkit.cfg')
+          IAPKIT_CFG=$(unzip -p "$AAB" '*/assets/iapkit_publishable.cfg')
           if ! grep -Eq '^api_key="openiap-kit_pk_[A-Za-z0-9_-]{32,}"$' \
               <<<"$IAPKIT_CFG"; then
             echo "::error::Play AAB IAPKit publishable config format is invalid"
@@ -231,7 +231,7 @@ jobs:
             echo "::error::Play AAB contains an IAPKit secret/admin key"
             exit 1
           fi
-          if [ -e apps/game/android/build/assetPackInstallTime/src/main/assets/iapkit.cfg ]; then
+          if [ -e apps/game/android/build/assetPackInstallTime/src/main/assets/iapkit_publishable.cfg ]; then
             echo "::error::IAPKit config remained in the Gradle template after export"
             exit 1
           fi

@@ -58,7 +58,7 @@ var _entitlements_before: Array[String] = []
 func _ready() -> void:
 	# The IAP review source and independent product-name contract is a Korean capture.
 	TranslationServer.set_locale("ko")
-	# IapStore's desktop no-plugin init signal can redraw the card grid once more.
+	# Shop's desktop no-plugin init signal can redraw the card grid once more.
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_prepare_unavailable_store_fixture()
@@ -67,24 +67,24 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await _test_phone_safe_area_layout()
-	var bundle: Control = _product_card(IapStore.HERO_BUNDLE)
+	var bundle: Control = _product_card(Shop.HERO_BUNDLE)
 	_expect_true(bundle == null, "hides the legacy hero_bundle from new sale cards")
 	_test_coin_row_above_characters()
 	var cards: HBoxContainer = _cards()
 	_expect_equal(
 		cards.get_child_count() + _coins().get_child_count(),
-		IapStore.SALE_PRODUCT_IDS.size(),
+		Shop.SALE_PRODUCT_IDS.size(),
 		"new-sale product count")
 	var first_preview: TextureButton = null
-	for index in IapStore.HERO_PRODUCT_IDS.size():
-		var product_id: String = IapStore.HERO_PRODUCT_IDS[index]
+	for index in Shop.HERO_PRODUCT_IDS.size():
+		var product_id: String = Shop.HERO_PRODUCT_IDS[index]
 		var card: Control = _product_card(product_id)
 		_expect_true(card != null, "%s individual hero card" % product_id)
 		if card == null:
 			continue
 		_expect_equal(
 			str(cards.get_child(index).get_meta(&"product_id", "")),
-			str(IapStore.PERMANENT_SALE_PRODUCT_IDS[index]),
+			str(Shop.PERMANENT_SALE_PRODUCT_IDS[index]),
 			"the first five cards of the character row are heroes")
 		var previews: HBoxContainer = card.get_node(
 			"Rows/Content/HeroPreviews") as HBoxContainer
@@ -94,7 +94,7 @@ func _ready() -> void:
 		_expect_equal(previews.get_child_count(), 1, "%s one face" % product_id)
 		if previews.get_child_count() == 1:
 			var button: TextureButton = previews.get_child(0) as TextureButton
-			_test_preview_button(button, IapStore.hero_path_for_product(product_id))
+			_test_preview_button(button, Shop.hero_path_for_product(product_id))
 			_test_preview_cta_separation(card, button)
 			if first_preview == null:
 				first_preview = button
@@ -152,18 +152,18 @@ func _rect_fully_inside(inner: Rect2, outer: Rect2) -> bool:
 func _prepare_unavailable_store_fixture() -> void:
 	_opened_before.assign(Vault.opened)
 	_chosen_before = Vault.chosen
-	_entitlements_before.assign(IapStore.entitlements)
+	_entitlements_before.assign(Shop.entitlements)
 	var paid_hero_paths: Array[String] = []
-	for product_id in IapStore.HERO_PRODUCT_IDS:
-		paid_hero_paths.append(IapStore.hero_path_for_product(product_id))
+	for product_id in Shop.HERO_PRODUCT_IDS:
+		paid_hero_paths.append(Shop.hero_path_for_product(product_id))
 	for hero_path in paid_hero_paths:
 		Vault.opened.erase(hero_path)
 	if Vault.chosen in paid_hero_paths:
 		Vault.chosen = ""
-	IapStore.entitlements.clear()
+	Shop.entitlements.clear()
 	_expect_equal(
-		IapStore.state,
-		IapStore.StoreState.UNAVAILABLE,
+		Shop.state,
+		Shop.StoreState.UNAVAILABLE,
 		"actual unavailable state in debug with no native store")
 	_shop.call("_rebuild")
 
@@ -183,18 +183,18 @@ func _test_status_retranslated_on_open() -> void:
 
 
 func _expected_status() -> String:
-	match IapStore.state:
-		IapStore.StoreState.LOADING:
+	match Shop.state:
+		Shop.StoreState.LOADING:
 			return tr("IAP_CONNECTING_LONG")
-		IapStore.StoreState.UNAVAILABLE:
+		Shop.StoreState.UNAVAILABLE:
 			return tr("IAP_DEVICE_STORE_NOTE")
-		IapStore.StoreState.ERROR:
+		Shop.StoreState.ERROR:
 			return tr("IAP_PRODUCT_LOAD_FAILED")
-		IapStore.StoreState.PURCHASING:
+		Shop.StoreState.PURCHASING:
 			return tr("IAP_OPENING_STORE")
-		IapStore.StoreState.PENDING:
+		Shop.StoreState.PENDING:
 			return tr("IAP_PENDING")
-		IapStore.StoreState.RESTORING:
+		Shop.StoreState.RESTORING:
 			return tr("IAP_RESTORING")
 		_:
 			return tr("IAP_STORE_READY")
@@ -231,21 +231,21 @@ func _test_coin_row_above_characters() -> void:
 	var coins: HBoxContainer = _coins()
 	_expect_equal(
 		coins.get_child_count(),
-		IapStore.COIN_SALE_PRODUCT_IDS.size(),
+		Shop.COIN_SALE_PRODUCT_IDS.size(),
 		"coin-bundle card count")
 	# 1 → 5 → 12. Per-unit value must fall in screen order so the bundle
 	# looks cheaper by eye.
 	var last_grant: int = 0
-	for index in mini(coins.get_child_count(), IapStore.COIN_SALE_PRODUCT_IDS.size()):
-		var product_id: String = str(IapStore.COIN_SALE_PRODUCT_IDS[index])
+	for index in mini(coins.get_child_count(), Shop.COIN_SALE_PRODUCT_IDS.size()):
+		var product_id: String = str(Shop.COIN_SALE_PRODUCT_IDS[index])
 		_expect_equal(
 			str(coins.get_child(index).get_meta(&"product_id", "")),
 			product_id,
 			"coin-row card %d" % index)
-		var grant: int = int(IapStore.CONSUMABLE_GRANTS.get(product_id, 0))
+		var grant: int = int(Shop.CONSUMABLE_GRANTS.get(product_id, 0))
 		_expect_true(grant > last_grant, "%s grant larger than the previous bundle" % product_id)
 		_expect_true(
-			IapStore.is_consumable(product_id), "%s consumable classification" % product_id)
+			Shop.is_consumable(product_id), "%s consumable classification" % product_id)
 		last_grant = grant
 
 
@@ -263,8 +263,8 @@ func _test_preview_button(button: TextureButton, path: String) -> void:
 			hero.portrait.resource_path,
 			"%s face-button portrait path" % path.get_file())
 
-	var before_product: String = IapStore.current_product_id
-	var before_entitlements: Array[String] = IapStore.entitlements.duplicate()
+	var before_product: String = Shop.current_product_id
+	var before_entitlements: Array[String] = Shop.entitlements.duplicate()
 	var before_shards: int = Vault.shards
 	var before_opened: Array[String] = Vault.opened.duplicate()
 	var before_chosen: String = Vault.chosen
@@ -305,11 +305,11 @@ func _test_preview_button(button: TextureButton, path: String) -> void:
 	_expect_true(not state.text.is_empty(), "%s IAP lock/owned state" % path.get_file())
 	_expect_equal(description.text, tr(hero.description), "%s IAP full description" % path.get_file())
 	_expect_equal(
-		IapStore.current_product_id,
+		Shop.current_product_id,
 		before_product,
 		"%s preview does not start checkout" % path.get_file())
 	_expect_equal(
-		IapStore.entitlements,
+		Shop.entitlements,
 		before_entitlements,
 		"%s IAP entitlement unchanged by preview" % path.get_file())
 	_expect_equal(Vault.shards, before_shards, "%s shards unchanged by preview" % path.get_file())
@@ -376,8 +376,8 @@ func _test_scroll_range() -> void:
 
 
 func _test_product_artworks() -> void:
-	var supporter: Control = _product_card(IapStore.SUPPORTER)
-	var lantern: Control = _product_card(IapStore.LANTERN_COLORS)
+	var supporter: Control = _product_card(Shop.SUPPORTER)
+	var lantern: Control = _product_card(Shop.LANTERN_COLORS)
 	_expect_true(supporter != null, "supporter product card")
 	_expect_true(lantern != null, "beacon-color product card")
 	if supporter != null:
@@ -416,12 +416,12 @@ func _test_product_artworks() -> void:
 					"%s beacon palette id" % palette_id)
 				_expect_equal(
 					item.self_modulate,
-					IapStore.PALETTES[palette_id]["light"],
+					Shop.PALETTES[palette_id]["light"],
 					"%s beacon palette color" % palette_id)
 	await _test_artwork_capture_state(
-		IapStore.SUPPORTER, "supporter_app_icon", 1)
+		Shop.SUPPORTER, "supporter_app_icon", 1)
 	await _test_artwork_capture_state(
-		IapStore.LANTERN_COLORS, "lantern_palette_flames", 4)
+		Shop.LANTERN_COLORS, "lantern_palette_flames", 4)
 
 
 func _test_artwork_capture_state(
@@ -514,9 +514,9 @@ func _test_coin_capture_states() -> void:
 func _test_target_visual_mutations() -> void:
 	var request: Dictionary = {
 		"kind": "iap_review",
-		"product_id": IapStore.HERO_DANCER,
+		"product_id": Shop.HERO_DANCER,
 	}
-	var card: Control = _product_card(IapStore.HERO_DANCER)
+	var card: Control = _product_card(Shop.HERO_DANCER)
 	var title: Label = card.get_node("Rows/Title") as Label
 	var portrait: TextureButton = card.get_node(
 		"Rows/Content/HeroPreviews").get_child(0) as TextureButton
@@ -660,11 +660,11 @@ func _test_target_visual_mutations() -> void:
 	_expect_true(not bool(state.get("ready", true)), "rejects ready after swapping a hero portrait")
 	portrait.texture_normal = original_texture
 
-	request["product_id"] = IapStore.SUPPORTER
+	request["product_id"] = Shop.SUPPORTER
 	_shop.call("debug_prepare_store_capture", request)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	card = _product_card(IapStore.SUPPORTER)
+	card = _product_card(Shop.SUPPORTER)
 	var artwork: Control = card.get_node("Rows/Content/Artwork") as Control
 	var original_artwork_modulate: Color = artwork.modulate
 	artwork.modulate.a = 0.0
@@ -686,7 +686,7 @@ func _test_target_visual_mutations() -> void:
 func _test_offscreen_capture_rejected() -> void:
 	var request: Dictionary = {
 		"kind": "iap_review",
-		"product_id": IapStore.HERO_DANCER,
+		"product_id": Shop.HERO_DANCER,
 	}
 	_shop.call("debug_prepare_store_capture", request)
 	await get_tree().process_frame
@@ -798,7 +798,7 @@ func _test_parent_back_priority(button: TextureButton) -> void:
 func _finish() -> void:
 	Vault.opened.assign(_opened_before)
 	Vault.chosen = _chosen_before
-	IapStore.entitlements.assign(_entitlements_before)
+	Shop.entitlements.assign(_entitlements_before)
 	if _failed > 0:
 		printerr("IAP hero-preview test failed — ", _failed, "/", _checked, " case(s)")
 		get_tree().quit(1)

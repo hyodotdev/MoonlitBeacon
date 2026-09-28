@@ -55,14 +55,14 @@ func _ready() -> void:
 	_apply_responsive_layout()
 	_close.pressed.connect(close)
 	Vault.changed.connect(_on_vault_changed)
-	IapStore.state_changed.connect(_on_iap_state_changed)
-	IapStore.interaction_changed.connect(_on_iap_state_changed)
-	IapStore.products_changed.connect(_on_iap_state_changed)
-	IapStore.entitlement_changed.connect(_on_iap_entitlement_changed)
-	IapStore.purchase_succeeded.connect(_on_iap_purchase_succeeded)
-	IapStore.purchase_pending.connect(_on_iap_purchase_pending)
-	IapStore.purchase_failed.connect(_on_iap_purchase_failed)
-	IapStore.purchase_revoked.connect(_on_iap_purchase_revoked)
+	Shop.state_changed.connect(_on_iap_state_changed)
+	Shop.interaction_changed.connect(_on_iap_state_changed)
+	Shop.products_changed.connect(_on_iap_state_changed)
+	Shop.entitlement_changed.connect(_on_iap_entitlement_changed)
+	Shop.purchase_succeeded.connect(_on_iap_purchase_succeeded)
+	Shop.purchase_pending.connect(_on_iap_purchase_pending)
+	Shop.purchase_failed.connect(_on_iap_purchase_failed)
+	Shop.purchase_revoked.connect(_on_iap_purchase_revoked)
 
 
 func open() -> void:
@@ -231,14 +231,14 @@ func _make_hero_card(hero: Hero, path: String) -> PanelContainer:
 		if not selected:
 			action.pressed.connect(_choose_hero.bind(hero, path))
 	elif path in Vault.PAID_HEROES:
-		var product_id: String = IapStore.hero_product_for_path(path)
-		var localized_price: String = IapStore.display_price(product_id)
+		var product_id: String = Shop.hero_product_for_path(path)
+		var localized_price: String = Shop.display_price(product_id)
 		state = _label(
 			localized_price if not localized_price.is_empty() \
 			else _hero_iap_price_text(),
 			11, hero.accent if not localized_price.is_empty() else MUTED)
 		action = _button(tr("IAP_BUY"), hero.accent)
-		action.disabled = _busy or not IapStore.can_purchase(product_id)
+		action.disabled = _busy or not Shop.can_purchase(product_id)
 		action.pressed.connect(_purchase_hero_iap.bind(product_id))
 	else:
 		state = _price_label(hero.unlock_cost)
@@ -256,10 +256,10 @@ func _make_hero_card(hero: Hero, path: String) -> PanelContainer:
 
 
 func _hero_iap_price_text() -> String:
-	match IapStore.state:
-		IapStore.StoreState.LOADING:
+	match Shop.state:
+		Shop.StoreState.LOADING:
 			return tr("IAP_CONNECTING")
-		IapStore.StoreState.UNAVAILABLE:
+		Shop.StoreState.UNAVAILABLE:
 			return tr("IAP_DEVICE_ONLY")
 		_:
 			return tr("IAP_PRODUCT_UNAVAILABLE")
@@ -610,14 +610,14 @@ func _purchase_hero(hero: Hero, path: String) -> void:
 
 
 func _purchase_hero_iap(product_id: String) -> void:
-	if _busy or not IapStore.is_hero_product(product_id):
+	if _busy or not Shop.is_hero_product(product_id):
 		return
 	_busy = true
 	_disable_actions()
 	_feedback_text = tr("IAP_OPENING_STORE")
 	_feedback_error = false
 	_rebuild()
-	if IapStore.purchase(product_id):
+	if Shop.purchase(product_id):
 		return
 	_busy = false
 	_set_feedback(_hero_iap_price_text(), true)
@@ -695,30 +695,30 @@ func _on_iap_entitlement_changed(_product_id: String) -> void:
 
 
 func _on_iap_purchase_succeeded(product_id: String) -> void:
-	if not visible or not IapStore.is_hero_product(product_id):
+	if not visible or not Shop.is_hero_product(product_id):
 		return
 	_busy = false
-	var hero: Hero = load(IapStore.hero_path_for_product(product_id)) as Hero
+	var hero: Hero = load(Shop.hero_path_for_product(product_id)) as Hero
 	var display_name: String = tr(hero.display_name) if hero != null \
-		else tr(str(IapStore.catalog_entry(product_id).get("title", "")))
+		else tr(str(Shop.catalog_entry(product_id).get("title", "")))
 	_set_feedback(tr("IAP_PURCHASED") % display_name, false, true)
 
 
 func _on_iap_purchase_pending(product_id: String) -> void:
-	if not visible or not IapStore.is_hero_product(product_id):
+	if not visible or not Shop.is_hero_product(product_id):
 		return
 	_busy = false
 	_set_feedback(tr("IAP_PENDING"), false)
 
 
 func _on_iap_purchase_failed(product_id: String, code: String) -> void:
-	if not visible or not IapStore.is_hero_product(product_id):
+	if not visible or not Shop.is_hero_product(product_id):
 		return
 	_busy = false
 	# Do not show failure copy on a product already granted. Same reason as
 	# the shop panel — Play's first purchase can deliver a late failure code
 	# that disagrees with ownership.
-	if IapStore.owns(product_id):
+	if Shop.owns(product_id):
 		_on_iap_purchase_succeeded(product_id)
 		return
 	if code in ["user-cancelled", "user-canceled", "cancelled", "canceled"]:
@@ -732,7 +732,7 @@ func _on_iap_purchase_failed(product_id: String, code: String) -> void:
 
 
 func _on_iap_purchase_revoked(product_id: String) -> void:
-	if not visible or not IapStore.is_hero_product(product_id):
+	if not visible or not Shop.is_hero_product(product_id):
 		return
 	_busy = false
 	_set_feedback(tr("IAP_REVOKED"), false)

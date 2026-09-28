@@ -33,7 +33,7 @@ const LANTERN_ARTWORK_PALETTES: Array[String] = [
 	"violet",
 	"jade",
 ]
-## If a live sell card reuses IapStore's own returned value as expected, a
+## If a live sell card reuses Shop's own returned value as expected, a
 ## miswired SKU still passes. Capture proof compares five hero resources and
 ## portraits against a literal contract independent of the mapping that
 ## builds sell cards.
@@ -103,20 +103,20 @@ var _capture_selected_product_id: String = ""
 func _ready() -> void:
 	_close.pressed.connect(close)
 	_restore.pressed.connect(_restore_or_retry)
-	IapStore.state_changed.connect(_on_store_state_changed)
-	IapStore.interaction_changed.connect(_rebuild)
-	IapStore.products_changed.connect(_rebuild)
-	IapStore.entitlement_changed.connect(_on_entitlement_changed)
+	Shop.state_changed.connect(_on_store_state_changed)
+	Shop.interaction_changed.connect(_rebuild)
+	Shop.products_changed.connect(_rebuild)
+	Shop.entitlement_changed.connect(_on_entitlement_changed)
 	# Coins are consumable so they do not ride the entitlement signal. Balance
 	# only changes in Vault, so listen there directly — the number rises
 	# right after a buy.
 	Vault.changed.connect(_refresh_coin_balance)
-	IapStore.purchase_succeeded.connect(_on_purchase_succeeded)
-	IapStore.purchase_pending.connect(_on_purchase_pending)
-	IapStore.purchase_failed.connect(_on_purchase_failed)
-	IapStore.purchase_revoked.connect(_on_purchase_revoked)
-	IapStore.restore_finished.connect(_on_restore_finished)
-	IapStore.lantern_changed.connect(_on_lantern_changed)
+	Shop.purchase_succeeded.connect(_on_purchase_succeeded)
+	Shop.purchase_pending.connect(_on_purchase_pending)
+	Shop.purchase_failed.connect(_on_purchase_failed)
+	Shop.purchase_revoked.connect(_on_purchase_revoked)
+	Shop.restore_finished.connect(_on_restore_finished)
+	Shop.lantern_changed.connect(_on_lantern_changed)
 	_rebuild()
 
 
@@ -147,7 +147,7 @@ func open() -> void:
 func _refresh_coin_balance() -> void:
 	var coins: int = Vault.continue_coins
 	_coin_balance.text = tr("IAP_COIN_BALANCE") % coins
-	_coin_balance.visible = IapStore.storefront_enabled()
+	_coin_balance.visible = Shop.storefront_enabled()
 
 
 func close() -> void:
@@ -169,36 +169,36 @@ func _rebuild() -> void:
 	# Coins on top, characters below. Someone who died into the shop is
 	# looking for continue coins first, not a new hero.
 	_clear(_coins)
-	for product_id in IapStore.COIN_SALE_PRODUCT_IDS:
+	for product_id in Shop.COIN_SALE_PRODUCT_IDS:
 		_coins.add_child(_make_product_card(product_id))
 	_clear(_cards)
-	for product_id in IapStore.PERMANENT_SALE_PRODUCT_IDS:
+	for product_id in Shop.PERMANENT_SALE_PRODUCT_IDS:
 		_cards.add_child(_make_product_card(product_id))
 	_rebuild_palettes()
-	var can_retry: bool = IapStore.can_retry_connection()
+	var can_retry: bool = Shop.can_retry_connection()
 	_restore.text = tr("IAP_RETRY") if can_retry else tr("IAP_RESTORE")
-	_restore.disabled = not can_retry and IapStore.state != IapStore.StoreState.READY
+	_restore.disabled = not can_retry and Shop.state != Shop.StoreState.READY
 	if _status.text.is_empty():
 		_set_store_status()
 
 
 func _on_store_state_changed() -> void:
-	if IapStore.state in [
-			IapStore.StoreState.LOADING,
-			IapStore.StoreState.UNAVAILABLE,
-			IapStore.StoreState.READY,
-			IapStore.StoreState.ERROR,
+	if Shop.state in [
+			Shop.StoreState.LOADING,
+			Shop.StoreState.UNAVAILABLE,
+			Shop.StoreState.READY,
+			Shop.StoreState.ERROR,
 	]:
 		_set_store_status()
 	_rebuild()
 
 
 func _make_product_card(product_id: String) -> PanelContainer:
-	var catalog: Dictionary = IapStore.catalog_entry(product_id)
-	var details: Dictionary = IapStore.product_details(product_id)
+	var catalog: Dictionary = Shop.catalog_entry(product_id)
+	var details: Dictionary = Shop.product_details(product_id)
 	var accent: Color = catalog.get("accent", Color.WHITE)
-	var owned: bool = IapStore.owns(product_id)
-	var earned: bool = IapStore.benefit_already_earned(product_id)
+	var owned: bool = Shop.owns(product_id)
+	var earned: bool = Shop.benefit_already_earned(product_id)
 	var card: PanelContainer = PanelContainer.new()
 	var product_key: String = product_id.get_slice(
 		".", product_id.get_slice_count(".") - 1)
@@ -206,7 +206,7 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	card.set_meta(&"product_id", product_id)
 	# Coin cards have no art, so they are that much shorter. The two-row shop
 	# still fitting Pixel 10's 337px safe area is because of that gap.
-	var coin: bool = IapStore.is_consumable(product_id)
+	var coin: bool = Shop.is_consumable(product_id)
 	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(246, 98)
 	if coin:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -244,20 +244,20 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	content.add_theme_constant_override("separation", 6)
 	rows.add_child(content)
 
-	if product_id == IapStore.HERO_BUNDLE or IapStore.is_hero_product(product_id):
+	if product_id == Shop.HERO_BUNDLE or Shop.is_hero_product(product_id):
 		var hero_previews: HBoxContainer = HBoxContainer.new()
 		hero_previews.name = &"HeroPreviews"
 		hero_previews.add_theme_constant_override("separation", 3)
 		var hero_paths: Array[String] = []
-		if product_id == IapStore.HERO_BUNDLE:
-			hero_paths.assign(IapStore.HERO_BUNDLE_PATHS)
+		if product_id == Shop.HERO_BUNDLE:
+			hero_paths.assign(Shop.HERO_BUNDLE_PATHS)
 		else:
-			hero_paths.append(IapStore.hero_path_for_product(product_id))
+			hero_paths.append(Shop.hero_path_for_product(product_id))
 		for path in hero_paths:
 			var hero: Hero = load(path) as Hero
 			if hero != null:
 				hero_previews.add_child(_make_hero_preview_button(hero, path))
-				if product_id != IapStore.HERO_BUNDLE:
+				if product_id != Shop.HERO_BUNDLE:
 					content.mouse_filter = Control.MOUSE_FILTER_PASS
 					content.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 					content.tooltip_text = tr("HERO_PREVIEW_VIEW") % tr(hero.display_name)
@@ -292,7 +292,7 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	elif earned:
 		price = _label("✓ " + tr("IAP_ALREADY_EARNED"), price_size, SUCCESS, true)
 	else:
-		var localized_price: String = IapStore.display_price(product_id)
+		var localized_price: String = Shop.display_price(product_id)
 		price = _label(
 			localized_price if not localized_price.is_empty() else _unavailable_price_text(),
 			price_size, accent if not localized_price.is_empty() else MUTED, true)
@@ -302,7 +302,7 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	var action: Button = _button(
 		tr("IAP_OWNED") if owned else tr("IAP_ALREADY_EARNED") if earned \
 		else tr("IAP_BUY"), accent, coin)
-	action.disabled = owned or earned or not IapStore.can_purchase(product_id)
+	action.disabled = owned or earned or not Shop.can_purchase(product_id)
 	if not owned and not earned:
 		action.pressed.connect(_buy.bind(product_id))
 	action.name = &"Action"
@@ -347,9 +347,9 @@ func _open_hero_preview(hero: Hero, path: String) -> void:
 
 func _make_product_artwork(
 		product_id: String, accent: Color) -> PanelContainer:
-	if product_id == IapStore.SUPPORTER:
+	if product_id == Shop.SUPPORTER:
 		return _make_supporter_artwork(accent)
-	if product_id == IapStore.LANTERN_COLORS:
+	if product_id == Shop.LANTERN_COLORS:
 		return _make_lantern_artwork(accent)
 	return null
 
@@ -384,7 +384,7 @@ func _make_lantern_artwork(accent: Color) -> PanelContainer:
 			StringName("Flame" + palette_id.to_pascal_case()),
 			frame,
 			Vector2(20, 38))
-		var palette: Dictionary = IapStore.PALETTES[palette_id]
+		var palette: Dictionary = Shop.PALETTES[palette_id]
 		flame.self_modulate = palette.get("light", Color.WHITE)
 		flame.set_meta(&"artwork_item_kind", LANTERN_ARTWORK_KIND)
 		flame.set_meta(&"artwork_palette_id", palette_id)
@@ -441,7 +441,7 @@ func debug_prepare_store_capture(request: Dictionary) -> void:
 	var product_id: String = str(request.get("product_id", ""))
 	var card: Control = _debug_product_card(product_id)
 	var scroll: ScrollContainer = _coins_scroll \
-		if IapStore.is_consumable(product_id) else _cards_scroll
+		if Shop.is_consumable(product_id) else _cards_scroll
 	if card == null or card.size.x <= 0.0 or scroll.size.x <= 0.0:
 		return
 	# Capture prep only selects a product card and moves it to screen center.
@@ -464,7 +464,7 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 	if card == null:
 		return {}
 	var scroll: ScrollContainer = _coins_scroll \
-		if IapStore.is_consumable(expected_product_id) else _cards_scroll
+		if Shop.is_consumable(expected_product_id) else _cards_scroll
 	var viewport_rect: Rect2 = scroll.get_global_rect()
 	var card_rect: Rect2 = card.get_global_rect()
 	var screen_rect: Rect2 = get_viewport().get_visible_rect()
@@ -633,7 +633,7 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 		and restore_font_size_positive and restore_font_alpha_readable
 	var review_fallback_verified: bool = TranslationServer.get_locale() == "ko" \
 		and _capture_selected_product_id == expected_product_id \
-		and IapStore.state == IapStore.StoreState.UNAVAILABLE \
+		and Shop.state == Shop.StoreState.UNAVAILABLE \
 		and price_copy_valid and review_status_copy_valid \
 		and action != null and action.disabled and action_copy_valid \
 		and _restore.disabled and restore_copy_valid
@@ -736,9 +736,9 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 		"viewport_rect": [viewport_rect.position.x, viewport_rect.position.y,
 			viewport_rect.size.x, viewport_rect.size.y],
 	}
-	var expects_portrait: bool = expected_product_id == IapStore.HERO_BUNDLE \
-		or IapStore.is_hero_product(expected_product_id)
-	var expects_text_only_card: bool = IapStore.is_consumable(expected_product_id)
+	var expects_portrait: bool = expected_product_id == Shop.HERO_BUNDLE \
+		or Shop.is_hero_product(expected_product_id)
+	var expects_text_only_card: bool = Shop.is_consumable(expected_product_id)
 	var product_visual_ready: bool = true if expects_text_only_card \
 		else portrait_visible if expects_portrait else artwork_visible
 	state["ready"] = bool(state["shop_visible"]) \
@@ -847,17 +847,17 @@ func _debug_expected_action_text(product_id: String) -> String:
 
 
 func _debug_expected_artwork_kind(product_id: String) -> String:
-	if product_id == IapStore.SUPPORTER:
+	if product_id == Shop.SUPPORTER:
 		return SUPPORTER_ARTWORK_KIND
-	if product_id == IapStore.LANTERN_COLORS:
+	if product_id == Shop.LANTERN_COLORS:
 		return LANTERN_ARTWORK_KIND
 	return ""
 
 
 func _debug_expected_artwork_count(product_id: String) -> int:
-	if product_id == IapStore.SUPPORTER:
+	if product_id == Shop.SUPPORTER:
 		return 1
-	if product_id == IapStore.LANTERN_COLORS:
+	if product_id == Shop.LANTERN_COLORS:
 		return LANTERN_ARTWORK_PALETTES.size()
 	return 0
 
@@ -879,19 +879,19 @@ func _debug_collect_artwork_textures(
 
 func _debug_artwork_item_matches(
 		item: TextureRect, product_id: String, index: int) -> bool:
-	if product_id == IapStore.SUPPORTER:
+	if product_id == Shop.SUPPORTER:
 		return index == 0 \
 			and str(item.get_meta(&"artwork_item_kind", "")) \
 				== SUPPORTER_ARTWORK_KIND \
 			and item.texture == SUPPORTER_ICON
-	if product_id != IapStore.LANTERN_COLORS \
+	if product_id != Shop.LANTERN_COLORS \
 			or index < 0 or index >= LANTERN_ARTWORK_PALETTES.size():
 		return false
 	var palette_id: String = LANTERN_ARTWORK_PALETTES[index]
 	var atlas: AtlasTexture = item.texture as AtlasTexture
 	if atlas == null:
 		return false
-	var palette: Dictionary = IapStore.PALETTES[palette_id]
+	var palette: Dictionary = Shop.PALETTES[palette_id]
 	return str(item.get_meta(&"artwork_item_kind", "")) \
 			== LANTERN_ARTWORK_KIND \
 		and str(item.get_meta(&"artwork_palette_id", "")) == palette_id \
@@ -941,10 +941,10 @@ func _debug_product_card(product_id: String) -> Control:
 
 
 func _unavailable_price_text() -> String:
-	match IapStore.state:
-		IapStore.StoreState.LOADING:
+	match Shop.state:
+		Shop.StoreState.LOADING:
 			return tr("IAP_CONNECTING")
-		IapStore.StoreState.UNAVAILABLE:
+		Shop.StoreState.UNAVAILABLE:
 			return tr("IAP_DEVICE_ONLY")
 		_:
 			return tr("IAP_PRODUCT_UNAVAILABLE")
@@ -952,15 +952,15 @@ func _unavailable_price_text() -> String:
 
 func _rebuild_palettes() -> void:
 	_clear(_palette_buttons)
-	var unlocked: bool = IapStore.owns(IapStore.LANTERN_COLORS)
+	var unlocked: bool = Shop.owns(Shop.LANTERN_COLORS)
 	_palette_title.text = tr(
 		"IAP_PALETTE_READY" if unlocked else "IAP_PALETTE_LOCKED")
 	_palette_title.add_theme_color_override(
 		"font_color", SUCCESS if unlocked else MUTED)
-	for palette_id in IapStore.PALETTES:
-		var data: Dictionary = IapStore.PALETTES[palette_id]
-		var selected: bool = palette_id == IapStore.selected_palette
-		var available: bool = palette_id in IapStore.available_palettes()
+	for palette_id in Shop.PALETTES:
+		var data: Dictionary = Shop.PALETTES[palette_id]
+		var selected: bool = palette_id == Shop.selected_palette
+		var available: bool = palette_id in Shop.available_palettes()
 		var button: Button = _button(
 			("◆ " if selected else "") + tr(str(data.get("name", ""))),
 			data.get("light", Color.WHITE), true)
@@ -974,26 +974,26 @@ func _rebuild_palettes() -> void:
 func _buy(product_id: String) -> void:
 	_status.text = tr("IAP_OPENING_STORE")
 	_status.add_theme_color_override("font_color", TEXT)
-	IapStore.purchase(product_id)
+	Shop.purchase(product_id)
 	_rebuild()
 
 
 func _restore_or_retry() -> void:
-	if IapStore.can_retry_connection():
+	if Shop.can_retry_connection():
 		_status.text = tr("IAP_RETRYING")
 		_status.add_theme_color_override("font_color", TEXT)
 		_rebuild()
-		await IapStore.retry_connection()
+		await Shop.retry_connection()
 		return
 	_status.text = tr("IAP_RESTORING")
 	_status.add_theme_color_override("font_color", TEXT)
 	_rebuild()
-	await IapStore.restore_purchases()
+	await Shop.restore_purchases()
 
 
 func _select_palette(palette_id: String) -> void:
-	if IapStore.select_palette(palette_id):
-		_status.text = tr("IAP_PALETTE_SELECTED") % IapStore.palette_name()
+	if Shop.select_palette(palette_id):
+		_status.text = tr("IAP_PALETTE_SELECTED") % Shop.palette_name()
 		_status.add_theme_color_override("font_color", SUCCESS)
 		$Sfx.play()
 	_rebuild()
@@ -1004,7 +1004,7 @@ func _on_entitlement_changed(_product_id: String) -> void:
 
 
 func _on_purchase_succeeded(product_id: String) -> void:
-	var catalog: Dictionary = IapStore.catalog_entry(product_id)
+	var catalog: Dictionary = Shop.catalog_entry(product_id)
 	_status.text = tr("IAP_PURCHASED") % tr(str(catalog.get("title", "")))
 	_status.add_theme_color_override("font_color", SUCCESS)
 	$Sfx.play()
@@ -1024,8 +1024,8 @@ func _on_purchase_failed(product_id: String, code: String) -> void:
 	# arrives. First buy on a physical Pixel 10 did exactly that — product
 	# "owned" and "payment could not complete" together. Ownership is the
 	# truth, so follow that.
-	if not product_id.is_empty() and IapStore.owns(product_id):
-		var owned_catalog: Dictionary = IapStore.catalog_entry(product_id)
+	if not product_id.is_empty() and Shop.owns(product_id):
+		var owned_catalog: Dictionary = Shop.catalog_entry(product_id)
 		_status.text = tr("IAP_PURCHASED") % tr(str(owned_catalog.get("title", "")))
 		_status.add_theme_color_override("font_color", SUCCESS)
 		_rebuild()
@@ -1064,24 +1064,24 @@ func _on_lantern_changed(_palette_id: String) -> void:
 
 
 func _set_store_status() -> void:
-	match IapStore.state:
-		IapStore.StoreState.LOADING:
+	match Shop.state:
+		Shop.StoreState.LOADING:
 			_status.text = tr("IAP_CONNECTING_LONG")
 			_status.add_theme_color_override("font_color", TEXT)
-		IapStore.StoreState.UNAVAILABLE:
+		Shop.StoreState.UNAVAILABLE:
 			_status.text = tr("IAP_DEVICE_STORE_NOTE")
 			_status.add_theme_color_override("font_color", MUTED)
-		IapStore.StoreState.ERROR:
+		Shop.StoreState.ERROR:
 			_status.text = tr("IAP_PRODUCT_LOAD_FAILED")
 			_status.add_theme_color_override("font_color", ERROR)
-		IapStore.StoreState.PURCHASING:
+		Shop.StoreState.PURCHASING:
 			_status.text = tr("IAP_OPENING_STORE")
 			_status.add_theme_color_override("font_color", TEXT)
-		IapStore.StoreState.PENDING:
+		Shop.StoreState.PENDING:
 			_status.text = tr("IAP_PENDING")
 			_status.add_theme_color_override(
 				"font_color", Color(1.0, 0.82, 0.46, 1.0))
-		IapStore.StoreState.RESTORING:
+		Shop.StoreState.RESTORING:
 			_status.text = tr("IAP_RESTORING")
 			_status.add_theme_color_override("font_color", TEXT)
 		_:

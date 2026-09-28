@@ -40,7 +40,7 @@ Analytics="*res://scripts/analytics/analytics.gd"
 Vault="*res://scripts/gameplay/vault.gd"
 Ladder="*res://scripts/gameplay/ladder.gd"
 GlobalLadder="*res://scripts/gameplay/global_ladder.gd"
-IapStore="*res://scripts/iap/iap_store.gd"
+Shop="*res://scripts/iap/iap_store.gd"
 
 [display]
 

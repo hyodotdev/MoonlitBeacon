@@ -4,7 +4,7 @@ extends Control
 ## Read-only full-body preview, separate from hero buy/select.
 ##
 ## Reads only the current Hero resource and writes nothing to Vault or
-## IapStore. Shrine shard unlocks and shop device purchases happen only on
+## Shop. Shrine shard unlocks and shop device purchases happen only on
 ## each parent panel's existing buttons.
 
 signal closed

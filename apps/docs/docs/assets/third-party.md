@@ -21,18 +21,18 @@ the full license text or a link.
 
 | Item | Detail |
 | --- | --- |
-| Name | godot-iap 3.5.1 |
+| Name | godot-iap 3.6.1 |
 | Author | OpenIAP contributors |
 | License | MIT License |
-| Source | https://github.com/hyodotdev/openiap/releases/tag/godot-iap-3.5.1 |
+| Source | https://github.com/hyodotdev/openiap/releases/tag/godot-iap-3.6.1 |
 | Scope | Product query, purchase, and restore for Android Play Billing and iOS StoreKit 2 |
-| Status | ✅ in use (7 non-consumable items in the Moonlit Store) |
+| Status | ✅ in use (10 items in the Moonlit Store: 7 non-consumable, 3 consumable) |
 
 The plugin's original license is kept with `apps/game/addons/godot-iap/LICENSE`
 and the iOS distribution `vendor/godot-iap-ios/LICENSE`. It is not an
 external **art asset**, so it is not in the asset manifest.
 
-The Android AAR is taken byte-for-byte from the official 3.5.1 release.
+The Android AAR is taken byte-for-byte from the official 3.6.1 release.
 Provenance, hashes, and the small GDScript integration patch are recorded in
 `vendor/godot-iap-android/README.md` and `vendor/godot-iap/README.md`.
 
@@ -119,7 +119,7 @@ Font
   SIL Open Font License 1.1
 
 Store integration
-  godot-iap 3.5.1
+  godot-iap 3.6.1
   OpenIAP contributors · MIT License
 
 Made by

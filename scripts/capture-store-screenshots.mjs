@@ -611,7 +611,7 @@ function runtimeFingerprint() {
     'tests',
     'tools',
   ]);
-  const excludedFiles = new Set(['export_presets.cfg', 'iapkit.cfg']);
+  const excludedFiles = new Set(['export_presets.cfg', 'iapkit_publishable.cfg']);
   const files = [];
 
   function visit(directory, relativeDirectory = '') {

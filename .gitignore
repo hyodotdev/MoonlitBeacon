@@ -28,6 +28,8 @@ builds/
 # copies game assets into them, so they are not committed.
 apps/game/android/
 # IAPKit publishable config created only during store export. Not a lasting source.
+apps/game/iapkit_publishable.cfg
+# godot-iap's own local settings file (dropped from release exports). Never commit it.
 apps/game/iapkit.cfg
 # Do not add a global `*.zip` rule.
 # Original asset zips are already excluded via _downloads/ and

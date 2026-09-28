@@ -18,6 +18,20 @@ export const APP_STORE_CREDENTIAL_ENV = Object.freeze({
   issuerId: 'MOONLIT_ASC_ISSUER_ID',
   privateKeyPath: 'MOONLIT_ASC_PRIVATE_KEY',
 });
+// The team that publishes Moonlit Beacon; a copy of the project sets
+// MOONLIT_APPLE_TEAM_ID to sign with its own team.
+export const DEFAULT_APPLE_TEAM_ID = 'PRDQGB267K';
+
+export function resolveAppleTeamId(env = process.env) {
+  const value = typeof env.MOONLIT_APPLE_TEAM_ID === 'string'
+    ? env.MOONLIT_APPLE_TEAM_ID.trim()
+    : '';
+  if (value === '') return DEFAULT_APPLE_TEAM_ID;
+  if (!/^[A-Z0-9]{10}$/.test(value)) {
+    throw new Error('MOONLIT_APPLE_TEAM_ID must be a 10-character Apple Team ID.');
+  }
+  return value;
+}
 export const IOS_EXCLUSIVE_WORKFLOW_COMMANDS = Object.freeze([
   'export',
   'build',

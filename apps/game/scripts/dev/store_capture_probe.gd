@@ -104,7 +104,7 @@ static func poll(scene: Node) -> void:
 
 
 static func _direct_distribution_state(scene: Node) -> Dictionary:
-	var store: Node = scene.get_node_or_null("/root/IapStore")
+	var store: Node = scene.get_node_or_null("/root/Shop")
 	var screen: CanvasItem = scene.get_node_or_null("Ui/Screen") as CanvasItem
 	var store_button: Button = scene.get_node_or_null(
 		"Ui/Screen/StoreButton") as Button
