@@ -377,3 +377,44 @@ The same account's `inappproducts.list` separately returns `"Please migrate
 to the new publishing API."` You hit this wall again when using product
 sync (`--include-products`).
 :::
+
+## 2.1.0 tutorial-release close-out (2026-09-29)
+
+`main` shipped as the **final release of the tutorial course**. Nothing was
+rebuilt for it — 2.1.0 was already live, and this only put a tag and a public
+release note on the commit that shipped.
+
+| | |
+| --- | --- |
+| Commit | `5de5980` (Merge pull request #5) |
+| Tag | `release-2.1.0` — the repository's first tag |
+| Release | https://github.com/hyodotdev/MoonlitBeacon/releases/tag/release-2.1.0 |
+| Assets | none attached |
+| `pnpm verify` | exit 0 |
+
+**No APK was attached on purpose.** Play and the App Store are the distribution
+channels; the GitHub release is a milestone record for the course. Attaching a
+binary would open a third channel that cannot be recalled from anyone who
+already downloaded it.
+
+Store state was untouched: Android versionCode 14 was already production and
+iOS build 9 was already on the App Store, so **no rebuild, no re-upload, and no
+store-screenshot recapture.** The APK on disk
+(`builds/android/MoonlitBeacon-2.1.0.apk`) was only verified, not rebuilt —
+`versionCode 14`, `versionName 2.1.0`, signed `CN=Moonlit Beacon Upload` RSA
+4096, `apksigner verify` passes on the v2 scheme.
+
+### PR #6 was closed unmerged, before the tag
+
+The 2.5D re-art batches regressed the game, so they are not in 2.1.0 and will be
+redone in 3.0.0. Facing was dropped on every spirit (`facings = 4 → 1`), the
+`drifter` and `swarm` sheets received each other's creature, `caster.png` frame 1
+is clipped at the sheet edge, the six guardian frames are near-identical renders
+rather than a cycle, and the relic card bitmap was dropped behind an unchanged
+text layout with no 9-slice. `feat/guardian-presentation` is kept — the 16 relic
+emblems and 4 card-frame states are worth pulling forward.
+
+### 3.0.0
+
+Completely new UI and a solid story structure. Richer art, still a cute little
+mini-game.
