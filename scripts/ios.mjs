@@ -93,6 +93,7 @@ import {
   redactSensitiveValues,
   readAppStoreCredentials,
   readIosReleaseMetadata,
+  resolveAppleTeamId,
   runExclusiveIosWorkflow,
   runWithStableReleaseSources,
   xcodebuildAuthenticationArguments,
@@ -103,7 +104,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SCHEME = 'MoonlitBeacon'; // = export path basename; Godot chooses that name.
 const BUNDLE = 'com.crossplatformkorea.moonlitbeacon';
 const ISOLATED_CAPTURE_BUNDLE = `${BUNDLE}.storecapture`;
-const TEAM = 'PRDQGB267K';
+const TEAM = resolveAppleTeamId();
 const DEVICE_DISCOVERY_TIMEOUT_MS = 15 * 1000;
 const DEVICE_INFO_TIMEOUT_MS = 30 * 1000;
 const DEVICE_INSTALL_TIMEOUT_MS = 2 * 60 * 1000;
@@ -906,10 +907,15 @@ function readOptionalPlistValue(plist, keyPath, format) {
 }
 
 function expectedIosReleaseMetadata() {
-  const metadata = readIosReleaseMetadata(
-    readFileSync(join(ROOT, 'apps/game/project.godot'), 'utf8'),
-    readFileSync(join(ROOT, 'apps/game/export_presets.cfg'), 'utf8'),
-  );
+  // Godot writes the preset's team into the Xcode project, but every
+  // xcodebuild call passes DEVELOPMENT_TEAM=TEAM, so the archive carries TEAM.
+  const metadata = {
+    ...readIosReleaseMetadata(
+      readFileSync(join(ROOT, 'apps/game/project.godot'), 'utf8'),
+      readFileSync(join(ROOT, 'apps/game/export_presets.cfg'), 'utf8'),
+    ),
+    teamId: TEAM,
+  };
   assertIosReleaseMetadata(metadata, {
     expectedBundleId: BUNDLE,
     expectedTeamId: TEAM,
