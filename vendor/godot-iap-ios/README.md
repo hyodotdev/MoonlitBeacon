@@ -31,6 +31,6 @@ temporary `bin/` is removed again.
 The GDScript wrapper is official 3.5.1 plus the Moonlit patch documented
 in [`../godot-iap/README.md`](../godot-iap/README.md). Generic async calls keep
 the 30-second limit; Moonlit Beacon patches only the 10-minute restore limit
-and the direct-distribution guard. iOS query success envelopes are still read
-by `apps/game/scripts/iap/godot_iap_3_compat.gd` so an authoritative empty
-list is not confused with a native failure.
+and the direct-distribution guard. The game reads purchases through the
+public `get_available_purchases_result()` and `restore_purchases()`, which
+report a native failure apart from an authoritative empty list.

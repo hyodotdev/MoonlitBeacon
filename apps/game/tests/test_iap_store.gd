@@ -324,7 +324,11 @@ func _test_native_request_dispatch_semantics() -> void:
 	malformed_store.free()
 	malformed_backend.free()
 
-	var native_query: Dictionary = await backend.available_purchases()
+	# Queries and restore run through the real wrapper's public result API, with
+	# the fake as its native bridge. Malformed payloads still parse as JSON:
+	# the wrapper's JSON.parse_string logs an ERROR on text that does not.
+	var query_backend: Node = GODOT_BACKEND_SCRIPT.new(wrapper)
+	var native_query: Dictionary = await query_backend.available_purchases()
 	_expect_true(
 		bool(native_query.get("success", false)),
 		"Android result-shaped purchase query distinguishes a normal empty")
@@ -332,19 +336,41 @@ func _test_native_request_dispatch_semantics() -> void:
 		native_query.get("purchases", []).size(),
 		0,
 		"a normal empty query forwards success together with an empty list")
+	var available_options: Dictionary = plugin.last_available_options
+	_expect_true(
+		bool(available_options.get("onlyIncludeActiveItemsIOS", false)),
+		"current purchase query excludes historical iOS revocations")
+	plugin.native_available_result_json = JSON.stringify({
+		"success": true,
+		"purchases": [_native_android_purchase(
+			STORE_SCRIPT.SUPPORTER, "wrapper-android-token")],
+	})
+	native_query = await query_backend.available_purchases()
+	var android_rows: Array = native_query.get("purchases", [])
+	_expect_true(
+		bool(native_query.get("success", false)) and android_rows.size() == 1,
+		"a valid Android purchase row survives the wrapper's typed conversion")
+	if android_rows.size() == 1:
+		var row: Dictionary = android_rows[0]
+		_expect_equal(row.get("productId", ""), STORE_SCRIPT.SUPPORTER, "typed Android row keeps its product")
+		_expect_equal(row.get("purchaseToken", ""), "wrapper-android-token", "typed Android row keeps its token")
+		_expect_equal(row.get("store", ""), "google", "typed Android row names its store")
+		_expect_equal(row.get("purchaseState", ""), "purchased", "typed Android row keeps its state")
+		_expect_equal(
+			row.get("packageNameAndroid", ""),
+			STORE_SCRIPT.APP_ID,
+			"typed Android row keeps its package")
 	plugin.native_available_result_json = \
 		'{"success":false,"purchases":[],"error":"not initialized"}'
-	native_query = await backend.available_purchases()
+	native_query = await query_backend.available_purchases()
 	_expect_false(
 		bool(native_query.get("success", false)),
 		"do not treat Android native query failure as a normal empty")
+	_expect_false(await query_backend.restore(), "Android restore query failure is forwarded")
+	plugin.native_available_result_json = '["not-a-result"]'
+	_expect_false(await query_backend.restore(), "Android malformed restore response is fail-closed")
 	plugin.native_available_result_json = '{"success":true,"purchases":[]}'
-	_expect_true(await backend.restore(), "Android native restore success is forwarded")
-	plugin.native_restore_result_json = \
-		'{"success":false,"error":"billing unavailable"}'
-	_expect_false(await backend.restore(), "Android native restore error is forwarded")
-	plugin.native_restore_result_json = "not-json"
-	_expect_false(await backend.restore(), "Android malformed restore response is fail-closed")
+	_expect_true(await query_backend.restore(), "Android restore success is forwarded")
 	plugin.native_available_result_json = JSON.stringify({
 		"success": true,
 		"purchases": [{
@@ -353,44 +379,57 @@ func _test_native_request_dispatch_semantics() -> void:
 			"transactionId": "backend-null-product",
 		}],
 	})
-	var malformed_query: Dictionary = await backend.available_purchases()
+	var malformed_query: Dictionary = await query_backend.available_purchases()
 	_expect_false(
 		bool(malformed_query.get("success", false)),
-		"adapter must not forward an empty typed purchase object as a normal query")
-	var available_options: Dictionary = plugin.last_available_options
-	_expect_true(
-		bool(available_options.get("onlyIncludeActiveItemsIOS", false)),
-		"current iOS purchase query excludes historical revocations")
+		"a malformed purchase row fails the query instead of reading as empty")
 
-	plugin._platform = "iOS"
+	wrapper._platform = "iOS"
 	plugin.ios_available_payload = {
 		"success": true,
 		"purchasesJson": "[]",
 	}
-	var ios_query: Dictionary = await backend.available_purchases()
+	var ios_query: Dictionary = await query_backend.available_purchases()
 	_expect_true(
 		bool(ios_query.get("success", false)),
 		"iOS success envelope distinguishes a normal empty")
 	plugin.ios_available_payload = {
+		"success": true,
+		"purchasesJson": JSON.stringify([_native_ios_purchase(
+			STORE_SCRIPT.LANTERN_COLORS, "wrapper-ios-transaction")]),
+	}
+	ios_query = await query_backend.available_purchases()
+	var ios_rows: Array = ios_query.get("purchases", [])
+	_expect_true(
+		bool(ios_query.get("success", false)) and ios_rows.size() == 1,
+		"a valid iOS purchase row survives the wrapper's typed conversion")
+	if ios_rows.size() == 1:
+		var row: Dictionary = ios_rows[0]
+		_expect_equal(row.get("transactionId", ""), "wrapper-ios-transaction", "typed iOS row keeps its transaction")
+		_expect_equal(row.get("store", ""), "apple", "typed iOS row names its store")
+		_expect_equal(row.get("appBundleIdIOS", ""), STORE_SCRIPT.APP_ID, "typed iOS row keeps its bundle")
+	plugin.ios_available_payload = {
 		"success": false,
 		"purchasesJson": "[]",
 	}
-	ios_query = await backend.available_purchases()
+	ios_query = await query_backend.available_purchases()
 	_expect_false(
 		bool(ios_query.get("success", false)),
 		"do not treat iOS native query failure as a normal empty")
 	plugin.ios_available_payload = {
 		"success": true,
-		"purchasesJson": "not-json",
+		"purchasesJson": '{"not":"a list"}',
 	}
-	ios_query = await backend.available_purchases()
+	ios_query = await query_backend.available_purchases()
 	_expect_false(
 		bool(ios_query.get("success", false)),
 		"iOS malformed purchase list is fail-closed")
-	plugin.ios_restore_success = true
-	_expect_true(await backend.restore(), "iOS canonical restore success is forwarded")
-	plugin.ios_restore_success = false
-	_expect_false(await backend.restore(), "iOS canonical restore failure is forwarded")
+	plugin.native_restore_result_json = '{"success":true}'
+	_expect_true(await query_backend.restore(), "iOS restore success is forwarded")
+	plugin.native_restore_result_json = \
+		'{"success":false,"code":"service-error","error":"sync failed"}'
+	_expect_false(await query_backend.restore(), "iOS restore failure is forwarded")
+	query_backend.free()
 	backend.free()
 	plugin.free()
 	wrapper.free()
@@ -4118,6 +4157,29 @@ func _ios_purchase(product_id: String, transaction_id: String) -> Dictionary:
 		"purchaseToken": "header.%s.signature" % transaction_id,
 		"appBundleIdIOS": STORE_SCRIPT.APP_ID,
 		"store": "app-store",
+	}
+
+
+## Rows shaped like the native bridge output, which the wrapper validates.
+func _native_android_purchase(product_id: String, token: String) -> Dictionary:
+	var purchase: Dictionary = _android_purchase(product_id, token)
+	purchase.merge(_native_purchase_fields(token, "google"), true)
+	return purchase
+
+
+func _native_ios_purchase(product_id: String, transaction_id: String) -> Dictionary:
+	var purchase: Dictionary = _ios_purchase(product_id, transaction_id)
+	purchase.merge(_native_purchase_fields(transaction_id, "apple"), true)
+	return purchase
+
+
+func _native_purchase_fields(id: String, store: String) -> Dictionary:
+	return {
+		"id": id,
+		"store": store,
+		"transactionDate": 1_785_000_000_000.0,
+		"quantity": 1,
+		"isAutoRenewing": false,
 	}
 
 

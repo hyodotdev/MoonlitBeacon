@@ -21,9 +21,10 @@ Play AAB export bumps the generated Godot Gradle template from AGP 8.6.1 to
 that plugin version, and Godot 4.7.1 already ships Gradle 8.11.1.
 Direct-distribution APKs do not pull the Maven artifact.
 
-`apps/game/scripts/iap/godot_iap_3_compat.gd` still reads the result envelope
-and the Android `restorePurchases()` result. Purchase requests go through the
-official 3.x `request_purchase()`. A normal async `null` is allowed; only a
+Purchase queries and restore go through the public
+`get_available_purchases_result()` and `restore_purchases()`, so a failed query
+is never read as an empty list. Purchase requests go through the official 3.x
+`request_purchase()`. A normal async `null` is allowed; only a
 synchronous `purchase_error` during the call counts as dispatch failure.
 
 The license is MIT, kept at `apps/game/addons/godot-iap/LICENSE`.
