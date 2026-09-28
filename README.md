@@ -35,7 +35,7 @@ Docs site: **https://hyodotdev.github.io/MoonlitBeacon/**
 | IAP | **godot-iap 3.6.1** + IAPKit (publishable key at export time) |
 | Application id | `com.crossplatformkorea.moonlitbeacon` |
 | Version | **2.1.0** (both stores live) |
-| License | MIT code; third-party credits below |
+| License | MIT code; third-party assets keep their own ([notices](THIRD_PARTY_NOTICES.md)) |
 
 808 × 360 is exactly one third of the Pixel 10 landscape panel, so 16 px pixel
 art scales by an integer 3×. Aspect is `expand`, not `keep`, so extra width
@@ -253,5 +253,7 @@ Made by
   Hyo Dev
 ```
 
-See [third-party assets](apps/docs/docs/assets/third-party.md).
-Game code is [MIT](LICENSE). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+Game code is [MIT](LICENSE). Third-party assets keep their own licenses; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and the
+[third-party assets](apps/docs/docs/assets/third-party.md) list.
+Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
