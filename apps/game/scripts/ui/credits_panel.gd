@@ -65,7 +65,7 @@ func _redraw() -> void:
 		# If the name is two lines, pad the left column to keep the rows aligned.
 		for i in value.count("\n"):
 			roles.append("")
-	var store: Node = get_node_or_null("/root/IapStore")
+	var store: Node = get_node_or_null("/root/Shop")
 	if store != null and store.owns(store.SUPPORTER):
 		var supporter_name: String = str(Ladder.last_name).strip_edges()
 		if supporter_name.is_empty():

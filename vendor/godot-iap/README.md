@@ -17,12 +17,11 @@ release and applies only Moonlit Beacon's verified safety boundaries.
 | `godot_iap_plugin.gd` | `e0eb26b046700c2de24c7800927e0444ecec46e9eeb474c0d3476d865cb0fba0` | `a3eaf879fb9f7b017133e2bffa52dc3e39fae5b44fb7332dbf047986a1c4a50b` |
 | `scripts/fix_ios_embed.sh` | `2b6494b705ce1beb7e23e0e5cfc8d60eff852ea3b6ffb1c72579def15f041807` | `06e1f319396196146fcfa7db967e5a82cca4d2011ba5b2ccb6fd51daf2fca249` |
 
-`types.gd` is **not** in that reverse-patch set. Official 3.5.1 annotates
-three purchase fields as `var store: IapStore`. Moonlit's autoload is also
-named `IapStore` (`res://scripts/iap/iap_store.gd`), so those annotations
-do not parse. The vendored file uses `var store := IapStore.UNKNOWN` so
-GDScript infers the local enum. That is a compile workaround only; do not
-treat it as an upstream behavior change.
+`types.gd` is the official file, unmodified:
+`d14c4b108c8af4f5b0b42203706fe83ada10d173e6c862c18e77bb2d69fc7970`. It
+declares an `IapStore` enum, and an autoload with that name would stop its
+`var store: IapStore` fields from parsing, so the game's shop autoload is
+`Shop` (`res://scripts/iap/iap_store.gd`).
 
 The patch keeps project-specific boundaries:
 

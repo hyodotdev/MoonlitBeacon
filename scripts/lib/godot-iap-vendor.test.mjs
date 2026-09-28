@@ -96,8 +96,12 @@ test('Moonlit GDScript integration reverses exactly to official 3.5.1', (t) => {
 
   assert.match(readme, /godot-iap-3\.5\.1/);
   assert.match(readme, /acb7924d6512cdf87a6a51d22bf75cb285f76dc9/);
-  assert.match(readme, /types\.gd.*not.*reverse-patch/is);
-  assert.match(readme, /var store := IapStore\.UNKNOWN/);
+  assertPinnedFile({
+    contents: readme,
+    marker: '`types.gd` is the official file, unmodified:',
+    path: 'apps/game/addons/godot-iap/types.gd',
+    expectedSha: 'd14c4b108c8af4f5b0b42203706fe83ada10d173e6c862c18e77bb2d69fc7970',
+  });
   assert.equal(documentedSha(readme, '- patch SHA-256:'), patchSha);
   assert.equal(sha256(patchPath), patchSha, `${patchPath} drifted`);
 
