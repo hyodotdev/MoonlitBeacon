@@ -17,8 +17,8 @@ const PUBLISHABLE_KEY = /^openiap-kit_pk_[A-Za-z0-9_-]{32,}$/;
 
 export function iapKitConfigPaths(root) {
   return {
-    config: join(root, 'apps/game/iapkit.cfg'),
-    directStage: join(root, 'builds/.iapkit.cfg-direct-stage'),
+    config: join(root, 'apps/game/iapkit_publishable.cfg'),
+    directStage: join(root, 'builds/.iapkit_publishable.cfg-direct-stage'),
   };
 }
 

@@ -30,7 +30,7 @@ const ROWS: Array = [
 		"Maplestory · ⓒ NEXON Korea\nNoto Sans CJK SC · Google\n"
 		+ "SIL Open Font License 1.1",
 	],
-	["CREDITS_IAP", "godot-iap 3.5.1\nOpenIAP contributors · MIT License"],
+	["CREDITS_IAP", "godot-iap 3.6.1\nOpenIAP contributors · MIT License"],
 	["CREDITS_MADE_BY", "Hyo Dev"],
 ]
 

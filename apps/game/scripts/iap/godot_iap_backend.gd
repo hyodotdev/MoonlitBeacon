@@ -9,7 +9,8 @@ extends "res://scripts/iap/iap_backend.gd"
 const Types = preload("res://addons/godot-iap/types.gd")
 const IAPKIT_TRANSPORT_SCRIPT: Script = preload(
 	"res://scripts/iap/iapkit_http_transport.gd")
-const IAPKIT_CONFIG_PATH: String = "res://iapkit.cfg"
+## Not res://iapkit.cfg: godot-iap 3.6+ leaves that file out of release exports.
+const IAPKIT_CONFIG_PATH: String = "res://iapkit_publishable.cfg"
 const IAPKIT_SECTION: String = "iapkit"
 const IAPKIT_KEY_PREFIX: String = "openiap-kit_pk_"
 ## How long to wait when a product query never answers.

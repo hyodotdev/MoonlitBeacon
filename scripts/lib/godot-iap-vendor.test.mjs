@@ -14,7 +14,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const GODOT_IAP_VERSION = '3.5.1';
+const GODOT_IAP_VERSION = '3.6.1';
 
 function readRepoFile(path) {
   return readFileSync(join(REPO_ROOT, path));
@@ -41,7 +41,7 @@ function assertPinnedFile({ contents, marker, path, expectedSha }) {
   assert.equal(sha256(path), expectedSha, `${path} drifted from its pinned SHA-256`);
 }
 
-test('godot-iap plugin version stays pinned to 3.5.1', () => {
+test(`godot-iap plugin version stays pinned to ${GODOT_IAP_VERSION}`, () => {
   const pluginConfig = readRepoFile(
     'apps/game/addons/godot-iap/plugin.cfg',
   ).toString('utf8');
@@ -72,36 +72,39 @@ test('Android godot-iap AARs match the documented official binaries', () => {
   }
 });
 
-test('Moonlit GDScript integration reverses exactly to official 3.5.1', (t) => {
+test(`Moonlit GDScript integration reverses exactly to official ${GODOT_IAP_VERSION}`, (t) => {
   const readme = readRepoFile('vendor/godot-iap/README.md').toString('utf8');
   const patchPath = 'vendor/godot-iap/0001-moonlit-integration.patch';
-  const patchSha = 'afeb152265e5431233930237e5d4edc9c2042d9dfec00b4e0f7c09d251a649da';
+  const patchSha = '84839a7e1141dbf2b163c2b197c5e9c2f868ffacdecef4347c59c8666874c667';
   const files = [
     {
       path: 'apps/game/addons/godot-iap/godot_iap.gd',
-      officialSha: 'd872fd1d34c9075b761ca6ba2ca90c8d513b8e7d8e94f1e9a96f3b9cf9e7c2cb',
-      moonlitSha: '1bf74d123066a932b1cb7baf8fb3eb5c95c6d1166ff8bc6dfa923b0058bb2238',
+      officialSha: '2bf54bbf119886a607ea1deb2897e9d28de27ca01c7b4f7ca6daebe3a1188bfe',
+      moonlitSha: 'e31fdf59e230b7f677c2513a8f6323240a794382ddedf92cde771a93cf3c899d',
     },
     {
       path: 'apps/game/addons/godot-iap/godot_iap_plugin.gd',
-      officialSha: 'e0eb26b046700c2de24c7800927e0444ecec46e9eeb474c0d3476d865cb0fba0',
-      moonlitSha: 'a3eaf879fb9f7b017133e2bffa52dc3e39fae5b44fb7332dbf047986a1c4a50b',
-    },
-    {
-      path: 'apps/game/addons/godot-iap/scripts/fix_ios_embed.sh',
-      officialSha: '2b6494b705ce1beb7e23e0e5cfc8d60eff852ea3b6ffb1c72579def15f041807',
-      moonlitSha: '06e1f319396196146fcfa7db967e5a82cca4d2011ba5b2ccb6fd51daf2fca249',
+      officialSha: '31500d82ee2ed4b78e42fcbc1dd8c28ad5d97419df18b29a72b08bd83bea9ab8',
+      moonlitSha: '47ec04b62c99d99addd6e76636143007edd944cc3a6229dd416c92993b9899a6',
     },
   ];
+  const unmodified = {
+    'types.gd': 'd14c4b108c8af4f5b0b42203706fe83ada10d173e6c862c18e77bb2d69fc7970',
+    'android_store.gd': '1b9d4b80e70c2a93811c0fe973aab21b4f2149f0d391f2ca6971ecb603f43ffd',
+    'scripts/fix_ios_embed.sh': '1606332b07dcf2aa2b77ae266e476414a62423ce8769368122a52672002d938e',
+    'android/GodotIap.gdap': 'b776033d531bb439ca85c69d079f4ca0f82ad2cacd35065318248349492ac806',
+  };
 
-  assert.match(readme, /godot-iap-3\.5\.1/);
-  assert.match(readme, /acb7924d6512cdf87a6a51d22bf75cb285f76dc9/);
-  assertPinnedFile({
-    contents: readme,
-    marker: '`types.gd` is the official file, unmodified:',
-    path: 'apps/game/addons/godot-iap/types.gd',
-    expectedSha: 'd14c4b108c8af4f5b0b42203706fe83ada10d173e6c862c18e77bb2d69fc7970',
-  });
+  assert.match(readme, /godot-iap-3\.6\.1/);
+  assert.match(readme, /c1a3658e12a0bb7de6fdcfb40f0d82df9f68a653/);
+  for (const [file, expectedSha] of Object.entries(unmodified)) {
+    assertPinnedFile({
+      contents: readme,
+      marker: `- \`${file}\`:`,
+      path: `apps/game/addons/godot-iap/${file}`,
+      expectedSha,
+    });
+  }
   assert.equal(documentedSha(readme, '- patch SHA-256:'), patchSha);
   assert.equal(sha256(patchPath), patchSha, `${patchPath} drifted`);
 
@@ -135,7 +138,7 @@ test('Moonlit GDScript integration reverses exactly to official 3.5.1', (t) => {
     assert.equal(
       sha256Absolute(join(stagingRoot, file.path)),
       file.officialSha,
-      `${file.path} does not reverse to official 3.5.1`,
+      `${file.path} does not reverse to official ${GODOT_IAP_VERSION}`,
     );
   }
 });

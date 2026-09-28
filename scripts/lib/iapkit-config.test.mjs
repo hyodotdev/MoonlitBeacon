@@ -161,7 +161,7 @@ test('safely cleans only generated config copied into the Gradle template', () =
     });
     const copied = join(
       root,
-      'apps/game/android/build/assetPackInstallTime/src/main/assets/iapkit.cfg',
+      'apps/game/android/build/assetPackInstallTime/src/main/assets/iapkit_publishable.cfg',
     );
     mkdirSync(dirname(copied), { recursive: true });
     writeFileSync(copied, readFileSync(generated, 'utf8'));
@@ -188,6 +188,6 @@ test('includes generated IAPKit config only in the store preset export', () => {
     value.includes('name="Android Play"\n'));
 
   assert.match(androidDirect, /include_filter="firebase\.cfg"/);
-  assert.match(ios, /include_filter="iapkit\.cfg,firebase\.cfg"/);
-  assert.match(androidPlay, /include_filter="iapkit\.cfg,firebase\.cfg"/);
+  assert.match(ios, /include_filter="iapkit_publishable\.cfg,firebase\.cfg"/);
+  assert.match(androidPlay, /include_filter="iapkit_publishable\.cfg,firebase\.cfg"/);
 });

@@ -61,7 +61,7 @@ const gradleWrapper = join(
 );
 const iapKitGradleConfig = join(
   gradleProject,
-  'assetPackInstallTime/src/main/assets/iapkit.cfg',
+  'assetPackInstallTime/src/main/assets/iapkit_publishable.cfg',
 );
 const args = process.argv.slice(2);
 const { bundle, debug, release } = parseAndroidBuildFlags(args);
@@ -336,7 +336,7 @@ try {
   // Alternating direct APK and Play AAB on the same Gradle template can leave the previous
   // channel's manifest and DEX in incremental output, so clean before every export.
   if (existsSync(templateMarker)) {
-    // Play AAB pulls openiap-google:3.5.2 / androidx.core 1.18.0.
+    // Play AAB pulls openiap-google:3.6.1 / androidx.core 1.18.0.
     // Godot 4.7.1's template still pins AGP 8.6.1; bump it to 8.9.1.
     ensureGodotAgpCompatibleAndroidx(gradleProject);
   }

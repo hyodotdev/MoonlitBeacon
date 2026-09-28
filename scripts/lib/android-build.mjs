@@ -642,7 +642,7 @@ export function verifyAndroidArchiveResourceBoundary(
 function androidArchiveIapKitEntries(listing) {
   return String(listing)
     .split(/\r?\n/)
-    .filter((entry) => /(?:^|\/)iapkit\.cfg$/.test(entry));
+    .filter((entry) => /(?:^|\/)iapkit_publishable\.cfg$/.test(entry));
 }
 
 function androidArchiveHasSafeIapKitConfig(contents) {

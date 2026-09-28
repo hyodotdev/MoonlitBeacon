@@ -66,7 +66,8 @@ const KEY = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 const NOT_KEYS = /^(?:[A-Z]+_[A-Z0-9_]*(?:MODE|FILTER|PRESET|DIRECTION|ALIGNMENT|MASK|LAYER)|SUB_RESOURCE|EXT_RESOURCE|GD_SCENE|PACKED[A-Z0-9]*ARRAY|STYLE_BOX[A-Z_]*|NODE_PATH)$/;
 
 const walk = (dir) => readdirSync(dir).flatMap((name) => {
-  if (name === '.godot' || name === 'assets') return [];
+  // Vendored addons never use the game's keys; their env-var names look like keys.
+  if (name === '.godot' || name === 'assets' || name === 'addons') return [];
   const full = join(dir, name);
   return statSync(full).isDirectory() ? walk(full) : [full];
 });

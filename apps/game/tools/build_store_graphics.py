@@ -1388,7 +1388,7 @@ def _runtime_fingerprint() -> str:
         "tests",
         "tools",
     }
-    excluded_files = {"export_presets.cfg", "iapkit.cfg"}
+    excluded_files = {"export_presets.cfg", "iapkit_publishable.cfg"}
     files = sorted(
         path
         for path in GAME_ROOT.rglob("*")
