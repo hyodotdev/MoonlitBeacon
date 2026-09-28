@@ -65,10 +65,13 @@ const KEY = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 // Looks like a key but is not. Engine constants and node names.
 const NOT_KEYS = /^(?:[A-Z]+_[A-Z0-9_]*(?:MODE|FILTER|PRESET|DIRECTION|ALIGNMENT|MASK|LAYER)|SUB_RESOURCE|EXT_RESOURCE|GD_SCENE|PACKED[A-Z0-9]*ARRAY|STYLE_BOX[A-Z_]*|NODE_PATH)$/;
 
+// The vendored godot-iap addon never uses the game's keys; its env-var names look like keys.
+const VENDORED_IAP = join(GAME, 'addons', 'godot-iap');
+
 const walk = (dir) => readdirSync(dir).flatMap((name) => {
-  // Vendored addons never use the game's keys; their env-var names look like keys.
-  if (name === '.godot' || name === 'assets' || name === 'addons') return [];
+  if (name === '.godot' || name === 'assets') return [];
   const full = join(dir, name);
+  if (full === VENDORED_IAP) return [];
   return statSync(full).isDirectory() ? walk(full) : [full];
 });
 
