@@ -309,9 +309,10 @@ each console.
 - [x] The local key is stored in macOS Keychain service
       `dev.openiap.kit.moonlitbeacon`, account `MoonlitBeacon Mobile`.
 - [x] Stored as GitHub Actions repository secret `IAPKIT_API_KEY`.
-- [x] `res://iapkit.cfg` is created only during Store AAB and iOS export, and
-      deleted after success or failure. The direct-distribution APK contains
-      neither the config nor the Billing SDK.
+- [x] `res://iapkit_publishable.cfg` is created only during Store AAB and iOS
+      export, and deleted after success or failure. The direct-distribution
+      APK contains neither the config nor the Billing SDK. The name is not
+      `iapkit.cfg` because godot-iap 3.6 drops that file from release exports.
 - [x] IAPKit iOS settings include Bundle ID, App Apple ID, Issuer ID, In-App
       Purchase Key ID and `.p8` for purchase verification, and App Store
       Connect API Key ID and `.p8` for product sync.
@@ -495,6 +496,13 @@ the publishable key.
       apply only once.
 
 ## Release verdict
+
+Status on 2026-09-29, from the public store pages: the App Store listing
+(version 2.1.0) shows all 10 sale items under In-App Purchases with prices,
+and the Google Play listing is marked "In-app purchases". Real sales are
+live, yet no box below was ticked in this file.
+TODO(maintainer): tick the items that were verified before launch and note
+any that are still open.
 
 If any item below is empty, hold a real IAP release.
 
