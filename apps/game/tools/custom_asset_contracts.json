@@ -537,6 +537,512 @@
       }
     },
     {
+      "id": "boss.frost",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost.charge",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_charge.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost_rime",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_rime.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost_rime.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_rime_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost_rime.charge",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_rime_charge.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.frost_rime.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/frost_rime_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh.charge",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_charge.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh_glow",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_glow.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh_glow.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_glow_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh_glow.charge",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_glow_charge.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.marsh_glow.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/marsh_glow_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.ruins",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/ruins.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.ruins.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/ruins_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.ruins.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/ruins_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.ruins_halo",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/ruins_halo.png",
+      "width": 384,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.ruins_halo.windup",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/ruins_halo_windup.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
+      "id": "boss.ruins_halo.recover",
+      "category": "boss",
+      "status": "final",
+      "path": "assets/custom/actors/guardians/ruins_halo_recover.png",
+      "width": 256,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 48,
+      "frame_grid": {
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 64,
+        "cell_height": 64,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 2,
+          "right": 2,
+          "top": 2,
+          "bottom": 0
+        }
+      }
+    },
+    {
       "id": "enemy.caster",
       "category": "enemy",
       "status": "final",
@@ -1246,6 +1752,16 @@
       "max_alpha_levels": 2
     },
     {
+      "id": "terrain.camp_ground",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ground_camp.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 16
+    },
+    {
       "id": "terrain.camp_props",
       "category": "terrain",
       "status": "final",
@@ -1273,6 +1789,16 @@
       "alpha_mode": "binary",
       "max_visible_rgb_colors": 16,
       "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.field_ground",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ground_field.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 16
     },
     {
       "id": "terrain.field_props",
@@ -1325,6 +1851,123 @@
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/nature.png",
+      "width": 384,
+      "height": 336,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 32,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.frost_ground",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ground_frost.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 16
+    },
+    {
+      "id": "terrain.frost_props",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/frost_props.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 64,
+      "frame_grid": {
+        "columns": 16,
+        "rows": 16,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": true,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "terrain.frost_nature",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/frost_nature.png",
+      "width": 384,
+      "height": 336,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 32,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.marsh_ground",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ground_marsh.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 16
+    },
+    {
+      "id": "terrain.marsh_props",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/marsh_props.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 64,
+      "frame_grid": {
+        "columns": 16,
+        "rows": 16,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": true,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "terrain.marsh_nature",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/marsh_nature.png",
+      "width": 384,
+      "height": 336,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 32,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "terrain.ruins_ground",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ground_ruins.png",
+      "width": 96,
+      "height": 96,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 24
+    },
+    {
+      "id": "terrain.ruins_props",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ruins_props.png",
+      "width": 256,
+      "height": 256,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 64,
+      "frame_grid": {
+        "columns": 16,
+        "rows": 16,
+        "cell_width": 16,
+        "cell_height": 16,
+        "allow_blank_frames": true,
+        "edge_padding": 0
+      }
+    },
+    {
+      "id": "terrain.ruins_nature",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/ruins_nature.png",
       "width": 384,
       "height": 336,
       "alpha_mode": "binary",
@@ -1453,81 +2096,675 @@
       "max_alpha_levels": 256
     },
     {
-      "id": "ui.button_disabled",
+      "id": "ui.relic_icon_dew_hunter",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/button_disabled_moonlit.png",
-      "width": 16,
-      "height": 16,
+      "path": "assets/custom/ui/icons/dew_hunter.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_heavy_arrow",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/heavy_arrow.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_light_step",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/light_step.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_long_blade",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/long_blade.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_moon_dash",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/moon_dash.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_moon_ring",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/moon_ring.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_moon_ripple",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/moon_ripple.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_pierce_arrow",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/pierce_arrow.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_quick_arrow",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/quick_arrow.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_shadow_veil",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/shadow_veil.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_sharp_moon",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/sharp_moon.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_swift_hand",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/swift_hand.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_tough_life",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/tough_life.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_twin_arrow",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/twin_arrow.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_warm_beacon",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/warm_beacon.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_wide_arc",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/wide_arc.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.kit.banner",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/banner.png",
+      "width": 40,
+      "height": 24,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 8,
       "max_alpha_levels": 2
     },
     {
-      "id": "ui.button_focus",
+      "id": "ui.kit.bar_back",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/button_focus_moonlit.png",
-      "width": 16,
-      "height": 16,
+      "path": "assets/custom/ui/kit/bar_back.png",
+      "width": 12,
+      "height": 10,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 5,
       "max_alpha_levels": 2
     },
     {
-      "id": "ui.button_hover",
+      "id": "ui.kit.bar_fill_berry",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/button_hover_moonlit.png",
-      "width": 16,
-      "height": 16,
+      "path": "assets/custom/ui/kit/bar_fill_berry.png",
+      "width": 12,
+      "height": 10,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 4,
       "max_alpha_levels": 2
     },
     {
-      "id": "ui.button_normal",
+      "id": "ui.kit.bar_fill_gold",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/button_normal_moonlit.png",
-      "width": 16,
-      "height": 16,
+      "path": "assets/custom/ui/kit/bar_fill_gold.png",
+      "width": 12,
+      "height": 10,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 4,
       "max_alpha_levels": 2
     },
     {
-      "id": "ui.button_pressed",
+      "id": "ui.kit.bar_fill_mint",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/button_pressed_moonlit.png",
-      "width": 16,
-      "height": 16,
+      "path": "assets/custom/ui/kit/bar_fill_mint.png",
+      "width": 12,
+      "height": 10,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 4,
       "max_alpha_levels": 2
     },
     {
-      "id": "ui.panel_frame",
+      "id": "ui.kit.bar_fill_white",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/panel_moonlit.png",
-      "width": 16,
-      "height": 16,
+      "path": "assets/custom/ui/kit/bar_fill_white.png",
+      "width": 12,
+      "height": 10,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 4,
       "max_alpha_levels": 2
     },
     {
-      "id": "ui.relic_panel_frame",
+      "id": "ui.kit.button_berry_disabled",
       "category": "ui",
       "status": "final",
-      "path": "assets/custom/ui/nine_path_panel_moonlit.png",
+      "path": "assets/custom/ui/kit/button_berry_disabled.png",
       "width": 16,
       "height": 16,
       "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
+      "max_visible_rgb_colors": 5,
       "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_berry_focus",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_berry_focus.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_berry_hover",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_berry_hover.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 7,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_berry_normal",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_berry_normal.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_berry_pressed",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_berry_pressed.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_ghost_disabled",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_ghost_disabled.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_ghost_focus",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_ghost_focus.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_ghost_hover",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_ghost_hover.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 7,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_ghost_normal",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_ghost_normal.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_ghost_pressed",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_ghost_pressed.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_gold_disabled",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_gold_disabled.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_gold_focus",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_gold_focus.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_gold_hover",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_gold_hover.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 7,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_gold_normal",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_gold_normal.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_gold_pressed",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_gold_pressed.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_lav_disabled",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_lav_disabled.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_lav_focus",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_lav_focus.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_lav_hover",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_lav_hover.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 7,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_lav_normal",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_lav_normal.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.button_lav_pressed",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/button_lav_pressed.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.card_disabled",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/card_disabled.png",
+      "width": 32,
+      "height": 32,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.card_focus",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/card_focus.png",
+      "width": 32,
+      "height": 32,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 4,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.card_hover",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/card_hover.png",
+      "width": 32,
+      "height": 32,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 7,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.card_normal",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/card_normal.png",
+      "width": 32,
+      "height": 32,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 8,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.card_pressed",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/card_pressed.png",
+      "width": 32,
+      "height": 32,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.chip",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/chip.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.chip_gold",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/chip_gold.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.icon_beacon_off",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/icon_beacon_off.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 5,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.icon_beacon_on",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/icon_beacon_on.png",
+      "width": 16,
+      "height": 16,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 7,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.kit.panel",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/kit/panel.png",
+      "width": 24,
+      "height": 24,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 9,
+      "max_alpha_levels": 2
+    },
+    {
+      "id": "ui.relic_icon_lantern_familiar",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/lantern_familiar.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_moon_ward",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/moon_ward.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_comet_call",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/comet_call.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_star_magnet",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/star_magnet.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_thorn_bloom",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/thorn_bloom.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_second_light",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/second_light.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_moon_burst",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/moon_burst.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_winter_bell",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/winter_bell.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "ui.relic_icon_comet_trail",
+      "category": "ui",
+      "status": "final",
+      "path": "assets/custom/ui/icons/comet_trail.png",
+      "width": 48,
+      "height": 48,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65536,
+      "max_alpha_levels": 256
     }
   ]
 }

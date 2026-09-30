@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Assemble Grok ghost sources into 192×192 spirit sheets.
+"""Assemble spirit sources into 192×192 spirit sheets.
 
-Sources are tools/spirit_grok/<kind>.jpg (magenta bg, one front view). In survivor grammar
-ghosts reuse one front art on all four facings — down/left as-is, right
-is flipped, up is slightly darkened for a turned-back feel. Four frames are bob
+Sources are tools/spirit_grok/<kind>.png (or .webp/.jpg): one front view per creature,
+either with a transparent background or on magenta, which is keyed here. The current
+set is a ChatGPT lineup cut apart by `cut_lineup.py` (see spirit_grok/README.md).
+In survivor grammar spirits reuse one front art on all four facings — down/left as-is,
+right is flipped, up is slightly darkened for a turned-back feel. Four frames are bob
 as a y-offset bob.
 
-The hero is 36px so ghosts go in smaller (18–28px by kind).
+The hero is 36px so spirits go in smaller (15–26px by kind).
 """
 
 from __future__ import annotations
@@ -30,7 +32,8 @@ HEIGHTS = {
     "wisp": 22,
     "stalker": 24,
     "swarm": 15,
-    "ember": 20,
+    # A flame is narrow, so it gets two more pixels than a body of the same weight.
+    "ember": 22,
     "drifter": 22,
     "weaver": 23,
     "caster": 24,
