@@ -554,7 +554,7 @@ var continue_coins: int = STARTING_COINS
 var continue_coin_grants: Dictionary = {}
 
 
-## Grant coins. Only `IapStore` calls this after a real payment is verified.
+## Grant coins. Only `Shop` calls this after a real payment is verified.
 ##
 ## Balance and transaction key land in one atomic save. Whether the app dies
 ## before or after that write, both are absent or both are present, so the same

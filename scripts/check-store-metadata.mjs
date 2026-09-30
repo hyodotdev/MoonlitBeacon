@@ -49,7 +49,7 @@ const PRODUCTS = [
   "com.crossplatformkorea.moonlitbeacon.continue_coin_10",
 ];
 
-// Must be the same list as the app's `IapStore.CONSUMABLE_PRODUCT_IDS`.
+// Must be the same list as the app's `Shop.CONSUMABLE_PRODUCT_IDS`.
 const CONSUMABLE_PRODUCTS = new Set([
   "com.crossplatformkorea.moonlitbeacon.continue_coin",
   "com.crossplatformkorea.moonlitbeacon.continue_coin_5",

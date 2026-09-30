@@ -101,7 +101,7 @@ func _ready() -> void:
 
 	if Engine.is_editor_hint():
 		return
-	_iap_store = get_node_or_null("/root/IapStore")
+	_iap_store = get_node_or_null("/root/Shop")
 	if _iap_store != null:
 		_iap_store.lantern_changed.connect(_on_lantern_changed)
 		_apply_lantern_palette()

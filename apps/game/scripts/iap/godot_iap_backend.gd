@@ -1,17 +1,16 @@
 extends "res://scripts/iap/iap_backend.gd"
 
-## Adapt godot-iap 3.5.1 to the game's small backend contract.
+## Adapt godot-iap to the game's small backend contract.
 ##
 ## `request_purchase()` is a command that opens the store sheet, not a function
 ## that returns the result. The terminal outcome always arrives on
 ## `purchase_updated` / `purchase_failed`.
 
 const Types = preload("res://addons/godot-iap/types.gd")
-const COMPAT_SCRIPT: Script = preload(
-	"res://scripts/iap/godot_iap_3_compat.gd")
 const IAPKIT_TRANSPORT_SCRIPT: Script = preload(
 	"res://scripts/iap/iapkit_http_transport.gd")
-const IAPKIT_CONFIG_PATH: String = "res://iapkit.cfg"
+## Not res://iapkit.cfg: godot-iap 3.6+ leaves that file out of release exports.
+const IAPKIT_CONFIG_PATH: String = "res://iapkit_publishable.cfg"
 const IAPKIT_SECTION: String = "iapkit"
 const IAPKIT_KEY_PREFIX: String = "openiap-kit_pk_"
 ## How long to wait when a product query never answers.
@@ -31,7 +30,6 @@ var _signals_connected: bool = false
 var _iapkit_api_key: String = ""
 var _iapkit_config_loaded: bool = false
 var _iapkit_transport: Node
-var _compat: RefCounted
 var _purchase_dispatch_in_progress: bool = false
 var _purchase_dispatch_failed: bool = false
 var _purchase_request_generation: int = 0
@@ -48,8 +46,6 @@ func _init(
 	_iapkit_api_key = iapkit_api_key.strip_edges()
 	_iapkit_config_loaded = not _iapkit_api_key.is_empty()
 	_iapkit_transport = iapkit_transport
-	if _plugin != null:
-		_compat = COMPAT_SCRIPT.new(_plugin)
 
 
 func initialize() -> bool:
@@ -60,7 +56,6 @@ func initialize() -> bool:
 		_plugin = get_node_or_null("/root/GodotIapPlugin")
 	if _plugin == null:
 		return false
-	_compat = COMPAT_SCRIPT.new(_plugin)
 	_connect_plugin_signals()
 	return bool(await _plugin.init_connection())
 
@@ -154,14 +149,14 @@ func request_purchase(product_id: String) -> bool:
 
 
 func restore() -> bool:
-	if _plugin == null or _compat == null:
+	if _plugin == null:
 		return false
-	var result: Dictionary = await _compat.restore_purchases()
-	return bool(result.get("success", false))
+	var result: Variant = await _plugin.restore_purchases()
+	return result != null and bool(result.success)
 
 
 func available_purchases() -> Dictionary:
-	if _plugin == null or _compat == null:
+	if _plugin == null:
 		return {"success": false, "purchases": []}
 	var options: RefCounted = Types.PurchaseOptions.new()
 	# StoreKit's default Transaction.all also returns finished refund/revocation
@@ -169,7 +164,8 @@ func available_purchases() -> Dictionary:
 	# finished ledger rows are re-verified separately through IAPKit with the
 	# stored JWS.
 	options.only_include_active_items_ios = true
-	var query: Variant = await _compat.available_purchases(options)
+	# The result form keeps a failed query apart from an empty purchase list.
+	var query: Variant = await _plugin.get_available_purchases_result(options)
 	if query is not Dictionary or not bool(query.get("success", false)):
 		return {"success": false, "purchases": []}
 	var result: Array[Dictionary] = []
@@ -177,16 +173,8 @@ func available_purchases() -> Dictionary:
 	if available is not Array:
 		return {"success": false, "purchases": []}
 	for purchase in available:
-		var value: Variant
-		if purchase is Dictionary:
-			value = purchase.duplicate(true)
-		elif typeof(purchase) == TYPE_OBJECT \
-				and is_instance_valid(purchase) \
-				and purchase.has_method("to_dict"):
-			value = purchase.to_dict()
-		else:
-			return {"success": false, "purchases": []}
-		if value is not Dictionary or not _available_purchase_is_valid(value):
+		var value: Dictionary = _as_dictionary(purchase)
+		if not _available_purchase_is_valid(value):
 			return {"success": false, "purchases": []}
 		result.append(value)
 	return {

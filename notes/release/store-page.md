@@ -493,7 +493,7 @@ Art and UI     Moonlit Beacon — Original assets
 Music, sound   Ninja Adventure Asset Pack — Pixel-Boy and AAA — CC0
                 Kenney UI Audio — Kenney — CC0
 Font           Maplestory — ⓒ NEXON Korea; Noto Sans CJK SC — Google — SIL Open Font License 1.1
-Store SDK      godot-iap 3.5.1 — OpenIAP contributors — MIT License
+Store SDK      godot-iap 3.6.1 — OpenIAP contributors — MIT License
 Made by        Hyo Dev
 
 Source and course: https://github.com/hyodotdev/MoonlitBeacon

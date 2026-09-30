@@ -2,8 +2,8 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // Godot 4.7.1's Android gradle template pins AGP 8.6.1 and compileSdk 36.
-// AGP 8.6.1 is only tested through compileSdk 35. openiap-google:3.5.2
-// (godot-iap 3.5.1) depends on androidx.core:1.18.0, which needs AGP 8.9.1.
+// AGP 8.6.1 is only tested through compileSdk 35. openiap-google:3.6.1
+// (godot-iap 3.6.1) depends on androidx.core:1.18.0, which needs AGP 8.9.1.
 // The template already ships Gradle 8.11.1, which is the 8.9.1 minimum.
 export const GODOT_STOCK_ANDROID_GRADLE_PLUGIN = '8.6.1';
 export const GODOT_COMPAT_ANDROID_GRADLE_PLUGIN = '8.9.1';

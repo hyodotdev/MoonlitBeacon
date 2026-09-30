@@ -19,9 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-Third-party assets in this repository (fonts, art, audio — see
-`apps/docs/docs/assets/third-party.md`) keep their own licenses. In
-particular the Nexon MapleStory font allows commercial use and embedding
-but forbids sale and modification.

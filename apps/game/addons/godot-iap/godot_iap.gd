@@ -11,6 +11,7 @@ class_name GodotIapWrapper
 
 # Types from OpenIAP spec
 const Types = preload("types.gd")
+const AndroidStore = preload("android_store.gd")
 
 const APPLE_PLATFORMS := ["iOS", "macOS"]
 const APPLE_ASYNC_RESULT_CACHE_LIMIT := 64
@@ -72,15 +73,15 @@ var _apple_async_terminal_keys: Dictionary = {}
 var _apple_async_terminal_order: Array[String] = []
 var _apple_async_cancellation_generation := 0
 var _apple_async_timeout_seconds := 30.0
-# AppStore.sync() can present Face ID, password, or account sheets.
-# Failing an explicit restore at 120s while native auth is still running
-# leaves the app UI failed and the system prompt alive. Moonlit Beacon
-# keeps the verified 10-minute restore limit.
+# Moonlit: AppStore.sync() can show Face ID or sign-in sheets that outlast
+# 120 s, so an explicit restore waits up to 10 minutes.
 var _apple_async_restore_timeout_seconds := 600.0
 var _apple_async_ui_timeout_seconds := 300.0
 
 # Platform detection
 var _platform: String = ""
+## OS.has_feature, swappable in tests: an editor run carries no export tags.
+var _has_feature: Callable = Callable(OS, "has_feature")
 
 
 func _is_apple() -> bool:
@@ -88,10 +89,6 @@ func _is_apple() -> bool:
 
 
 func _ready() -> void:
-	# Direct-distribution APKs (itch.io) ship without a native store SDK.
-	# Keep the same autoload, but skip singleton lookup and error logs.
-	if OS.has_feature("direct_distribution"):
-		return
 	if _is_initialized:
 		return
 	_is_initialized = true
@@ -1600,7 +1597,7 @@ func get_promoted_product_ios() -> Variant:
 					return Types.ProductIOS.from_dict(parsed)
 	return null
 
-## Check if can present external purchase notice (iOS 18.2+).
+## Check if can present external purchase notice (iOS 17.4+).
 ## @return bool - true if external purchase notice can be presented
 ##
 ## See: https://openiap.dev/docs/apis/ios/can-present-external-purchase-notice-ios
@@ -1610,7 +1607,7 @@ func can_present_external_purchase_notice_ios() -> bool:
 		return payload.get("success", false) and payload.get("canPresent", false)
 	return false
 
-## Present external purchase notice sheet (iOS 18.2+).
+## Present external purchase notice sheet (iOS 17.4+).
 ## @return Types.ExternalPurchaseNoticeResultIOS
 ##
 ## See: https://openiap.dev/docs/apis/ios/present-external-purchase-notice-sheet-ios
@@ -1626,7 +1623,7 @@ func present_external_purchase_notice_sheet_ios() -> Variant:
 	var default_result = Types.ExternalPurchaseNoticeResultIOS.new()
 	return default_result
 
-## Present external purchase link (iOS 18.2+).
+## Present external purchase link.
 ## @param url: String - external purchase URL
 ## @return Types.ExternalPurchaseLinkResultIOS
 ##
@@ -2168,6 +2165,11 @@ func is_stub_mode() -> bool:
 ## Returns Types.IapStore enum value
 func get_store() -> Variant:
 	if _platform == "Android":
+		# Every store is an Android build; the export tags the one it linked.
+		if _has_feature.call(AndroidStore.store_feature("horizon")):
+			return Types.IapStore.HORIZON
+		if _has_feature.call(AndroidStore.store_feature("amazon")):
+			return Types.IapStore.AMAZON
 		return Types.IapStore.GOOGLE
 	elif _is_apple():
 		return Types.IapStore.APPLE

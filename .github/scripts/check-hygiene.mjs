@@ -59,6 +59,7 @@ const FORBIDDEN = [
   [/\.godot\//, '.godot/ is committed. It contains the signing keystore password'],
   [/\.zip$/, 'an original asset ZIP is committed'],
   [/(^|\/)_tmp_/, 'a render temp file (_tmp_*) is committed'],
+  [/(^|\/)iapkit(_publishable)?\.cfg$/, 'an IAPKit key file is committed; exports generate it'],
 ];
 for (const file of tracked) {
   for (const [pattern, why] of FORBIDDEN) {

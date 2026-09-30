@@ -221,7 +221,7 @@ func _test_title_capture_contract(title: Control, locale: String) -> void:
 	var prompt_player: AnimationPlayer = title.get_node(
 		"Ui/Screen/PromptBlink") as AnimationPlayer
 	var expected_direct_distribution: bool = OS.has_feature("direct_distribution")
-	var expected_storefront: bool = IapStore.storefront_enabled()
+	var expected_storefront: bool = Shop.storefront_enabled()
 	_expect_true(prompt_player.is_playing(), locale + " normal title start-hint blink")
 	_expect_equal(
 		prompt_player.current_animation, "blink",

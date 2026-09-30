@@ -162,7 +162,7 @@ func _ready() -> void:
 	$Ui/Screen/ChronicleButton.pressed.connect(_open_chronicle)
 	_chronicle.closed.connect(_on_panel_closed)
 	var store_button: Button = $Ui/Screen/StoreButton
-	var storefront_enabled: bool = IapStore.storefront_enabled()
+	var storefront_enabled: bool = Shop.storefront_enabled()
 	store_button.visible = storefront_enabled
 	store_button.disabled = not storefront_enabled
 	if store_button.visible:
@@ -294,7 +294,7 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 		var ladder_button: Button = $Ui/Screen/LadderButton
 		var store_button: Button = $Ui/Screen/StoreButton
 		var direct_distribution: bool = OS.has_feature("direct_distribution")
-		var storefront_enabled: bool = IapStore.storefront_enabled()
+		var storefront_enabled: bool = Shop.storefront_enabled()
 		var store_button_visible: bool = store_button.is_visible_in_tree()
 		var store_button_enabled: bool = not store_button.disabled
 		var storefront_feature_matches: bool = storefront_enabled \
@@ -940,7 +940,7 @@ func _take_open_store_request() -> bool:
 		return false
 	var requested: bool = bool(root.get_meta(OPEN_STORE_META, false))
 	root.remove_meta(OPEN_STORE_META)
-	return requested and IapStore.storefront_enabled()
+	return requested and Shop.storefront_enabled()
 
 
 func _take_open_shrine_request() -> bool:

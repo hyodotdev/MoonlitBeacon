@@ -260,10 +260,10 @@ included. Changing one GDScript doc comment changes `runtime_sha256` and
 invalidates the phone, 7-inch, 10-inch, and iPad sets, even if the pixels
 did not move.
 
-**`export_presets.cfg` and `iapkit.cfg` are excluded.** Bumping version and
-build numbers does not break the fingerprint. That is a fingerprint fact;
-the recapture rule above ("lock the version before capture") is separate
-and still applies.
+**`export_presets.cfg` and `iapkit_publishable.cfg` are excluded.** Bumping
+version and build numbers does not break the fingerprint. That is a
+fingerprint fact; the recapture rule above ("lock the version before
+capture") is separate and still applies.
 
 **If you touched `apps/game/`, run this separately:**
 
@@ -657,6 +657,7 @@ tool environments. Only `ios:upload` actually sends a binary;
 `pnpm android:bundle` and iOS export need an IAPKit publishable key for
 purchase verification. They look at `IAPKIT_API_KEY` first, and on macOS
 fall back to the Keychain service `dev.openiap.kit.moonlitbeacon`, account
-`MoonlitBeacon Mobile`. The generated `apps/game/iapkit.cfg` is deleted
-after export and is not in Git. Never put an `openiap-kit_sk_…`
-secret/admin key in an app build.
+`MoonlitBeacon Mobile`. The generated `apps/game/iapkit_publishable.cfg` is
+deleted after export and is not in Git. It is not named `iapkit.cfg`
+because godot-iap 3.6 leaves that file out of release exports. Never put an
+`openiap-kit_sk_…` secret/admin key in an app build.

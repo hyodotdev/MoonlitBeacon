@@ -575,14 +575,14 @@ test('verifies IAPKit config count and pk-only contents per Android distribution
     if (command === 'jar') {
       return {
         status: 0,
-        stdout: 'assetPackInstallTime/assets/iapkit.cfg\n',
+        stdout: 'assetPackInstallTime/assets/iapkit_publishable.cfg\n',
       };
     }
     assert.equal(command, 'unzip');
     assert.deepEqual(args, [
       '-p',
       '/tmp/release.aab',
-      'assetPackInstallTime/assets/iapkit.cfg',
+      'assetPackInstallTime/assets/iapkit_publishable.cfg',
     ]);
     return {
       status: 0,
@@ -606,7 +606,7 @@ test('verifies IAPKit config count and pk-only contents per Android distribution
   );
   assert.throws(
     () => verifyAndroidArchiveIapBoundary('/tmp/direct.apk', {
-      spawn: () => ({ status: 0, stdout: 'assets/iapkit.cfg\n' }),
+      spawn: () => ({ status: 0, stdout: 'assets/iapkit_publishable.cfg\n' }),
       store: false,
     }),
     /Direct-distribution/,
@@ -616,7 +616,7 @@ test('verifies IAPKit config count and pk-only contents per Android distribution
       spawn: (command) => command === 'jar'
         ? {
           status: 0,
-          stdout: 'assetPackInstallTime/assets/iapkit.cfg\n',
+          stdout: 'assetPackInstallTime/assets/iapkit_publishable.cfg\n',
         }
         : {
           status: 0,
@@ -632,7 +632,7 @@ test('verifies IAPKit config count and pk-only contents per Android distribution
       spawn: (command) => command === 'jar'
         ? {
           status: 0,
-          stdout: 'assetPackInstallTime/assets/iapkit.cfg\n',
+          stdout: 'assetPackInstallTime/assets/iapkit_publishable.cfg\n',
         }
         : {
           status: 0,

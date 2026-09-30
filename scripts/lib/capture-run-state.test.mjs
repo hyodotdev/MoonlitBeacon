@@ -2463,7 +2463,7 @@ test('runtime probe and per-screen debug state are not enabled in release', () =
   const shopPrepareEnd = shop.indexOf('func debug_store_capture_state(', shopPrepareStart);
   const shopPrepare = shop.slice(shopPrepareStart, shopPrepareEnd);
   assert.match(shopPrepare, /_capture_selected_product_id = product_id/u);
-  assert.match(shopPrepare, /_coins_scroll[\s\S]+IapStore\.is_consumable/u);
+  assert.match(shopPrepare, /_coins_scroll[\s\S]+Shop\.is_consumable/u);
   assert.match(shopPrepare, /scroll\.scroll_horizontal =/u);
   assert.equal(
     /(?:price|action|_restore|_status)\.(?:text|disabled)\s*=/u.test(shopPrepare),
