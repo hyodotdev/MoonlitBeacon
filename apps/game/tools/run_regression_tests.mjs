@@ -71,6 +71,7 @@ const checks = [
   ['Store capture hides debug UI', ['--script', 'res://tests/test_store_capture_clean_ui.gd'], true, false],
   ['Pixel 10 hero-direction capture board', ['res://tests/test_hero_direction_capture.tscn'], true, false],
   ['Result screen five-language layout', ['res://tests/test_result_layout.tscn'], true, false],
+  ['Result depth line past the win', ['res://tests/test_result_depth.tscn'], true, false],
   ['Result, ladder, and shrine route', ['res://tests/test_result_route.tscn'], true, false],
   ['Versioned ladder save, sort, and display', ['res://tests/test_ladder.tscn'], true, false],
 ];

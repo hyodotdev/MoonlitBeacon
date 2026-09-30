@@ -90,7 +90,7 @@ RELIC_TOUGH_LIFE_DESC,하트 칸 +1 · 즉시 한 칸 회복,Max hearts +1 · Re
 RELIC_TWIN_ARROW_NAME,쌍월륜,Twin Moon Discs,双月輪,双月轮,雙月輪
 RELIC_TWIN_ARROW_DESC,월륜 편대 총화력 +18% · 유성우 진화 경로,Moon Disc volley power +18% · Starfall path,月輪編隊の総火力 +18% · 流星雨への進化経路,月轮齐射火力 +18% · 流星雨进化路线,月輪齊射火力 +18% · 流星雨進化路線
 RELIC_WARM_BEACON_NAME,봉화의 온기,Beacon's Warmth,烽火の温もり,烽火暖意,烽火暖意
-RELIC_WARM_BEACON_DESC,순환마다 첫 봉화를 켜면 한 칸 회복,Restore 1 heart at the first beacon of each cycle,各周回の最初の烽火でハートを1回復,每轮点燃第一座烽火时恢复1颗心,每輪點燃第一座烽火時恢復1顆心
+RELIC_WARM_BEACON_DESC,순환마다 첫 봉화를 켜면 한 칸 회복,Restore 1 heart at the first beacon of each wave,巡ごとに最初の烽火でハートを1回復,每轮点燃第一座烽火时恢复1颗心,每輪點燃第一座烽火時恢復1顆心
 RELIC_WIDE_ARC_NAME,넓은 베기,Wide Slash,広い斬撃,广域斩击,廣域斬擊
 RELIC_WIDE_ARC_DESC,베는 각도 +25% · 만월참 진화 경로,Slash arc +25% · Full Moon path,斬撃角度 +25% · 満月斬りへの進化経路,斩击角度 +25% · 满月斩进化路线,斬擊角度 +25% · 滿月斬進化路線
 GUARDIAN_REWARD,수호자의 전리품,Guardian's trove,守護者の戦利品,守护者战利品,守護者戰利品
@@ -234,7 +234,7 @@ COMPASS_EXIT,탈출구,ESCAPE,脱出口,出口,出口
 COMPASS_GUARDIAN,수호자,GUARDIAN,守護者,守护者,守護者
 ZONE_TRAVEL,추격을 뚫고 다음 지형으로,Escaping to the next region,追跡を振り切り次の地域へ,突破追击前往下一区域,突破追擊前往下一區域
 ZONE_ENTER,%s 진입,Entering %s,%sに進入,进入%s,進入%s
-SCORE_CYCLES,순환 %d바퀴,Cycles %d,巡回数 %d,循环轮数 %d,循環輪數 %d
+SCORE_CYCLES,순환 %d,Waves %d,巡 %d,轮数 %d,輪數 %d
 SCORE_LEVEL,레벨 %d,Level %d,レベル %d,等级 %d,等級 %d
 SHRINE_TITLE,달빛 제단,Moonlit Shrine,月光の祭壇,月光祭坛,月光祭壇
 SHRINE_OPEN,제단,Shrine,祭壇,祭坛,祭壇
@@ -527,7 +527,7 @@ RELIC_STAR_MAGNET_DESC,획득물이 더 멀리서 날아온다 · 범위 +1,Pick
 RELIC_THORN_BLOOM_NAME,가시 꽃,Thorn Bloom,棘の花,荆棘之花,荊棘之花
 RELIC_THORN_BLOOM_DESC,맞으면 가시가 터져 적을 찌르고 밀어낸다,A hit bursts thorns that hurt and push foes back,被弾で棘が弾け 敵を刺して押し返す,受击时荆棘爆开 伤敌并击退,受擊時荊棘爆開 傷敵並擊退
 RELIC_SECOND_LIGHT_NAME,두 번째 빛,Second Light,二つ目の光,第二道光,第二道光
-RELIC_SECOND_LIGHT_DESC,순환마다 한 번 치명타에서 살아남는다,Once a cycle survive a lethal hit,周回ごとに一度 致命傷から生き残る,每轮一次 在致命一击中幸存,每輪一次 在致命一擊中倖存
+RELIC_SECOND_LIGHT_DESC,순환마다 한 번 치명타에서 살아남는다,Once a wave survive a lethal hit,巡ごとに一度 致命傷から生き残る,每轮一次 在致命一击中幸存,每輪一次 在致命一擊中倖存
 RELIC_MOON_BURST_NAME,달빛 폭발,Moon Burst,月光の爆発,月光爆发,月光爆發
 RELIC_MOON_BURST_DESC,카드를 고를 때 달빛이 터져 주변을 다치게 하고 밀어낸다,Choosing a card bursts moonlight that hurts and pushes back what is near,カードを選ぶと月光が弾け 周りを傷つけて押し返す,选择卡牌时月光爆开 伤害并击退周围敌人,選擇卡牌時月光爆開 傷害並擊退周圍敵人
 RELIC_WINTER_BELL_NAME,겨울 종,Winter Bell,冬の鐘,冬之钟,冬之鐘

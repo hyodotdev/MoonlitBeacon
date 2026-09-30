@@ -213,7 +213,7 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	# Coin cards have no art, so they are that much shorter. The two-row shop
 	# still fitting Pixel 10's 337px safe area is because of that gap.
 	var coin: bool = Shop.is_consumable(product_id)
-	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(246, 98)
+	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(246, 117)
 	if coin:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# Horizontal drag on the parent ScrollContainer still works over product
@@ -274,12 +274,14 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	var description: Label = _label(
 		tr(str(catalog.get("description", ""))), 10 if coin else 11, TEXT)
 	description.name = &"Description"
-	# Character blurb is two lines max. A third line repeats in the detail
-	# opened by tapping the face anyway, and that line is room for the coin row.
-	description.custom_minimum_size.y = 13 if coin else 38
+	# The blurb shows whole in three lines: the longest hero stat line wraps
+	# to three in English, and so do the supporter and lantern blurbs. Nothing
+	# here ends in an ellipsis; the detail behind the portrait still carries
+	# the full body, numbers and motion.
+	description.custom_minimum_size.y = 13 if coin else 57
 	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.max_lines_visible = 1 if coin else 2
+	description.max_lines_visible = 1 if coin else 3
 	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	content.add_child(description)
 

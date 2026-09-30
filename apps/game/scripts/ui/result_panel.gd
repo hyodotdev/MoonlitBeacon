@@ -94,6 +94,13 @@ func show_result(
 	var ending: String = "win" if won and score.cycles >= LEGEND_CYCLE \
 		else ("escape" if won else "lose")
 	_epitaph.text = tr("STORY_EPITAPH_" + ending.to_upper())
+	# Past the win the HUD counts Depth, so the result says it too: the same
+	# `Expedition.depth()` the HUD reads, next to the closing story line. A
+	# second line does not fit between title and score table, so it shares the
+	# epitaph's full-width line. The Waves row keeps its points; this scores nothing.
+	var deep: int = Expedition.depth(score.cycles)
+	if deep > 0:
+		_epitaph.text += " · " + tr("HUD_DEPTH") % deep
 	# The ending you reach is written into the chronicle.
 	Chronicle.mark("epitaph_" + ending)
 
