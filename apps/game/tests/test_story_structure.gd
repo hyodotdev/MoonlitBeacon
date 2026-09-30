@@ -117,7 +117,8 @@ func _fresh_chronicle() -> void:
 
 func _test_chronicle_persistence() -> void:
 	_fresh_chronicle()
-	_expect_equal(Chronicle.total_count(), 34, "thirty-four entries to find")
+	# Forty since the six place memories joined the chronicle (Brief 006).
+	_expect_equal(Chronicle.total_count(), 40, "forty entries to find")
 	_expect_equal(Chronicle.unlocked_count(), 0, "a new save has found nothing")
 	_expect_true(Chronicle.mark("story_1"), "first mark of an entry reports new")
 	_expect_false(Chronicle.mark("story_1"), "marking again reports nothing new")
@@ -250,12 +251,12 @@ func _test_chronicle_panel() -> void:
 	panel.call("open")
 	await get_tree().process_frame
 	var list: VBoxContainer = panel.get_node("Frame/Margin/Rows/Scroll/List") as VBoxContainer
-	# Seven section headings plus one row per entry: nothing is hidden, so the
+	# Eight section headings plus one row per entry: nothing is hidden, so the
 	# player can see how much is left.
-	_expect_equal(list.get_child_count(), 7 + Chronicle.total_count(),
+	_expect_equal(list.get_child_count(), 8 + Chronicle.total_count(),
 		"the page lists every section and every entry")
 	var progress: Label = panel.get_node("Frame/Margin/Rows/Header/Progress") as Label
-	_expect_equal(progress.text, "Recorded 2/34", "the page shows how many are recorded")
+	_expect_equal(progress.text, "Recorded 2/40", "the page shows how many are recorded")
 
 	# A heading that collapses to a sliver wraps one character per line (this
 	# happened when the act label stopped expanding but kept autowrap on).

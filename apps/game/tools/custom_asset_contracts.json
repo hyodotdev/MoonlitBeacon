@@ -2765,6 +2765,40 @@
       "alpha_mode": "graded",
       "max_visible_rgb_colors": 65536,
       "max_alpha_levels": 256
+    },
+    {
+      "id": "places.motifs",
+      "category": "world",
+      "status": "final",
+      "path": "assets/custom/world/places/motifs.png",
+      "width": 192,
+      "height": 64,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 24,
+      "frame_grid": {
+        "columns": 6,
+        "rows": 2,
+        "cell_width": 32,
+        "cell_height": 32,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "places.window",
+      "category": "world",
+      "status": "final",
+      "path": "assets/custom/world/places/window.png",
+      "width": 64,
+      "height": 32,
+      "alpha_mode": "binary",
+      "max_visible_rgb_colors": 12,
+      "frame_grid": {
+        "columns": 2,
+        "rows": 1,
+        "cell_width": 32,
+        "cell_height": 32,
+        "allow_blank_frames": false
+      }
     }
   ]
 }

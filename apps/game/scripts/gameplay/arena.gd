@@ -233,6 +233,13 @@ const ESCAPE_WAVE_INTERVAL: float = 3.0
 const ESCAPE_WAVE_COUNT: int = 3
 const ESCAPE_WAVE_MAX: int = 3
 const GATE_EDGE_INSET: float = 34.0
+## Where the memory motif stands relative to its beacon, one offset per
+## terrain in `Expedition.TERRAINS` order. Beside the clearing, never under the
+## beacon's feet and never out in a movement corridor.
+const MOTIF_OFFSETS: Array[Vector2] = [
+	Vector2(58, 30), Vector2(-58, 30), Vector2(58, -34),
+	Vector2(-58, -34), Vector2(40, 52), Vector2(-40, -52),
+]
 ## Real collision radius used to push permanent/recoverable loot clear of new structures on terrain change.
 const POWER_ORB_TERRAIN_RADIUS: float = 12.0
 const MISSILE_CORE_TERRAIN_RADIUS: float = 10.0
@@ -454,6 +461,27 @@ var _fork_options: Array[int] = []
 var _fork_directions: Array[Vector2] = []
 var _gate_b: Node2D = null
 var _compass_b: BeaconCompass = null
+## The memory motif standing by this zone's beacon, and the terrain ids whose
+## discovery line already played this run. The motif is one reused node; the
+## set keeps a repeated terrain from spamming its line twice in one run.
+var _motif: PlaceMotif = null
+var _places_seen_run: Dictionary = {}
+## Seconds a fresh place discovery owns the voice strip. The fork and guardian
+## lines that fire on the same beacon are spoken after this, not instead.
+const PLACE_GUARD_SECONDS: float = 3.0
+## Real-time clock (msec) until which the discovery owns the strip.
+var _place_guard_until_msec: int = 0
+## Terrains whose discovery was suppressed by a modal, a transition or capture,
+## oldest first. Their chronicle entry is already recorded at restore time; the
+## line itself plays when the screen is quiet again.
+var _places_pending: Array[int] = []
+## A taken voice line waiting out the discovery guard. Last one wins, the way
+## the strip itself swaps in place; its chronicle entry (a guardian first meet)
+## is already marked, so dropping it loses flavor, never a record.
+var _say_deferred_line: String = ""
+var _strip_flush_running: bool = false
+## Bumped when the run ends so a delayed strip callback never speaks past it.
+var _run_generation: int = 0
 ## On only while running for the gate after the first two beacons.
 var _escape_active: bool = false
 var _escape_wave_left: float = 0.0
@@ -703,6 +731,12 @@ func _ready() -> void:
 		beacon.lit_changed.connect(_on_beacon_lit_changed)
 		beacon.charge_changed.connect(_on_beacon_charge_changed)
 		beacon.charge_completed.connect(_on_beacon_charge_completed)
+	# One memory motif for the whole run, reused across zones. It sits ahead of
+	# the player in the tree so it draws under the hero, above the room.
+	_motif = PlaceMotif.new()
+	_motif.name = &"PlaceMotif"
+	add_child(_motif)
+	move_child(_motif, _player.get_index())
 	_place_beacons()
 	_gate.entered.connect(_on_gate_entered)
 
@@ -733,6 +767,7 @@ func _ready() -> void:
 	_pause.settings_requested.connect(_open_settings)
 	_pause.title_requested.connect(_return_to_title)
 	_pause.pause_changed.connect(_hud.set_banner_suppressed)
+	_pause.pause_changed.connect(_on_pause_changed)
 	_settings.credits_requested.connect(_open_credits)
 	_settings.closed.connect(_on_settings_closed)
 	_credits.closed.connect(_settings.open)
@@ -2622,6 +2657,8 @@ func _finish(won: bool) -> void:
 	# Otherwise JSON can stay live while no core is on screen.
 	_invalidate_debug_missile_capture()
 	_over = true
+	# A strip flush scheduled before the end must not speak over the result.
+	_run_generation += 1
 	if _overcharge_beacon != null:
 		# Defeat during overcharge is the most dangerous choice outcome. Dropping that event inflates
 		# success rate, so record the terminal result before clearing beacon state.
@@ -2703,7 +2740,9 @@ func _finish(won: bool) -> void:
 	_board_score = score.total()
 	_board_rank = score.rank()
 	_board_cycles = score.cycles
-	_result.show_result(won, score, is_best, Ladder.makes_board(_board_score))
+	_result.show_result(
+		won, score, is_best, Ladder.makes_board(_board_score),
+		_places_seen_run.size())
 
 
 func _on_continue_requested() -> void:
@@ -3174,6 +3213,102 @@ func _say(moment: String) -> void:
 	if not lore_id.is_empty():
 		Chronicle.mark(lore_id)
 	_voice_panel.say(_hero_for_run(), line)
+	if moment.begins_with("place_"):
+		# A new discovery owns the strip for a readable interval. Fork and
+		# guardian lines that fire on the same beacon wait it out instead of
+		# replacing the discovery in the same frame.
+		_place_guard_until_msec = Time.get_ticks_msec() \
+			+ int(PLACE_GUARD_SECONDS * 1000.0)
+
+
+## Speak a line that must not cut off a fresh place discovery.
+##
+## The fork voice line, the guardian first-meet line and the moonfire line all
+## fire on the same beacon that restores a place. When the discovery guard is
+## up the line is taken now — so the run's no-repeat consumption stays exactly
+## as if it had spoken — and the strip shows it after the discovery has been
+## readable. Only the strip waits: gate labels, the guardian banner and its
+## bolts are already on screen. A first meet is recorded at once; the meeting
+## happened whether or not its line has spoken yet.
+func _say_after_discovery(moment: String) -> void:
+	if _over or _transitioning:
+		return
+	if OS.is_debug_build() and _debug_hero_direction_capture_active:
+		return
+	if not _place_guard_active():
+		_say(moment)
+		return
+	var line: String = _voice.take(moment, _hero_id())
+	if line.is_empty():
+		return
+	var lore_id: String = Chronicle.id_for_moment(moment)
+	if not lore_id.is_empty():
+		Chronicle.mark(lore_id)
+	_say_deferred_line = line
+	_schedule_strip_flush()
+
+
+func _place_guard_active() -> bool:
+	return Time.get_ticks_msec() < _place_guard_until_msec
+
+
+func _schedule_strip_flush() -> void:
+	if _strip_flush_running:
+		return
+	_strip_flush_running = true
+	_flush_strip.call_deferred(_run_generation)
+
+
+## Speak what the strip owed: suppressed discoveries first, then the deferred
+## line. Never past the run's end, never over a modal, a transition or capture.
+## Every queued entry already has its chronicle record, so giving up after a
+## long block loses a reading, never a record.
+func _flush_strip(generation: int) -> void:
+	# Let the screen settle before speaking anything owed: a modal that just
+	# closed may be handing off to another one in the same frame.
+	await get_tree().create_timer(1.0, false).timeout
+	var waits: int = 0
+	while waits < 40:
+		if generation != _run_generation or _over or not is_inside_tree():
+			break
+		if _say_deferred_line.is_empty() and _places_pending.is_empty():
+			break
+		if _capture_progress_frozen:
+			_say_deferred_line = ""
+			break
+		var remaining: float = float(_place_guard_until_msec - Time.get_ticks_msec()) / 1000.0
+		if remaining > 0.0:
+			await get_tree().create_timer(remaining, false).timeout
+			waits += 1
+			continue
+		if _strip_blocked():
+			await get_tree().create_timer(1.0, false).timeout
+			waits += 1
+			continue
+		if not _places_pending.is_empty():
+			var terrain: int = _places_pending[0]
+			var id: String = PlaceMemory.terrain_id(terrain)
+			if _places_seen_run.has(id) or _maybe_show_place_memory(terrain):
+				_places_pending.pop_front()
+			else:
+				# Quiet screen and still refused: do not spin on it.
+				_places_pending.pop_front()
+			continue
+		var line: String = _say_deferred_line
+		_say_deferred_line = ""
+		if _voice_panel != null and is_instance_valid(_voice_panel):
+			_voice_panel.say(_hero_for_run(), line)
+	# Giving up after a long block drops the readings; every record was
+	# already written, so nothing is lost silently.
+	_say_deferred_line = ""
+	_places_pending.clear()
+	_strip_flush_running = false
+
+
+## A modal, a loot panel or a wipe is up: the strip stays quiet.
+func _strip_blocked() -> bool:
+	return _transitioning or _dialogue.is_open() or _relic.visible \
+		or _result.visible or _run_choice.visible
 
 
 ## BGM playback rate for the current cycle.
@@ -3356,11 +3491,15 @@ func _open_fork(first: Dictionary, second: Dictionary) -> void:
 	_gate_b.entered.connect(_on_gate_entered.bind(1))
 	_name_gate(_gate, 0)
 	_name_gate(_gate_b, 1)
-	_say("fork")
+	# The gates already name their places; the voice line waits out a fresh
+	# discovery instead of replacing it in the same frame.
+	_say_after_discovery("fork")
 
 
-## Say where a fork gate leads: the terrain, and what waits there (the guardian on the way to
-## the third zone, the omen on the way to the second).
+## Say where a fork gate leads: the terrain, what waits there (the guardian on the way to
+## the third zone, the omen on the way to the second), and the memory waiting
+## in that place. The clue rides its own line, so the dodge information stays
+## exactly where it was.
 func _name_gate(gate: Node2D, index: int) -> void:
 	var terrain: int = _fork_options[index]
 	var step: Dictionary = WORLD_STEPS[terrain]
@@ -3376,7 +3515,9 @@ func _name_gate(gate: Node2D, index: int) -> void:
 		for omen in omens:
 			names.append(tr(Expedition.omen_name_key(omen)))
 		detail = " · ".join(names)
-	gate.set_destination(tr(str(step["name"])), detail, step["emblem"] as Color)
+	gate.set_destination(
+		tr(str(step["name"])), detail, step["emblem"] as Color,
+		tr(PlaceMemory.clue_key(terrain)))
 
 
 ## Close the second gate and forget the fork. Safe to call any time.
@@ -5104,7 +5245,9 @@ func _gain_moonfire(amount: float) -> void:
 func _activate_moonfire(locked: bool, announce: bool = true) -> void:
 	var was_on: bool = _moonfire_on
 	if not was_on:
-		_say("moonfire")
+		# The third beacon restores a place in the same frame; this line
+		# waits out the discovery like the guardian meet does.
+		_say_after_discovery("moonfire")
 	_moonfire_on = true
 	_moonfire_locked = _moonfire_locked or locked
 	_moonfire_charge = 0.0
@@ -5631,6 +5774,24 @@ func _place_current_beacon() -> void:
 			best = at
 	_beacons[index].position = _room.nearest_clear(best, 42.0, 10.0)
 	_beacons[index].reset_physics_interpolation()
+	_place_motif(_beacons[index].position)
+
+
+## Stand this zone's memory motif beside its beacon clearing, dim.
+##
+## The motif is decor, not terrain: it never blocks and never fights. A fresh
+## zone always starts dim so every run has a visible restoration to perform,
+## even when the chronicle already holds this place.
+func _place_motif(beacon_at: Vector2) -> void:
+	if _motif == null or not is_instance_valid(_motif):
+		return
+	var terrain: int = _terrain_at(_zone_index)
+	_motif.show_terrain(terrain)
+	var offset: Vector2 = MOTIF_OFFSETS[clampi(terrain, 0, MOTIF_OFFSETS.size() - 1)]
+	var at: Vector2 = _room.nearest_clear(
+		_room.clamp_to_play(beacon_at + offset), 4.0)
+	_motif.position = at
+	_motif.reset_physics_interpolation()
 
 
 func _refresh_beacon_visibility() -> void:
@@ -5920,15 +6081,16 @@ func _on_guardian_calls_pack(at: Vector2, count: int) -> void:
 
 
 ## First meeting per guardian per run speaks its own line; later meetings
-## fall back to the generic guardian moment. Only one `_say` per spawn —
-## the strip has no queue and the last call wins.
+## fall back to the generic guardian moment. Only one voice line per spawn —
+## the strip has no queue and the last call wins. The line waits out a fresh
+## place discovery; the banner above already named the guardian and its rule.
 func _announce_guardian_meet() -> void:
 	var moment: String = "meet_" + _guardian_resource_path().get_file().get_basename()
 	if not _seen_guardians.has(moment) and HeroVoice.LINES.has(moment):
 		_seen_guardians[moment] = true
-		_say(moment)
+		_say_after_discovery(moment)
 		return
-	_say("guardian")
+	_say_after_discovery("guardian")
 
 
 ## At half health, once per guardian, it calls two swarm escorts.
@@ -6468,13 +6630,17 @@ func _on_beacon_lit_changed(beacon: Node2D, is_lit: bool) -> void:
 		if _tutorial_step < 4:
 			_tutorial_step = 4
 		_try_apply_beacon_heal()
-		# The moment a zone paints one step. First and last beacon have different lines.
-		if _lit_count >= _beacons.size():
-			_say("beacon_last")
-		elif _lit_count == 1:
-			_say("beacon_first")
-		else:
-			_say("beacon_mid")
+		# The moment a zone paints one step. The first restoration of a place
+		# in this run speaks its memory instead of the routine beacon line —
+		# the strip holds one line, so the discovery wins and the beacon
+		# moment stays unspent for the next beacon.
+		if not _restore_place():
+			if _lit_count >= _beacons.size():
+				_say("beacon_last")
+			elif _lit_count == 1:
+				_say("beacon_first")
+			else:
+				_say("beacon_mid")
 
 		if _lit_count >= _beacons.size():
 			# The reward for hunting turns into combat power immediately. It stays on until the guardian
@@ -6495,3 +6661,63 @@ func _on_beacon_lit_changed(beacon: Node2D, is_lit: bool) -> void:
 	# First beacon is blue dawn, second sunrise, third day. Not just exposure — color temperature
 	# must shift too or night does not look like it actually passed.
 	_apply_time_tone()
+
+
+## Light this zone's memory motif. Returns true when the restoration also
+## spoke the place's discovery line.
+##
+## The motif always lights — a repeated terrain in this run, or a place the
+## chronicle already holds, still shows its restoration. Only the line is
+## once per run. The chronicle entry is recorded at restore time, not at
+## speak time: a suppressed line still leaves its record behind.
+func _restore_place() -> bool:
+	var terrain: int = _terrain_at(_zone_index)
+	if _motif != null and is_instance_valid(_motif):
+		_motif.set_lit(true)
+	var entry: String = PlaceMemory.chronicle_id(terrain)
+	if not entry.is_empty() and not _over and not _capture_progress_frozen:
+		Chronicle.mark(entry)
+	return _maybe_show_place_memory(terrain)
+
+
+## Speak this terrain's memory once per run. Returns true when it played.
+##
+## Never during a modal, a transition, or capture: the strip is nonblocking,
+## but a line that lands on a choice, a wipe, or a store shot is still noise.
+## A suppressed discovery is queued, never marked seen: it plays when the
+## screen is quiet again, and its chronicle entry was already recorded at
+## restore time.
+func _maybe_show_place_memory(terrain: int) -> bool:
+	var id: String = PlaceMemory.terrain_id(terrain)
+	if id.is_empty() or _places_seen_run.has(id):
+		return false
+	if _over:
+		return false
+	if _voice_panel == null or not is_instance_valid(_voice_panel):
+		return false
+	if _capture_progress_frozen or _strip_blocked():
+		if not _places_pending.has(terrain):
+			_places_pending.append(terrain)
+		_schedule_strip_flush()
+		return false
+	_places_seen_run[id] = true
+	_say(PlaceMemory.moment(terrain))
+	if not _places_pending.is_empty():
+		_schedule_strip_flush()
+	return true
+
+
+## The pause screen carries the immediate story objective, refreshed every
+## time it opens so the counts are never stale.
+func _on_pause_changed(paused: bool) -> void:
+	if paused:
+		_pause.set_objective(_objective_text())
+
+
+func _objective_text() -> String:
+	var where: String = tr("HUD_WAVE") % _cycle \
+		if _cycle <= Expedition.OFFICIAL_WIN_CYCLE \
+		else tr("HUD_DEPTH") % Expedition.depth(_cycle)
+	return "%s\n%s · %s" % [
+		tr("OBJECTIVE_ROAD"), where,
+		tr("OBJECTIVE_PLACES") % _places_seen_run.size()]

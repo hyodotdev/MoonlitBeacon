@@ -43,6 +43,8 @@ static func sections() -> Array[Dictionary]:
 		_act(2, [_story(3), _story(4), _story(5)]),
 		_act(3, [_story(6), _story(7), _story(8)]),
 		_act(4, [_story(9), _story(10), _story(12)]),
+		{"title": "CHRONICLE_PLACES", "label": "", "entries": [
+			_place(0), _place(1), _place(2), _place(3), _place(4), _place(5)]},
 		{"title": "CHRONICLE_SPIRITS", "label": "", "entries": [
 			_meet("drifter"), _meet("ember"), _meet("caster"), _meet("weaver"),
 			_meet("stalker"), _meet("swarm"), _meet("wisp")]},
@@ -105,10 +107,15 @@ static func forget_cache() -> void:
 	_loaded = false
 
 
-## Entry id for a first-sight moment, e.g. `meet_drifter`, or `""` for a moment
-## that is not a chronicle entry.
+## Entry id for a first-sight moment, e.g. `meet_drifter`, or a place-memory
+## moment, e.g. `place_forest`; `""` for a moment that is not a chronicle
+## entry.
 static func id_for_moment(moment: String) -> String:
-	return moment if moment.begins_with("meet_") and _known().has(moment) else ""
+	if not _known().has(moment):
+		return ""
+	if moment.begins_with("meet_") or moment.begins_with("place_"):
+		return moment
+	return ""
 
 
 # --- internals ----------------------------------------------------------------
@@ -133,6 +140,12 @@ static func _story(cycle: int) -> Dictionary:
 
 static func _meet(kind: String) -> Dictionary:
 	return _entry("meet_" + kind, ["VOICE_MEET_%s_1" % kind.to_upper()])
+
+
+## A restored place: its motif name first, then the discovery line.
+static func _place(terrain: int) -> Dictionary:
+	return {"id": PlaceMemory.chronicle_id(terrain), "keys": [
+		PlaceMemory.name_key(terrain), PlaceMemory.memory_key(terrain)]}
 
 
 ## An ending shows its short name first, then the line the run closed on.

@@ -58,20 +58,28 @@ func _finish_open(generation: int) -> void:
 
 
 ## Say where this gate leads. A fork has two, so each carries the place's name in its own colour,
-## and a second line for what waits there (an omen, or the guardian).
-func set_destination(title: String, detail: String, accent: Color) -> void:
+## a second line for what waits there (an omen, or the guardian), and a third
+## for the memory waiting in that place. An empty line is skipped, so a plain
+## gate keeps its old two-line shape.
+func set_destination(
+		title: String, detail: String, accent: Color, clue: String = "") -> void:
 	if _label == null:
 		_label = Label.new()
 		_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_label.size = Vector2(150, 26)
-		_label.position = Vector2(-75, -82)
+		_label.size = Vector2(150, 39)
+		_label.position = Vector2(-75, -95)
 		_label.add_theme_font_override("font", LABEL_FONT)
 		_label.add_theme_font_size_override("font_size", 9)
 		_label.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.08, 0.95))
 		_label.add_theme_constant_override("outline_size", 4)
 		add_child(_label)
-	_label.text = title if detail.is_empty() else title + "\n" + detail
+	var lines: PackedStringArray = PackedStringArray([title])
+	if not detail.is_empty():
+		lines.append(detail)
+	if not clue.is_empty():
+		lines.append(clue)
+	_label.text = "\n".join(lines)
 	_label.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.25))
 	_label.visible = true
 	_sprite.modulate = accent.lerp(Color.WHITE, 0.45)

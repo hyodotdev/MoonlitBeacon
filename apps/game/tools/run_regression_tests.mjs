@@ -66,6 +66,7 @@ const checks = [
   ['Terrain cycling and loot wiring', ['res://tests/test_terrain_integration.tscn'], true, false],
   ['Beacon and cycle two-way choice modal', ['res://tests/test_run_choice_panel.tscn'], true, false],
   ['Story acts, chronicle, and per-hero voice', ['res://tests/test_story_structure.tscn'], true, false],
+  ['Place memories, fork clues, and the road home', ['res://tests/test_place_memories.tscn'], true, false],
   ['Beacon choice and overcharge state transitions', ['res://tests/test_beacon_choice.tscn'], true, false],
   ['Compass off-screen checks and blink suppression', ['res://tests/test_beacon_compass.tscn'], true, false],
   ['Anonymous analytics consent, queue, and allowlist', ['--script', 'res://tests/test_analytics.gd'], true, false],

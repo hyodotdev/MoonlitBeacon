@@ -49,6 +49,12 @@ const LINES: Dictionary = {
 	"meet_guardian_frost_rime": ["VOICE_MEET_GUARDIAN_FROST_RIME_1"],
 	"meet_guardian_marsh_glow": ["VOICE_MEET_GUARDIAN_MARSH_GLOW_1"],
 	"meet_guardian_ruins_halo": ["VOICE_MEET_GUARDIAN_RUINS_HALO_1"],
+	"place_forest": ["PLACE_MEMORY_FOREST"],
+	"place_field": ["PLACE_MEMORY_FIELD"],
+	"place_camp": ["PLACE_MEMORY_CAMP"],
+	"place_frost": ["PLACE_MEMORY_FROST"],
+	"place_marsh": ["PLACE_MEMORY_MARSH"],
+	"place_ruins": ["PLACE_MEMORY_RUINS"],
 	"call_dark": ["VOICE_CALL_DARK_1", "VOICE_CALL_DARK_2"],
 	# The first fork of a run, and the first night that keeps a rule of its own (an omen).
 	"fork": ["VOICE_FORK_1", "VOICE_FORK_2"],

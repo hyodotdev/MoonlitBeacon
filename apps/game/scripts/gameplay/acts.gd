@@ -8,17 +8,16 @@ extends RefCounted
 ## boundaries a player can feel: a card the moment a new act begins, and a name
 ## for the stretch you are in.
 ##
-## The canon does not change (`notes/plans/world-story-pass.md`): the dark is a
-## hunger, spirits follow light like moths, guardians are swallowed light, and
-## the Wardens kept beacon lines that failed. Acts only say *when* each part of
-## that is learned.
+## The canon lives in `notes/plans/world-story-pass.md`: Nari's promise, a hunger
+## that is lost rather than hateful, and beacons that must remember one another
+## to make a road home. Acts only say *when* each part of that is learned.
 ##
 ## | Act | Cycles | What is learned |
 ## | --- | --- | --- |
-## | I · The Debt | 1–2 | The Wardens fell, one remains, and the dark eats light |
-## | II · The Hunger | 3–5 | The spirits are not hunting you. They are lost |
-## | III · The Line | 6–8 | A beacon is not a fire. It is a line the dark cannot cross |
-## | Epilogue · The Moonless | 9+ | Past the map. The dark gets a name |
+## | I · The Promise | 1–2 | Nari is gone; keep the road home lit |
+## | II · The Lost | 3–5 | What pursues you is lost, not hateful |
+## | III · The Road | 6–8 | Beacons must remember one another |
+## | Epilogue · The Road Home | 9+ | The road burns; other lights wait past the map |
 ##
 ## Text lives in the translation table as `ACT_<n>_LABEL / _TITLE / _EPIGRAPH`.
 
