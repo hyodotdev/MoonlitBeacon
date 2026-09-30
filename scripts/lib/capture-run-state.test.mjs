@@ -2481,11 +2481,20 @@ test('runtime probe and per-screen debug state are not enabled in release', () =
   assert.ok(guardianPathStart >= 0, 'must find the Guardian path-selection helper');
   assert.match(
     guardianPath,
-    /var step: Dictionary = _world_step\(\)/u,
+    /_guardian_path_for\(_terrain_at\(_zone_index\)\)/u,
+    'Guardian selection must come from the terrain of the current zone',
+  );
+  const guardianPickStart = arena.indexOf('func _guardian_path_for(');
+  const guardianPickEnd = arena.indexOf('\nfunc ', guardianPickStart + 1);
+  const guardianPick = arena.slice(guardianPickStart, guardianPickEnd);
+  assert.ok(guardianPickStart >= 0, 'must find the per-terrain Guardian picker');
+  assert.match(
+    guardianPick,
+    /var step: Dictionary = WORLD_STEPS\[terrain\]/u,
     'Guardian selection must come from the biome world step',
   );
   assert.match(
-    guardianPath,
+    guardianPick,
     /str\(step\["guardian"\]\)/u,
     'without a promotion roster it must fall back to the biome default Guardian',
   );
