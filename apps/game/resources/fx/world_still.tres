@@ -1,0 +1,13 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://shaders/world_polish.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/rim_color = Color(0.6, 0.76, 1, 1)
+shader_parameter/rim_strength = 0.3
+shader_parameter/crown_lift = 0.14
+shader_parameter/foot_shade = 0.2
+shader_parameter/sway = 0.0
+shader_parameter/sway_speed = 0.9
+shader_parameter/tree_rows_above = 0.0

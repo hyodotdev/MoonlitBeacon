@@ -91,9 +91,11 @@ func show_result(
 	_title.add_theme_color_override("font_color", WIN_COLOR if won else LOSE_COLOR)
 	# One closing story line under the title. Same outcome split as the title:
 	# kept-promise win, safe early return, or a debt passed to the next night.
-	_epitaph.text = tr("STORY_EPITAPH_WIN") \
-		if won and score.cycles >= LEGEND_CYCLE \
-		else (tr("STORY_EPITAPH_ESCAPE") if won else tr("STORY_EPITAPH_LOSE"))
+	var ending: String = "win" if won and score.cycles >= LEGEND_CYCLE \
+		else ("escape" if won else "lose")
+	_epitaph.text = tr("STORY_EPITAPH_" + ending.to_upper())
+	# The ending you reach is written into the chronicle.
+	Chronicle.mark("epitaph_" + ending)
 
 	# Every line holds its place from the start; only the numbers count from 0.
 	#

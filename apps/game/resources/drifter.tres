@@ -18,4 +18,5 @@ score_value = 90
 stagger_seconds = 0.12
 body_scale = 0.92
 tint = Color(1, 1, 1, 1)
+spark_color = Color(0.86, 0.8, 1, 1)
 anim_fps = 9.0

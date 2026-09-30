@@ -27,6 +27,7 @@ func _run() -> void:
 	_test_forest_ring()
 	_test_field_poke()
 	_test_camp_double_fan()
+	_test_tempo_stops_compressing()
 	_finish()
 
 
@@ -111,6 +112,33 @@ func _test_camp_double_fan() -> void:
 	# Cycle 3: 7-bolt fan, twice.
 	_expect_equal(_bolt_count() - before, 14, "camp double fan fires both volleys")
 	_expect_true(loop_closed, "camp loop closes back to approach")
+	spirit.free()
+
+
+## Through the official win a guardian's tempo grows exactly as it shipped; after it, a quarter as
+## fast, so a cycle-14 windup is still something a hand can answer.
+func _test_tempo_stops_compressing() -> void:
+	var spirit: Node2D = _spawn("res://resources/guardian_forest.tres")
+	var haste: Dictionary = {}
+	for cycle in [1, 3, 5, 8, 9, 11, 12, 16, 20, 30, 60]:
+		spirit.set("guardian_cycle", cycle)
+		haste[cycle] = float(spirit.call("_guardian_haste"))
+	# The shipped numbers, with the health below the enrage line left out (it is 1.0 here).
+	_expect_true(is_equal_approx(float(haste[1]), 1.0), "cycle 1 has no haste")
+	_expect_true(is_equal_approx(float(haste[3]), 1.2), "cycle 3 is 20% quicker")
+	_expect_true(is_equal_approx(float(haste[5]), 1.0 + 0.4 + 0.24), "cycle 5 is as shipped")
+	_expect_true(is_equal_approx(float(haste[8]), 1.0 + 0.7 + 0.6), "the official win is as shipped")
+	_expect_true(is_equal_approx(float(haste[9]), float(haste[8])),
+		"the first three cycles past the win add nothing yet")
+	_expect_true(is_equal_approx(float(haste[11]), float(haste[8])), "depth 3 still none")
+	_expect_true(float(haste[12]) > float(haste[8]), "depth 4 is a little quicker")
+	_expect_true(float(haste[12]) < float(haste[8]) * 1.15, "but only a little")
+	var previous: float = 0.0
+	for cycle in [1, 3, 5, 8, 9, 11, 12, 16, 20, 30, 60]:
+		_expect_true(float(haste[cycle]) >= previous, "tempo never eases (cycle %d)" % cycle)
+		previous = float(haste[cycle])
+	# At cycle 30 the old rule would have been 1 + 2.9 + 3.24 = 7.1 times: a windup of a tenth of a second.
+	_expect_true(float(haste[30]) < 3.6, "a deep guardian stays answerable (%.2f)" % float(haste[30]))
 	spirit.free()
 
 

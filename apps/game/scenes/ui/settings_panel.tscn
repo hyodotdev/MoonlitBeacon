@@ -1,13 +1,25 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/settings_panel.gd" id="script"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
 [ext_resource type="PackedScene" path="res://scenes/ui/analytics_consent_panel.tscn" id="analytics_consent"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="buttons_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="buttons_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="buttons_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="buttons_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="buttons_focus"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="buttons_gold_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="buttons_gold_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="buttons_gold_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="buttons_gold_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="buttons_gold_focus"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/normal.tres" id="buttons_ghost_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/hover.tres" id="buttons_ghost_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/pressed.tres" id="buttons_ghost_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/disabled.tres" id="buttons_ghost_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/focus.tres" id="buttons_ghost_focus"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/banner.tres" id="banner"]
 
 [node name="SettingsPanel" type="Control"]
 process_mode = 3
@@ -32,22 +44,43 @@ color = Color(0.02, 0.03, 0.07, 0.78)
 [node name="AnalyticsConsent" parent="Dim" instance=ExtResource("analytics_consent")]
 layout_mode = 1
 
+[node name="Card" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -256.0
+offset_top = -140.0
+offset_right = 256.0
+offset_bottom = 174.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("panel")
+
 [node name="Title" type="Label" parent="."]
 layout_mode = 1
-anchors_preset = 14
+anchors_preset = 8
 anchor_top = 0.5
-anchor_right = 1.0
+anchor_right = 0.5
 anchor_bottom = 0.5
-offset_top = -132.0
-offset_bottom = -96.0
+offset_top = -158.0
+offset_bottom = -124.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.95, 0.85, 1)
 theme_override_fonts/font = ExtResource("font")
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 20
 text = "SETTINGS_TITLE"
 horizontal_alignment = 1
+theme_override_styles/normal = ExtResource("banner")
+anchor_left = 0.5
+offset_left = -70.0
+offset_right = 70.0
+vertical_alignment = 1
 
 [node name="LanguageLabel" type="Label" parent="."]
 layout_mode = 1
@@ -86,11 +119,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "한국어"
 
@@ -110,11 +143,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "English"
 
@@ -134,11 +167,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "日本語"
 
@@ -158,11 +191,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "简中"
 
@@ -182,11 +215,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "繁中"
 
@@ -227,11 +260,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "-"
 
@@ -267,11 +300,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "+"
 
@@ -312,11 +345,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "-"
 
@@ -352,11 +385,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "+"
 
@@ -397,11 +430,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 text = "SETTINGS_ANALYTICS_UNKNOWN"
 
 [node name="Credits" type="Button" parent="."]
@@ -420,11 +453,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_normal")
+theme_override_styles/hover = ExtResource("buttons_hover")
+theme_override_styles/pressed = ExtResource("buttons_pressed")
+theme_override_styles/disabled = ExtResource("buttons_disabled")
+theme_override_styles/focus = ExtResource("buttons_focus")
 text = "SETTINGS_CREDITS"
 
 [node name="Close" type="Button" parent="."]
@@ -443,11 +476,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_gold_normal")
+theme_override_styles/hover = ExtResource("buttons_gold_hover")
+theme_override_styles/pressed = ExtResource("buttons_gold_pressed")
+theme_override_styles/disabled = ExtResource("buttons_gold_disabled")
+theme_override_styles/focus = ExtResource("buttons_gold_focus")
 text = "SETTINGS_CLOSE"
 
 [node name="ExternalLinks" type="HBoxContainer" parent="."]
@@ -472,11 +505,11 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_ghost_normal")
+theme_override_styles/hover = ExtResource("buttons_ghost_hover")
+theme_override_styles/pressed = ExtResource("buttons_ghost_pressed")
+theme_override_styles/disabled = ExtResource("buttons_ghost_disabled")
+theme_override_styles/focus = ExtResource("buttons_ghost_focus")
 text = "SETTINGS_PRIVACY"
 
 [node name="Support" type="Button" parent="ExternalLinks"]
@@ -485,11 +518,11 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_ghost_normal")
+theme_override_styles/hover = ExtResource("buttons_ghost_hover")
+theme_override_styles/pressed = ExtResource("buttons_ghost_pressed")
+theme_override_styles/disabled = ExtResource("buttons_ghost_disabled")
+theme_override_styles/focus = ExtResource("buttons_ghost_focus")
 text = "SETTINGS_SUPPORT"
 
 [node name="LinkStatus" type="Label" parent="."]

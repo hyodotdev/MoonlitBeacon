@@ -33,6 +33,20 @@ const POOL: Array[String] = [
 	"res://resources/relics/heavy_arrow.tres",
 ]
 
+## Skills that unlock as cycles pass (`Relic.from_cycle`). They are not in `POOL`: they join the free
+## third card only once open, so the first sixteen keep the pacing they were tuned for.
+const SKILL_POOL: Array[String] = [
+	"res://resources/relics/lantern_familiar.tres",
+	"res://resources/relics/moon_ward.tres",
+	"res://resources/relics/comet_call.tres",
+	"res://resources/relics/star_magnet.tres",
+	"res://resources/relics/thorn_bloom.tres",
+	"res://resources/relics/second_light.tres",
+	"res://resources/relics/moon_burst.tres",
+	"res://resources/relics/winter_bell.tres",
+	"res://resources/relics/comet_trail.tres",
+]
+
 ## Permanent-boon opening gifts are survival and move relics only.
 ##
 ## Start holding up to two attack-evolution stacks and long-time players skip
@@ -88,6 +102,15 @@ const MAX_STACKS: Dictionary = {
 	"res://resources/relics/light_step.tres": 3,
 	"res://resources/relics/tough_life.tres": 1,
 	"res://resources/relics/moon_dash.tres": 3,
+	"res://resources/relics/lantern_familiar.tres": 3,
+	"res://resources/relics/moon_ward.tres": 3,
+	"res://resources/relics/comet_call.tres": 4,
+	"res://resources/relics/star_magnet.tres": 3,
+	"res://resources/relics/thorn_bloom.tres": 3,
+	"res://resources/relics/second_light.tres": 2,
+	"res://resources/relics/moon_burst.tres": 4,
+	"res://resources/relics/winter_bell.tres": 3,
+	"res://resources/relics/comet_trail.tres": 3,
 }
 
 ## Keep the name the old debug path uses.
@@ -97,10 +120,10 @@ const DISC_EVOLVE_AT: int = 3
 const CARD_COUNT: int = 3
 const NAME_FONT_MAX: int = 14
 const NAME_FONT_MIN: int = 9
-const NAME_AVAILABLE_WIDTH: float = 156.0
+const NAME_AVAILABLE_WIDTH: float = 148.0
 const ROUTE_FONT_MAX: int = 9
 const ROUTE_FONT_MIN: int = 7
-const ROUTE_AVAILABLE_WIDTH: float = 152.0
+const ROUTE_AVAILABLE_WIDTH: float = 156.0
 
 @onready var _cards: Array[Button] = [$Center/Rows/Cards/C0, $Center/Rows/Cards/C1, $Center/Rows/Cards/C2]
 @onready var _title: Label = $Center/Rows/Title
@@ -112,6 +135,10 @@ const ROUTE_AVAILABLE_WIDTH: float = 152.0
 	$Center/Rows/Cards/C0/Route, $Center/Rows/Cards/C1/Route, $Center/Rows/Cards/C2/Route]
 
 var _offer: Array[Relic] = []
+## The cycle the run is in. Skills open by cycle, so the arena sets this before a card opens.
+var cycle: int = 1
+## Skills already shown once, so the first sight of a new one is guaranteed and marked.
+var _skills_seen: Dictionary = {}
 ## First pick shows the three paths one card each at equal weight. Shuffle
 ## the live array every time so no slot looks like the right answer.
 var _first_offer_done: bool = false
@@ -197,6 +224,9 @@ func _open_offer(offer: Array[Relic], title: String) -> void:
 		_fit_name(_names[i])
 		_names[i].add_theme_color_override("font_color", _offer[i].accent)
 		_descs[i].text = tr(_offer[i].description)
+		# The card draws its own emblem: `Button.icon` needs no node, and the
+		# arena keeps every standing node under the late-game budget.
+		_cards[i].icon = _offer[i].icon
 		_set_route_label(i, _offer[i])
 
 	banner_cleared.emit()
@@ -287,7 +317,11 @@ func _draw_offer() -> Array[Relic]:
 	if not alternatives.is_empty():
 		_append_unique(picks, _next_path(alternatives[0]))
 
-	# Slot 3: free pick that can grow what you have or bring a new survival relic.
+	# Slot 3: a skill that has unlocked, when one is due; otherwise the usual free pick that can grow
+	# what you have or bring a new survival relic.
+	var skill: String = _pick_skill()
+	if not skill.is_empty():
+		_append_unique(picks, skill)
 	var rest: Array[String] = []
 	for path in POOL:
 		if not _is_capped(path):
@@ -297,7 +331,7 @@ func _draw_offer() -> Array[Relic]:
 	rest.shuffle()
 	rest.sort_custom(func(a: String, b: String) -> bool:
 		return int(_stacks.get(a, 0)) > int(_stacks.get(b, 0)))
-	if not rest.is_empty():
+	if not rest.is_empty() and picks.size() < CARD_COUNT:
 		var top: int = mini(rest.size(), 4)
 		_append_unique(picks, rest[randi() % top])
 
@@ -319,6 +353,26 @@ func _draw_guardian_offer(grant_count: int = 1) -> Array[Relic]:
 	return _make_offer(picks, maxi(grant_count, 1))
 
 
+## A skill to put on the free card, or "" when none is due. A skill that has never been shown is
+## shown next, always; after that one offer in four carries an open skill.
+func _pick_skill() -> String:
+	var open: Array[String] = []
+	for path in SKILL_POOL:
+		if _skill_open(path) and not _is_capped(path):
+			open.append(path)
+	if open.is_empty():
+		return ""
+	for path in open:
+		if not _skills_seen.has(path):
+			return path
+	return open[randi() % open.size()] if randf() < 0.28 else ""
+
+
+func _skill_open(path: String) -> bool:
+	var loaded: Relic = load(path) as Relic
+	return loaded != null and loaded.from_cycle <= cycle
+
+
 func _make_offer(paths: Array[String], grant_count: int) -> Array[Relic]:
 	var out: Array[Relic] = []
 	for path in paths.slice(0, CARD_COUNT):
@@ -327,6 +381,9 @@ func _make_offer(paths: Array[String], grant_count: int) -> Array[Relic]:
 			continue
 		var relic: Relic = loaded.duplicate()
 		relic.set_meta("path", path)
+		if SKILL_POOL.has(path) and not _skills_seen.has(path):
+			relic.set_meta("new_skill", true)
+			_skills_seen[path] = true
 		relic.set_meta("grant_count", grant_count)
 		relic.set_meta("stack", int(_stacks.get(path, 0)) + grant_count)
 		out.append(relic)
@@ -400,6 +457,12 @@ func _strongest_family() -> Relic.Family:
 func _set_route_label(index: int, relic: Relic) -> void:
 	var family: Relic.Family = Relic.family_of_relic(relic)
 	if family == Relic.Family.NONE:
+		# A skill met for the first time says so; every other free card has nothing to add.
+		if bool(relic.get_meta("new_skill", false)):
+			_routes[index].text = tr("CARD_NEW_SKILL")
+			_routes[index].add_theme_color_override("font_color", relic.accent)
+			_routes[index].visible = true
+			return
 		_routes[index].visible = false
 		_routes[index].text = ""
 		return

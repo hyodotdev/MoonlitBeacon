@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/gameplay/night_forest.tscn" id="forest"]
 [ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="beacon"]
@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/shrine_panel.tscn" id="shrine"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ladder_panel.tscn" id="ladderpanel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/iap_shop_panel.tscn" id="iapshop"]
+[ext_resource type="PackedScene" path="res://scenes/ui/chronicle_panel.tscn" id="chronicle"]
 
 [sub_resource type="Animation" id="Animation_blink"]
 resource_name = "blink"
@@ -215,7 +216,7 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -78.0
+offset_left = -88.0
 offset_top = 12.0
 offset_right = -10.0
 offset_bottom = 38.0
@@ -247,7 +248,7 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -78.0
+offset_left = -88.0
 offset_top = 44.0
 offset_right = -10.0
 offset_bottom = 70.0
@@ -284,7 +285,7 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -78.0
+offset_left = -88.0
 offset_top = 76.0
 offset_right = -10.0
 offset_bottom = 102.0
@@ -299,15 +300,35 @@ theme_override_styles/disabled = ExtResource("button_disabled")
 theme_override_styles/focus = ExtResource("button_focus")
 text = "LADDER_OPEN"
 
+[node name="ChronicleButton" type="Button" parent="Ui/Screen"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -88.0
+offset_top = 108.0
+offset_right = -10.0
+offset_bottom = 134.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.8, 0.93, 1, 1)
+theme_override_fonts/font = ExtResource("font_bold")
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = ExtResource("button_normal")
+theme_override_styles/hover = ExtResource("button_hover")
+theme_override_styles/pressed = ExtResource("button_pressed")
+theme_override_styles/disabled = ExtResource("button_disabled")
+theme_override_styles/focus = ExtResource("button_focus")
+text = "CHRONICLE_OPEN"
+
 [node name="StoreButton" type="Button" parent="Ui/Screen"]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -78.0
-offset_top = 108.0
+offset_left = -88.0
+offset_top = 140.0
 offset_right = -10.0
-offset_bottom = 134.0
+offset_bottom = 166.0
 grow_horizontal = 0
 theme_override_colors/font_color = Color(0.86, 0.75, 1, 1)
 theme_override_fonts/font = ExtResource("font_bold")
@@ -332,6 +353,8 @@ autoplay = "blink"
 [node name="Shrine" parent="Ui" instance=ExtResource("shrine")]
 
 [node name="Ladder" parent="Ui" instance=ExtResource("ladderpanel")]
+
+[node name="Chronicle" parent="Ui" instance=ExtResource("chronicle")]
 
 [node name="IapShop" parent="Ui" instance=ExtResource("iapshop")]
 

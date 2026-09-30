@@ -11,6 +11,8 @@ const SPEED: float = 132.0
 
 ## Self-despawn after this long so shots that leave the map do not live forever.
 const LIFETIME: float = 5.0
+## A bolt with a range fades over its last stretch and is gone: it is not there to hurt past where its warning was drawn.
+const FADE_DISTANCE: float = 40.0
 const PENDING_META: StringName = &"moonlit_pending_hostile_bolts"
 ## Orb 6 + player body 4. Compare the travel segment to this circle so low-FPS tunneling is blocked too.
 const HIT_RADIUS: float = 10.0
@@ -28,6 +30,7 @@ var _reserved_slot: bool = false
 var _target: Node2D = null
 var _terrain_room: Room = null
 var _speed_scale: float = 1.0
+var _range_left: float = INF
 
 
 func _enter_tree() -> void:
@@ -52,6 +55,12 @@ func set_direction(direction: Vector2) -> void:
 
 func set_speed_scale(scale: float) -> void:
 	_speed_scale = maxf(scale, 0.2)
+
+
+## The furthest this bolt flies, in pixels. A guardian's volley is drawn only where it reaches; past it there is
+## nothing to be hit by.
+func set_range(pixels: float) -> void:
+	_range_left = maxf(pixels, 1.0)
 
 
 func set_target(target: Node2D) -> void:
@@ -110,7 +119,10 @@ func _physics_process(delta: float) -> void:
 	global_position = destination
 	_sprite.rotation += SPIN_SPEED * delta
 	_left -= delta
-	if _left <= 0.0:
+	_range_left -= from.distance_to(destination)
+	if _range_left < FADE_DISTANCE:
+		_sprite.modulate.a = clampf(_range_left / FADE_DISTANCE, 0.0, 1.0)
+	if _left <= 0.0 or _range_left <= 0.0:
 		queue_free()
 
 

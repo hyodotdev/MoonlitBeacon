@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/count_terrain_nodes.gd" id="script"]
+
+[node name="CountTerrainNodes" type="Node"]
+script = ExtResource("script")

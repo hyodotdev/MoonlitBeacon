@@ -15,15 +15,21 @@ extends HBoxContainer
 ## `--export-release` makes this node free itself. Not a check, not a hide —
 ## `queue_free()`. Leave it around and it will show someday.
 
-## State each button builds. [level, cycle, label].
+## State each button builds. [level, cycle, label] and, optionally, whether the run counts as
+## started from the title.
 ##
 ## Level means **that many relics are granted up front.** Cycle means spirits
 ## start that much tougher. They are separate because they break separately —
 ## only power high or only enemies high and you cannot tell which is the bug.
+##
+## A "fork" preset is opened the way a real run is, so its gates are forks and it can reach the
+## places that open from cycle 3; the others keep the one classic gate every capture relies on.
 const PRESETS: Array = [
 	[10, 1, "Lv10"],
 	[20, 3, "Lv20·C3"],
 	[40, 5, "Lv40·C5"],
+	[40, 4, "C4·Fork", true],
+	[40, 10, "C10·Fork", true],
 ]
 
 ## Slot the arena will read. `SceneTree` root survives a scene change, so a
@@ -70,7 +76,8 @@ func _ready() -> void:
 		button.text = str(entry[2])
 		button.focus_mode = Control.FOCUS_NONE
 		button.add_theme_font_size_override("font_size", 8)
-		button.pressed.connect(_launch.bind(int(entry[0]), int(entry[1])))
+		button.pressed.connect(_launch.bind(
+			int(entry[0]), int(entry[1]), entry.size() > 3 and bool(entry[3])))
 		add_child(button)
 
 	# Checking a new sprite on all six heroes needs paid heroes open too.
@@ -163,7 +170,9 @@ func _toggle_all_heroes(button: Button) -> void:
 	button.text = "All heroes✓" if open else "All heroes"
 
 
-func _launch(level: int, cycle: int) -> void:
+func _launch(level: int, cycle: int, from_title: bool = false) -> void:
+	if from_title:
+		RunEntry.mark_from_title()
 	get_tree().root.set_meta(BOOST_META, [level, cycle])
 	get_tree().change_scene_to_file("res://scenes/gameplay/arena.tscn")
 

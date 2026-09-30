@@ -85,6 +85,60 @@ const GUARDIAN_CASES: Array[Dictionary] = [
 		"charge": "res://assets/custom/actors/guardians/camp_siege_windup.png",
 		"recover": "res://assets/custom/actors/guardians/camp_siege_recover.png",
 	},
+	{
+		"id": "frost",
+		"resource": "res://resources/guardian_frost.tres",
+		"sheet": "res://assets/custom/actors/guardians/frost.png",
+		"windup": "res://assets/custom/actors/guardians/frost_windup.png",
+		"alt": "res://assets/custom/actors/guardians/frost_windup.png",
+		"charge": "res://assets/custom/actors/guardians/frost_charge.png",
+		"recover": "res://assets/custom/actors/guardians/frost_recover.png",
+	},
+	{
+		"id": "frost_rime",
+		"resource": "res://resources/guardian_frost_rime.tres",
+		"sheet": "res://assets/custom/actors/guardians/frost_rime.png",
+		"windup": "res://assets/custom/actors/guardians/frost_rime_windup.png",
+		"alt": "res://assets/custom/actors/guardians/frost_rime_windup.png",
+		"charge": "res://assets/custom/actors/guardians/frost_rime_charge.png",
+		"recover": "res://assets/custom/actors/guardians/frost_rime_recover.png",
+	},
+	{
+		"id": "marsh",
+		"resource": "res://resources/guardian_marsh.tres",
+		"sheet": "res://assets/custom/actors/guardians/marsh.png",
+		"windup": "res://assets/custom/actors/guardians/marsh_windup.png",
+		"alt": "res://assets/custom/actors/guardians/marsh_windup.png",
+		"charge": "res://assets/custom/actors/guardians/marsh_charge.png",
+		"recover": "res://assets/custom/actors/guardians/marsh_recover.png",
+	},
+	{
+		"id": "marsh_glow",
+		"resource": "res://resources/guardian_marsh_glow.tres",
+		"sheet": "res://assets/custom/actors/guardians/marsh_glow.png",
+		"windup": "res://assets/custom/actors/guardians/marsh_glow_windup.png",
+		"alt": "res://assets/custom/actors/guardians/marsh_glow_windup.png",
+		"charge": "res://assets/custom/actors/guardians/marsh_glow_charge.png",
+		"recover": "res://assets/custom/actors/guardians/marsh_glow_recover.png",
+	},
+	{
+		"id": "ruins",
+		"resource": "res://resources/guardian_ruins.tres",
+		"sheet": "res://assets/custom/actors/guardians/ruins.png",
+		"windup": "res://assets/custom/actors/guardians/ruins_windup.png",
+		"alt": "res://assets/custom/actors/guardians/ruins_windup.png",
+		"charge": "res://assets/custom/actors/guardians/ruins_windup.png",
+		"recover": "res://assets/custom/actors/guardians/ruins_recover.png",
+	},
+	{
+		"id": "ruins_halo",
+		"resource": "res://resources/guardian_ruins_halo.tres",
+		"sheet": "res://assets/custom/actors/guardians/ruins_halo.png",
+		"windup": "res://assets/custom/actors/guardians/ruins_halo_windup.png",
+		"alt": "res://assets/custom/actors/guardians/ruins_halo_windup.png",
+		"charge": "res://assets/custom/actors/guardians/ruins_halo_windup.png",
+		"recover": "res://assets/custom/actors/guardians/ruins_halo_recover.png",
+	},
 ]
 
 var _failed: int = 0
@@ -276,8 +330,8 @@ func _test_guardians() -> void:
 		_test_runtime_kind(
 			guardian_id, kind, str(guardian_case["sheet"]), 1, 6, GUARDIAN_CELL)
 
-	_expect_equal(base_masks.size(), 6, "6 terrain-specific boss silhouettes")
-	_expect_equal(base_images.size(), 6, "6 terrain-specific boss palettes and motions")
+	_expect_equal(base_masks.size(), 12, "12 terrain-specific boss silhouettes")
+	_expect_equal(base_images.size(), 12, "12 terrain-specific boss palettes and motions")
 
 
 func _test_runtime_kind(

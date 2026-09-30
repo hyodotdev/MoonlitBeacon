@@ -9,6 +9,7 @@ extends Control
 
 signal closed
 
+const PANEL_STYLE: StyleBoxTexture = preload("res://resources/ui/panels/panel.tres")
 const MUTED: Color = Color(0.62, 0.69, 0.82, 1.0)
 const SUCCESS: Color = Color(0.64, 1.0, 0.75, 1.0)
 const LOCKED: Color = Color(1.0, 0.72, 0.5, 1.0)
@@ -525,19 +526,11 @@ func _refresh_copy() -> void:
 
 func _apply_accent(accent: Color) -> void:
 	_name.add_theme_color_override("font_color", accent)
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.022, 0.035, 0.082, 0.99)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.94)
-	style.corner_radius_top_left = 5
-	style.corner_radius_top_right = 5
-	style.corner_radius_bottom_right = 5
-	style.corner_radius_bottom_left = 5
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.72)
-	style.shadow_size = 7
+	# The kit panel, tinted toward the hero so each preview is wearing its colour.
+	# Tinting the whole sticker keeps the pixel edges; the old flat frame drew a
+	# smooth accent border that did not match anything else on screen.
+	var style: StyleBoxTexture = PANEL_STYLE.duplicate() as StyleBoxTexture
+	style.modulate_color = Color.WHITE.lerp(accent, 0.34)
 	_frame.add_theme_stylebox_override("panel", style)
 
 

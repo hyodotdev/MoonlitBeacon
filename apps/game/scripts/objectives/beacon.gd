@@ -82,6 +82,13 @@ const OVERCHARGE_GLOW_COLOR: Color = Color(0.72, 0.36, 1.0, 1.0)
 var _visitors: int = 0
 ## 0 ~ 1.
 var _charge: float = 0.0
+## Seconds a full charge takes. The arena shortens it under the Lantern Bloom omen.
+var charge_seconds: float = CHARGE_SECONDS
+
+
+## Scale the charge time (1 is the normal 1.3 seconds; lower is faster).
+func set_charge_scale(scale_value: float) -> void:
+	charge_seconds = CHARGE_SECONDS * maxf(scale_value, 0.1)
 var _iap_store: Node
 var _awaiting_choice: bool = false
 var _overcharging: bool = false
@@ -169,9 +176,9 @@ func _normalize_reach() -> void:
 func _process(delta: float) -> void:
 	var before: float = _charge
 	if _visitors > 0:
-		_charge += delta / CHARGE_SECONDS
+		_charge += delta / charge_seconds
 	else:
-		_charge -= delta / CHARGE_SECONDS * DECAY_MULTIPLIER
+		_charge -= delta / charge_seconds * DECAY_MULTIPLIER
 	_charge = clampf(_charge, 0.0, 1.0)
 
 	if not is_equal_approx(before, _charge):

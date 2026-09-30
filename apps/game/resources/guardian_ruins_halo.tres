@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/ruins_halo.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/ruins_halo_windup.png" id="windup"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/ruins_halo_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_RUINS_HALO_NAME"
+behavior = 4
+guardian_style = 5
+boss_accent = Color(1, 0.92, 0.55, 1)
+guardian_rule = "GUARDIAN_RUINS_HALO_RULE"
+guardian_burst_fraction = 0.14
+guardian_sustain_fraction = 0.12
+guardian_windup_sheet = ExtResource("windup")
+guardian_alt_windup_sheet = ExtResource("windup")
+guardian_charge_sheet = ExtResource("windup")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+keep_distance = 160.0
+guardian_volley_extra = 1
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 50.0
+turn_rate = 2.8
+health = 840
+score_value = 1200
+stagger_seconds = 0.05
+body_scale = 1.18
+tint = Color(1, 1, 1, 1)
+anim_fps = 3.6

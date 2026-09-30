@@ -70,8 +70,8 @@ func _physics_process(delta: float) -> void:
 	if target != null and is_instance_valid(target) and target.is_inside_tree():
 		offset = target.global_position - _floating_position
 		offset_sq = offset.length_squared()
-		seeking = _age >= NEAR_SEEK_DELAY \
-			and offset_sq <= SEEK_RADIUS * SEEK_RADIUS
+		var reach: float = SEEK_RADIUS * PickupMagnet.scale
+		seeking = _age >= NEAR_SEEK_DELAY and offset_sq <= reach * reach
 
 	if seeking:
 		if offset_sq <= COLLECT_RADIUS * COLLECT_RADIUS:

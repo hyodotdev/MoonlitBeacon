@@ -34,6 +34,18 @@ enum Effect {
 	# weapons making the screen louder.
 	MOON_RING,         ## orbs that orbit. stacking adds more
 	MOON_RIPPLE,       ## ripple that spreads every way. stacking is wider and more often
+
+	# Skills that appear as the run goes on (see `from_cycle`). Appended, never inserted: the
+	# `.tres` files store these numbers. `PlayerSkills` carries them out.
+	LANTERN_FAMILIAR,  ## a companion that orbits and shoots. stacking adds one more
+	MOON_WARD,         ## a bubble that swallows one hit, then recharges. stacking recharges faster
+	COMET_CALL,        ## a comet lands on the thickest cluster now and then
+	STAR_MAGNET,       ## pickups fly to you from further away
+	THORN_BLOOM,       ## a hit bursts thorns that hurt and push back what touched you
+	SECOND_LIGHT,      ## once a cycle, a lethal hit leaves you standing
+	MOON_BURST,        ## choosing a card bursts moonlight round you: it hurts and pushes back what is near
+	WINTER_BELL,       ## a bell tolls now and then: a ring of frost slows every spirit it reaches
+	COMET_TRAIL,       ## a dash leaves marks of moonlight that burst a moment after you have gone
 }
 
 ## Relic bundle that makes the same combat look.
@@ -223,3 +235,10 @@ static func evolution_states(relics: Array) -> Dictionary:
 
 ## Color for the card. Kind is told apart by color.
 @export var accent: Color = Color(1, 0.86, 0.5, 1)
+
+## 48x48 card emblem for this relic.
+@export var icon: Texture2D = null
+
+## First cycle this card can be offered. The first sixteen are there from the start; the skills of the
+## endless stretch unlock as cycles pass, so the pool grows while you play.
+@export var from_cycle: int = 1

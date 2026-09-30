@@ -49,6 +49,41 @@ const PROP_KIND: Dictionary = {
 	"camp_bedroll": Rect2(112, 128, 16, 16),
 }
 
+## Lighting for upright pieces: one material for the nature sheet (its trees sway)
+## and one for every other sheet. Two, not one per tile, so the y-sorted decor
+## keeps drawing in a few batches. See `world_polish.gdshader`.
+const NATURE_MATERIAL: Material = preload("res://resources/fx/world_nature.tres")
+const STILL_MATERIAL: Material = preload("res://resources/fx/world_still.tres")
+
+## Pieces that lie flat on the floor and so take no rim or crown light.
+const FLAT: PackedStringArray = [
+	"twig", "branch", "field_grass_light", "field_grass_dark", "camp_bedroll"]
+
+## Shadow footprint per tile, measured from each tile's alpha.
+##
+## `Vector3(half base width, height, strength)`. Wide and short props (a log)
+## cast a fat, short shadow; a tall thin conifer casts a narrow, long one. A
+## tile left out of the table casts nothing: 16px scraps and flat ground cover
+## are too small for a shadow to read, and the room already holds ~700 pieces.
+const SHADOW: Dictionary = {
+	"bigA": Vector3(20, 34, 0.36), "bigB": Vector3(14, 34, 0.36),
+	"bigC": Vector3(17, 33, 0.36), "bigD": Vector3(22, 36, 0.36),
+	"dead": Vector3(12, 34, 0.32),
+	"sm0": Vector3(6, 28, 0.34), "sm1": Vector3(6, 28, 0.34),
+	"sm2": Vector3(6, 28, 0.34), "sm3": Vector3(6, 28, 0.34),
+	"sm8": Vector3(6, 28, 0.34), "sm9": Vector3(6, 28, 0.34),
+	"mid": Vector3(12, 16, 0.3),
+	"log": Vector3(12, 8, 0.28), "stump": Vector3(10, 10, 0.3),
+	"rockA": Vector3(11, 15, 0.32), "rockB": Vector3(11, 15, 0.32),
+	"stump2": Vector3(5, 7, 0.26), "rockS": Vector3(5, 6, 0.26),
+	"rockS2": Vector3(5, 6, 0.26), "bush": Vector3(6, 8, 0.24),
+	"camp_tent_a": Vector3(18, 34, 0.36), "camp_tent_b": Vector3(18, 34, 0.36),
+	"camp_tent_torn": Vector3(18, 34, 0.36),
+	"camp_barrels": Vector3(6, 20, 0.32), "camp_barrels_light": Vector3(6, 20, 0.32),
+	"camp_chest": Vector3(11, 14, 0.32), "camp_bench": Vector3(18, 8, 0.28),
+	"camp_crate": Vector3(6, 12, 0.3), "camp_bedroll": Vector3(6, 4, 0.22),
+}
+
 ## Full map size. **Much larger than the screen (808×360).**
 ##
 ## One room as one screen is gone. The camera follows and also moves vertically.
@@ -87,6 +122,8 @@ const OBSTACLE_REGIONS: Array[Rect2] = [
 const OBSTACLE_RADII: Array[float] = [25.0, 24.0, 26.0, 27.0]
 const OBSTACLE_SPRITE_OFFSET: Vector2 = Vector2(-32, -50)
 const OBSTACLE_GAP: float = 34.0
+## How tall a structure stands, for the length of the shadow it throws.
+const STRUCTURE_HEIGHT: float = 34.0
 const MOTION_STEP: float = 4.0
 const OBSTACLE_COLUMNS: Array[float] = [0.12, 0.28, 0.42, 0.58, 0.72, 0.88]
 const OBSTACLE_ROWS: Array[float] = [0.18, 0.34, 0.66, 0.82]
@@ -115,10 +152,17 @@ const RESERVED_RADII: Array[float] = [
 ]
 
 @onready var _ground: Sprite2D = $Ground
+@onready var _tone: RoomTone = $Tone
+@onready var _shadows: RoomShadows = $Shadows
+@onready var _flora: RoomFlora = $Flora
+@onready var _atmosphere: RoomAtmosphere = $Atmosphere
+@onready var _lights: RoomLights = $Lights
 @onready var _structures: Node2D = $Structures
 @onready var _decor: Node2D = $Decor
 
 var kind: RoomKind = null
+## Feet points of props that carry a flame, filled during `_place_prop`.
+var _lit_props: Array[Vector2] = []
 ## `{at: Vector2, radius: float, variant: int}`. No dozens of engine physics nodes —
 ## the player and every spirit slide on the same small circle list.
 var _obstacles: Array[Dictionary] = []
@@ -146,12 +190,23 @@ func build(room_kind: RoomKind, seed_value: int) -> void:
 	_clear_children(_decor)
 	_clear_children(_structures)
 	_obstacles.clear()
+	_lit_props.clear()
+	_shadows.clear()
+	_tone.clear()
+	_flora.clear()
 
 	# Place collision structures first. Later decor reads these circles and sidesteps big silhouettes.
 	# Separate RNG, so tweaking decor count alone does not move combat terrain.
 	_scatter_obstacles(obstacle_rng)
 	_scatter_border(rng)
 	_scatter_inside(rng)
+
+	# Light and shadow last. Both scatter passes have to finish before their feet
+	# points exist.
+	_lights.set_pools(_light_pools())
+	_shadows.finish()
+	_scatter_floor(seed_value)
+	_atmosphere.configure(kind, seed_value, PLAY)
 
 
 func _clear_children(parent: Node) -> void:
@@ -275,9 +330,12 @@ func _add_obstacle(at: Vector2, radius: float, variant: int) -> void:
 	sprite.region_rect = OBSTACLE_REGIONS[variant]
 	sprite.centered = false
 	sprite.position = OBSTACLE_SPRITE_OFFSET
+	sprite.material = STILL_MATERIAL
 	structure.add_child(sprite)
 	_structures.add_child(structure)
 	_obstacles.append({"at": at, "radius": radius, "variant": variant})
+	# A structure fills its collision circle, so the circle sizes its shadow too.
+	_shadows.add_cast(at, radius * 0.85, STRUCTURE_HEIGHT, 0.4)
 
 
 ## Can an object of radius `radius` sit at `at` without hitting structures or bounds.
@@ -630,6 +688,8 @@ func _scatter_inside(rng: RandomNumberGenerator) -> void:
 			var at: Vector2 = center + Vector2(
 				rng.randf_range(-52, 52), rng.randf_range(-34, 34))
 			_place(rng, kind.tree_kinds, at, rng.randf_range(0.8, 0.98))
+		# A thicket darkens the ground it stands on, beyond each tree's own shadow.
+		_shadows.add_shade(center + Vector2(6.0, 5.0), Vector2(60.0, 24.0), 0.16)
 
 	# Dedicated props take slots from the small-decor budget. Combined count is always
 	# `decor_count`, so field or camp never grow more nodes than forest.
@@ -685,7 +745,12 @@ func _place_prop(rng: RandomNumberGenerator, at: Vector2) -> void:
 	sprite.position = at - Vector2(region.size.x * 0.5, region.size.y)
 	var shade: float = rng.randf_range(0.86, 1.0)
 	sprite.modulate = Color(shade, shade, minf(shade * 1.04, 1.0), 1.0)
+	if pick not in FLAT:
+		sprite.material = STILL_MATERIAL
 	_decor.add_child(sprite)
+	_cast_for(pick, at)
+	if pick in kind.light_prop_kinds:
+		_lit_props.append(at)
 
 
 ## Place one tile.
@@ -705,4 +770,113 @@ func _place(rng: RandomNumberGenerator, names: PackedStringArray, at: Vector2, s
 	sprite.centered = false
 	sprite.position = at - Vector2(region.size.x * 0.5, region.size.y)
 	sprite.modulate = Color(shade, shade, minf(shade * 1.06, 1.0), 1.0)
+	if pick not in FLAT:
+		sprite.material = NATURE_MATERIAL
 	_decor.add_child(sprite)
+	_cast_for(pick, at)
+
+
+## Colour patches, moonlight and tiny plants for the floor.
+##
+## Its own RNG, keyed on the seed and terrain, so changing the amount of floor life
+## never moves a tree or a structure, and the same seed always gives the same floor.
+func _scatter_floor(seed_value: int) -> void:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = hash([seed_value, "floor-life", int(kind.encounter)])
+
+	if not kind.tone_colors.is_empty():
+		for i in kind.tone_count:
+			var width: float = rng.randf_range(70.0, 170.0)
+			_tone.add_patch(
+				Vector2(rng.randf_range(0.0, MAP.x), rng.randf_range(0.0, MAP.y)),
+				Vector2(width, width * rng.randf_range(0.42, 0.6)),
+				kind.tone_colors[rng.randi_range(0, kind.tone_colors.size() - 1)])
+	_tone.finish()
+
+	var dapples: Array[Dictionary] = []
+	for i in kind.dapple_count:
+		var width: float = rng.randf_range(46.0, 110.0)
+		dapples.append({
+			"at": Vector2(
+				rng.randf_range(PLAY.position.x, PLAY.end.x),
+				rng.randf_range(PLAY.position.y, PLAY.end.y)),
+			"size": Vector2(width, width * 0.55),
+			"color": kind.dapple_color,
+			"lag": rng.randf_range(0.0, TAU),
+		})
+	_lights.set_dapples(dapples)
+
+	var glows: Array[Dictionary] = []
+	if not kind.flora_plants.is_empty() and not kind.flora_colors.is_empty():
+		for i in kind.flora_count:
+			var center: Vector2 = Vector2(
+				rng.randf_range(PLAY.position.x + 12.0, PLAY.end.x - 12.0),
+				rng.randf_range(PLAY.position.y + 12.0, PLAY.end.y - 6.0))
+			var cluster: int = rng.randi_range(1, 3)
+			for j in cluster:
+				var at: Vector2 = center + Vector2(
+					rng.randf_range(-7.0, 7.0), rng.randf_range(-3.0, 3.0))
+				# Never on a structure; the rest of the floor is fair game. Judge the pixel the plant
+				# is drawn on: `add_plant` rounds, and a point half a pixel inside the edge is
+				# outside it once it is rounded.
+				if not is_clear(at.round(), 8.0):
+					continue
+				var plant: int = kind.flora_plants[rng.randi_range(0, kind.flora_plants.size() - 1)]
+				var color: Color = kind.flora_colors[rng.randi_range(0, kind.flora_colors.size() - 1)]
+				var size: int = rng.randi_range(1, 2)
+				_flora.add_plant(at, plant as RoomFlora.Plant, size, color)
+				if kind.flora_glow <= 0.0 or plant == RoomFlora.Plant.TUFT:
+					continue
+				# Mushrooms are the lamps; a flower only gives off a hint.
+				var strength: float = kind.flora_glow if plant == RoomFlora.Plant.MUSHROOM \
+					else kind.flora_glow * 0.3
+				glows.append({
+					"at": at + Vector2(0.0, -2.0),
+					"radius": 9.0 + float(size) * 5.0,
+					"color": Color(color.r * 0.6, color.g * 0.6, color.b * 0.6, strength * 0.55),
+					"lag": rng.randf_range(0.0, TAU),
+				})
+	_lights.set_glows(glows)
+	_flora.finish()
+
+
+## Register the shadow of one placed piece, if its tile has one.
+func _cast_for(tile: String, at: Vector2) -> void:
+	var footprint: Vector3 = SHADOW.get(tile, Vector3.ZERO)
+	if footprint.z <= 0.0:
+		return
+	_shadows.add_cast(at, footprint.x, footprint.y, footprint.z)
+
+
+## Ground pools for every light source this terrain declared.
+##
+## Structures come from `_obstacles`, which already records the variant that was
+## placed, so a lantern is found by what was drawn and not by re-rolling the RNG.
+## Props report their own feet point as they are placed.
+func _light_pools() -> Array[Dictionary]:
+	var pools: Array[Dictionary] = []
+	if kind == null:
+		return pools
+	for obstacle in _obstacles:
+		if int(obstacle["variant"]) in kind.light_obstacle_variants:
+			pools.append({
+				"at": obstacle["at"] as Vector2,
+				"radius": kind.light_radius,
+				"color": kind.light_color,
+			})
+	# A lit barrel is a smaller flame than a hung lantern. Same colour, less reach.
+	for at in _lit_props:
+		pools.append({
+			"at": at,
+			"radius": kind.light_radius * 0.62,
+			"color": kind.light_color,
+		})
+	return pools
+
+
+## Freeze this room's firelight for a store capture. See `RoomLights`.
+func debug_settle_lights() -> void:
+	if _lights != null:
+		_lights.debug_settle_lights()
+	if _atmosphere != null:
+		_atmosphere.debug_settle()

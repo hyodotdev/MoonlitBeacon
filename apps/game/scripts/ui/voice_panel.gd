@@ -13,6 +13,7 @@ extends Control
 ## the game and waits for a tap. This **does not pause.** It appears, fades on
 ## its own, and swaps in place when a new line arrives.
 
+const BOX_STYLE: StyleBoxTexture = preload("res://resources/ui/panels/chip.tres")
 const PANEL_HEIGHT: float = 34.0
 const PORTRAIT: float = 24.0
 const MARGIN_X: float = 5.0
@@ -44,15 +45,15 @@ func _ready() -> void:
 	panel.name = &"Box"
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	# Dark panel in the same family as the cycle story dialogue. Text stands on
-	# the combat screen, and the panel is translucent so the field behind it
-	# does not go fully dead.
-	style.bg_color = Color(0.05, 0.08, 0.14, 0.86)
-	style.border_color = Color(0.42, 0.58, 0.86, 0.55)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(3)
-	style.set_content_margin_all(4.0)
+	# The shared kit chip, slightly translucent so the field behind it does not go
+	# fully dead. Duplicated, so this strip can carry its own padding without
+	# touching the style the HUD uses.
+	var style: StyleBoxTexture = BOX_STYLE.duplicate() as StyleBoxTexture
+	style.modulate_color = Color(1, 1, 1, 0.94)
+	style.content_margin_left = 6.0
+	style.content_margin_top = 3.0
+	style.content_margin_right = 6.0
+	style.content_margin_bottom = 3.0
 	panel.add_theme_stylebox_override("panel", style)
 	add_child(panel)
 

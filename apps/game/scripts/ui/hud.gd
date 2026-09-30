@@ -7,6 +7,12 @@ extends Control
 
 ## Below this remaining time it turns red.
 const URGENT_SECONDS: float = 15.0
+## The objective, drawn: a cold brazier per beacon, a lit one once it burns.
+## Three glyphs read at a glance in a fight where "Beacons 2/3" needs a read.
+const BEACON_ON: Texture2D = preload("res://assets/custom/ui/kit/icon_beacon_on.png")
+const BEACON_OFF: Texture2D = preload("res://assets/custom/ui/kit/icon_beacon_off.png")
+## Pop played on a brazier the moment it lights.
+const BEACON_POP_SECONDS: float = 0.32
 
 const CALM_COLOR: Color = Color(0.87, 0.91, 1, 1)
 const URGENT_COLOR: Color = Color(1, 0.62, 0.55, 1)
@@ -24,10 +30,12 @@ var _hearts: Array[TextureRect] = []
 @onready var _kills: Label = $RightPanel/Row/Kills
 @onready var _level: Label = $RightPanel/Row/Level
 @onready var _beacons_label: Label = $RightPanel/Row/Beacons
+@onready var _beacon_row: HBoxContainer = $RightPanel/Row/BeaconIcons
+var _beacon_icons: Array[TextureRect] = []
 @onready var _relics: HBoxContainer = $LeftPanel/Stack/Relics
 @onready var _banner: Label = $Banner
 @onready var _boss: Control = $Boss
-@onready var _boss_fill: ColorRect = $Boss/Fill
+@onready var _boss_fill: Control = $Boss/Fill
 @onready var _boss_name: Label = $Boss/Name
 @onready var _combo: Label = $Combo
 @onready var _moonfire_label: Label = $LeftPanel/Stack/MoonfireRow/Label
@@ -39,6 +47,9 @@ var _hearts: Array[TextureRect] = []
 
 ## Language changes need a redraw, so the last values are kept.
 var _lit: int = 0
+## False until the arena has sent its first beacon count, so the initial
+## "0 lit" state does not play a pop.
+var _beacons_ready: bool = false
 var _total: int = 0
 var _kill_count: int = 0
 var _cycle: int = 1
@@ -49,6 +60,8 @@ var _moonfire_initialized: bool = false
 var _moonfire_fill_step: int = -1
 var _world_key: String = "WORLD_FOREST"
 var _time_key: String = "TIME_NIGHT"
+var _omen_keys: Array[String] = []
+var _boss_detail: Label = null
 var _evolution_family: Relic.Family = Relic.Family.NONE
 var _evolution_progress: int = 0
 var _evolution_tier: int = 0
@@ -73,6 +86,82 @@ var _banner_visible_before_suppression: bool = false
 ## Freeze the banner only while store device capture reads a verified frame.
 ## Only an Arena on a debug APK that consumed an explicit request file can turn this on.
 var _debug_capture_banner_locked: bool = false
+
+## Secondary stat lines rest dim and pop to full only when their value changes.
+##
+## The combat screen used to hold nine bright text elements at once — hearts,
+## relic chips, evolution, missile power, missile recovery, moonfire, the
+## region caption, the wave/level/kills/timer row, plus a centred banner and a
+## combo counter. Everything shouted at the same weight, so nothing read.
+##
+## Information is not removed. It settles out of the way until it changes, then
+## announces itself. Hearts, beacons and the timer never dim — those are the
+## three things a dodge game must always show.
+const QUIET_HOLD_SECONDS: float = 2.4
+const QUIET_REST_ALPHA: float = 0.4
+const QUIET_FADE_SPEED: float = 2.6
+
+## `Label -> seconds of full brightness left`.
+var _quiet_hold: Dictionary = {}
+## `Label -> the text it last showed`, so a setter called every frame with the
+## same value does not read as a change.
+var _quiet_text: Dictionary = {}
+
+
+## Start the secondary lines at rest so the first frame is already calm.
+func _ready() -> void:
+	for label in _quiet_labels():
+		_quiet_text[label] = label.text
+		_quiet_hold[label] = 0.0
+		label.modulate.a = QUIET_REST_ALPHA
+
+
+## The lines allowed to dim. Hearts, beacons and the timer are deliberately out.
+func _quiet_labels() -> Array[Label]:
+	return [_evolution, _missile_power, _missile_recovery, _world,
+		_moonfire_label, _kills, _level] as Array[Label]
+
+
+## Pop a line to full if its rendered text actually changed.
+##
+## Compare the text, not the call. `set_missile_recovery()` runs every frame
+## while a recovery ticks, and `_notification()` replays every setter on a
+## language change; neither is news on its own.
+func _mark_quiet(label: Label) -> void:
+	if label == null:
+		return
+	if _quiet_text.get(label, "") == label.text:
+		return
+	_quiet_text[label] = label.text
+	_quiet_hold[label] = QUIET_HOLD_SECONDS
+	label.modulate.a = 1.0
+
+
+func _process(delta: float) -> void:
+	for label: Label in _quiet_labels():
+		if label == null:
+			continue
+		var hold: float = float(_quiet_hold.get(label, 0.0))
+		if hold > 0.0:
+			_quiet_hold[label] = maxf(hold - delta, 0.0)
+			continue
+		if label.modulate.a > QUIET_REST_ALPHA:
+			label.modulate.a = maxf(
+				label.modulate.a - delta * QUIET_FADE_SPEED, QUIET_REST_ALPHA)
+
+
+## Snap every secondary line to rest and stop mid-fade.
+##
+## A store capture compares the state before and after the shot; a line caught
+## halfway through fading would make those two frames differ and eject the
+## capture. The arena calls this alongside its other capture freezes.
+func debug_settle_quiet_labels() -> void:
+	for label: Label in _quiet_labels():
+		if label == null:
+			continue
+		_quiet_hold[label] = 0.0
+		_quiet_text[label] = label.text
+		label.modulate.a = QUIET_REST_ALPHA
 
 
 ## Language can change while paused. The engine only auto-updates text written
@@ -120,13 +209,47 @@ func set_health(value: int) -> void:
 
 
 func set_beacons(lit: int, total: int) -> void:
+	var previous_lit: int = _lit
 	_lit = lit
 	_total = total
-	# From cycle 2, show which cycle it is. Cycle 1 does not need the extra.
-	if _cycle > 1:
-		_beacons.text = tr("HUD_BEACONS_CYCLE") % [lit, total, _cycle]
+	_ensure_beacon_icons(total)
+	for index in _beacon_icons.size():
+		var icon: TextureRect = _beacon_icons[index]
+		icon.texture = BEACON_ON if index < lit else BEACON_OFF
+		# Only a brazier that just lit gets the pop; a language change or a
+		# cycle reset re-runs this with the same count and must stay still.
+		if index >= previous_lit and index < lit and _beacons_ready:
+			_pop(icon)
+	# The label now carries only what the braziers cannot: which wave this is.
+	# Cycle 1 does not need it, so the label hides and gives its width back.
+	_beacons.visible = _cycle > 1
+	if _cycle > Expedition.OFFICIAL_WIN_CYCLE:
+		# Past the official win the count is how deep you are, not which wave.
+		_beacons.text = tr("HUD_DEPTH") % Expedition.depth(_cycle)
 	else:
-		_beacons.text = tr("HUD_BEACONS") % [lit, total]
+		_beacons.text = tr("HUD_WAVE") % _cycle if _cycle > 1 else ""
+	_beacons_ready = true
+
+
+## Grow or shrink the brazier strip to `total`, cloning the first cell like the
+## hearts do so art and alignment live in the scene and not in code.
+func _ensure_beacon_icons(total: int) -> void:
+	if _beacon_icons.is_empty():
+		_beacon_icons.append(_beacon_row.get_child(0) as TextureRect)
+	while _beacon_icons.size() < total:
+		var clone: TextureRect = _beacon_icons[0].duplicate() as TextureRect
+		_beacon_row.add_child(clone)
+		_beacon_icons.append(clone)
+	while _beacon_icons.size() > maxi(total, 1):
+		_beacon_icons.pop_back().queue_free()
+
+
+func _pop(icon: TextureRect) -> void:
+	icon.pivot_offset = icon.size * 0.5
+	icon.scale = Vector2(1.7, 1.7)
+	var tween: Tween = create_tween()
+	tween.tween_property(icon, "scale", Vector2.ONE, BEACON_POP_SECONDS) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 ## Spirits scattered. Arrived in Chapter 17.
@@ -135,6 +258,7 @@ func set_beacons(lit: int, total: int) -> void:
 func set_kills(value: int) -> void:
 	_kill_count = value
 	_kills.text = tr("HUD_KILLS") % value
+	_mark_quiet(_kills)
 
 
 
@@ -155,6 +279,7 @@ func set_survived(seconds: float) -> void:
 ## Current level.
 func set_level(value: int) -> void:
 	_level.text = tr("HUD_LEVEL") % value
+	_mark_quiet(_level)
 
 
 ## How far to the next level. 0–1.
@@ -180,11 +305,14 @@ func set_moonfire(ratio: float, active: bool, locked: bool) -> void:
 	_moonfire_fill_step = fill_step
 	if locked:
 		_moonfire_label.text = tr("HUD_MOONFIRE_LOCKED")
+		_mark_quiet(_moonfire_label)
 	elif active:
 		_moonfire_label.text = tr("HUD_MOONFIRE_ACTIVE")
+		_mark_quiet(_moonfire_label)
 	else:
 		# Write the target count so blue embers are not read as XP or currency.
 		_moonfire_label.text = tr("HUD_EMBERS") % mini(roundi(next_ratio * 10.0), 10)
+		_mark_quiet(_moonfire_label)
 	_moonfire_label.add_theme_color_override("font_color",
 		Color(1, 0.82, 0.4, 1) if active else Color(0.66, 0.88, 1, 1))
 	_moonfire_gauge.set_state(_moonfire_ratio, active, locked)
@@ -196,7 +324,19 @@ func set_moonfire(ratio: float, active: bool, locked: bool) -> void:
 func set_world(world_key: String, time_key: String) -> void:
 	_world_key = world_key
 	_time_key = time_key
-	_world.text = tr("HUD_WORLD") % [tr(world_key), tr(time_key)]
+	var line: String = tr("HUD_WORLD") % [tr(world_key), tr(time_key)]
+	# The rule this place carries rides on the same line: no new node, and it reads as part of
+	# where you are.
+	for key in _omen_keys:
+		line += " · " + tr(key)
+	_world.text = line
+	_mark_quiet(_world)
+
+
+## The omens of the zone you are in (translation keys). Empty clears them.
+func set_omens(keys: Array[String]) -> void:
+	_omen_keys = keys.duplicate()
+	set_world(_world_key, _time_key)
 
 
 ## Briefly show only the evolution currently being pushed.
@@ -216,6 +356,7 @@ func set_evolution(family: Relic.Family, progress: int, tier: int,
 		_evolution.text = tr("HUD_EVOLUTION_PICK")
 		_evolution.add_theme_color_override("font_color",
 			Relic.family_accent(Relic.Family.NONE))
+		_mark_quiet(_evolution)
 		return
 
 	var family_name: String = tr(Relic.family_name_key(family))
@@ -226,6 +367,7 @@ func set_evolution(family: Relic.Family, progress: int, tier: int,
 		_evolution.text = tr("HUD_EVOLUTION_PROGRESS") % [
 			family_name, _evolution_progress, _evolution_at]
 	_evolution.add_theme_color_override("font_color", Relic.family_accent(family))
+	_mark_quiet(_evolution)
 
 
 ## Compat path while existing Arena and debug tools move onto the new state API.
@@ -261,6 +403,7 @@ func set_missile_power(
 		Color(1.0, 0.82, 0.42, 1)
 			if _missile_level >= MissileProgression.HOMING_AT
 			else Color(0.58, 0.86, 1.0, 1))
+	_mark_quiet(_missile_power)
 
 
 ## Lifetime and direction of a core dropped by a hit.
@@ -281,6 +424,7 @@ func set_missile_recovery(
 		_missile_recovery.visible = active
 		if active:
 			_missile_recovery.text = tr("HUD_MISSILE_RECOVERY") % whole
+			_mark_quiet(_missile_recovery)
 	queue_redraw()
 
 
@@ -331,6 +475,8 @@ func _draw() -> void:
 ## only on a hit.
 ## Unfold at most three so long English names do not invade locale/time.
 const CHIP_LIMIT: int = 3
+## Relic emblem size in the strip.
+const RELIC_ICON_SIZE: int = 22
 
 
 func set_relics(taken: Array) -> void:
@@ -339,11 +485,12 @@ func set_relics(taken: Array) -> void:
 		chip.queue_free()
 
 	var count: Dictionary = {}
-	var tone: Dictionary = {}
+	var first: Dictionary = {}
 	for relic in taken:
 		var label: String = relic.display_name
 		count[label] = int(count.get(label, 0)) + 1
-		tone[label] = relic.accent
+		if not first.has(label):
+			first[label] = relic
 
 	# **Most stacked first.** At level 40 all fourteen kinds gather and names
 	# alone fill two rows across the screen and cover the HUD. Only saw it
@@ -355,16 +502,7 @@ func set_relics(taken: Array) -> void:
 
 	for i in mini(names.size(), CHIP_LIMIT):
 		var label: String = str(names[i])
-		var chip: Label = Label.new()
-		chip.set_meta("relic", label)
-		var many: int = int(count[label])
-		var display_name: String = tr(label)
-		chip.text = display_name if many <= 1 else "%s ×%d" % [display_name, many]
-		chip.add_theme_color_override("font_color", tone[label])
-		chip.add_theme_font_override("font", _evolution.get_theme_font("font"))
-		chip.add_theme_font_size_override("font_size", 9)
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_relics.add_child(chip)
+		_relics.add_child(_make_chip(first[label] as Relic, int(count[label])))
 
 	if names.size() > CHIP_LIMIT:
 		var more: Label = Label.new()
@@ -374,6 +512,66 @@ func set_relics(taken: Array) -> void:
 		more.add_theme_font_size_override("font_size", 9)
 		more.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_relics.add_child(more)
+
+
+## One relic in the strip: its emblem, and a `×N` corner badge once it has stacked.
+##
+## Emblems read at a glance and take a third of the width the names did. A relic
+## with no emblem yet falls back to the old text chip, so a new `.tres` never
+## renders as a blank gap while its art is still on the way.
+func _make_chip(relic: Relic, stack: int) -> Control:
+	if relic.icon == null:
+		var text_chip: Label = Label.new()
+		text_chip.set_meta("relic", relic.display_name)
+		text_chip.text = tr(relic.display_name) if stack <= 1 \
+			else "%s ×%d" % [tr(relic.display_name), stack]
+		text_chip.add_theme_color_override("font_color", relic.accent)
+		text_chip.add_theme_font_override("font", _evolution.get_theme_font("font"))
+		text_chip.add_theme_font_size_override("font_size", 9)
+		text_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return text_chip
+
+	# Two nodes per relic, not three: the emblem itself, and its `×N` pinned to the
+	# emblem's bottom-right corner like a stack count on an inventory slot. A
+	# side-by-side icon and label needs a container node on top, and every node in
+	# the arena counts against the late-game budget.
+	var chip: TextureRect = TextureRect.new()
+	chip.set_meta("relic", relic.display_name)
+	chip.texture = relic.icon
+	chip.custom_minimum_size = Vector2(RELIC_ICON_SIZE, RELIC_ICON_SIZE)
+	chip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	# The emblems are 48px art shown at 22: a filtered downscale, where the
+	# project's default nearest filter would drop every other pixel into noise.
+	chip.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var badge: Label = Label.new()
+	badge.name = &"Count"
+	badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	badge.offset_right = 4.0
+	badge.offset_bottom = 3.0
+	badge.add_theme_color_override("font_color", Color(1, 0.95, 0.8, 1))
+	badge.add_theme_color_override("font_outline_color", Color(0.04, 0.05, 0.14, 1))
+	badge.add_theme_constant_override("outline_size", 4)
+	badge.add_theme_font_override("font", _evolution.get_theme_font("font"))
+	badge.add_theme_font_size_override("font_size", 9)
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(badge)
+	_set_chip_count(chip, relic, stack)
+	return chip
+
+
+func _set_chip_count(chip: Control, relic: Relic, stack: int) -> void:
+	if chip is Label:
+		(chip as Label).text = "%s ×%d" % [tr(relic.display_name), stack] \
+			if stack > 1 else tr(relic.display_name)
+		return
+	var badge: Label = chip.get_node_or_null("Count") as Label
+	if badge != null:
+		badge.text = "×%d" % stack
+		badge.visible = stack > 1
 
 
 func add_relic(relic: Relic) -> void:
@@ -394,23 +592,17 @@ func add_relic(relic: Relic) -> void:
 		return
 
 	# If it already exists, raise rank only — no new chip.
-	# Chips that keep growing fill the left of the screen with names.
+	# Chips that keep growing fill the left of the screen.
 	for existing in _relics.get_children():
 		if str(existing.get_meta("relic", "")) != relic.display_name:
 			continue
-		existing.text = "%s ×%d" % [tr(relic.display_name), stack]
+		_set_chip_count(existing as Control, relic, stack)
 		existing.scale = Vector2(1.4, 1.4)
 		existing.create_tween().tween_property(existing, "scale", Vector2.ONE, 0.24) \
 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		return
 
-	var chip: Label = Label.new()
-	chip.set_meta("relic", relic.display_name)
-	chip.text = tr(relic.display_name)
-	chip.add_theme_color_override("font_color", relic.accent)
-	chip.add_theme_font_override("font", _evolution.get_theme_font("font"))
-	chip.add_theme_font_size_override("font_size", 9)
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var chip: Control = _make_chip(relic, stack)
 	_relics.add_child(chip)
 
 	# Pop when it attaches. Appear quietly and they miss it.
@@ -556,7 +748,8 @@ func set_boss(
 		alive: bool,
 		ratio: float = 1.0,
 		boss_name: String = "",
-		accent: Color = Color(0.86, 0.42, 0.5, 1)) -> void:
+		accent: Color = Color(0.86, 0.42, 0.5, 1),
+		detail: String = "") -> void:
 	if _boss.visible != alive:
 		_boss.visible = alive
 		if alive:
@@ -566,9 +759,40 @@ func set_boss(
 		return
 	_boss_name.text = boss_name
 	_boss_name.add_theme_color_override("font_color", accent)
+	_set_boss_detail(detail, accent)
 	_boss_fill.anchor_right = clampf(ratio, 0.0, 1.0)
-	# Low remaining glows red. The finish is visible.
-	_boss_fill.color = Color(1, 0.35, 0.32, 1) if ratio < 0.3 else accent
+	# The rounded fill cannot draw below its own two end caps, so a nearly empty
+	# bar hides instead of turning into a smear.
+	_boss_fill.visible = ratio > 0.02
+	# Low remaining glows red. The finish is visible. The fill texture is neutral
+	# white, so tinting it is the whole colour.
+	_boss_fill.self_modulate = Color(1, 0.35, 0.32, 1) if ratio < 0.3 else accent
+
+
+## A small line under the bar naming what this guardian has gained. Built the first time a
+## mutated guardian appears, so a plain fight adds no node.
+func _set_boss_detail(detail: String, accent: Color) -> void:
+	if detail.is_empty() and _boss_detail == null:
+		return
+	if _boss_detail == null:
+		_boss_detail = Label.new()
+		_boss_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_boss_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		# Hangs just under the bar, as wide as the bar.
+		_boss_detail.anchor_left = 0.0
+		_boss_detail.anchor_right = 1.0
+		_boss_detail.anchor_top = 1.0
+		_boss_detail.anchor_bottom = 1.0
+		_boss_detail.offset_top = 2.0
+		_boss_detail.offset_bottom = 14.0
+		_boss_detail.add_theme_font_override("font", _boss_name.get_theme_font("font"))
+		_boss_detail.add_theme_font_size_override("font_size", 9)
+		_boss_detail.add_theme_color_override("font_outline_color", Color(0.02, 0.03, 0.08, 0.9))
+		_boss_detail.add_theme_constant_override("outline_size", 3)
+		_boss.add_child(_boss_detail)
+	_boss_detail.text = detail
+	_boss_detail.visible = not detail.is_empty()
+	_boss_detail.add_theme_color_override("font_color", accent.lerp(Color.WHITE, 0.35))
 
 
 func debug_boss_visible() -> bool:

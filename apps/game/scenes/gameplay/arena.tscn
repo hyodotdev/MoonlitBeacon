@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3]
+[gd_scene load_steps=27 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="beacon"]
 [ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg" id="bgm"]
@@ -22,6 +22,9 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/ladder_panel.tscn" id="ladderpanel"]
 [ext_resource type="PackedScene" path="res://scenes/ui/dialogue_scene.tscn" id="dialogue"]
 [ext_resource type="Script" path="res://scripts/dev/arena_tools.gd" id="arenatools"]
+[ext_resource type="PackedScene" path="res://scenes/ui/night_vignette.tscn" id="vignette"]
+[ext_resource type="PackedScene" path="res://scenes/ui/night_grade.tscn" id="grade"]
+[ext_resource type="Script" path="res://scripts/gameplay/kill_sparks.gd" id="sparks"]
 [ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="confirm"]
 [ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_focus.ogg" id="focus"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
@@ -60,6 +63,9 @@ position = Vector2(404, 336)
 [node name="Spirit" parent="." instance=ExtResource("spirit")]
 position = Vector2(640, 190)
 
+[node name="Sparks" type="Node2D" parent="."]
+script = ExtResource("sparks")
+
 [node name="Bgm" type="AudioStreamPlayer" parent="."]
 script = ExtResource("music")
 stream = ExtResource("bgm")
@@ -82,6 +88,10 @@ max_polyphony = 4
 bus = &"Sfx"
 
 [node name="Ui" type="CanvasLayer" parent="."]
+
+[node name="Grade" parent="Ui" instance=ExtResource("grade")]
+
+[node name="Vignette" parent="Ui" instance=ExtResource("vignette")]
 
 [node name="MoveStick" parent="Ui" instance=ExtResource("stick")]
 anchors_preset = 15
@@ -141,6 +151,7 @@ script = ExtResource("framemeter")
 [node name="RunChoice" parent="Ui" instance=ExtResource("runchoice")]
 
 [node name="Dialogue" parent="Ui" instance=ExtResource("dialogue")]
+
 
 [node name="ZoneWipe" type="ColorRect" parent="Ui"]
 visible = false
