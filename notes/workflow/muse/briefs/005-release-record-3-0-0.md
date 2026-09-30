@@ -19,10 +19,11 @@ and follow the tables the earlier records already use.
 - `notes/plans/release-2.1.0.md` is the plan and record of the previous release; use it as the model for a 3.0.0 one.
 - `notes/plans/3-0-0-build-log.md` and `3-0-0-expedition.md` say what was built, measured and left undone.
 - Locked values for this release: app 3.0.0, Android versionCode 15, iOS build 10. Both stores have 2.1.0 live.
-- Facts you may state, because the director measured or set them: `pnpm test:game` passed on the working tree on
-  2026-09-30; `check:assets`, `check:store-metadata`, `check:hygiene` and `check:skills` passed; `check:store-graphics`
-  and `check:store-screenshots` are red on purpose until the store images are recaptured. Anything else you need, read
-  from the repo or leave as "not yet run".
+- Historical checks in the draft are comparison material only. A fresh director game-test run is in progress;
+  do not claim it passed. The draft reports six hygiene failures in the two bullet scripts, which another round
+  is correcting. The six hero IAP images were already regenerated; do not mark store graphics failed merely
+  because the marketing screenshots are stale. For every check, use a current result you can reproduce or mark
+  it "not yet run on the final tree".
 - The analytics gate of 2.1.0 (collection off in the submission build until the protected ingest path, privacy labels,
   Firestore rules deploy and release `firebase.cfg` are done) is unchanged; `firestore.rules` is modified in the working
   tree and not deployed, which is the user's step.
@@ -32,7 +33,7 @@ and follow the tables the earlier records already use.
 1. In `checklist.md`, change the version table to 3.0.0 (iOS build 10, Android versionCode 15) and add a "3.0.0 prep
    record (2026-09-30)" section in the same two-column form: source version; what changed since 2.1.0 (six lines at
    most, in player terms); checks run and their results; store images (recapture planned after the game freeze, nothing
-   uploaded); release gates that remain (the analytics gate as above, store console steps, the iPad capture needing a
+   uploaded; no recapture is authorized in this continuation); release gates that remain (the analytics gate as above, store console steps, the iPad capture needing a
    sudo RSD tunnel started by the user); what is deliberately not done. Do not edit the older records.
 2. Add `notes/plans/release-3.0.0.md` modeled on `release-2.1.0.md`: goal, scope, what changed, budgets and how they
    were measured, verification, known limitations (quote them from the build log's "Not done" lists, corrected: the
@@ -40,6 +41,14 @@ and follow the tables the earlier records already use.
    director's.
 3. Do not state a result you were not given or cannot read from the repo. Mark it "not yet run".
 4. `pnpm check:hygiene` passes (no banned word), and links in what you write resolve.
+
+## Current continuation scope
+
+The user now asks to improve the game, create a PR ready to merge, and leave merging to them. This is PR preparation,
+not a store submission. Clearly separate repository/PR verification from later release operations. Store screenshot
+recapture, uploads, Firestore deployment, signed distribution builds and store review remain later operations; never
+present them as completed or required merely to merge this code. Do not describe the current work as uncommitted
+where git already records it. Do not create a PR or perform network operations yourself.
 
 ## Do not
 
