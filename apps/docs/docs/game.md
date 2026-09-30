@@ -567,9 +567,11 @@ three seconds while the fork and guardian lines that share the beacon wait
 their turn. Restoring is optional — the main arc runs on cycles alone and
 the official win needs no particular terrain.
 
-**The chronicle.** Every story beat, place memory, first-sight line and ending
-is written into `chronicle.json` at the moment it plays, and the title
-screen's Chronicle page lists all forty entries, the unmet ones as blanks.
+**The chronicle.** Entries are written into `chronicle.json` as their moments
+occur; a place memory is recorded when its beacon is restored. A discovery or
+first-sight line may wait until the screen is quiet, with its record already
+kept. The title screen's Chronicle page lists all forty entries, the unmet
+ones as blanks.
 It has its own save file on purpose: purchases and shards live in the Vault,
 whose writes are verified and backed up, and a reading log is not worth that
 risk. A missing or unreadable chronicle simply starts empty.
