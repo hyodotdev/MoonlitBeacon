@@ -164,6 +164,34 @@ settings, result, the run-choice modals, and the title (a fifth button).
   it is not an enemy. Two new asides keep the deep night talking about it.
 - 5 languages throughout (`moonlit.csv`, 458 rows). Cells may not contain ASCII commas.
 
+### Result depth, one Wave, whole shop blurbs
+
+- Past cycle 8 the result epitaph shares its full-width line with the Depth
+  (`HUD_DEPTH`, from the same `Expedition.depth()` the HUD reads). A second
+  line under the epitaph was tried first and does not fit: the six-line score
+  table already needs 117px of its 110px box, so a two-line epitaph breaks the
+  title/table gaps in every language. Same-line keeps every rect untouched.
+  Score arithmetic, ladder format and the five breakdown lines are unchanged.
+- English now names the loop Wave everywhere: `SCORE_CYCLES` is "Waves %d" and
+  the two relic strings say "wave". Japanese `周回` became `巡` in the same two
+  relic strings, and `SCORE_CYCLES` in the other languages keeps only its one
+  term. No key renamed.
+- Shop non-coin cards show the whole blurb: three lines instead of two (card
+  minimum 98 to 117, actual 105 to 118). The probe found the ellipsis not only
+  on hero cards in English and Japanese but on the supporter (English) and
+  lantern (Korean, English, Japanese) cards too, so every non-coin card grew
+  and the row stays uniform. The frame grows 328 to 333, still inside the
+  337px safe area; `test_iap_hero_previews` (603 cases) passes unchanged.
+- New test `test_result_depth` (past the win shows the depth, at the win it
+  does not, score untouched) registered in `run_regression_tests.mjs`;
+  `test_result_layout` covers the depth caption in five languages. The new
+  test was broken on purpose (depth never shows) and failed 10 cases, then
+  passed again when restored.
+- The expedition plan's "Not done" named a first-fork hint as missing; it
+  exists (`VOICE_FORK_1/2`, `_say("fork")` in `_open_fork`), so that line and
+  the "Cycles N past the win" line are removed there. This log's "Not done"
+  never named the fork hint, so there was nothing to correct in it.
+
 ## Expedition: six places, forks and an endless stretch that stays playable
 
 Plan and reasoning: `3-0-0-expedition.md`. Player-facing description: `apps/docs/docs/game.md`

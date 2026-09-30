@@ -145,6 +145,9 @@ third of a second) getting out of a fan; `tests/test_telegraph_floors.gd` holds 
   two dozen bolts when the first ring is in the air (a ring of 17 to 22 leaves room for 2 to 7 more), while its
   picture shows the whole ring. That is the safe way to be wrong. Fixing it means either fewer spokes when an
   Echo is present or a higher cap, and the late-game node budget (1167 of 1200) does not have room for the second.
-- A first-fork hint line for the hero.
-- The result screen still says "Cycles N" past the win; a "Depth N" line would suit it.
+- ~~A first-fork hint line for the hero.~~ Done: it exists (`VOICE_FORK_1/2`,
+  said from `_open_fork` in `arena.gd`).
+- ~~The result screen still says "Cycles N" past the win; a "Depth N" line
+  would suit it.~~ Done: the epitaph shares its line with the Depth past
+  cycle 8, and the score row reads "Waves N".
 - Store screenshots were not touched (see `AGENTS.md`).
