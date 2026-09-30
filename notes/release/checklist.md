@@ -12,7 +12,7 @@ out of scope.
 | Package name | `com.crossplatformkorea.moonlitbeacon` |
 | App name | Moonlit Beacon |
 | Architecture | arm64-v8a |
-| Version | 2.1.0 (iOS build 9 / Android versionCode 14) |
+| Version | 3.0.0 (iOS build 10 / Android versionCode 15) |
 | Reference devices | iPad + Android phone, 7-inch, 10-inch tablet |
 | Orientation | landscape locked (Sensor Landscape) |
 
@@ -377,3 +377,19 @@ The same account's `inappproducts.list` separately returns `"Please migrate
 to the new publishing API."` You hit this wall again when using product
 sync (`--include-products`).
 :::
+
+## 3.0.0 prep record (2026-09-30)
+
+| | |
+| --- | --- |
+| Source version | app 3.0.0 · Android versionCode 15 · iOS build 10 aligned (`config/version`, `version/code`, `application/version`) |
+| Since 2.1.0 (player terms) | new UI kit on every screen and a combat-readable HUD; story in three acts plus an epilogue, a chronicle recording beats and first sightings as they play, per-hero voices; night re-lit with shadows, mist and grade, and all mobs, guardians and heroes redrawn; expedition to six places through forked gates from cycle 2, with three new guardians and mutations; endless stretch past cycle 8 with a Depth curve, omens, Moonless Trials and nine skills; guardian attacks drawn from volley data as soft coral/mint markers |
+| Checks run | `pnpm check:hygiene`: 6 failures in `bullet_emitter.gd` / `bullet_field.gd`, baseline failures being corrected in another round; this record adds none. `pnpm check:store-graphics`: pass, tracked art deterministic with 8 IAP artworks. `pnpm check:assets`: pass. Locale node half: ok (535 translations · 5 locales · 464 keys in use); Godot half not run. Full regression and device game-test: not yet run on the final tree (a fresh director game-test run is in progress) |
+| Budgets (build-log measurements, comparison only) | late-game arena 1176 of 1200 nodes; hostile bolts capped at 24 in the air, ground marks at 8; soak (seed 7, 14 cycles): spirit lifetime 25 s to 28 s across the win, kills a minute 33 then 19, level 75 at cycle 14; play-bot guardian gauntlet (168 fights): 89% won, 1.4 hits a fight |
+| Store images | six hero IAP images regenerated (`notes/release/store-assets/iap/hero-*-512.png`); marketing screenshots stale, recapture planned after the game freeze, nothing uploaded; no recapture authorized in this continuation |
+| Release gates left | analytics gate unchanged from 2.1.0: collection stays off until the protected ingest path, privacy labels, Firestore rules/indexes/TTL deploy and release `firebase.cfg` are done; `firestore.rules` is committed on the feature branch and not deployed [user]. Store console steps (listings, review submit) [user]. iPad capture needs a sudo RSD tunnel started by the user [user]; the capture run itself [director] |
+| Deliberately not done | result screen keeps its 2.1.0 layout; marketing screenshots and remaining redrawn-character imagery wait on the user's word; echo-of-ring picture may show spokes the 24-bolt cap trims (safe side); no player-feel verdict on the stretch yet, bot and soak numbers only; title keeps its own atmosphere without the grade |
+| Narrative (in progress) | the user has requested a stronger world and narrative tied to restoring places; in progress in another game round, not implemented in this snapshot; this record will be reconciled again after it is judged |
+| This continuation | PR preparation, not a store submission: merge readiness is repo checks only. Recapture, uploads, Firestore deploy, signed builds and store review are later operations — not done, not required to merge |
+
+Fuller record: [release-3.0.0.md](../plans/release-3.0.0.md).
