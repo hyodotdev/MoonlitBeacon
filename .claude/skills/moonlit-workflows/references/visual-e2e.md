@@ -141,7 +141,8 @@ partially unconfirmed".
 - Regular spirits: exhaustive-zoom the current 7 kinds × 4 directions × 4
   frames = 112 cells, and on device watch real combat with kinds, directions,
   and barrages mixed.
-- Guardians: exhaustive-zoom the current 3 kinds' 11 sheets and 50 frames.
+- Guardians: exhaustive-zoom all 12 forms across 44 sheets and 200 frames
+  (six terrains, each with its younger and promoted form).
   Front-locked presentation with `facings = 1` is an intended contract; do
   not write that you confirmed 4 directions.
 - Items, projectiles, VFX: confirm empty frames, edge contact, clipping, and

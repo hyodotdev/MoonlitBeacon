@@ -299,7 +299,7 @@ The Ninja Adventure pack alone is 89MB. **Copy only files the project
 actually uses** into `apps/game/assets/third_party/` and record them in
 `apps/docs/docs/assets/manifest.md`.
 What currently lives in `apps/game/assets/` is the third-party selection plus
-originals: 119 files, about 26.5MB (excluding `.import`). About 15MB of that
+originals: 259 files, about 26.5MB (excluding `.import`). About 15MB of that
 is one Noto Sans CJK original so Korean, Chinese, and Japanese player names
 render without depending on the device font. Current numbers are whatever
 `pnpm check:assets` and the asset manifest say.
