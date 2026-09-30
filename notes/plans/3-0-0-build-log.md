@@ -186,11 +186,16 @@ settings, result, the run-choice modals, and the title (a fifth button).
   does not, score untouched) registered in `run_regression_tests.mjs`;
   `test_result_layout` covers the depth caption in five languages. The new
   test was broken on purpose (depth never shows) and failed 10 cases, then
-  passed again when restored.
+  passed again when restored. The director independently repeated the guards:
+  the Depth guard mutation failed 10 cases, then the exact restoration passed
+  55 Depth cases and 135 layout cases, and all twenty four-screen/five-language
+  renders were inspected.
 - The expedition plan's "Not done" named a first-fork hint as missing; it
-  exists (`VOICE_FORK_1/2`, `_say("fork")` in `_open_fork`), so that line and
-  the "Cycles N past the win" line are removed there. This log's "Not done"
-  never named the fork hint, so there was nothing to correct in it.
+  exists (`VOICE_FORK_1/2` in `moonlit.csv`, spoken from `_open_fork` in
+  `arena.gd` via `_say_after_discovery("fork")`, so the discovery guard takes
+  it at once and speaks it after the 3 s interval while gates and the guardian
+  banner stay immediate), so that line and the "Cycles N past the win" line are
+  marked Done there. This log's "Not done" carries no fork-hint claim.
 
 ## Expedition: six places, forks and an endless stretch that stays playable
 
@@ -359,44 +364,58 @@ intensity slope to 1/13 so cycle 17 is exactly 2.0, and a new `GuardianStreams.M
 (the old uncapped rate hit 12x at cycle 100 and would have held the field permanently full). The old angle name in the two bullet scripts became `angle`/`first_angle`:
 the hygiene check bans a certain word case-insensitively and the new files had slipped through with six hits.
 
-Tuning, measured with the play bot (it dodges worse than a person, so its hit rate is a floor; and the bot's
-numbers move with the machine's frame rate, so gaps under ~0.3 hits a minute or five points of weaving are
-noise — the bands were widened for that in round 2):
+Tuning, measured with the play bot. The bot is an automated proxy: it reads warnings on a fixed
+schedule, never gets bored and never misjudges a gap, and its numbers move with the machine's frame
+rate, so every measurement below names its seed, loops and command, gaps under ~0.3 hits a minute or
+five points of weaving are noise, and no human difficulty or fun verdict follows from any of them
+(the bands were widened for that in round 2):
 
 - Natural first loops, twelve runs across the heroes (`tag=nat runs=12 seed=5 speed=3 loops=1`): before,
   1.42 hits a minute with 5.6 bullets in the air on average and weaving 25% of the time; after the speed cuts
   1.01 with 8.2 and 29% (slower bullets live longer, so presence rose while hits fell); after the density pass
   (weaver share 0.6 to 0.75 and interval 2.6 to 2.3, wisp 0.1 to 0.2 and 4.6 to 4.2, caster interval 2.9 to 2.7,
-  the shared volley gap 1.3 to 1.1). Twelve tuning batches moved speed, density, ranges, quiets and first-shot delay; the finding that stuck is that density alone buys almost no weaving while it costs farm efficiency, so the frozen set uses short lives with fast near-rates: mob ranges down to 175/110/100, first shot at 0.15-0.5 of an interval, per-spirit quiet 0.5 s, arrival quiet 4 s. The last gap was the four chaser kinds, which never shot: stalker, ember, drifter and swarm now spit a rare slow single (share 0.2, every 6.5 s, 40 px/s, new `Source.MOB`). Frozen numbers: nat12 (frozen tree) 1.03 hits/min, peak 71, avg 11.7, weave 35.25 exact, kills 25.2/min; confirmation final_nat 0.91, peak 54, avg 12.4, weave 33.83, kills 31.7/min; mean of the two 0.97, 34.54, 28.5 — inside the round-2 bands (0.8–1.6, ≥30%, within 30% of the untouched 29.0). Same tree and command gave different numbers across runs (frame-rate dependence), which is why the bands are means.
-- Guardian gauntlet, eighteen runs over all six places at cycles 2, 6 and 12 (`tag=gaunt`, same seeds):
+  the shared volley gap 1.3 to 1.1). Twelve tuning batches moved speed, density, ranges, quiets and first-shot delay; the finding that stuck is that density alone buys almost no weaving while it costs farm efficiency, so the frozen set uses short lives with fast near-rates: mob ranges down to 175/110/100, first shot at 0.15-0.5 of an interval, per-spirit quiet 0.5 s, arrival quiet 4 s. The last gap was the four chaser kinds, which never shot: stalker, ember, drifter and swarm now spit a rare slow single (share 0.2, every 6.5 s, 40 px/s, new `Source.MOB`). Frozen numbers: nat12 (frozen tree) 1.03 hits/min, peak 71, avg 11.7, weave 35.25 exact, kills 25.2/min; confirmation final_nat 0.91, peak 54, avg 12.4, weave 33.83, kills 31.7/min; mean of the two 0.97, 34.54, 28.5 — inside the round-2 bands (0.8–1.6, ≥30%, within 30% of the untouched 29.0). Same tree and command gave different numbers across runs (frame-rate dependence), which is why the bands are means. These implementer batches ran in the implementer copy on the development machine; the director independently repeated the natural battery on the same development machine (see the one-fight note below).
+- Guardian gauntlet, eighteen runs over all six places at cycles 2, 6 and 12 (`tag=gaunt`, same seeds) — dated observations of the loops-unset behavior, kept as history:
   23 fights (some runs fought twice), 19 won (83%), 1.48 hits a fight, bullets peaking at 57, no frame spike
   over 100 ms inside a fight (the 146 ms spikes all land in the first 3 s, while the debug boost grants dozens
   of relic levels, before any fight starts). Aura and stream hits are a third of fight hits; the old tree
   without them measured 89% won at 1.4. The camp siege (3.2 hits a fight) and the ruins got a gentler stream
   interval (1.7 to 1.9, 1.25 to 1.4). Early reads were 23-24 fights, 83% won, 1.3-1.5 hits a fight,
   bullets peaking under 60. Frozen (`tag=final_gaunt` on the frozen tree): 25 fights, 24 won (96%), 1.6 hits a fight, bullets peaking at 61, all frame spikes in the first 3 s of setup, none during a fight.
-- 2026-09-30 correction, gauntlet measures one fight: the battery command leaves `loops` unset, and the bot
-  applied its natural one-or-two-loop draw to gauntlet runs too, so some runs fought twice (all counts above
-  are dated observations of that behavior and stand). Gauntlet mode now targets exactly one loop; natural mode
-  still draws from `loops=` (`tools/bot_modes.gd`, held by `tests/test_play_bot_modes.gd`). The director's
-  partial gauntlet batch is reported honestly: run 10 (knight, frost, cycle 2, seed 1021) won its fight, then
-  kept exploring the next cycle until the 2400 s bot cap — a harness run-cap artifact, not a game soft-lock;
-  the batch was stopped and is being repeated with explicit `loops=1`. Separately, the director repeated the
-  natural batch on another machine: 12 runs, 46.89 simulated minutes, 1.173 hits/min, 23.12 scattered/min,
-  mean weaving 33.08%, bullet peak 52, no stuck or soft lock — an independent observation; brief 007
-  reconciles the full records.
+- 2026-09-30 correction, gauntlet measures one fight (accepted): the battery command left `loops` unset,
+  and the bot applied its natural one-or-two-loop draw to gauntlet runs too, so some runs fought twice (all
+  counts above are dated observations of that behavior and stand). Gauntlet mode now targets exactly one
+  loop and fight regardless of the natural draw; natural mode still draws from `loops=`
+  (`tools/bot_modes.gd`, held by `tests/test_play_bot_modes.gd`). The director's partial batch stays on
+  record honestly: run 10 (knight, frost, cycle 2, seed 1021) won its fight, then kept exploring the next
+  cycle until the 2400 s bot cap — a harness run-cap artifact, not a game soft-lock; that partial batch was
+  stopped and is neither a green batch nor soft-lock proof. The explicit one-fight repeat supersedes its
+  status: `director_gaunt_one runs=18 seed=11 speed=3 loops=1 gauntlet=1 guardians=0,1,2,3,4,5 starts=2,6,12`
+  gave 18 runs and 18 fights, 16 won (88.9%), mean 1.17 hits a fight, bullet peak 62, zero stuck or soft
+  lock; cycles 2/6/12 and the six places were paired cyclically, not as a full Cartesian matrix, and the
+  machine recorded 98 setup spikes all before 3.4 s and none after. A mode diagnostic on the corrected rule
+  (`director_mode runs=4 seed=11 speed=3 loops=2 gauntlet=1 guardians=3 starts=2`) settled all four runs
+  after one fight in 41.6 s wall time. Separately, the director repeated the natural battery on the same
+  development machine: 12 runs, 46.89 simulated minutes, 1.173 hits/min, 23.12 scattered/min, mean weaving
+  33.08%, bullet peak 52, no pickup stuck or soft lock — inside the frozen bands; guardian confirmation stays
+  separate, and no human difficulty or fun verdict follows. Brief 007 reconciles the release records
+  independently (it owns the release plan, checklist, expedition plan and store copy, not this log).
 - The casters stayed the zone threat (about half the bullet hits), weavers second, chaser spit nearly harmless
   (no attributed hits in the frozen batch). Everything shoots from cycle 1: gating kinds to cycle 2 would have
   thinned the first loop, and the arrival quiet plus the per-spirit quiet already keep the first minute from
   being a wall (forest runs at a fraction of a hit a minute).
 
 Look: `tools/shot_barrages.tscn` stages all six guardians mid-stream on their own floors plus a busy zone and
-a caster fan through the real shooting code, and validates headless (32–66 bullets per guardian scene, 35 in the zone, a 5-fan mid-flight). Tints
-kept: every tint measures at least 4.4:1 against every place floor's average (most over 6:1), so nothing
-vanishes. No screenshots could be rendered in the implementer sandbox (all render harnesses crash headless in
-the engine's Metal backend and windowed runs exit without a display); the director renders
-`node scripts/godot.mjs --path apps/game res://tools/shot_barrages.tscn -- <tag> 6` on a machine with a
-display. What a player sees is in `apps/docs/docs/game.md` under *Bullets*.
+a caster fan through the real shooting code, and validates headless (32–66 bullets per guardian scene, 35 in the zone, a 5-fan mid-flight). The
+analytic tint check measured at least 4.4:1 against every place floor's average (most over 6:1); an average
+does not prove a tint never vanishes on every composite, so that number is kept as a dated analytic fact, not
+as a visibility proof. No screenshots could be rendered in the implementer sandbox (all render harnesses crash
+headless in the engine's Metal backend and windowed runs exit without a display) — that limitation is dated;
+the director rendered and visually inspected all eight barrage stages on a machine with a display. The
+inspected visual scope is exactly this: the eight barrage stages, the six terrain composites
+(`shot_rooms.tscn -- director-baseline`, inspected at original resolution), and thirty map corner/center views
+(five per terrain, seed 20260929, no seam, edge band or missing terrain layer confirmed). Those are harness
+views, not movement or device proof. What a player sees is in `apps/docs/docs/game.md` under *Bullets*.
 
 ## Things that bit us
 
@@ -482,17 +501,30 @@ display. What a player sees is in `apps/docs/docs/game.md` under *Bullets*.
 
 ## Verification
 
-- `pnpm verify` — see the final report for the last run.
+- Registry recount, reproduced in this copy: `apps/game/tools/run_regression_tests.mjs` holds 50
+  entries — two import steps (`Reimport resources`, `Confirm resource import`) plus 48 game checks.
+  Every registry count in this log is game checks unless import steps are named with it.
+- Reproduced in this copy, 2026-09-30: `pnpm check:hygiene` passes (repo rules ok),
+  `pnpm check:store-graphics` passes (tracked art deterministic, 8 IAP artworks), `pnpm check:assets`
+  passes. The older note that store graphics were expected red after the hero redraw is dated history
+  (the hero art mismatch at redraw time); the current reproducible result is the pass above.
+  `tools/shot_actors.tscn` takes an `all` argument to photograph all six guardians and heroes on a
+  forest floor.
+- This record-only round ran no full `pnpm test:game`, `pnpm verify`, build, capture or device step.
+  Final full-root verification and the Android build are still pending; that evidence lives in the
+  director continuity and the PR body, not here, and this log manufactures none of it.
+- Director root evidence already on record (cited, not re-run here): after the story, title, spatial
+  and skill acceptances the root registry passed all 46 game checks plus the two import steps (log
+  `builds/verify/director-story-accepted-game.log`); import, all 118 scripts and startup passed
+  independently. Caption correction 010b and the docs audit were accepted after it; the store/record
+  reconciliation (007) runs independently; final full verification follows them.
 - `pnpm check:store-screenshots` is **expected to be red**: `apps/game/` changed, and
   the capture fingerprint hashes all of it. That is the standing rule, not a defect.
-  No recapture was done and none is proposed here.
-- `pnpm check:store-graphics` is **expected to be red** after the hero redraw:
-  `notes/release/store-assets/iap/hero-bundle-512.png` (and the other store art that shows a
-  hero) is composed from the hero sheets, so it no longer matches. It is not regenerated here;
-  it belongs to the store-image redo the user plans. `tools/shot_actors.tscn` takes an `all`
-  argument to photograph all six guardians and heroes on a forest floor.
+  No recapture was done, none is proposed here, and no store operation is authorized in this continuation.
 - Screens were checked with `tools/shot_ui.tscn` (every screen, per locale, over a
-  real forest room) and on a Galaxy Z Flip 5 (title, forest and camp arenas at 120fps).
+  real forest room) and on a Galaxy Z Flip 5 (title, forest and camp arenas at 120fps) — dated
+  implementer-era observations; the director's own harness renders are named where they supersede them
+  (barrage stages, terrain composites, corner/center views, story stages, rim and outcome cards above).
 
 ### Device testing rule
 
@@ -504,7 +536,8 @@ off (no `firebase.cfg`), so only the local save is affected.
 
 ## A road home: the Lantern Hollow story pass
 
-Brief 006, still uncommitted. The user asked for a world worth caring
+Brief 006, round 1 (dated history; not accepted, superseded by the brief 008 integration below).
+The user asked for a world worth caring
 about; the director's answer is one integrated journey, not a lore
 encyclopedia. Home is **Lantern Hollow** (등불마을); **Nari / 나리**,
 the signal keeper, went to repair the beacon road and disappeared, her
@@ -556,7 +589,11 @@ English lines did not appear until a second `--import` regenerated the
 `.translation` files; the voice strip fits ~375 px at 13 px, which
 forced two discovery lines shorter; the late-game arena marks ambient
 first-sight entries while any test runs, so "nothing recorded" had to
-be scoped to place and story ids.
+be scoped to place and story ids. Round 1 was not accepted: the director's
+real-path probe failed 2/536 (the first fork and the classic third beacon
+overwrite discovery), the Road rectangle probe failed 1/535 (a 6.5 px score
+overlap), and the Nari ending needed an explicit resolution; the 533 place
+cases and 151 staging cases above are the dated round-1 counts.
 
 ## A road home, integrated: brief 008 on the current tree
 
@@ -619,6 +656,24 @@ quiet gap, so it waits a 1 s settle before delivering anything; the
 third beacon also speaks moonfire in the same frame, which the
 diagnostic had not named; a bare staged beacon instantiates lit.
 
+Director independent evidence (accepted, same development machine): place memories 951, layout 135,
+Depth 55, run choice 331, story structure 695 and scene staging validate 221 all passed. Disabling the
+actual discovery guard failed four same-frame/one-second fork and third-guardian preservation cases;
+restoring the exact production bytes returned 951 pass. All new story stages were generated in five
+languages; personally inspected were the opening, both real-path discovery collision stages, the official
+continue/cash-out choice and win/early-exit/defeat for each language, plus all six dim/lit terrain
+composites. Fast desktop rendering exposed frame-count-only capture before the result fade finished, so
+brief 010 requires an elapsed-time settle and final-alpha assertions — fading images are not final cards.
+
+A later different-seed diagnostic is not the calibration: `director_story_nat runs=12 seed=11 speed=3
+loops=2` measured 61.05 simulated minutes, 0.753 hits/min, 46.47 scattered/min, 26.08 percent mean
+weaving, bullet peak 73, six guardian fights, zero stuck or soft lock. It started before arena's final
+deferred-strip cleanup (combat did not change) and is not an exact-final-source run; the frozen seed-5
+measurement remains the comparison. A separate isolated-save desktop diagnostic observed the Promise act,
+kettle/road dialogue, an actual first-beacon ribbon discovery, joystick movement and the road-home pause
+objective with debug shield and beacon controls — not mobile verification, not a full human eight-cycle
+ending, and not a human difficulty verdict.
+
 ## Readable at the edge and in Japanese: brief 010 on the current tree
 
 Two visual defects from a different review angle, both measured first.
@@ -670,16 +725,35 @@ production separates one extra pixel past the margin; `frame_post_draw`
 never fires headless, so captures only validate in the sandbox and
 render on a real display.
 
+The 71 gate, 24 quit and 248 staging counts above are the implementer's measured counts and stand.
+Round 1 was not accepted: the upper-rim real-camera caption at y=132..184 crossed the actual hero at
+x=404 (head/body around y=146..180), obscuring the caption's second line, and the bottom-rim diagnostic
+held the initial tutorial banner over the third line — forced early staging, not natural-route proof, so
+the rim diagnostic went quiet. Correction 010b is accepted. The director independently passed 71 gate
+cases, 248 scene-staging cases, 951 place cases and 50 fork cases; disabling only the actual hero
+clearance failed nine assertions, and exact restoration passed 71 (SHA-256
+14785feb443ed804629c32efb1b86c4f615e10e2f1c7360fdfbaebbfad6a40a0). Personally inspected at original
+resolution: all twenty rim pictures, fifteen fully settled win/escape/defeat cards, ten discovery
+collisions and five quit cards across five locales. These are diagnostic desktop stages — debug controls
+were visible on the rim/discovery stages — not marketing images and not device proof.
+
 ## Not done
 
-- Bullet-weaving pictures were staged (`tools/shot_barrages.tscn`, eight scenes) but not rendered: the
-  implementer sandbox cannot draw. Render them on a machine with a display before judging tints, size and
-  contrast by eye; the analytic contrast (4.4:1 minimum) is no substitute for a look.
-- Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded.
+- Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded, and no recapture is
+  authorized in this continuation. Marketing proofs are stale after the visual changes; that is reported,
+  not a recapture order.
+- Later deployment and release gates are uncompleted: the device choice (dedicated emulator, connected
+  test Pixel, or desktop only) is still pending with the user and no device install or play validation is
+  claimed, Firestore rules are committed but not deployed, analytics collection stays gated, and no signed
+  distribution build, store submission, tag or merge has happened. Each needs its own separate authorization.
+- An Echo on a ring guardian (field, forest, toad, sentinel) still trims the repeat under the hostile
+  projectile cap while its picture shows the whole ring — the safe way to be wrong. No evidence justifies
+  uncapping the mobile budget; the limitation stays visible.
 - The result screen is restyled but its layout is the 2.1.0 one; a rank seal would be
   a good next step.
-- Store imagery that shows the redrawn characters: the IAP hero images, the hero bundle image
-  and the marketing screenshots still show the 2.1.0 art. They are redone together with the
-  store set, on the user's word, and are not touched here.
+- Store imagery that shows the redrawn characters: the IAP hero images and the hero bundle image were
+  regenerated (`pnpm check:store-graphics` passes, reproduced in this copy); the marketing screenshots
+  still show the 2.1.0 art. They are redone together with the store set, on the user's word, and are not
+  touched here.
 - The title screen keeps its own atmosphere and does not get the grade. Its store
   capture checks inspect the title's own nodes, and a recapture is not planned.
