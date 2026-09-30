@@ -619,6 +619,57 @@ quiet gap, so it waits a 1 s settle before delivering anything; the
 third beacon also speaks moonfire in the same frame, which the
 diagnostic had not named; a bare staged beacon instantiates lit.
 
+## Readable at the edge and in Japanese: brief 010 on the current tree
+
+Two visual defects from a different review angle, both measured first.
+A fork gate on the top rim carried its three-line destination above
+itself at y=-64..-12 while its compass hid (the gate was visible), so
+the choice was unreadable with no arrow either. The Japanese quit title
+is 266 px at font 26 — wider than the 260 px card, whose Label spanned
+the whole viewport instead of the card.
+
+- **Gate captions.** `moon_gate.gd` keeps the existing label and fonts
+  and nudges the caption the smallest distance that lands it fully
+  inside the usable screen (safe rect, below the 126 px top HUD the
+  compass also avoids) while its gate is on screen; off-screen gates
+  keep the plain above spot so the caption leaves with the gate and the
+  compass carries the choice. The usable shift alone crossed the hero's
+  face under a top-rim gate, so a wired player clears next: the caption
+  moves to the nearest usable spot outside the hero's real sprite bounds
+  plus 6 px, with 1 px separation past that. The arena's gate-naming
+  path wires the player into each gate it names. The label stays
+  tap-through.
+- **Quit card.** The card grows 260 → 300 px and the title is fitted to
+  it at 276 px (12 px padding each side), so all five titles
+  (196/177/266/181/181 px) fit on one line. Cancel keeps default focus;
+  both buttons keep their behaviors.
+- **Tests.** New registered `test_gate_captions` (71 cases: four rims
+  through the real arena camera and compass with hero clearance, all six
+  heroes' footprints at the top placement, real-fork player wiring,
+  plain gate, close reset) and `test_quit_layout` (24 cases:
+  five-language fit, Cancel focus and wiring). All guards were
+  mutation-checked (unshifted label: top rim fails at y=-64 exactly as
+  diagnosed, left/right rims clip the HUD; clearance alone disabled:
+  round-1 placement fails 9 hero cases; 260 px card: all five padding
+  cases fail; green restored).
+- **Harness.** `shot_lantern_hollow` `_snap` now settles a minimum 0.6
+  real seconds before its post-draw sync, so fast-desktop captures no
+  longer beat the result card's 0.5 s fade; endings additionally wait
+  for final alpha and stamp scale and fail the capture otherwise. The
+  guardian discovery pre-wait drops 0.8 → 0.3 s so its banner still
+  holds at the shutter. New `gate_rim_*` stages (real arena, settled
+  past the 1.2 s gate fade) wire the player like production and finish
+  the tutorial ladder plus clear its banner, so the shot judges a quiet
+  gate and hero; `validate` grows 221 → 248 cases.
+
+What bit us: the gate label's live height is 48 px with three lines,
+not the 39 px it is created with, so guard and test both read the live
+size; a caption placed exactly touching the cleared hero rect still
+fails `intersects` through float dust in the screen round-trip, so
+production separates one extra pixel past the margin; `frame_post_draw`
+never fires headless, so captures only validate in the sandbox and
+render on a real display.
+
 ## Not done
 
 - Bullet-weaving pictures were staged (`tools/shot_barrages.tscn`, eight scenes) but not rendered: the
