@@ -376,6 +376,30 @@ drawing keeps its baked contact shadow, like the structures it stands beside.
 
 ---
 
+## Place memories (Lantern Hollow motifs + settlement window)
+
+```text
+Source:         original (deterministic pixel production)
+Creator:        Moonlit Beacon
+License:        follows the project license
+Project path:   res://assets/custom/world/places/
+Used:           motifs.png, window.png
+Modification:   tools/build_place_motifs.py draws both sheets from integer
+                coords and a fixed palette (--check keeps them current)
+```
+
+| Sheet | Size | Cells |
+| --- | --- | --- |
+| motifs.png | 192x64 | six 32x32 terrain columns (forest, field, camp, frost, marsh, ruins), dim row then lit row |
+| window.png | 64x32 | two 32x32 cells, dim then lit |
+
+The six motifs stand beside their beacon clearings: trail ribbons, wind
+chimes, the camp kettle, a signal bell, a paper boat, a signal lens. The
+window answers Nari's opening message on the result screen: lit on an
+official win, dim on an early return, hidden on defeat.
+
+---
+
 ## UI theme (Theme Wood)
 
 ```text

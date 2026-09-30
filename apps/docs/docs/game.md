@@ -223,9 +223,12 @@ From cycle 2 lighting a beacon opens **two gates on different rims**. Each
 carries the name of the place it leads to, in that place's colour, and an
 arrow points at each. The gate you run for decides the next terrain and
 the side you arrive on. The gate after the second beacon also names the
-**guardian** waiting there, so the route is a choice of boss. A new cycle
-opens somewhere other than where the last guardian fell. The choices are
-drawn from the run's seed, so a route is repeatable and testable.
+**guardian** waiting there, so the route is a choice of boss. A third,
+quieter line hints the **memory** waiting in that place — ribbons, chimes,
+a kettle, a bell, a boat, a lens — without moving the dodge information.
+A new cycle opens somewhere other than where the last guardian fell. The
+choices are drawn from the run's seed, so a route is repeatable and
+testable.
 
 The classic three places grow their guardian with the cycle. The later
 places grow theirs with how often you have met it: the gate names the younger
@@ -257,9 +260,10 @@ form the first time and the grown-up one after.
 - After loot, cash out the current record and return, or enter the next
   cycle. The next cycle starts from night again, with a different starting
   terrain and terrain guardian.
-- Closing cycle 8 and returning is the official win. Choosing to continue
-  enters the `beyond the map` endless stretch. There is no time limit or
-  separate final exit.
+- Closing cycle 8 resolves Nari's promise out loud: her signal answers,
+  she reaches home, and the kettle is warm. Returning then is the official
+  win. Choosing to continue is a voluntary expedition for other forgotten
+  roads past the map. There is no time limit or separate final exit.
 
 ### The endless stretch: Depth
 
@@ -399,7 +403,10 @@ a return after a guardian, and pays moon shards on a square-root curve of
 score. Longer runs pay more, without one run's gap dominating all
 permanent growth. Past cycle 8 the closing line also names the Depth
 (cycle 9 is Depth 1), the same count the HUD shows in the endless stretch;
-the depth is a caption and adds no points.
+the depth is a caption and adds no points. Below the table a road line
+states the waves reached and how many of the six places were remembered,
+and a settlement window glows on an official win, waits dim on an early
+return, and stays dark on defeat.
 
 ### Save data
 
@@ -412,7 +419,7 @@ the depth is a caption and adds no points.
 | `vault.cfg` | moon shards, 6 boon tiers, unlocked characters, continue-coin balance and grant-transaction ledger |
 | `ladder.json` | local top 10 with name, character, app version, score, rank, cycle |
 | `ladder.json.tmp` | temp file used only while atomically saving the ladder |
-| `chronicle.json` | which story beats, first-sight lines and endings have been seen (the Chronicle page) |
+| `chronicle.json` | which story beats, place memories, first-sight lines and endings have been seen (the Chronicle page) |
 | `chronicle.json.tmp` | temp file used only while swapping the chronicle in |
 | `analytics.json` | allowed events not yet sent after consent. Max 200 events / 14 days; revoked consent deletes immediately |
 
@@ -524,28 +531,53 @@ plants, mist, shafts, motes), so a new terrain needs numbers and no new art. All
 it is drawn by code in a handful of nodes, and the arena's node budget is unchanged
 in kind: the late-game test still caps the standing node count.
 
+**The story.** Home is Lantern Hollow, and Nari, its signal keeper, went to
+repair the beacon road and never came back. Her last message asks the hero to
+keep the road home lit — and the kettle on the hearth is on, so keep it warm.
+The opening dialogue says all of that before you move; the first beacon you
+light restores its place's memory and speaks one discovery line. Pause any
+time to reread the objective: the road, the current Wave, and how many of
+the six places you have remembered. Eight completed cycles resolve the
+promise out loud — her signal answers, she reaches home, and the kettle is
+warm — on the continue choice and, if you cash out, on the result screen,
+where the settlement window glows. An early return shows the lamp still
+waiting; defeat names the lamp and invites another run. Neither claims she
+was rescued.
+
 **Acts.** Cycles are grouped into three acts and an epilogue. The card for an act
 plays on the cycle it begins, before that cycle's dialogue, and pauses the game
 the way the dialogue does.
 
 | Act | Begins on cycle | What is learned |
 | --- | --- | --- |
-| I · The Debt | 1 | The Wardens fell and one remains. The dark eats light |
-| II · The Hunger | 3 | The spirits are not hunting you. They are lost |
-| III · The Line | 6 | A beacon is not a fire. It is a line the dark cannot cross |
-| Epilogue · The Moonless | 9 | Past the map. The dark gets a name at cycle 10 |
+| I · The Promise | 1 | Nari is gone; keep the road home lit |
+| II · The Lost | 3 | What pursues you is lost, not hateful |
+| III · The Road | 6 | Beacons must remember one another to form a road |
+| Epilogue · The Road Home | 9 | The road home restored; other lights wait past the map |
 
-**The chronicle.** Every story beat, first-sight line and ending is written into
-`chronicle.json` at the moment it plays, and the title screen's Chronicle page
-lists all twenty-eight entries, the unmet ones as blanks. It has its own save
-file on purpose: purchases and shards live in the Vault, whose writes are
-verified and backed up, and a reading log is not worth that risk. A missing or
-unreadable chronicle simply starts empty.
+**Place memories.** Each terrain keeps one concrete memory beside its beacon:
+trail ribbons in the forest, wind chimes in the field, her kettle at the
+camp, a signal bell in the frost, a paper boat in the marsh, a signal lens
+in the ruins. Each motif stands dim until its beacon burns, and the first
+restoration of that terrain in a run speaks its line — kept readable for
+three seconds while the fork and guardian lines that share the beacon wait
+their turn. Restoring is optional — the main arc runs on cycles alone and
+the official win needs no particular terrain.
+
+**The chronicle.** Every story beat, place memory, first-sight line and ending
+is written into `chronicle.json` at the moment it plays, and the title
+screen's Chronicle page lists all forty entries, the unmet ones as blanks.
+It has its own save file on purpose: purchases and shards live in the Vault,
+whose writes are verified and backed up, and a reading log is not worth that
+risk. A missing or unreadable chronicle simply starts empty.
 
 **Hero voices.** Each hero except the Warden opens a run in their own words and
-has their own line for the first beacon, a fallen guardian and low health. Their
-line is offered first; the shared pool fills in after, and no line is ever said
-twice in a run.
+has their own line for the first beacon, a fallen guardian and low health. The
+Warden carries Nari's message; the Keeper tends its hearths; the Knight once
+guarded its road; the Dancer misses its festival; the Sage charted its
+signals; Eclipse recognizes the first missing light. Their line is offered
+first; the shared pool fills in after, and no line is ever said twice in a
+run.
 
 Store screenshots taken before 3.0.0 no longer match the game and were **not**
 recaptured; recapturing is a separate, explicit decision.
