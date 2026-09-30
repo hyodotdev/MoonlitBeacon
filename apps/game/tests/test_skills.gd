@@ -74,32 +74,54 @@ func _test_unlocks() -> void:
 				early = true
 	_expect_true(not early, "no skill is offered before cycle 5")
 
-	# At cycle 5 the first sight of a skill is guaranteed, and marked.
+	# At cycle 5 the first sight of each newly opened skill is guaranteed, and marked. Both
+	# cycle-5 skills arrive within exactly the two unseen draws, never by a lucky repeat.
 	panel.set("cycle", 5)
 	panel.set("_first_offer_done", true)
-	var seen_new: Dictionary = {}
-	for round in 6:
+	var discovered: Dictionary = {}
+	for round in 2:
 		var offer: Array[Relic] = panel.call("_draw_offer")
 		for relic in offer:
 			if bool(relic.get_meta("new_skill", false)):
-				seen_new[relic.effect] = true
-	_expect_true(seen_new.has(Relic.Effect.LANTERN_FAMILIAR)
-		or seen_new.has(Relic.Effect.MOON_WARD), "a newly opened skill is shown and marked")
-	_expect_true(not seen_new.has(Relic.Effect.COMET_CALL), "a cycle-8 skill waits for cycle 8")
-	_expect_true(not seen_new.has(Relic.Effect.THORN_BLOOM), "a cycle-11 skill waits for cycle 11")
+				discovered[relic.effect] = true
+	_expect_true(discovered.has(Relic.Effect.LANTERN_FAMILIAR),
+		"the lantern familiar is shown and marked when it opens")
+	_expect_true(discovered.has(Relic.Effect.MOON_WARD),
+		"the moon ward is shown and marked when it opens")
+	_expect_equal(discovered.size(), 2, "both cycle-5 skills arrive in two bounded draws")
+	_expect_true(not discovered.has(Relic.Effect.COMET_CALL), "a cycle-8 skill waits for cycle 8")
+	_expect_true(not discovered.has(Relic.Effect.THORN_BLOOM), "a cycle-11 skill waits for cycle 11")
+
+	# Cycle 8 opens two more, and each is guaranteed within its own unseen draw.
+	panel.set("cycle", 8)
+	for round in 2:
+		for relic in panel.call("_draw_offer"):
+			if bool(relic.get_meta("new_skill", false)):
+				discovered[relic.effect] = true
+	_expect_true(discovered.has(Relic.Effect.COMET_CALL), "the comet call is shown when it opens")
+	_expect_true(discovered.has(Relic.Effect.STAR_MAGNET), "the star magnet is shown when it opens")
+	_expect_equal(discovered.size(), 4, "four skills discovered by cycle 8")
+
+	# Cycle 10 opens the moon burst alone: one unseen skill, one draw.
+	panel.set("cycle", 10)
+	for relic in panel.call("_draw_offer"):
+		if bool(relic.get_meta("new_skill", false)):
+			discovered[relic.effect] = true
+	_expect_true(discovered.has(Relic.Effect.MOON_BURST), "the moon burst is shown when it opens")
+	_expect_equal(discovered.size(), 5, "five skills discovered by cycle 10")
 
 	# By cycle 11 the seven that are open have been shown once, and the mark is only on the first
 	# sight. The bell (13) and the trail (16) are still waiting.
 	panel.set("cycle", 11)
-	var shown: Dictionary = {}
-	for round in 80:
-		var offer: Array[Relic] = panel.call("_draw_offer")
-		for relic in offer:
-			if relic.effect >= Relic.Effect.LANTERN_FAMILIAR:
-				shown[relic.effect] = true
-	_expect_equal(shown.size(), 7, "every unlocked skill has been offered by cycle 11")
-	_expect_true(not shown.has(Relic.Effect.WINTER_BELL), "the bell waits for cycle 13")
-	_expect_true(not shown.has(Relic.Effect.COMET_TRAIL), "the trail waits for cycle 16")
+	for round in 2:
+		for relic in panel.call("_draw_offer"):
+			if bool(relic.get_meta("new_skill", false)):
+				discovered[relic.effect] = true
+	_expect_true(discovered.has(Relic.Effect.THORN_BLOOM), "the thorn bloom is shown when it opens")
+	_expect_true(discovered.has(Relic.Effect.SECOND_LIGHT), "the second light is shown when it opens")
+	_expect_equal(discovered.size(), 7, "every unlocked skill has been offered by cycle 11")
+	_expect_true(not discovered.has(Relic.Effect.WINTER_BELL), "the bell waits for cycle 13")
+	_expect_true(not discovered.has(Relic.Effect.COMET_TRAIL), "the trail waits for cycle 16")
 	var marks: int = 0
 	for round in 30:
 		for relic in panel.call("_draw_offer"):
