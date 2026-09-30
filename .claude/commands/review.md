@@ -13,6 +13,13 @@ gone wrong in this repo.
 
 ---
 
+**Reviewing the implementer's work.** Run this checklist on the copy the implementer worked in
+(`cd builds/muse/<tag>/work`, or `pnpm muse diff <tag>`) before `pnpm muse accept`, and on the real tree after it.
+A finding is not fixed by hand: it goes back as a short correction brief
+(`pnpm muse run <brief> --continue <tag>`). See [`/muse`](./muse.md).
+
+---
+
 ## 0. What changed
 
 ```bash

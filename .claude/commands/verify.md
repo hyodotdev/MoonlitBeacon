@@ -148,7 +148,8 @@ Skip if you only edited docs.
 pnpm verify
 ```
 
-That one line runs everything CI's three jobs look at.
+That one line runs everything CI's three jobs look at. Run it on the real tree after `pnpm muse accept`; while
+judging a run, run the same commands inside `builds/muse/<tag>/work`.
 
 | Step | What |
 | --- | --- |
@@ -156,6 +157,7 @@ That one line runs everything CI's three jobs look at.
 | `test:iapkit-config` | Publishable-key checks · export inject/cleanup · direct-distribution isolation |
 | `test:export-preflight` | Game start and full script compile gate before Android/iOS export |
 | `test:ios-build` | iOS signing · IAP framework · asset fallback · device-install regression |
+| `test:muse` | Implementer runner: config, safe flags, secret-free copy, patch round trip, isolated Godot runs |
 | `test:game` | Vault · IAP verify/restore/revoke · results-flow regression |
 | `game:check` | Game opens without errors |
 | `check:scripts` | Even GDScript the title never reaches all compiles |

@@ -21,6 +21,7 @@ there. Fix and run again.
 3. e2e            device/emu purchase e2e + pnpm verify
    └ on failure go back to 1. Until it passes.
 4. /commit --pr   branch → commit → push → PR (labels required)
+   └ only when the user asks for the PR. Never open one on your own.
 5. PR review      take review-bot findings on the PR plus CI results
 6. e2e again      after review landings, run 3 again
    └ on failure go back to 1.
@@ -30,6 +31,9 @@ there. Fix and run again.
 
 4–7 follow the rules in [`.claude/commands/commit.md`](../../../.claude/commands/commit.md).
 The repo rule **do not push without user confirmation** still applies here.
+
+Step 1 goes through the implementer (`/muse`, skill `muse-director`): the director briefs, judges and accepts, and
+never implements. Steps 2 to 8 are the director's operations.
 
 :::note There is no dedicated slash command for step 5
 This repo has no `/review-pr`. PR review is given by bots on the PR and by

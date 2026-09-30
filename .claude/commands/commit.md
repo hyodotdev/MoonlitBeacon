@@ -1,6 +1,6 @@
 # Commit
 
-Branch → commit → (after confirmation) push → PR.
+Branch → commit → (after confirmation) push. **A PR only when the user asks for one.**
 
 ## Usage
 
@@ -11,7 +11,7 @@ Branch → commit → (after confirmation) push → PR.
 **Options**
 
 - `--push` / `-p` : push to remote after commit (**user confirmation required**)
-- `--pr` : create a PR after push
+- `--pr` : open a PR after push (**only when the user typed `--pr` or asked for a PR in words; never inferred**)
 - `--all` / `-a` : commit everything in one go
 - `<path>` : commit only that path (e.g. `apps/game`)
 
@@ -33,6 +33,19 @@ before the push. The repo is still private and not yet open-sourced, so
 undoing a push is painful.
 
 Commits without confirmation are fine. A commit is local and can be undone.
+
+## PR guard (absolute rule for this repo)
+
+**Never open a pull request on your own.** A finished feature, a green
+`pnpm verify` or a checklist that lists a PR step is not a request. Commit,
+push (after confirmation), then stop and ask whether they want a PR.
+
+`scripts/guard-pull-request.mjs` enforces it: `.claude/settings.json` runs it before
+every shell command and GitHub MCP call, and it refuses `gh pr create`, the
+`gh api` / `curl` routes to the same endpoint and the MCP tools. When it blocks you,
+stop and tell the user which PR you would open (base, head, title, files). They allow
+**one** by running `touch .claude/allow-pr` themselves; the guard spends the file on
+the next PR. Never create that file, and never edit the guard to get past it.
 
 ## Internal-docs guard
 
@@ -116,9 +129,17 @@ git commit -m "$(cat <<'EOF'
 
 <what changed and why>
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+<attribution trailers, see below>
 EOF
 )"
+```
+
+**Attribution.** End the message with the attribution line your agent tool prescribes (Claude Code's session
+reminder gives the exact line; do not copy a model name from this page). When the implementer wrote the change,
+add one more trailer after it:
+
+```text
+Implemented-by: <the line `pnpm muse who --line` prints>
 ```
 
 **type**
@@ -179,7 +200,10 @@ To undo, delete the ref with `git update-ref -d HEAD` (first commit, so
 there is no `HEAD~1`).
 :::
 
-## 7. PR
+## 7. PR (only when the user asked for one)
+
+Skip this whole section unless they did. The guard above blocks the command
+until they allow it.
 
 ```bash
 gh pr create --base main --title "<type>(<scope>): <summary>" --body "$(cat <<'EOF'
@@ -310,7 +334,7 @@ Lesson 3 places three instances of it.
 - PointLight2D energy is an export so intensity can be tuned
 - The three particle systems stay as children (they must move as one)
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+<attribution trailers, see below>
 ```
 
 **Adding a clip**
@@ -321,7 +345,7 @@ media(course): add Lesson 2 node-tree assembly clip
 Silent 38s, 1212x736, 612KB. Inside the repo clip budget.
 The 1920x1080 master with narration is in builds/footage/ (not in git).
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+<attribution trailers, see below>
 ```
 
 **Docs**
@@ -333,5 +357,5 @@ docs(course): write Lesson 2 prose
 - Add the scene-save location rule in section 3-2
 - Seven done criteria
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+<attribution trailers, see below>
 ```
