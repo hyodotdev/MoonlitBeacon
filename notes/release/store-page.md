@@ -42,7 +42,7 @@ and
 | App name | 달빛 봉화 | Moonlit Beacon |
 | Google Play short description | 유물을 모아 무기를 키우고 봉화 셋을 밝혀 변화하는 수호자에 맞서세요 | Power up with relics, light three beacons, and face a changing Guardian |
 | App Store subtitle | 봉화를 밝히는 무한 생존 액션 | Relic-powered survival |
-| App Store promotional text | 불씨와 유물로 무기를 단계별 강화하고, 두 갈래 달빛 문으로 여섯 지형을 오가며 서로 다른 수호자와 끝없는 순환에 도전하세요. | Build three weapons with embers and relics, choose your road through six shifting regions, light three beacons, and challenge a different Guardian each cycle. |
+| App Store promotional text | 나리의 신호를 따라 불씨와 유물로 무기를 키우고, 두 갈래 달빛 문으로 여섯 지형을 오가며 봉화를 밝히고 수호자에 도전하세요. | Keep the road home lit for Nari: grow weapons with embers and relics, choose roads through six regions, light beacons, face a Guardian each Wave. |
 | App Store keywords | 서바이벌,로그라이트,픽셀,액션,봉화,수호자,오프라인 | survival,roguelite,pixel,action,beacon,guardian,offline |
 
 | Item | Japanese (`ja`) | Simplified Chinese (`zh-Hans`) | Traditional Chinese (`zh-Hant`) |
@@ -50,7 +50,7 @@ and
 | App name | 月明かりの烽火 | 月光烽火 | 月光烽火 |
 | Google Play short description | 遺物で武器を育て、三つの烽火を灯し、変化する守護者に挑もう | 收集遗物强化武器，点燃三座烽火，迎战不断变化的守护者 | 收集遺物強化武器，點燃三座烽火，迎戰不斷變化的守護者 |
 | App Store subtitle | 烽火を灯すエンドレスサバイバル | 点燃烽火的无尽生存动作 | 點燃烽火的無盡生存動作 |
-| App Store promotional text | 火種と遺物で武器を段階的に強化し、二つの門から道を選ぶ六つの地域を巡って烽火を灯し、巡回ごとに異なる守護者へ挑もう。 | 用火种与遗物逐步强化武器，在分叉的月之门前选择道路，穿越六片区域，点燃三座烽火，并在每轮挑战不同的守护者。 | 用火種與遺物逐步強化武器，在分叉的月之門前選擇道路，穿越六片區域，點燃三座烽火，並在每輪挑戰不同的守護者。 |
+| App Store promotional text | ナリの信号を追って火種と遺物で武器を育て、二つの門から選ぶ六地域で烽火を灯し、守護者に挑もう。 | 跟随娜莉的信号，用火种与遗物强化武器，在分叉月门间选择道路，穿越六片区域点燃烽火，迎战不同的守护者。 | 跟隨娜莉的信號，用火種與遺物強化武器，在分叉月門間選擇道路，穿越六片區域點燃烽火，迎戰不同的守護者。 |
 | App Store keywords | サバイバル,ローグライト,ドット,アクション,烽火,オフライン | 生存,类幸存者,像素,动作,烽火,守护者,离线 | 生存,類倖存者,像素,動作,烽火,守護者,離線 |
 
 | Shared item | Value |
@@ -136,8 +136,9 @@ Power up with relics, light three beacons, and face a changing Guardian
 ## Korean description
 
 ```text
-달이 가려진 밤, 여섯 지형의 봉화가 모두 꺼졌습니다.
+등불마을의 신호지기 나리는 봉화길을 고치러 떠났다가 돌아오지 못했다. 집으로 가는 길을 밝혀달라는 부탁, 주전자는 식지 않게 지켜 주세요.
 
+한 순환에 봉화 셋을 밝혀 그녀의 길을 되찾으세요. 봉화마다 그 장소의 기억 — 오솔길 리본, 풀잎 풍경, 주전자, 눈 속 종, 종이배, 돌무지 렌즈 — 가 한 줄로 깨어납니다.
 정령을 쓰러뜨리고, 그들이 남긴 달빛 불씨와 유물로 무기를 키우세요.
 봉화 셋을 밝히면 그 지형의 수호자가 깨어납니다. 수호자를 쓰러뜨려 전리품을 얻고,
 현재 기록을 정산해 귀환할지 더 거센 다음 순환으로 들어갈지 직접 고르세요.
@@ -160,7 +161,7 @@ Power up with relics, light three beacons, and face a changing Guardian
 월영무로 진화합니다. 카드와 HUD가 각 경로의 남은 재료를 알려 줍니다.
 순환이 쌓일수록 새 스킬 아홉 가지가 열립니다. 수호자와 정령은 느린
 탄막을 뿌립니다. 그 사이를 헤치며 나아가세요.
-다쳤을 때는 달빛 이슬로 회복하고, 피격으로 튀어나간 유물은 다시 주워 되찾으세요.
+다쳤을 때는 달빛 이슬로 회복하고, 피격으로 튀어나간 코어는 다시 주워 되찾으세요.
 일반 이슬은 전장 전체에서 12초에 한 번만 떨어집니다. 하트가 한 칸이고 전장에
 이슬이 없을 때 정예를 쓰러뜨리면 구제 이슬 하나가 보장됩니다.
 
@@ -174,12 +175,15 @@ Power up with relics, light three beacons, and face a changing Guardian
 봉화를 켤 때마다 밤은 푸른 새벽과 여명을 지나 낮으로 밝아집니다.
 
 ■ 이야기
-3막과 에필로그가 순환을 따라 흐르고, 영웅마다 제 목소리로 말합니다.
-본 이야기 장면과 끝맺음은 연대기에 모입니다.
+등불마을은 신호지기를 잃었다. 나리는 돌아오지 못했다. 1·3·6·9순환에 3막과
+에필로그가 흐른다. 쫓는 것은 미움이 아니라 길잃음이며, 봉화는 서로를 기억해야
+길이 되고, 8순환을 마치면 나리의 신호가 답하고 나리가 돌아온다. 영웅마다 제
+목소리로 말하고, 되살린 장소마다 기억 한 줄을 연대기에 남긴다. 이른 귀환은
+등불이 기다린 채 남고, 본 줄기는 순환만으로 이어진다.
 
 ■ 기록과 다음 판
 수호자 뒤마다 점수와 조각을 정산해 귀환하거나 다음 순환을 고릅니다. 8순환 귀환은
-정식 승리이며, 원하면 지도 밖 무한 구간을 계속할 수 있습니다. 그곳에서는 심층을
+정식 승리이며, 원하면 지도 밖 잊힌 길을 찾아 계속할 수 있습니다. 그곳에서는 심층을
 세고, 지형마다 징조가 하나씩 걸리며, 수호자는 새로운 변이를 얻습니다.
 완료한 순환, 밝힌 봉화, 생존 시간, 레벨과 처치로 점수와 S~D 랭크를 계산합니다.
 죽어도 달빛 조각을 얻어 영구 은혜 6종을 올릴 수 있습니다. 달빛 제단에서는 다시
@@ -207,56 +211,47 @@ Power up with relics, light three beacons, and face a changing Guardian
 ## English description
 
 ```text
-The moon is hidden and every beacon across six lands has gone out.
+Nari, signal keeper of Lantern Hollow, went to mend the beacon road and never came home. Keep the road home lit — and the kettle warm.
 
-Defeat spirits and grow your weapons with the moonlit embers and relics they leave behind.
-Light three beacons to awaken that region's Guardian. Defeat it, claim its trove,
-then choose whether to cash out your record or enter a fiercer cycle. From the
-second cycle, each gate is a fork: two gates name their destination, and the road
-is yours to choose.
+Light three beacons a Wave to take back her trail across six places. Each beacon restores its place's memory — ribbons, chimes, kettle, bell, boat, lens — with one line. Grow weapons with embers and relics, wake that Guardian, then cash out or face a fiercer Wave. From Wave 2 each gate is a fork: two gates name their destinations.
 
-Explore it all in a refreshed interface, with redrawn heroes, spirits, and
-guardians under moonlit lighting.
+Redrawn heroes, spirits, and guardians under moonlit lighting.
 
 ■ Controls
 Touch anywhere except the bottom-right dash button and a movement stick appears there.
-Attacks automatically target nearby spirits. Press Dash to burst in the direction
-you are moving.
+Attacks target nearby spirits automatically. Press Dash to burst where you move.
 
 ■ Combat and growth
 Collect ten spirit embers to awaken Moonfire for 6.5 seconds and empower every weapon.
-Level up through kills and choose one of three relics. Stack the same relic to keep
-growing your slash, arrows, orbiting rings, and ripples.
-Collect two distinct effects on one route to unlock Resonance first: your next attack
-after a dash changes once. Invest further to evolve homing Starfall, a 360-degree Full
-Moon slash, or Moon Dance that cuts along your dash. Cards and the HUD show progress.
-Nine skills join the level-up cards as the cycles pass. Guardians and spirits
-fill the air with slow bullets — weave through.
-Moon Dew restores health, and a relic knocked loose by a hit can be reclaimed.
-Regular Moon Dew drops share a 12-second arena-wide cooldown. At one heart, defeating
-an elite guarantees one rescue Dew only when no Dew is already on the field.
+Scatter spirits to level up and choose one of three relics. Stack the same relic to grow
+slash, arrows, orbiting rings, and ripples.
+Two distinct effects on one route unlock Resonance first: your next attack after a dash
+changes once. Invest further for homing Starfall, 360-degree Full Moon, or Moon Dance
+along your dash. Cards and the HUD show progress.
+Nine skills join the level-up cards as the Waves pass. Guardians and spirits fill the air
+with slow readable bullets — weave through.
+Moon Dew heals; a core knocked loose can be reclaimed. Dew shares a 12-second cooldown;
+at one heart, an elite guarantees one rescue Dew when none is on the field.
 
 ■ Beacons and the Guardian
-Charge a beacon for 1.3 seconds, then choose a safe light or Overcharge. Overcharge asks
-you to defend it for 6.5 seconds against a region-specific raid for a weapon core and
-extra embers. Overcharge all three to earn two Guardian reward tiers. The first two
-beacons open Moon Gates; the third summons that region's Guardian. Defeat it to choose
-one of three weapon routes and restore one heart. Each cycle begins in a rotated region.
+Charge a beacon 1.3 seconds, then safe light or Overcharge. Overcharge defends 6.5 seconds
+against that region's raid for a weapon core and embers. Overcharge all three for two
+Guardian tiers. The first two beacons open Moon Gates; the third summons the Guardian.
+Defeat it for one of three routes and one heart. Each Wave starts in a rotated region.
 
 ■ Story
-Three acts and an epilogue follow your cycles, each hero speaks in their own
-voice, and the Chronicle gathers every beat, first-sight line, and ending you
-have seen.
+Three acts and an epilogue follow Waves 1, 3, 6, 9: the lost, the road that remembers,
+and at Wave 8 her signal answers — Nari is home. Each hero speaks in their own voice.
+Each restored place speaks one memory for the Chronicle, which gathers every beat,
+memory, and ending seen. Early returns keep her lamp waiting; the arc runs on Waves alone.
 
 ■ Records and the next run
-After each Guardian, cash out your score and shards or continue into the next cycle.
-Cash out after cycle eight for a formal victory, or keep going into the endless stretch
-past the map, where the count becomes Depth, each zone carries an omen, and guardians
-grow new mutations.
-Completed cycles, lit beacons, survival time, level, and kills determine your score
-and S–D rank. Every run awards Moon Shards for six permanent boons. Moon Shrine lets
-you preview six redrawn heroes with distinct colors and attack effects.
-Your personal best and local top 10 remain on the device.
+After each Guardian, cash out or continue. Wave 8 is a formal victory; past the map
+the count is Depth, each zone an omen, guardians new mutations.
+Completed Waves, lit beacons, survival time, level, and spirits scattered set score and
+S–D rank. Every run grants Moon Shards for six permanent boons. Moon Shrine lets you
+preview six redrawn heroes with distinct colors and attack effects.
+Your personal best and local top 10 stay on the device.
 
 ■ Language
 Korean, English, Japanese, Simplified Chinese, and Traditional Chinese.
@@ -267,7 +262,7 @@ Store builds include seven optional, restorable non-consumable purchases: Moonli
 Supporter, five individually unlocked heroes, and Lantern Colors. Paid heroes are
 balanced sidegrades with distinct character art, projectile colors, motion, and impact
 effects. Price differences reflect visual style, not combat power tiers. The free
-Moonlit Warden can play every region, Guardian, and cycle. Lantern Colors is cosmetic.
+Moonlit Warden can play every region, Guardian, and Wave. Lantern Colors is cosmetic.
 Three consumable Continue Coin packs grant 1, 5, or 10 coins. Spending one resumes at
 the spot where you fell while keeping score, level, and relics. Spent coins are not
 restored, and each pack can be purchased again after verification and consumption.
@@ -280,8 +275,9 @@ accounts.
 ## Japanese description
 
 ```text
-月が隠れた夜、六つの地域にある烽火がすべて消えました。
+灯の里の信号守りナリは、灯の道を直しに出て帰らなかった。家への道を灯してほしいという書き置き、やかんは冷まさないでください。
 
+一巡回に三つの烽火を灯して彼女の足跡を取り戻しましょう。烽火ごとにその場所の記憶 — 小道のリボン、草むらの風鈴、やかん、雪の下の鐘、紙の舟、石積みのレンズ — が一言で目覚めます。
 精霊を倒し、残された月の火種と遺物で武器を育てましょう。
 三つの烽火を灯すと、その地域の守護者が目覚めます。守護者を倒して戦利品を受け取り、
 現在の記録を精算して帰還するか、より激しい次の巡回へ進むかを選びましょう。
@@ -304,7 +300,7 @@ accounts.
 ダッシュの軌跡を斬る月影舞へ進化します。
 巡回を重ねるほど、新しいスキル九つが開きます。守護者と精霊は遅い弾を放ちます。
 その弾幕の間を縫って進みましょう。
-傷ついた時は月露で回復し、被弾で落とした遺物は時間内に拾い直せます。
+傷ついた時は月露で回復し、被弾で落としたコアは時間内に拾い直せます。
 通常の月露は戦場全体で12秒のドロップ間隔があります。残り体力が1で、戦場に
 月露がない時だけ、精鋭を倒すと救済の月露が一つ確定します。
 
@@ -317,12 +313,15 @@ accounts.
 蒼い夜明けと暁を経て昼へ移り変わります。
 
 ■ 物語
-三幕とエピローグが巡回に沿って流れ、英雄はそれぞれの声で語ります。
-見た場面と結末は年代記に集まります。
+灯の里は信号守りを失った。ナリは帰らなかった。第1・3・6・9巡回に三幕と
+エピローグが流れる。追うものは憎しみではなく迷いであり、烽火は互いを覚えて
+道となり、第8巡回を終えればナリの信号が応えてナリは帰る。英雄はそれぞれの
+声で語り、蘇った場所ごとに記憶の一言が年代記に残る。早い帰還はランプを
+待たせたまま、本筋は巡回だけで進む。
 
 ■ 記録と次の挑戦
 守護者を倒すたびに、スコアと欠片を精算して帰還するか、次の巡回へ進むかを選びます。
-第8巡回で帰還すると正式勝利となり、その後も望めば地図の外のエンドレス区間を続けられます。
+第8巡回で帰還すると正式勝利となり、その後も望めば地図の外の忘れられた道へ進めます。
 そこでは深層を数え、地域ごとに前兆がかかり、守護者は新たな変異を得ます。
 巡回数、烽火、生存時間、レベル、撃破数からスコアとS〜Dランクを算出します。
 倒れても月光の欠片を獲得し、六つの永続加護を強化できます。月光の祭壇では、
@@ -350,8 +349,9 @@ accounts.
 ## Simplified Chinese description
 
 ```text
-月亮隐去的长夜里，六片区域的烽火全部熄灭了。
+灯村的信号守望者娜莉去修灯路，一去就没有回来。请点亮回家的路，别让炉上的水壶凉了。
 
+每轮点亮三座烽火，找回她走过的路。每座烽火唤醒一处地方记忆 — 小径彩带、草丛风铃、水壶、雪下钟、纸船、石堆透镜 — 各留一句话。
 击败精灵，用它们留下的月火种与遗物强化武器。
 点燃三座烽火会唤醒当前区域的守护者。击败守护者取得战利品后，
 选择结算当前记录返回，或前往更激烈的下一轮。从第二轮起，每道门都会分叉：
@@ -371,7 +371,7 @@ accounts.
 继续投入后，可进化为追踪敌人的流星雨、360度满月斩，或沿冲刺轨迹斩击的月影舞。
 随着轮次推进，九种新技能会在升级时出现。守护者与精灵会射出缓慢的子弹，
 在弹幕中穿行。
-受伤时可用月露恢复生命，被击中后掉落的遗物也能在限时内找回。
+受伤时可用月露恢复生命，被击中后掉落的核心也能在限时内找回。
 普通月露在整个战场共享12秒掉落冷却。生命只剩1点且场上没有月露时，
 击败精英才会保证掉落1个月露。
 
@@ -383,12 +383,11 @@ accounts.
 每点燃一座烽火，世界都会从夜晚经过蓝色黎明与破晓，逐渐亮至白昼。
 
 ■ 故事
-三幕加尾声伴随轮次展开，每位英雄都用自己的声音说话，所见场景与结局都会
-记入编年史。
+灯村失去了信号守望者，娜莉没有回来。第1、3、6、9轮展开三幕加尾声：追来的不是恨而是迷路，灯必须记住彼此才成路，第8轮结束时娜莉的信号回应、娜莉回家。每位英雄用自己的声音说话，每处复苏的地方留一句记忆记入编年史。提前返回时灯仍在等待，主线只随轮次推进。
 
 ■ 记录与下一局
 每次击败守护者后，可结算分数与碎片返回，或继续下一轮。第8轮返回是正式胜利，
-也可以继续挑战地图之外的无尽区域。在那里以深度计数，每个区域带有一个预兆，
+也可以继续前往地图之外被遗忘的路。在那里以深度计数，每个区域带有一个预兆，
 守护者会获得新的变异。
 完成轮数、点燃烽火、存活时间、等级与击败数将决定分数和S至D评级。
 每局结束都会获得月光碎片，可升级六种永久祝福。月光祭坛可在购买前预览重绘的
@@ -402,7 +401,7 @@ accounts.
 商店版本包含7项可选的一次性永久内购，均支持恢复购买：月光支持者、5名英雄的
 单独解锁与烽火颜色包。付费英雄是平衡型替代玩法，拥有不同角色美术、弹道颜色、
 运动与命中特效。价格差异代表视觉风格，不代表战斗力等级。免费的月光守望者可游玩
-全部区域、守护者与循环。烽火颜色只改变外观。
+全部区域、守护者与轮次。烽火颜色只改变外观。
 另有1枚、5枚和10枚三种消耗型继续游戏金币。每次使用一枚，可保留分数、等级与遗物，
 从倒下之处继续。已使用的金币不可恢复；完成验证与消耗处理后可再次购买同一商品。
 
@@ -413,8 +412,9 @@ accounts.
 ## Traditional Chinese description
 
 ```text
-月亮隱去的長夜裡，六片區域的烽火全部熄滅了。
+燈村的信號守望者娜莉去修燈路，一去就沒有回來。請點亮回家的路，別讓爐上的水壺涼了。
 
+每輪點亮三座烽火，找回她走過的路。每座烽火喚醒一處地方記憶 — 小徑綵帶、草叢風鈴、水壺、雪下鐘、紙船、石堆透鏡 — 各留一句話。
 擊敗精靈，用它們留下的月火種與遺物強化武器。
 點燃三座烽火會喚醒目前區域的守護者。擊敗守護者取得戰利品後，
 選擇結算目前紀錄返回，或前往更激烈的下一輪。從第二輪起，每道門都會分叉：
@@ -434,7 +434,7 @@ accounts.
 繼續投入後，可進化為追蹤敵人的流星雨、360度滿月斬，或沿衝刺軌跡斬擊的月影舞。
 隨著輪次推進，九種新技能會在升級時出現。守護者與精靈會射出緩慢的子彈，
 在彈幕中穿行。
-受傷時可用月露恢復生命，被擊中後掉落的遺物也能在限時內找回。
+受傷時可用月露恢復生命，被擊中後掉落的核心也能在限時內找回。
 普通月露在整個戰場共用12秒掉落冷卻。生命只剩1點且場上沒有月露時，
 擊敗菁英才會保證掉落1個月露。
 
@@ -446,12 +446,11 @@ accounts.
 每點燃一座烽火，世界都會從夜晚經過藍色黎明與破曉，逐漸亮至白晝。
 
 ■ 故事
-三幕加尾聲伴隨輪次展開，每位英雄都用自己的聲音說話，所見場景與結局都會
-記入編年史。
+燈村失去了信號守望者，娜莉沒有回來。第1、3、6、9輪展開三幕加尾聲：追來的不是恨而是迷路，燈必須記住彼此才成路，第8輪結束時娜莉的信號回應、娜莉回家。每位英雄用自己的聲音說話，每處復甦的地方留一句記憶記入編年史。提前返回時燈仍在等待，主線只隨輪次推進。
 
 ■ 紀錄與下一局
 每次擊敗守護者後，可結算分數與碎片返回，或繼續下一輪。第8輪返回是正式勝利，
-也可以繼續挑戰地圖之外的無盡區域。在那裡以深度計數，每個區域帶有一個預兆，
+也可以繼續前往地圖之外被遺忘的路。在那裡以深度計數，每個區域帶有一個預兆，
 守護者會獲得新的變異。
 完成輪數、點燃烽火、存活時間、等級與擊敗數將決定分數和S至D評級。
 每局結束都會獲得月光碎片，可升級六種永久祝福。月光祭壇可在購買前預覽重繪的
@@ -465,7 +464,7 @@ accounts.
 商店版本包含7項可選的一次性永久內購，皆支援恢復購買：月光贊助者、5名英雄的
 單獨解鎖與烽火顏色包。付費英雄是平衡型替代玩法，擁有不同角色美術、彈道顏色、
 運動與命中特效。價格差異代表視覺風格，不代表戰鬥力等級。免費的月光守望者可遊玩
-全部區域、守護者與循環。烽火顏色只改變外觀。
+全部區域、守護者與輪次。烽火顏色只改變外觀。
 另有1枚、5枚和10枚三種消耗型繼續遊戲金幣。每次使用一枚，可保留分數、等級與遺物，
 從倒下之處繼續。已使用的金幣不可恢復；完成驗證與消耗處理後可再次購買同一商品。
 
@@ -558,11 +557,11 @@ Source and course: https://github.com/hyodotdev/MoonlitBeacon
 ```text
 Moonlit Beacon 3.0.0
 
-- A new look: redrawn heroes, spirits, and guardians under moonlit lighting.
-- Six places to roam, and forked gates that let you choose your road.
-- A story in three acts and an epilogue, with a chronicle of all you have seen.
-- Nine new skills that unlock as the cycles pass.
-- Guardians and spirits fight back — weave through their slow bullets.
+- Follow Nari's signal home: keep the road home lit, kettle warm.
+- Six places, forked gates from Wave 2, each beacon one memory.
+- Three acts, an epilogue, and a Chronicle of all seen.
+- Redrawn heroes, spirits, guardians under moonlight.
+- Nine skills as the Waves pass; weave slow readable bullets.
 ```
 
 ## Google Play release notes — Korean (`ko-KR`)
@@ -570,11 +569,11 @@ Moonlit Beacon 3.0.0
 ```text
 달빛 봉화 3.0.0
 
-- 다시 그린 영웅·정령·수호자와 달빛 조명으로 밤이 새롭게 태어났습니다.
-- 여섯 지형을 누비고, 두 갈래 달빛 문에서 가는 길을 직접 고릅니다.
-- 3막과 에필로그의 이야기와 본 장면을 모으는 연대기를 담았습니다.
-- 순환이 쌓일수록 열리는 새 스킬 아홉 가지를 만납니다.
-- 수호자와 정령이 반격합니다. 느린 탄막 사이를 헤치며 나아가세요.
+- 나리의 신호를 따라 집으로: 길을 밝히고 주전자를 지키세요.
+- 여섯 지형, 2순환부터 갈래 문, 봉화마다 기억 하나.
+- 3막과 에필로그, 본 것을 모으는 연대기.
+- 다시 그린 영웅·정령·수호자와 달빛 조명.
+- 순환마다 스킬 아홉 가지, 느린 탄막을 헤치세요.
 ```
 
 ## Google Play release notes — Japanese (`ja-JP`)
@@ -582,11 +581,11 @@ Moonlit Beacon 3.0.0
 ```text
 月明かりの烽火 3.0.0
 
-- 描き直した英雄・精霊・守護者と月光の灯りで、夜が生まれ変わりました。
-- 六つの地域を巡り、二つに分かれた月の門から進む道を選びます。
-- 三幕とエピローグの物語、見た場面を集める年代記を収録しました。
-- 巡回を重ねるほど開く新しいスキル九つが加わります。
-- 守護者と精霊が反撃します。遅い弾幕の間を縫って進みましょう。
+- ナリの信号を追って家へ: 道を灯し、やかんを守ろう。
+- 六地域、二巡回目から分岐の門、烽火ごとに記憶一つ。
+- 三幕とエピローグ、見たものを集める年代記。
+- 描き直した英雄・精霊・守護者と月光。
+- 巡回ごとにスキル九つ、遅い弾幕を縫おう。
 ```
 
 ## Google Play release notes — Simplified Chinese (`zh-CN`)
@@ -594,11 +593,11 @@ Moonlit Beacon 3.0.0
 ```text
 月光烽火 3.0.0
 
-- 全新面貌：重绘的英雄、精灵与守护者，以及月光下的夜色照明。
-- 漫游六片区域，在分叉的月之门前选择自己的道路。
-- 三幕加尾声的故事，配上收集所见场景的编年史。
-- 九种新技能将随着轮次推进逐一解锁。
-- 守护者与精灵开始反击，在缓慢的弹幕中穿行。
+- 跟着娜莉的信号回家：点亮归路，别让水壶凉了。
+- 六片区域，第2轮起分叉门，每座烽火一处记忆。
+- 三幕加尾声，配上收集所见的编年史。
+- 重绘的英雄、精灵与守护者，月光下的夜。
+- 随轮次解锁九种技能，在缓慢弹幕中穿行。
 ```
 
 ## Google Play release notes — Traditional Chinese (`zh-TW`)
@@ -606,11 +605,11 @@ Moonlit Beacon 3.0.0
 ```text
 月光烽火 3.0.0
 
-- 全新面貌：重繪的英雄、精靈與守護者，以及月光下的夜色照明。
-- 漫遊六片區域，在分叉的月之門前選擇自己的道路。
-- 三幕加尾聲的故事，配上收集所見場景的編年史。
-- 九種新技能將隨著輪次推進逐一解鎖。
-- 守護者與精靈開始反擊，在緩慢的彈幕中穿行。
+- 跟著娜莉的信號回家：點亮歸路，別讓水壺涼了。
+- 六片區域，第2輪起分叉門，每座烽火一處記憶。
+- 三幕加尾聲，配上收集所見的編年史。
+- 重繪的英雄、精靈與守護者，月光下的夜。
+- 隨輪次解鎖九種技能，在緩慢彈幕中穿行。
 ```
 
 ## App Store What's New — English (`en-US`)
@@ -618,11 +617,11 @@ Moonlit Beacon 3.0.0
 ```text
 Moonlit Beacon 3.0.0
 
-- A new look: redrawn heroes, spirits, and guardians under moonlit lighting.
-- Six places to roam, and forked gates that let you choose your road.
-- A story in three acts and an epilogue, with a chronicle of all you have seen.
-- Nine new skills that unlock as the cycles pass.
-- Guardians and spirits fight back — weave through their slow bullets.
+- Follow Nari's signal home: keep the road home lit, kettle warm.
+- Six places, forked gates from Wave 2, each beacon one memory.
+- Three acts, an epilogue, and a Chronicle of all seen.
+- Redrawn heroes, spirits, guardians under moonlight.
+- Nine skills as the Waves pass; weave slow readable bullets.
 ```
 
 ## App Store What's New — Korean (`ko`)
@@ -630,11 +629,11 @@ Moonlit Beacon 3.0.0
 ```text
 달빛 봉화 3.0.0
 
-- 다시 그린 영웅·정령·수호자와 달빛 조명으로 밤이 새롭게 태어났습니다.
-- 여섯 지형을 누비고, 두 갈래 달빛 문에서 가는 길을 직접 고릅니다.
-- 3막과 에필로그의 이야기와 본 장면을 모으는 연대기를 담았습니다.
-- 순환이 쌓일수록 열리는 새 스킬 아홉 가지를 만납니다.
-- 수호자와 정령이 반격합니다. 느린 탄막 사이를 헤치며 나아가세요.
+- 나리의 신호를 따라 집으로: 길을 밝히고 주전자를 지키세요.
+- 여섯 지형, 2순환부터 갈래 문, 봉화마다 기억 하나.
+- 3막과 에필로그, 본 것을 모으는 연대기.
+- 다시 그린 영웅·정령·수호자와 달빛 조명.
+- 순환마다 스킬 아홉 가지, 느린 탄막을 헤치세요.
 ```
 
 ## App Store What's New — Japanese (`ja`)
@@ -642,11 +641,11 @@ Moonlit Beacon 3.0.0
 ```text
 月明かりの烽火 3.0.0
 
-- 描き直した英雄・精霊・守護者と月光の灯りで、夜が生まれ変わりました。
-- 六つの地域を巡り、二つに分かれた月の門から進む道を選びます。
-- 三幕とエピローグの物語、見た場面を集める年代記を収録しました。
-- 巡回を重ねるほど開く新しいスキル九つが加わります。
-- 守護者と精霊が反撃します。遅い弾幕の間を縫って進みましょう。
+- ナリの信号を追って家へ: 道を灯し、やかんを守ろう。
+- 六地域、二巡回目から分岐の門、烽火ごとに記憶一つ。
+- 三幕とエピローグ、見たものを集める年代記。
+- 描き直した英雄・精霊・守護者と月光。
+- 巡回ごとにスキル九つ、遅い弾幕を縫おう。
 ```
 
 ## App Store What's New — Simplified Chinese (`zh-Hans`)
@@ -654,11 +653,11 @@ Moonlit Beacon 3.0.0
 ```text
 月光烽火 3.0.0
 
-- 全新面貌：重绘的英雄、精灵与守护者，以及月光下的夜色照明。
-- 漫游六片区域，在分叉的月之门前选择自己的道路。
-- 三幕加尾声的故事，配上收集所见场景的编年史。
-- 九种新技能将随着轮次推进逐一解锁。
-- 守护者与精灵开始反击，在缓慢的弹幕中穿行。
+- 跟着娜莉的信号回家：点亮归路，别让水壶凉了。
+- 六片区域，第2轮起分叉门，每座烽火一处记忆。
+- 三幕加尾声，配上收集所见的编年史。
+- 重绘的英雄、精灵与守护者，月光下的夜。
+- 随轮次解锁九种技能，在缓慢弹幕中穿行。
 ```
 
 ## App Store What's New — Traditional Chinese (`zh-Hant`)
@@ -666,11 +665,11 @@ Moonlit Beacon 3.0.0
 ```text
 月光烽火 3.0.0
 
-- 全新面貌：重繪的英雄、精靈與守護者，以及月光下的夜色照明。
-- 漫遊六片區域，在分叉的月之門前選擇自己的道路。
-- 三幕加尾聲的故事，配上收集所見場景的編年史。
-- 九種新技能將隨著輪次推進逐一解鎖。
-- 守護者與精靈開始反擊，在緩慢的彈幕中穿行。
+- 跟著娜莉的信號回家：點亮歸路，別讓水壺涼了。
+- 六片區域，第2輪起分叉門，每座烽火一處記憶。
+- 三幕加尾聲，配上收集所見的編年史。
+- 重繪的英雄、精靈與守護者，月光下的夜。
+- 隨輪次解鎖九種技能，在緩慢彈幕中穿行。
 ```
 
 ## Bug reports
