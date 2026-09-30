@@ -502,6 +502,123 @@ Never let a run finish on a phone. Toggle `Invuln` right after launch, or stop w
 the story screens still hold the game paused. On this checkout the global ladder is
 off (no `firebase.cfg`), so only the local save is affected.
 
+## A road home: the Lantern Hollow story pass
+
+Brief 006, still uncommitted. The user asked for a world worth caring
+about; the director's answer is one integrated journey, not a lore
+encyclopedia. Home is **Lantern Hollow** (등불마을); **Nari / 나리**,
+the signal keeper, went to repair the beacon road and disappeared, her
+last message asking the hero to keep the road home lit and the kettle
+warm. The kettle pays off at the cycle-8 settlement.
+
+What is in the tree:
+
+- **Canon copy in five languages** (`moonlit.csv`, 557 rows): opening,
+  cycles 1–9 and 12B, all three epitaphs, act titles/epigraphs, all
+  five non-Warden hero voices rewritten into their relationship to the
+  place, six guardian first-meetings tied to their places' habits, fork
+  lines, and the beyond-the-map choice reframed as a voluntary
+  expedition. English story uses Wave for the loop word. No combat,
+  shop, score or unlock numbers moved.
+- **Six place memories** (`scripts/gameplay/place_memory.gd`,
+  `scripts/objectives/place_motif.gd`): a crafted motif beside each
+  beacon clearing (dim until lit), one nonblocking discovery line on
+  first restoration per run, and one chronicle entry each. The motif is
+  one reused node plus its sprite; repeats and fresh runs still restore
+  visibly. Fork gates hint the waiting memory on a third label line;
+  guardian/omen naming is untouched.
+- **Objective and endings**: pause carries the immediate objective
+  (road + Wave/Depth + places count), refreshed on open. The result
+  screen states the real road state and shows the settlement window —
+  lit on an official win, dim on an early return, hidden on defeat —
+  so it never claims Nari is home early. All buttons and the score
+  arithmetic are unchanged.
+- **Art**: `tools/build_place_motifs.py` bakes `places/motifs.png`
+  (192x64, six terrains × dim/lit) and `places/window.png` (64x32)
+  from integer coords and a fixed palette, with `--check` wired into
+  `check:assets` and contract entries. Node peak measured 1133 of
+  1200 on the late-game test.
+- **Tests**: `tests/test_place_memories.tscn` (533 cases, registered):
+  real first-beacon path, six places plus fork clues on both forks,
+  fresh-run restoration, old-record persistence, no popup during any
+  modal/transition/capture, all three endings plus the ungated win,
+  story independence from places, five-language existence and fit, and
+  budget/teardown. The once-per-run guard was mutation-checked (3
+  failures with the guard removed, green restored). The story-structure
+  test now pins 40 entries and 8 sections.
+- **Harness**: `tools/shot_lantern_hollow.tscn` stages opening, six
+  terrains dim/lit, fork clues, a resumed chronicle and all three
+  endings; `validate` mode (151 cases) runs headless, `shot=` captures
+  on a real display.
+
+What bit us: the CSV was edited after the editor import, so the new
+English lines did not appear until a second `--import` regenerated the
+`.translation` files; the voice strip fits ~375 px at 13 px, which
+forced two discovery lines shorter; the late-game arena marks ambient
+first-sight entries while any test runs, so "nothing recorded" had to
+be scoped to place and story ids.
+
+## A road home, integrated: brief 008 on the current tree
+
+Round 006's patch no longer applied after the accepted UI polish, so
+brief 008 reintegrates the whole Lantern Hollow change on this baseline
+and fixes the three defects the director's real-path diagnostics found.
+Only `result_panel.gd` and this log conflicted; both reconciliations
+keep the two independent changes.
+
+- **Result reconciliation.** The accepted epitaph Depth caption stays
+  exactly as it was (it is pinned by the result tests). The road line's
+  reach therefore always reads as a Wave count — past cycle 8 the
+  epitaph above already carries Depth, and the card must not say it
+  twice. Score arithmetic untouched.
+- **Discovery guard (defect 1).** A fresh place discovery owns the
+  voice strip for three seconds. The fork, guardian-meet and moonfire
+  lines that fire on the same beacon are taken at once — run
+  consumption and `test_fork_travel`'s spent assertion are unchanged —
+  and spoken after the interval; gate labels, the guardian banner and
+  its bolts never wait. A first meet is recorded at once. A discovery
+  suppressed by a modal, transition or capture is queued, never marked
+  seen, and plays when the screen clears; its chronicle entry is
+  recorded at restore time instead of speak time, so it is never
+  silently lost. The flush pump speaks nothing past `_finish` (run
+  generation), over a modal, or during capture. Other strip lines keep
+  last-wins; only the deterministic same-beacon clobbers wait.
+- **Nari comes home (defect 2).** Eight completed cycles resolve the
+  promise out loud in all five languages: the continue choice is titled
+  NARI IS HOME with the kettle in the subtitle, and the cash-out
+  epitaph answers her signal, brings her home and warms the kettle.
+  Cycle 9 stays a voluntary expedition for other forgotten roads.
+  Earlier return and defeat keep the waiting lamp and name no rescue.
+  No new save IDs; acts at 1/3/6, epilogue at 9, no-hate canon kept.
+- **Road geometry (defect 3).** Measured, not guessed: the six-line
+  score table needs 117 px but its box was 110, so it grew 6.5 px into
+  Road. The card now gives Detail 120, Road 16, and shifts Hint/Goal/
+  the buttons down inside the card. All labels fit their boxes and the
+  boxes run in order on win, early, defeat, deep and large-score cards
+  in all five languages.
+- **Tests.** `test_place_memories` grows 533 → 951 cases: real
+  `debug_light_next_beacon` fork/guardian preservation (strip readable
+  same-frame and a second later, deferred line arrives, gates/banner
+  immediate), all six terrains on the real path, repeat runs, modal and
+  capture suppression with replay, five-language resolution copy with a
+  no-rescue guard on early/defeat lines, and full-card Road geometry
+  with a Depth-once assertion. Both guards were mutation-checked
+  (bypassed guard: 4 preservation failures; Road moved back: every
+  geometry case fails; green restored). `test_fork_travel`,
+  `test_omens`, `test_story_structure`, both result tests and the
+  run-choice tests pass unchanged.
+- **Harness.** `shot_lantern_hollow` gains `choice_beyond`,
+  `discovery_fork` and `discovery_guardian` (the last two drive the
+  real arena paths) and `validate` grows 151 → 221 cases. Terrain lit
+  staging really ignites its beacon after a reset — bare beacons
+  instantiate lit, so the old dim shot showed a burning beacon and the
+  old lit shot snapped the flag with no flare.
+
+What bit us: the first flush pump spoke during the modal test's 0.3 s
+quiet gap, so it waits a 1 s settle before delivering anything; the
+third beacon also speaks moonfire in the same frame, which the
+diagnostic had not named; a bare staged beacon instantiates lit.
+
 ## Not done
 
 - Bullet-weaving pictures were staged (`tools/shot_barrages.tscn`, eight scenes) but not rendered: the
