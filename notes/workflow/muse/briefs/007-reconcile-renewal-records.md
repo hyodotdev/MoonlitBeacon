@@ -49,6 +49,21 @@ pass. No store screenshot recapture, upload, analytics deployment, store submiss
    gauntlet=1 guardians=3 starts=2`) settled all four runs after one fight, 41.6 seconds wall time.
    These supersede any "being repeated" status; preserve older measurements as dated history.
    The same development machine ran these measurements; do not call it another machine.
+   The road-home integration is now accepted. Director independent checks: place memories 951,
+   result layout 135, Depth 55, choice 331, story structure 695 and staging validate 221 pass.
+   Discovery-guard mutation failed four preservation assertions; restored 951 pass. The director
+   rendered every new story stage in five languages and inspected opening/discovery/choice/three
+   outcomes plus all six dim/lit places. A later harness correction ensures elapsed-time fade settling.
+   A separate diagnostic natural batch (`director_story_nat runs=12 seed=11 speed=3 loops=2`) ran
+   61.05 simulated minutes: 0.753 hits/min, 46.47 scattered/min, 26.08 percent mean weaving,
+   bullet peak 73, six guardian fights, zero stuck/soft lock. It is a different seed/loop diagnostic,
+   not the frozen seed-5 calibration. Arena's final deferred-strip cleanup changed after this bot
+   launched; combat did not change. Do not describe the batch as a run of the exact final source.
+   A director disposable-save desktop diagnostic observed the Promise card, kettle/road dialogue,
+   actual first-beacon ribbon discovery, joystick movement and pause objective. Debug shield and
+   beacon controls were used; it is not mobile verification or a human difficulty verdict.
+   Title load, live spatial sampling and skill-history flakes were corrected in test-only changes;
+   final full-suite counts must come from the actual final registry and checks, not old 117 cases.
 7. Distinguish code merge requirements from later store operations. Marketing screenshot proofs are stale after
    visual changes and must be reported; they do not authorize recapture. Firestore rules are committed but not
    deployed; analytics collection remains gated. Build/upload/review/tag rows stay uncompleted until performed

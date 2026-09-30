@@ -33,6 +33,11 @@ font 26, wider than the entire 260 px panel (236 px with 12 px padding each side
 3. Add meaningful registered geometry/layout checks for four rim gates with the real arena camera/HUD and
    five-language quit titles. Include no fork/plain gate and closing/reset behavior. Mutation-check a
    representative edge or width guard. Render diagnostic desktop stages after animations settle.
+4. Fix the diagnostic story harness's settling: `_snap` currently waits only a frame count, so on the
+   director's fast desktop its 30 frames expire before the result's 0.5-second fade completes. The rendered
+   result cards are visibly faded although this is not a production defect. Give captures a minimum real
+   elapsed settling interval as well as post-draw synchronization; assert the staged result's alpha and stamp
+   reach their final values before its capture. Keep discovery shots inside their three-second readable guard.
 
 ## Scope and acceptance
 
