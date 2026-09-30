@@ -29,12 +29,12 @@ fights without pausing the game.
 
 | Kind | Truth | Key |
 | --- | --- | --- |
-| drifter (night bat) | Drawn to moving light; bites what glows | VOICE_MEET_DRIFTER_1 |
+| drifter (night moth) | Drawn to moving light; clings to what glows | VOICE_MEET_DRIFTER_1 |
 | ember | A cinder that never went out; wants company in burning | VOICE_MEET_EMBER_1 |
 | caster | Chants to the dark to be noticed; its shots are prayers | VOICE_MEET_CASTER_1 |
 | weaver | Stitches dark over light; thinks it is mending | VOICE_MEET_WEAVER_1 |
 | stalker | Remembers being a keeper; hunts the flame it lost | VOICE_MEET_STALKER_1 |
-| swarm | Hunger with wings; no thought, only mouths | VOICE_MEET_SWARM_1 |
+| swarm | Hunger on the wind; no thought, only mouths | VOICE_MEET_SWARM_1 |
 | wisp | Curious and harmless until crowded; fear makes it sting | VOICE_MEET_WISP_1 |
 
 ## Guardian first meetings
