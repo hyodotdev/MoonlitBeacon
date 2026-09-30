@@ -381,7 +381,9 @@ win/lose or remaining health.
 The result screen shows those five lines not only on a loss but also on
 a return after a guardian, and pays moon shards on a square-root curve of
 score. Longer runs pay more, without one run's gap dominating all
-permanent growth.
+permanent growth. Past cycle 8 the closing line also names the Depth
+(cycle 9 is Depth 1), the same count the HUD shows in the endless stretch;
+the depth is a caption and adds no points.
 
 ### Save data
 
