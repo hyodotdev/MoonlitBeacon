@@ -364,6 +364,22 @@ because the bolt does not stop where the line does. A guardian's bolts fly
 about a third of the screen's width and fade out, which is as far as their
 pictures reach: beyond it there is nothing to be hit by.
 
+### Bullets
+
+Bullets are the night's small change: slow pastel orbs that drift across
+the room between one warned attack and the next. Casters loose a fan where
+their aim line pointed, weavers drop a single orb as they circle, wisps let
+fall a slow ring, and even the chasers spit a slow orb now and then; a
+guardian sheds a thin aura for the whole fight and a heavier stream while
+it is not winding anything up.
+
+Slip between them. Every orb is slower than the slowest hero on foot, leaves
+a wide gap to its neighbours, and fades out soon after passing you, so a way
+through is always there if you keep moving for it. Cover is
+cover: orbs stop on trees, stones and walls, and when a guardian falls,
+everything it threw turns to sparks. The first seconds in a new place are
+quiet — nothing ordinary throws until you have had a look round.
+
 ### Time and score
 
 ```text
