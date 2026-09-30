@@ -304,12 +304,30 @@ Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/world/terrain/
 Used:           nature.png, forest_floor.png, floor.png, field.png, camp.png,
-                forest_props.png, field_props.png, camp_props.png
+                forest_props.png, field_props.png, camp_props.png,
+                ground_field.png, ground_camp.png
 Modification:   tools/build_world_assets.py builds original terrain that
                 preserves existing atlas coordinates and canvas size;
                 tools/build_terrain_obstacles.py generates structure sheets
-                paired with Room's foot-based circular collision
+                paired with Room's foot-based circular collision;
+                tools/build_ground_tiles.py builds the seamless 96x96 field
+                and camp floor tiles
 ```
+
+`ground_field` and `ground_camp` replace two floors that were a **single flat
+colour**. The camp repeated an untextured 80x16 strip out of `floor.png`, and
+the field cropped an equally flat 16x16 tile out of its own prop atlas, so both
+maps read as a void at any tint. The new tiles carry grain, patches, stones and
+tufts inside a nine-colour palette, and every feature wraps at the tile edge
+because `Room`'s ground sprite repeats. 96px was chosen over 48px because the
+play area is 1720x1000: a 48px tile repeats about 36 x 21 times and reads as
+wallpaper.
+
+Contrast is capped on purpose. `build_ground_tiles.py` fails the build if a
+tile's luminance spread leaves the 12–74 band — too flat is the bug it exists
+to fix, and too loud makes the floor compete with the spirits the player has to
+dodge. The forest is deliberately excluded: `forest_floor.png` is already a
+real 256x256 textured tile.
 
 `nature` · `floor` · `field` · `camp` only keep AtlasTexture coordinates
 compatible; pixels were redrawn in an ink-navy, moon-teal, beacon-vermilion
@@ -321,6 +339,40 @@ cairn, silver grass, observation ring; camp is palisade, crate, cart,
 lantern stone. The same seed makes the same coordinates and variants, and
 player, spirits, beacons, and loot all compute safe positions from the
 same structure list.
+
+---
+
+## Later terrain (Frost Pass · Mirewood Marsh · Moonlit Ruins)
+
+```text
+Source:         structures: ChatGPT image generation (one 4 x 3 grid of twelve on flat
+                magenta, 2026-09-29), cut apart and packed deterministically
+                floors and tree sheets: original (deterministic pixel production)
+Creator:        Moonlit Beacon
+License:        follows the project license
+Project path:   res://assets/custom/world/terrain/
+Used:           frost_props.png, marsh_props.png, ruins_props.png,
+                ground_frost.png, ground_marsh.png, ground_ruins.png,
+                frost_nature.png, marsh_nature.png, ruins_nature.png
+Modification:   tools/cut_lineup.py keys the grid into twelve transparent PNGs
+                (tools/terrain_structures/); tools/pack_terrain_structures.py
+                downscales each into a 64x64 cell (contact shadow at y=61), thresholds
+                alpha and clusters the four structures of a place to at most 56 colours;
+                tools/build_ground_tiles.py builds the three seamless 96x96 floors;
+                tools/build_terrain_tilesets.py recolours nature.png through a
+                sixteen-colour table per place
+```
+
+| Place | Floor | Trees and stones | The four structures |
+| --- | --- | --- | --- |
+| Frost Pass | windblown snow with all its streaks leaning one way, snow-capped pebbles, six ice glints | icy-blue pines with a near-white tip | ice-crystal cluster, scarfed snowman, snow-capped stone lantern with a warm glow, frozen log with icicles |
+| Mirewood Marsh | dark bog water with moss banks, lily pads and broken ripples | olive and moss pines, bare willows, wet dark wood | glowing mushroom cluster, mossy log with reeds, wisp jar on a post, mossy frog statue |
+| Moonlit Ruins | weathered flagstones in running bond, cracked, mossed at the joints | dusk-indigo growth and violet-grey rubble | broken pillar, moon altar, crumbling arch, glowing menhir |
+
+The floors obey the same contrast band as the others (luminance spread 12–74).
+The four structures of each place keep the sheet shape `Room` already reads: a
+256x256 sheet with four 64x64 cells on the first row, feet near y=50. Each
+drawing keeps its baked contact shadow, like the structures it stands beside.
 
 ---
 
@@ -567,40 +619,71 @@ Unlike music it is a short one-shot, so lowering quality does not show.
 
 ---
 
-## UI (moonlit hearts · moon-silver panels)
+## UI (moonlit hearts · Moon Lantern kit)
 
 ```text
-Source:         original (deterministic pixel production)
+Source:         original (deterministic pixel production) · relic emblems drawn as
+                ChatGPT grid drops
 Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/ui/
-Used:           heart.png, panel_moonlit.png, nine_path_panel_moonlit.png,
-                button_normal_moonlit.png, button_hover_moonlit.png,
-                button_pressed_moonlit.png, button_disabled_moonlit.png,
-                button_focus_moonlit.png
+Used:           heart.png, kit/*.png (36 files), icons/*.png (22 relic emblems)
 Modification:   tools/build_world_assets.py builds the 5-step moonlight heart;
-                tools/build_custom_ui_panels.py generates ink-navy, moon-silver,
-                teal, vermilion panels and button states that keep the existing
-                5px and 6px nine-patch margins
+                tools/build_ui_kit.py generates the whole nine-patch kit, the two
+                beacon icons, the shared style resources under
+                resources/ui/, and their asset-contract entries;
+                the first sixteen icons/*.png are ChatGPT grid drops (batch 3 of the
+                abandoned 2.5D re-art pass), cut into 48x48 cells on branch
+                feat/guardian-presentation (closed PR #6); only these emblems
+                were carried over, and the cutting tools were not.
+                The nine skill emblems (lantern_familiar, moon_ward, comet_call,
+                star_magnet, thorn_bloom, second_light, moon_burst, winter_bell,
+                comet_trail) were drawn with ChatGPT's image generator on 2026-09-29,
+                the first six as one 3 x 2 grid and the last three as one row, each
+                shown the existing emblems for style, cut apart with
+                tools/cut_lineup.py (tools/skill_icons/), and fitted to 48x48 by
+                tools/build_skill_icons.py
 ```
+
+3.0.0 replaced the old ink-navy, moon-silver panels and their teal-edged
+buttons. Those were flat rectangles with cut corners, drawn a little
+differently in every scene, and read as a prototype. The new kit is **one set
+of chunky, rounded "sticker" nine-patches**: a cream border on deep indigo,
+lantern-gold and lavender accents, and a berry for danger. Every button label
+in the game was authored as light text on a dark box, so buttons keep a dark
+face and say primary, secondary or danger with the colour of the rim.
 
 | File | Size | Use |
 | --- | --- | --- |
 | `heart.png` | 80×16 | five 16px cells. empty heart (0) through full heart (4) |
-| `panel_moonlit.png` | 16×16 | 9-patch moon-silver panel. 5px margin |
-| `nine_path_panel_moonlit.png` | 16×16 | 9-patch for relic-pick cards. 6/6/6/6px margin |
-| `button_normal_moonlit.png` | 16×16 | default button. ink-navy face and teal border |
-| `button_hover_moonlit.png` | 16×16 | moon-white top face and bright teal border |
-| `button_pressed_moonlit.png` | 16×16 | darkened face and lower vermilion rivets |
-| `button_disabled_moonlit.png` | 16×16 | desaturated disabled state |
-| `button_focus_moonlit.png` | 16×16 | transparent focus ring stacked on the default state |
+| `kit/panel.png` | 24×24 | modal and large-surface frame. 8px margin |
+| `kit/chip.png` · `chip_gold.png` | 16×16 | small readout pill and list row. 6px margin. gold marks the row to look at |
+| `kit/button_<variant>_<state>.png` | 16×16 ×20 | `gold` · `lav` · `berry` · `ghost`, each in normal / hover / pressed / disabled / focus. 6px margin |
+| `kit/card_<state>.png` | 32×32 ×5 | relic card frame. 12px margin |
+| `kit/bar_back.png` · `bar_fill_<tone>.png` | 12×10 | progress track and fills (`mint` · `gold` · `berry` · `white`). `white` is tinted at runtime, as the boss bar is |
+| `kit/banner.png` | 40×24 | title ribbon. 14px horizontal, 9px vertical margin |
+| `kit/icon_beacon_on.png` · `icon_beacon_off.png` | 16×16 | the objective on the HUD: a lit and a cold brazier |
+| `icons/<relic>.png` | 48×48 ×25 | one emblem per relic, named by relic id (sixteen at the start, nine skills that unlock as cycles pass) |
+
+Every nine-patch keeps its stretched centre **one solid colour**, and every
+stretched edge strip uniform along its axis, so a panel of any size never
+shows a stripe or a seam. `tools/build_ui_kit.py` refuses to write a sheet that
+breaks that rule, and it keeps each nine-patch's margin next to its art:
+`--styles` writes the shared `resources/ui/**/*.tres` that scenes point at, and
+`--sync-contract` rewrites the `ui.kit.*` entries in the asset contract.
+
+Why textures and not rounded `StyleBoxFlat`: with `canvas_items` stretch a
+`StyleBoxFlat` is tessellated at the device resolution, so its corners come out
+smooth-vector next to pixel-art sprites. A `StyleBoxTexture` is scaled with
+nearest filtering and stays chunky.
 
 The heart has 5 steps but **we only use the one full frame.** Empty slots
 lower that one frame's opacity to 0.24. Swapping two pictures makes the
 slot jitter a little.
 
-9-patch sets `StyleBoxTexture` `texture_margin` to 5. On a 16px original
-the stretchable center is only 6px, so use this panel at 12×12 or larger.
+The relic emblems are 48px art. The relic picker shows them at 48; the HUD
+strip shows them at 22 with a filtered downscale, because the project's
+default nearest filter would drop every other pixel into noise at that ratio.
 
 ---
 
@@ -695,129 +778,102 @@ is the same picture with a different color. No reason to make two files.
 
 ---
 
-## Player (Moonlit Warden)
+## Player (six heroes)
 
 ```text
-Source:         original (AI-assisted concept, deterministic pixel production)
+Source:         ChatGPT image generation (three lineups of the six heroes on flat magenta,
+                one per view, plus three 6 x 4 walk-cycle grids, 2026-09-29), cut apart
+                and packed deterministically
 Creator:        Moonlit Beacon
 License:        follows the project license
-Original path:  _asset_sources/custom/a0-player/concepts/ (not distributed · gitignored)
-Project path:   res://assets/custom/actors/heroes/warden/
-Used:           walk.png = Warden 4-facing walk
-                idle.png = Warden 4-facing idle
-                portrait.png = Hero resource and ShrinePanel hero card
-Modification:   the generation model's three concepts were used only for
-                form comparison.
-                after user feedback we revisited a cute beacon-candle
-                guardian concept, and tools/build_warden_assets.py
-                regenerated final RGBA PNGs at 1x with fixed integer
-                coordinates and a 17-color visible palette
+Original path:  _asset_sources/chatgpt_heroes_2026-09-29/ (not distributed · gitignored)
+Project path:   res://assets/custom/actors/heroes/warden/, res://assets/custom/actors/heroes/dancer/, res://assets/custom/actors/heroes/keeper/, res://assets/custom/actors/heroes/knight/, res://assets/custom/actors/heroes/eclipse/, res://assets/custom/actors/heroes/sage/
+Used:           each hero's walk.png, idle.png, portrait.png
+Modification:   tools/cut_lineup.py keys each picture into transparent PNGs
+                (tools/hero_maple/<hero>/{front,back,left}.png and
+                walk_<facing>_<0..3>.png), and tools/pack_maple_heroes.py fits them to
+                the 48×64 cell as binary-alpha RGBA. Right is a flip of left.
 ```
+
+| Hero | Design |
+| --- | --- |
+| Moonlit Warden | violet hood with a crescent pin, a lit beacon candle held in front |
+| Shadow Dancer | pink bob with a mint ribbon, crescent blades at both hands |
+| Beacon Keeper | green hooded cloak, a glowing lantern held in front |
+| Silver Moon Knight | silver helmet with a crescent crest, white cape, sword |
+| Eclipse Mage | black hood with a red rim, a red orb held in front |
+| Constellation Sage | teal star-hood, gold staff and two floating orbs |
 
 | File | Size | Layout | Playback |
 | --- | --- | --- | --- |
-| `walk.png` | 192×256 | 48×64 cells, columns=down·up·left·right, rows=4 frames | 9fps |
+| `walk.png` | 192×256 | 48×64 cells, columns=down·up·left·right, rows=4 frames | 12fps |
 | `idle.png` | 192×256 | 48×64 cells, columns=4 facings, rows=4 frames | 4fps |
-| `portrait.png` | 96×96 | single portrait | static |
+| `portrait.png` | 96×96 | single portrait, the upper part of the front view | static |
 
-All three files use binary alpha and lock a foot origin at the bottom
-center of the cell. The 48×64 cell is kept for runtime compatibility,
-but the actual Warden only uses 22–23px of height per frame.
-Head and body-foot heights are each about 11px, a 2-head proportion:
-round cyan-white hood, short cloak that narrows downward, a friendly
-face, short violet bob, a small crescent pin, and empty both hands in
-front holding a beacon candle. Side views show direction with a narrow
-profile (full hood 12px · face 5px · cloak 9px or less), a small one-line
-eye, and a reduced beacon candle in one hand. Front and back height and
-foot origin stay, so changing facing does not suddenly change character
-size.
-After user feedback we removed the long torso, short moon blade, ember
-bracers, and a face that only showed bright eyes, and we also did not
-put horizontal protrusions that look like a muzzle or aiming arm.
+All three files use binary alpha and put the feet on the bottom of the cell. A hero
+is about 36px tall inside the 48×64 cell, drawn as a chibi with a big head and a bold
+silhouette, and every facing keeps that height and foot origin, so turning does not
+change the size. The walk is four drawn frames per facing: contact with one foot
+forward, passing pose, contact with the other foot, passing pose. The idle is the standing
+view with a small brightness pulse. Right is the left view flipped.
 
-Ranged arrows and missiles start from the beacon candle between both
-hands at Player-local `(0, -10)`, and for `0.16s` after fire a cyan-white
-casting ring and both-hand embers overlap. Homing-missile heads are a
-small candle, diamond star-core, and short halo instead of fighter-style
-wings.
+A `0.16s` casting cue plays after each shot, so a hero needs no separate attack sheet.
 
-Exact generation prompts and candidate-choice grounds are in
-`docs/generation_prompts.md` at the repo root; runtime wiring and
-device-verification notes are in `docs/work_log.md`.
-
----
-
-## Player (five companion heroes)
-
-```text
-Source:         original (deterministic pixel production)
-Creator:        Moonlit Beacon
-License:        follows the project license
-Project path:   res://assets/custom/actors/heroes/dancer/, res://assets/custom/actors/heroes/keeper/, res://assets/custom/actors/heroes/knight/, res://assets/custom/actors/heroes/eclipse/, res://assets/custom/actors/heroes/sage/
-Used:           each hero's walk.png, idle.png, portrait.png
-Modification:   tools/build_companion_hero_assets.py generates final RGBA
-                PNGs at 1x with fixed integer coordinates and a per-hero
-                limited palette
-```
-
-| Hero | Combat silhouette | Signature gear | Walk |
-| --- | --- | --- | --- |
-| Moon Dancer | lilac petal hood and short A-line body, small teal ribbon | open crescents around both hands | 10fps |
-| Ember Keeper | round charcoal hood and short quilted coat | lantern heart held in both hands | 8fps |
-| Silver Moon Knight | silver-white armor hood and short cloak | crescent shield and star shards | 8.5fps |
-| Eclipse Mage | vivid red-black hood and split cloak | black eclipse core in front of the chest | 10fps |
-| Constellation Sage | teal hood and gold constellation ornaments | gold star-core between both hands | 8fps |
-
-For all five heroes, `walk.png` and `idle.png` are 192×256 with 48×64
-cells in four columns down·up·left·right and four frame rows.
-`portrait.png` is a 48×48 single portrait. Actual combat silhouettes are
-22–24px tall per frame, with head vs body-foot height difference capped
-at 2px. Foot origin matches Warden, but petals and ribbon, quilt lines
-and lantern heart, silver armor, red-black eclipse, and teal
-constellations plus color masses separate them.
-All six hero resources and the Player safety fallback use custom sheets.
-Shrine buy/select cards and the five individual-hero IAP cards press each
-Hero's `48×48` portrait to open a full-body detail even before purchase.
-The detail body shows the cell minus top padding as `24×24` Nearest 4×,
-and looking does not change buy, unlock, or equip state.
+Shrine buy/select cards and the five individual-hero IAP cards press each Hero's `48×48`
+icon, a `24×24` crop of the idle sheet at 2×, to open a full-body detail even before
+purchase. The detail shows the hero's `96×96` portrait 1:1, and looking does not change buy,
+unlock, or equip state. All six hero resources and the Player safety fallback use these
+custom sheets.
 
 ---
 
 ## Enemies · bosses (Moonlit spirit bestiary)
 
 ```text
-Source:         original (AI-assisted concept, deterministic pixel production)
+Source:         normal enemies: ChatGPT image generation (one lineup of seven creatures on
+                flat magenta, 2026-09-29), cut apart and packed deterministically
+                guardians: ChatGPT image generation (two 3 x 2 grids of six on flat magenta,
+                2026-09-29: the first three places, then the later three), cut apart and
+                baked deterministically
 Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/actors/spirits/, res://assets/custom/actors/guardians/
 Used:           4-facing float motion for 7 normal enemies
                 idle, wind-up, charge, recover motion for forest, field, and camp guardians
-Modification:   generation-model concepts used only for material and silhouette comparison.
-                tools/build_spirit_guardian_assets.py regenerated 18 final
-                binary-alpha RGBA PNGs at 1x with integer coordinates and a
-                limited palette
+Modification:   normal enemies: tools/cut_lineup.py keys the lineup into one
+                transparent front-view PNG per creature (tools/spirit_grok/), and
+                tools/pack_grok_spirits.py shrinks each to 15-24px and lays out the four
+                facings (down, up, left, right) and four bob frames as binary-alpha RGBA.
+                guardians: tools/cut_lineup.py keys the grids into twelve transparent PNGs
+                (tools/guardian_ludo/), and tools/pack_ludo_guardians.py bakes 44 sheets from
+                them by deforming the one body (idle sway, wind-up growth and glow, charge
+                stretch, recover flatten) as binary-alpha RGBA of at most 44 colours
 ```
 
-| Normal enemy | Silhouette that reads in combat | Behavior cue |
+| Normal enemy | Design | Behavior cue |
 | --- | --- | --- |
-| Wisp | crescent core and long smoke tail | default chase |
-| Stalker | low four-legged body and backward spike horns | straight charge |
-| Swarm | three moon-embers swapping places | weak and fast cluster |
-| Ember | charcoal body and a large swaying flame crown | fast chase |
-| Drifter | wide asymmetric moon-moth wings and a thin tail | high-inertia float |
-| Weaver | broken orbit ring and four tentacles | orbit around the player |
-| Caster | moon mask, long robe, and a forward staff | keep-distance fire |
+| Wisp | cloud puff with a curl on top | default chase |
+| Drifter | sleepy leaf moth with folded wings | high-inertia float |
+| Ember | round flame spirit | fast chase |
+| Caster | mushroom-cap mage with a lantern staff | keep-distance fire |
+| Weaver | jellyfish trailing glowing threads | orbit around the player |
+| Stalker | shy cat-bat with big ears | straight charge |
+| Swarm | fluffy dandelion-puff pup | weak and fast cluster |
 
-Normal-enemy sheets are all `96×96` with `24×24` cells in four columns
-down·up·left·right and four frame rows. They are not recolors. Asset
-regression checks that all 7 alpha silhouettes and all 7 full-image
-hashes differ.
+Normal-enemy sheets are all `192×192` with `48×48` cells in four columns
+down·up·left·right and four frame rows. They are not recolors: each creature has its
+own silhouette, and asset regression checks that all 7 alpha silhouettes and all 7
+full-image hashes differ. The frames of one column are a small bob of a single front
+drawing; right is that drawing mirrored, and up is it darkened.
 
-| Guardian | Idle | State sheets | Combat silhouette |
+| Guardian | Idle | State sheets | Design |
 | --- | --- | --- | --- |
-| Forest | `forest.png` 6 frames | wind-up, charge, recover 4 frames each | horns, long tree-arms, roots in the ground |
-| Field | `field.png` 6 frames | cross wind-up, radial wind-up, recover 4 frames each | wide crescent wings, mask, cloud tentacles |
-| Camp | `camp.png` 6 frames | wind-up, recover 4 frames each | beacon brazier, hammer, gate shield |
+| Forest | `forest.png` 6 frames | wind-up, charge, recover 4 frames each | mossy golem with leaf wings and a glowing core; the thorn form is cracked with red veins and horned |
+| Field | `field.png` 6 frames | cross wind-up, radial wind-up, recover 4 frames each | blue moth sprite with big wings holding a glowing orb; the storm form is purple with lightning wings |
+| Camp | `camp.png` 6 frames | wind-up, recover 4 frames each | stone furnace golem with a lit hatch; the siege form is riveted iron with cannons on its flanks |
+| Frost (owl) | `frost.png` 6 frames | wind-up, charge, recover 4 frames each | snowy owl with crystal crown and big blue wings holding an ice gem; the Rimecrown form has antlers of ice and icicle feathers |
+| Marsh (toad) | `marsh.png` 6 frames | wind-up, charge, recover 4 frames each | round toad with a lily-pad hat holding a glowing orb; the Glowcap form wears a crown of glowing mushrooms and cattails |
+| Ruins (sentinel) | `ruins.png` 6 frames | wind-up, recover 4 frames each | stone cat with a gold crescent on its brow and floating stones round it; the Halo form has a ring of stones and gold plating |
 
 Guardian cells are `64×64`. Idle is `384×64`, state sheets `256×64`,
 horizontal layout with no facing. Every `SpiritKind` state slot is filled

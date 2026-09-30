@@ -19,7 +19,7 @@ title: The game we are making
 | Controls | full-screen floating move stick / bottom-right dash button / auto-attack |
 | Engine | Godot 4.7.1 Standard, GDScript |
 | Run length | you can cash out after each guardian — keep going after an 8-cycle official win |
-| Project version | 2.1.0 (iOS build 9 / Android versionCode 14) |
+| Project version | 3.0.0 (iOS build 10 / Android versionCode 15) |
 
 ### One-line pitch
 
@@ -99,6 +99,29 @@ virtual stick work from mouse drag alone.
 - There are 16 relics. Besides raising damage, speed, range, and Moon
   Disc volley power, there are new weapons like Moon Ring and Moonlit
   Ripple.
+- Nine **skills** join the level-up cards as cycles pass, on the free third
+  card. The first time one becomes available it is shown next and marked
+  "New skill"; after that roughly one offer in four carries one that is open.
+  Each is something that happens, and each deals damage with the same
+  multiplier as your other weapons, so one picked late is worth as much as
+  one picked early.
+
+| Skill | From cycle | Max | What it does |
+| --- | --- | --- | --- |
+| Lantern Familiar | 5 | 3 | a lantern spirit circles you and shoots the nearest spirit every 1.5s |
+| Moon Ward | 5 | 3 | a bubble swallows one hit, then recharges in 26s (x0.74 per extra stack) |
+| Comet Call | 8 | 4 | every 9s (1.4s faster per extra stack) a comet marks and hits the thickest cluster |
+| Star Magnet | 8 | 3 | embers, dew, and cores fly to you from 2.2x, 3.4x, 4.6x as far |
+| Moon Burst | 10 | 4 | choosing a card bursts moonlight round you (86 wide, +12 per stack) that hurts and pushes back what is near |
+| Thorn Bloom | 11 | 3 | a hit bursts thorns that hurt and push back what is near |
+| Second Light | 11 | 2 | once a cycle a lethal hit leaves you standing, with 3s of safety |
+| Winter Bell | 13 | 3 | every 13s (1.8s faster per extra stack) a ring of frost slows every spirit within 150 by 42% for 2.6s; a guardian feels a third of it |
+| Comet Trail | 16 | 3 | a dash leaves three marks of moonlight (up to five) that burst behind you, one after another |
+
+A new skill opens every few cycles, so the endless stretch keeps offering
+something you have not seen: two at cycle 5 and 8, one at 10, two at 11, and
+one each at 13 and 16.
+
 - Stacking the same relic keeps growing the numbers. Collecting different
   effects unlocks three evolutions that change how you fight.
 - Collecting **two different effects on the same attack path** opens
@@ -158,29 +181,55 @@ virtual stick work from mouse drag alone.
 | 7 normal spirits | original silhouettes. Chase, fast chase, orbit, charge, ranged, and other distinct motion |
 | Elites | mix in at random from cycle 2, and the camp elite ember carrier appears from cycle 1. Tougher, leave gold embers. Guarantee one rescue dew only when you are on one heart and the field has no dew |
 | 3 terrain guardians + 3 promotions | original per-terrain bosses. Appear at the third beacon. Forest uses chained charges, field uses cross and radial barrages, camp uses fans and opening armor. From cycle 2 the same terrain gets thorn, storm, and siege promotions |
+| 3 later guardians + 3 promotions | the places that open from cycle 3 have guardians of their own grammar (see *Guardians of the later places*). The first time you meet one it is the younger form, every time after the grown-up one |
 
 New spirit kinds mix in over time, and a current-terrain raid arrives at
 intervals. Each cycle also raises health multiplier, elite chance, and
 the simultaneous-spawn cap. From cycle 4 guardians harden faster than
 fodder, telegraphs, barrages, and charges pack tighter, and even finished
 firepower takes longer to kill. Every guardian attack is telegraphed
-first with a line, fan, or safe gap, and hit stun cannot lock the pattern.
+first, and hit stun cannot lock the pattern. See *Reading a guardian's
+attack* below for how.
 
 ### Terrain and day/night
 
 Lighting one beacon in a cycle takes you through a moonlight gate to the
-next terrain, and the next cycle also rotates the starting terrain.
-Floor, tint, trees, and props actually swap.
+next terrain. Floor, tint, trees, and props actually swap. **Cycle 1 walks
+the classic route** (forest, field, camp) through one gate each time, so
+the first loop teaches the game and stays the same for everyone. From
+cycle 2 a gate is a fork; see *Forks* below.
 
 | Terrain | Dedicated raid | Play it asks for |
 | --- | --- | --- |
 | Night Forest | surround that leaves the unlit-beacon side open | slip the gap or break toward the next beacon |
 | Moonlit Field | both battle lines and casters' crossfire | push one line first and hold the safe half |
 | Abandoned Camp | elite ember carrier and wedge escort | ambush the carrier for a large ember, or keep distance |
+| Frost Pass | a wall of spirits marching straight in, with a two-lane gap in it | slip through the gap or dash through it |
+| Mirewood Marsh | three tight pods rising round you, with a wide gap between each pair | pick a gap and keep moving through it |
+| Moonlit Ruins | a group ahead of you, then three seconds later a second group from behind | plan the way out of the first for the second |
+
+Frost Pass and Mirewood Marsh join the forks at cycle 3, Moonlit Ruins at
+cycle 4. Each has its own floor, its own trees and stones, four structures
+of its own that block the path, and its own light: warm lanterns in the snow,
+glowing mushrooms and wisp jars in the bog, gold moon altars in the ruins.
 
 Even inside one cycle, lighting beacons brightens the background
 **night → blue dawn → sunrise → day**. Player, enemies, and projectiles
 are excluded from the tint so combat readability stays.
+
+### Forks
+
+From cycle 2 lighting a beacon opens **two gates on different rims**. Each
+carries the name of the place it leads to, in that place's colour, and an
+arrow points at each. The gate you run for decides the next terrain and
+the side you arrive on. The gate after the second beacon also names the
+**guardian** waiting there, so the route is a choice of boss. A new cycle
+opens somewhere other than where the last guardian fell. The choices are
+drawn from the run's seed, so a route is repeatable and testable.
+
+The classic three places grow their guardian with the cycle. The later
+places grow theirs with how often you have met it: the gate names the younger
+form the first time and the grown-up one after.
 
 ### Beacons and cycles
 
@@ -188,8 +237,8 @@ are excluded from the tint so combat readability stays.
 - Each beacon needs **1.3 seconds** inside the radius to activate.
 - Leaving the radius drains the fill you had.
 - After a full charge, choose Safe Kindle or Overcharge. Overcharge is
-  the choice to last 6.5 seconds inside the beacon radius against a
-  forest surround, field crossfire, or camp escort formation. Leaving
+  the choice to last 6.5 seconds inside the beacon radius against the
+  place's own raid formation. Leaving
   the radius drains progress; leaving far away finishes as a normal
   kindle with no reward.
 - A successful Overcharge grants a weapon core and extra embers. Overcharging
@@ -211,6 +260,109 @@ are excluded from the tint so combat readability stays.
 - Closing cycle 8 and returning is the official win. Choosing to continue
   enters the `beyond the map` endless stretch. There is no time limit or
   separate final exit.
+
+### The endless stretch: Depth
+
+Past cycle 8 the count is **Depth** (cycle 9 is Depth 1). Cycles 1 to 8 are
+exactly the game that shipped; what follows is built to be played for as
+long as you like, getting a little harder each time and never a wall.
+
+- **A gentle curve.** Through cycle 8 fodder toughness grows x1.58 a cycle.
+  Past it, x1.22, and a guardian's own extra health x1.10. The elite chance
+  keeps climbing to 45%. The spirit cap stays at 40 for the phone.
+- **A tempo you can read.** A guardian's windups, gaps, bolt speed and charge
+  speed harden one step a cycle through cycle 8 exactly as they shipped, then a
+  quarter as fast. Left to grow one for one, a cycle-14 windup would last a
+  fifth of a second; this way a deep guardian is a little quicker each time
+  and still a thing you read and step out of. However quick it has grown, a
+  fan, a ring or a charge shows itself for at least 0.45 seconds and a circle
+  on the floor stays at least 0.85 seconds before it bursts.
+- **Omens.** Each zone carries one rule that changes a single thing, one
+  from Depth 1 and two from Depth 5, shown on the world line and on the
+  gate that leads there, so an omen is part of the route you choose.
+
+| Omen | Effect |
+| --- | --- |
+| Blood Moon | more elites, and embers are worth 1.5x |
+| Swarm Tide | spirits arrive faster (x0.72 interval) and are weaker (x0.65 health) |
+| Iron Night | six fewer spirits at once, and each x1.45 tougher, arriving slower |
+| Lantern Bloom | beacons kindle in 60% of the time |
+| Dew Rain | moon dew drops 2.2x as often |
+| Gale | spirits move 16% faster |
+
+- **Moonless Trial.** Every fifth Depth (cycle 13, 18, ...) the guardian is a
+  trial: one more mutation than its cycle grants, and two tiers of loot
+  whatever you did at the beacons.
+
+### Guardian mutations
+
+A guardian is a body plus what it has gained. A mutation is one small,
+readable rule hung on the move machine every guardian already has, so it
+works on any of them. Slots by cycle: none to cycle 4, one at 5 to 7, two at
+8 to 10, three at 11 to 14, four after, and a trial adds one. They are drawn
+from the seed and never repeat within one guardian, so the same guardian
+met again fights differently. Its numeral counts the meetings ("Thornwood
+Pursuer II"), the mutations are named in a banner just after it appears, and
+they stay under its health bar.
+
+| Mutation | What it adds |
+| --- | --- |
+| Echo | a volley comes again 0.7s later, turned a little; a run of fans repeats once, after its last fan, and the repeat is drawn beside the volley from the moment it winds up |
+| Spiral | the safe gap of each volley turns further round than the last |
+| Summoner | at two thirds and one third of its health it calls a pack, within the spirit cap |
+| Frenzy | everything it does runs 22% faster |
+| Aegis | a ring of light stands up for 2.4s and nothing lands; it never opens during the rest after a volley |
+| Meteors | while it rests, marked circles fall on and around you and burst after a second |
+
+### Guardians of the later places
+
+The three guardians of the places that open from cycle 3 are built from the
+same parts as the first three (a fan, a ring, a marked circle, a dive) and
+put together differently. Every one rests for a moment after its pattern, and
+that rest is marked with a mint glow: the window to dive in.
+
+| Guardian | Pattern |
+| --- | --- |
+| Hoarfrost Owl, then Rimecrown Owl (Frost Pass) | glides in wide circles, blows a fan of feathers twice (the second aimed where you fled; the grown-up Rimecrown Owl blows a third, with fewer feathers in each), then dives through where you were standing and perches |
+| Mirewood Toad, then Glowcap Toad (Mirewood Marsh) | waddles, then hops onto a circle marked on the floor, twice; the third leap is a flop with a wider circle and a ring of bolts after it, then a long rest. The circle bursts as the toad lands |
+| Moonstone Sentinel, then Halo Sentinel (Moonlit Ruins) | keeps a little way off, writes glowing circles round you (one where you stand), then a ring of bolts with a gap facing you, then rests; more circles and a shorter rest as the cycles go on |
+
+### Reading a guardian's attack
+
+Every guardian attack is marked on the floor before it lands, in one
+language for all of them: **coral light is where it will hurt, mint light is
+where it will not**, and the boss's own colour only tints the ring at its
+feet. A charge shows the lane it will run, exactly as long and as wide as
+the charge really is, with arrowheads streaming down it and a bright fill
+racing to the end as the wind-up runs out. A ring of bolts shows a ray for
+each bolt and a calm mint wedge for the gap. A fan shows a wedge that
+strengthens toward its edge, and a single shot a soft band with dots streaming
+down it. A ground mark (Meteors, or your own Comet Call) is a circle lit
+faintly from the start, so its reach is honest, with a brighter disc that
+grows to fill it: the fill is the time you have left.
+
+The warning has a floor. Enrage, frenzy and the cycles can quicken a
+guardian's gaps, its bolts and its charges, but a fan, a ring or a charge is
+always shown for at least 0.45 seconds (the first fan of a sequence, the
+widest thing a guardian aims, for at least 0.75), and a circle on the floor
+stays lit for at least 0.85 seconds before it bursts. In cycle 1 nothing is
+quickened, so every warning keeps the length it was drawn with.
+
+The picture is the volley. A fan is drawn as wide as it really is and a ring
+with one ray for every bolt it will fire, so the mint way through a ring is
+exactly as wide as the clear space between its bolts and never wider. Growing
+volleys add bolts, not width: a fan never spreads past about 70 degrees and
+carries at most seven feathers (five when the run is three fans, so the run and
+the repeat of its last fan still fit the two dozen bolts the field holds), a
+ring or a cross always leaves at least 16 degrees of clear way either side of
+the aim (a cross never carries more than eleven arms, a ring never more than
+thirty-two spokes), and from cycle 5 the fans that follow the first are
+narrower spears, because you are still running when they come. The repeat of
+an Echo is shown the same way, faintly beside the volley while it winds up and then until the repeat fires, and
+a single aimed shot is drawn as a soft band all the way to you and past,
+because the bolt does not stop where the line does. A guardian's bolts fly
+about a third of the screen's width and fade out, which is as far as their
+pictures reach: beyond it there is nothing to be hit by.
 
 ### Time and score
 
@@ -242,6 +394,8 @@ permanent growth.
 | `vault.cfg` | moon shards, 6 boon tiers, unlocked characters, continue-coin balance and grant-transaction ledger |
 | `ladder.json` | local top 10 with name, character, app version, score, rank, cycle |
 | `ladder.json.tmp` | temp file used only while atomically saving the ladder |
+| `chronicle.json` | which story beats, first-sight lines and endings have been seen (the Chronicle page) |
+| `chronicle.json.tmp` | temp file used only while swapping the chronicle in |
 | `analytics.json` | allowed events not yet sent after consent. Max 200 events / 14 days; revoked consent deletes immediately |
 
 A missing or corrupt save still launches with defaults.
@@ -293,6 +447,91 @@ attacks, and confirming release config plus real-device transmission are
 - Traditional Chinese (zh_TW)
 
 You can change them in Settings during play without restarting.
+
+### UI and story structure (3.0.0)
+
+3.0.0 replaces the 2.x screens and gives the story a shape. The course keeps
+teaching the 2.1.0 build (tag `release-2.1.0`); this page tracks the current
+game.
+
+**One UI kit.** Every panel, button, card, progress bar and banner is a chunky,
+rounded pixel nine-patch from `assets/custom/ui/kit/`, generated by
+`tools/build_ui_kit.py`. Scenes do not draw their own boxes. They point at the
+shared style resources under `resources/ui/` (`buttons`, `buttons_gold`,
+`buttons_berry`, `buttons_ghost`, `cards`, `panels`, `bars`), and the screens
+that build rows in code load the same files, so changing the look is a change
+in the kit and not in seventeen scenes. The colour of a button's rim says its
+role: gold is primary, lavender is secondary, berry is danger, ghost is quiet.
+Dense screens (shrine, shop) use `panels/panel_tight`, the same art with less
+padding, because they fill the whole safe height.
+
+**A combat HUD you can read in a fight.** Hearts, and one brazier per beacon of
+the current wave: a cold brazier lights the moment its beacon burns. Level,
+defeated count and time sit beside them. The secondary lines (evolution, missile
+power, moonfire, the region caption) rest dim and brighten only when their value
+changes, so what just changed is what you see. Relics are emblem icons with a
+`×N` corner badge instead of a wall of names, and the boss bar wears each
+guardian's accent.
+
+**A night that has depth.** The camp and field floors used to be a single flat
+colour; they now repeat a seamless textured tile (`tools/build_ground_tiles.py`),
+the arena carries a screen-space vignette, and the camp's lanterns and lit barrels
+throw a warm pool of light on the ground (`RoomLights`, one node for every pool).
+
+On top of that the room is lit as one scene, with moonlight from the upper left:
+
+- every tree, rock, tent and structure casts a soft shadow that leans away from the
+  moon, and the pieces themselves catch a pale rim on that side
+  (`RoomShadows`, `shaders/world_polish.gdshader`);
+- the floor has life: wide patches of moss and moonlit blue break up the repeating
+  tile, dappled light breathes through the canopy, and small mushrooms, flowers and
+  grass tufts glow on the ground (`RoomTone`, `RoomFlora`, and the additive
+  `RoomLights`);
+- the air moves: two banks of mist slide at different speeds so walking through a
+  room shows its depth, slanted shafts of moonlight sway, and motes drift
+  (`RoomAtmosphere`);
+- a colour grade over the world (`shaders/night_grade.gdshader`) deepens the shadows
+  with a cool cast, keeps warm light warm, and lets the far edge of the frame sink
+  into the dark; the HUD is drawn after it and is not graded;
+- heroes, spirits and guardians share one actor shader
+  (`shaders/actor_polish.gdshader`): a moonlit rim, an outline coloured from the art
+  it surrounds, and bright details such as a lantern or a flame that stay lit in the
+  dark. It works from each sprite's own colour and alpha, so it needs no extra art and
+  follows whatever the sheets show;
+- a defeated spirit bursts into moon dust in its own colour (`KillSparks`, one node
+  for every burst).
+
+Every terrain describes its own palette in its `RoomKind` resource (colour patches,
+plants, mist, shafts, motes), so a new terrain needs numbers and no new art. All of
+it is drawn by code in a handful of nodes, and the arena's node budget is unchanged
+in kind: the late-game test still caps the standing node count.
+
+**Acts.** Cycles are grouped into three acts and an epilogue. The card for an act
+plays on the cycle it begins, before that cycle's dialogue, and pauses the game
+the way the dialogue does.
+
+| Act | Begins on cycle | What is learned |
+| --- | --- | --- |
+| I · The Debt | 1 | The Wardens fell and one remains. The dark eats light |
+| II · The Hunger | 3 | The spirits are not hunting you. They are lost |
+| III · The Line | 6 | A beacon is not a fire. It is a line the dark cannot cross |
+| Epilogue · The Moonless | 9 | Past the map. The dark gets a name at cycle 10 |
+
+**The chronicle.** Every story beat, first-sight line and ending is written into
+`chronicle.json` at the moment it plays, and the title screen's Chronicle page
+lists all twenty-eight entries, the unmet ones as blanks. It has its own save
+file on purpose: purchases and shards live in the Vault, whose writes are
+verified and backed up, and a reading log is not worth that risk. A missing or
+unreadable chronicle simply starts empty.
+
+**Hero voices.** Each hero except the Warden opens a run in their own words and
+has their own line for the first beacon, a fallen guardian and low health. Their
+line is offered first; the shared pool fills in after, and no line is ever said
+twice in a run.
+
+Store screenshots taken before 3.0.0 no longer match the game and were **not**
+recaptured; recapturing is a separate, explicit decision.
+
 
 ## 4. What this game will not include
 
@@ -419,4 +658,8 @@ chapter-16-complete
 release-0.1.0      # Lesson 11, first complete build that plays a full run on a phone
 release-0.9.0-rc1  # early Lesson 16, release candidate
 release-1.0.0      # Lesson 16, APK + itch.io release
+release-2.1.0      # final tutorial release: the game and course as taught
 ```
+
+3.0.0 is not part of the course. It takes the game to a new UI and a structured
+story, and the lessons keep describing the `release-2.1.0` screens on purpose.
