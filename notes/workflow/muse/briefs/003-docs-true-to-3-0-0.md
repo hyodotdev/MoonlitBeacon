@@ -2,8 +2,9 @@
 
 ## The ask
 
-The user: "3.0.0 최종 릴리즈 상태로 잘 작업해줘 끝까지" (work 3.0.0 through to a final release state, to the very end).
-The docs a reader opens first must say what the release is, and every number in them must be one the game really has.
+The user asks to continue the 3.0.0 renewal, strengthen the world and immersive story, review the game until stable,
+and prepare a merge-ready PR without merging. The docs a reader opens first must say what the tree implements,
+and every number in them must be one the game really has.
 
 ## Why, and what "good" feels like
 
@@ -14,28 +15,30 @@ how to answer it. No editorial policy or presenter directions (see AGENTS.md).
 
 ## Where things stand
 
-- `README.md` line 37: `| Version | **2.1.0** (both stores live) |`; line 194: "The course stops at 1.0.0. The tree
-  continues through store release 2.1.0."
+- Read the actual README on this main-integrated baseline. Its version/course passages still describe the tree as
+  2.1.0. Preserve current main's IAP 3.6.1 / Shop documentation and vendor/license explanation.
 - `apps/docs/docs/game.md`: sections Forks, The endless stretch: Depth, Guardian mutations, Guardians of the later
   places, Reading a guardian's attack, UI and story structure (3.0.0), and "9. Version tags" (mentions 2.1.0 and says
   3.0.0 is not part of the course, which is right: the lessons keep describing the 2.1.0 screens on purpose).
-- The version is locked at 3.0.0 (Android code 15, iOS build 10) in `project.godot` and `export_presets.cfg`. Both stores
-  currently have 2.1.0 live; 3.0.0 has not been submitted or tagged.
+- The version is locked at 3.0.0 (Android code 15, iOS build 10) in `project.godot` and `export_presets.cfg`. 2.1.0 is the last
+  recorded store release (not a fresh remote audit); 3.0.0 has not been submitted or tagged.
 - `pnpm check:assets` and `pnpm check:store-metadata` are green today. `pnpm docs:build` is the check that finds dead
   links.
-- Other briefs are being written in parallel and touch other files: one changes `game.md` only by adding a "Bullets"
-  section and edits `notes/plans/3-0-0-build-log.md` and `3-0-0-expedition.md`; another edits the store text; another
-  the release record. Do not edit `notes/plans/3-0-0-build-log.md`, `notes/plans/3-0-0-expedition.md`,
+- The accepted game includes slow bullet weaving, the result Depth caption and shop wrapping, and the Lantern
+  Hollow / Nari road-home story with six place restorations. Audit the actual final files, not an earlier brief's
+  intent. Brief 007 runs separately on store copy and author records; it does not edit README or reference pages.
+  Do not edit `notes/plans/3-0-0-build-log.md`, `notes/plans/3-0-0-expedition.md`,
   `notes/release/` or anything under `stores/`.
 
 ## Do
 
-1. README: the version row says 3.0.0 (Android code 15, iOS build 10) and that 2.1.0 is what is live on the stores;
+1. README: the version row says 3.0.0 (Android code 15, iOS build 10), with 2.1.0 as the last recorded store release;
    the sentence about the course says the course stops at 1.0.0, the tutorial closed with 2.1.0, and the tree now
-   carries 3.0.0. Do not claim a tag, a store status or a release date that does not exist.
+   carries the 3.0.0 renewal. Describe 2.1.0 as the last recorded store release, not a newly verified store audit.
+   Do not claim a tag, submission, live 3.0.0 build or release date that does not exist.
 2. `game.md`, "Version tags": one short paragraph saying what 3.0.0 is (a new UI, a structured story, six places with
    forks, an endless stretch that stays playable, more guardians and skills), not part of the course, and not yet
-   tagged. Keep the tag list as it is.
+   tagged. Explain the concrete road-home premise and discoveries briefly. Keep the tag list as it is.
 3. **Audit `game.md` against the code.** For every number and rule stated in the 3.0.0 sections (unlock cycles, caps,
    counts, tables of places, guardians, omens, mutations, skills, budgets, timings), find where the game defines it
    (`apps/game/scripts/gameplay/expedition.gd`, `spirit.gd`, `arena.gd`, `player_skills.gd`, the resources, and the
@@ -50,7 +53,7 @@ how to answer it. No editorial policy or presenter directions (see AGENTS.md).
 
 - Do not touch `apps/game/`, `stores/`, `notes/release/`, `notes/plans/`, `scripts/`, or the lesson prose.
 - Do not describe anything the game does not do, or promise anything for later.
-- Do not add screenshots or clips; there is a store capture pass later and the docs clips stay silent and under 1MB.
+- Do not add screenshots or clips; no store recapture is authorized and existing docs clips stay silent and under 1MB.
 
 ## Acceptance
 

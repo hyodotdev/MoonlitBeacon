@@ -53,7 +53,10 @@ UI is in `scripts/ui/dialogue_scene.gd`, `act_card.gd`, `voice_panel.gd`, `chron
 There are 34 current chronicle entries, 6 heroes, 7 spirits, 12 guardian forms and 6 terrain IDs.
 The first cycle has the classic route; forks start at 2; frost/marsh unlock at 3 and ruins at 4. An official win
 does not require visiting all terrains. Existing save IDs and chronological entries already exist on users' devices.
-The bullet and UI polish work accepted before this brief is the baseline: do not undo it or retune its balance.
+Current main has been integrated locally, including godot-iap 3.6.1 and the Shop autoload. Separate UI and frozen
+bullet rounds are under director review: UI adds a result Depth caption (without removing score waves), chooses
+Wave for the English loop word and wraps shop stats. Leave shop code and combat tuning alone; use Wave consistently
+in rewritten English story. The director will reconcile the separately judged work before final verification.
 
 ## Do
 
