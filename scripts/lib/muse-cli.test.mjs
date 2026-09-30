@@ -33,8 +33,10 @@ while [ $# -gt 0 ]; do
 done
 cd "$workspace" || exit 3
 mkdir -p .muse
+echo "launch session=\${session:-none}" >> .muse/launches.log
 mode=$(cat .muse/mode 2>/dev/null || echo change)
 if [ "$mode" = "reject-session" ] && [ -n "$session" ]; then echo "session already exists" >&2; exit 9; fi
+if [ "$mode" = "refuse-launch" ] && [ -n "$session" ]; then echo "approval required: classifier refused session start" >&2; exit 5; fi
 env | cut -d= -f1 | sort > .muse/env-names.txt
 cp "$prompt" .muse/prompt-seen.md
 echo '{"type":"session.start","payload":{"text":"hello"}}'
@@ -89,6 +91,13 @@ function muse(checkout, args, { mode } = {}) {
 }
 
 const workOf = (checkout, tag) => join(checkout.root, 'builds', 'muse', tag, 'work');
+
+/** Launch lines the stand-in recorded in this copy; the caller clears the log to count one round only. */
+const launchesIn = (checkout, tag) => {
+  const log = join(workOf(checkout, tag), '.muse/launches.log');
+  if (!existsSync(log)) return [];
+  return readFileSync(log, 'utf8').split('\n').filter(Boolean);
+};
 
 test('a run copies the repo without secrets, hands over the orders and the brief, and reports the change', (t) => {
   const checkout = makeCheckout(t);
@@ -151,11 +160,16 @@ test('a failed round is recorded as failed and cannot be accepted', (t) => {
   const checkout = makeCheckout(t);
   assert.equal(muse(checkout, ['run', 'brief.md', '--tag', 'ok-run', '--no-deps']).status, 0);
   writeFileSync(join(workOf(checkout, 'ok-run'), '.muse/mode'), 'fail');
+  rmSync(join(workOf(checkout, 'ok-run'), '.muse/launches.log'), { force: true });
   const failed = muse(checkout, ['run', 'brief.md', '--continue', 'ok-run']);
   assert.equal(failed.status, 1);
+  assert.doesNotMatch(failed.out, /would not take the old session again/);
+  assert.equal(launchesIn(checkout, 'ok-run').length, 1, 'an unknown failure stops after one launch');
   const state = JSON.parse(readFileSync(join(checkout.root, 'builds/muse/ok-run/state.json'), 'utf8'));
   assert.equal(state.rounds.at(-1).state, 'failed');
   assert.equal(state.rounds.at(-1).exitCode, 7);
+  assert.equal(state.rounds.at(-1).sessionRetried, undefined);
+  assert.ok(!existsSync(join(checkout.root, 'builds/muse/ok-run/report-2.md')), 'no successful report for a failed round');
   const refused = muse(checkout, ['accept', 'ok-run']);
   assert.notEqual(refused.status, 0);
   assert.match(refused.out, /only a finished run is accepted/);
@@ -197,12 +211,46 @@ test('a continuation whose old session the CLI refuses gets a fresh session in t
   const checkout = makeCheckout(t);
   assert.equal(muse(checkout, ['run', 'brief.md', '--tag', 'retry-run', '--no-deps']).status, 0);
   writeFileSync(join(workOf(checkout, 'retry-run'), '.muse/mode'), 'reject-session');
+  rmSync(join(workOf(checkout, 'retry-run'), '.muse/launches.log'), { force: true });
   const second = muse(checkout, ['run', 'brief.md', '--continue', 'retry-run']);
   assert.equal(second.status, 0, second.out);
   assert.match(second.out, /would not take the old session again/);
+  const launches = launchesIn(checkout, 'retry-run');
+  assert.equal(launches.length, 2, 'the stale session is tried once, then once fresh');
+  assert.ok(!launches[0].endsWith('none'), 'the first launch carries the old session id');
+  assert.ok(launches[1].endsWith('none'), 'the retry carries no session id');
   const state = JSON.parse(readFileSync(join(checkout.root, 'builds/muse/retry-run/state.json'), 'utf8'));
   assert.equal(state.rounds.length, 2);
   assert.equal(state.rounds[1].state, 'done');
   assert.equal(state.rounds[1].sessionRetried, true);
   assert.equal(state.rounds[0].sessionRetried, undefined);
+});
+
+test('an approval/classifier refusal stops after one launch and is never accepted', (t) => {
+  const checkout = makeCheckout(t);
+  assert.equal(muse(checkout, ['run', 'brief.md', '--tag', 'refusal-run', '--no-deps']).status, 0);
+  // The stand-in fails only when it gets a session id; without one it would write a report and succeed, so any
+  // fallback without the id would turn this failure into a success and the test would catch it.
+  writeFileSync(join(workOf(checkout, 'refusal-run'), '.muse/mode'), 'refuse-launch');
+  rmSync(join(workOf(checkout, 'refusal-run'), '.muse/launches.log'), { force: true });
+  const second = muse(checkout, ['run', 'brief.md', '--continue', 'refusal-run']);
+  assert.equal(second.status, 1, second.out);
+  assert.doesNotMatch(second.out, /would not take the old session again/);
+  const launches = launchesIn(checkout, 'refusal-run');
+  assert.equal(launches.length, 1, 'a refusal is launched exactly once');
+  assert.ok(!launches[0].endsWith('none'), 'the one launch carries the old session id');
+  const errors = readFileSync(join(checkout.root, 'builds/muse/refusal-run/stderr-2.log'), 'utf8');
+  assert.match(errors, /classifier refused session start/);
+  assert.ok(errors.includes('session') && !errors.includes('session already exists'),
+    'the refusal names a session but is not the recognized stale-session error');
+  const state = JSON.parse(readFileSync(join(checkout.root, 'builds/muse/refusal-run/state.json'), 'utf8'));
+  assert.equal(state.rounds.length, 2);
+  assert.equal(state.rounds[1].state, 'failed');
+  assert.equal(state.rounds[1].exitCode, 5);
+  assert.equal(state.rounds[1].sessionRetried, undefined);
+  assert.ok(!existsSync(join(workOf(checkout, 'refusal-run'), 'IMPLEMENTER_REPORT.md')), 'no report in the copy');
+  assert.ok(!existsSync(join(checkout.root, 'builds/muse/refusal-run/report-2.md')), 'no successful report stored');
+  const refused = muse(checkout, ['accept', 'refusal-run']);
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.out, /only a finished run is accepted/);
 });

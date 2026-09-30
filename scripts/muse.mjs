@@ -196,6 +196,20 @@ function doctor() {
 
 // --- run ---------------------------------------------------------------------
 
+/** The one CLI complaint that earns a fresh session: the old session id is stale. Nothing else does, and an
+ * exit code, an elapsed time or a lone word like "session" never stands in for it. */
+const STALE_SESSION_ERROR = 'session already exists';
+
+/** True only when the CLI's stderr carries the recognized stale-session error, word for word. */
+function isStaleSessionError(errorsPath) {
+  try {
+    if (!existsSync(errorsPath)) return false;
+    return readFileSync(errorsPath, 'utf8').includes(STALE_SESSION_ERROR);
+  } catch {
+    return false;
+  }
+}
+
 /** Start the implementer once, stream a short progress line for what it does, and wait for it to end or run out of time. */
 async function launch({ executable, work, config, events, errors }, args) {
   const child = spawn(executable, args, { cwd: work, env: childEnvironment(), stdio: ['ignore', 'pipe', 'pipe'] });
@@ -333,8 +347,10 @@ async function run() {
   const launched = { executable, work, config, events, errors };
   let outcome = await launch(launched, args);
   // The CLI may refuse to take an old session id again. Then the same copy gets a fresh session: it has lost the
-  // conversation but not the work, and the brief of a continuation says to read the diff first.
-  if (continuing && !flags['fresh-session'] && !outcome.timedOut && outcome.exitCode !== 0 && outcome.seconds < 90) {
+  // conversation but not the work, and the brief of a continuation says to read the diff first. Only the recognized
+  // stale-session error earns that retry; anything else (an approval or classifier refusal, an unknown failure)
+  // stops after one launch, as AGENTS.md requires.
+  if (continuing && !flags['fresh-session'] && !outcome.timedOut && outcome.exitCode !== 0 && isStaleSessionError(errors)) {
     console.log('\nthe CLI would not take the old session again; starting a fresh session in the same copy');
     record.sessionRetried = true;
     outcome = await launch(launched, buildExecArguments({ config, promptFile, workspace: work, trustWorkspace: flags.trust === true }));
