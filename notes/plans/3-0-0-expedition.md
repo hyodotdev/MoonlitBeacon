@@ -4,9 +4,14 @@ Author-only. Written 2026-09-29 after the user asked for: more varied maps, trav
 places lighting beacons, an endless loop past the official win that stays fun, more guardians
 that do not bore on repeat, skills that keep appearing, difficulty that rises only slightly.
 
-**Status: built, in the working tree, uncommitted.** This file was the plan; where the build differs
+**Status (historical planning snapshot, 2026-09-29): built, in the working
+tree, uncommitted at that time.** This file was the plan; where the build differs
 from it the text below says what was built. The build log (`3-0-0-build-log.md`) has the measured
 results and what bit us; `apps/docs/docs/game.md` has the player-facing description.
+The Lantern Hollow road-home integration is accepted on top: place memories annotate
+beacons and forks, but expedition rules (table, draws, curve, mutations, omens,
+Trial) are unchanged. The accepted feature-branch work is locally committed with
+no push/PR yet; final verification and publishing are not claimed.
 
 ## What is wrong now (read from the code, not guessed)
 
@@ -50,7 +55,9 @@ would build the same map from one seed.
   forks exist only in real runs (`RunEntry.from_title`), so every capture and older test is unchanged.
 - **From cycle 2 each gate is a fork.** Two gates open on different rims, each naming its place in
   the place's colour and the omen waiting there; the gate after the second beacon names the
-  **guardian** instead, so the route is a choice of boss.
+  **guardian** instead, so the route is a choice of boss. A third, quieter line hints the
+  waiting place memory (ribbons, chimes, kettle, bell, boat, lens) without moving dodge
+  information.
 - A new cycle opens somewhere other than where the last guardian fell. Choices are deterministic
   in the run seed. The later places join the pool at their `from_cycle`.
 - The classic three grow their guardian with the cycle; the later places grow theirs with how often
@@ -112,6 +119,9 @@ third of a second) getting out of a fan; `tests/test_telegraph_floors.gd` holds 
 
 ## Budgets and rules this must respect
 
+Numbers below are 2026-09-29 dated measurements, comparison only, not a
+current pass. Values are preserved, never rewritten.
+
 - Late-game node budget 1200: measured 1097 (Lv20) and 1167 (Lv40) on the forest, and every later
   room is lighter than the forest (frost 586, marsh 696, ruins 529 room nodes against 766).
 - Hostile bolts stay capped at 24; ground marks at 8 alive; skills draw in one node.
@@ -129,8 +139,8 @@ third of a second) getting out of a fan; `tests/test_telegraph_floors.gd` holds 
    new guardian for 75 s.
 4. **Soak**: `tools/soak_run.tscn`, an invulnerable stand-still bot through 14 cycles on the real
    arena, JSON per cycle (which places and guardians it met included). It answers "is there a cliff" and
-   does not answer "is it fun". Measured: spirit lifetime 25 s to 28 s across the win on the new curve,
-   against 27 s to 36 s and a collapse of kills a minute on the old one.
+   does not answer "is it fun". Measured 2026-09-29: spirit lifetime 25 s to 28 s across the win on
+   the new curve, against 27 s to 36 s and a collapse of kills a minute on the old one.
 5. **Play**: `tools/play_bot.tscn` plays the real arena (see the build log): a guardian gauntlet (every
    place at cycles 2 to 14), natural first loops, invulnerable two-loop runs for pacing, boosted runs at
    cycles 3 to 16. It found the telegraph and windup problems above; it is not a person.
