@@ -14,6 +14,10 @@ and the Lantern Hollow / Nari story with place restorations. Current main's IAP 
 The existing 3.0.0 store text and release record were prepared before the stronger narrative, so they need a final
 pass. No store screenshot recapture, upload, analytics deployment, store submission or release tag has occurred.
 
+## Independent scope for this run
+
+The gate-caption correction is still running separately and owns `notes/plans/3-0-0-build-log.md`. Read that file as context but **do not edit it**. Brief 015 will reconcile it after the final game and this copy are accepted. This run owns store copy/localization/fixture plus the release plan, checklist preparation and expedition plan only. Label any directly reproduced counts as this copy's snapshot; do not claim the pending caption correction, final root verification or builds are done. The accepted narrative is final and unchanged by that presentation correction.
+
 ## Do
 
 1. In all five full descriptions in `notes/release/store-page.md`, lead with the concrete personal hook and
@@ -30,14 +34,10 @@ pass. No store screenshot recapture, upload, analytics deployment, store submiss
    anchor (or a robust fixture insertion point), never remove the negative case. Run store metadata checks and
    the complete related Node tests yourself.
 4. Reconcile `notes/plans/release-3.0.0.md`, the 3.0.0 preparation section of `notes/release/checklist.md`,
-   `notes/plans/3-0-0-build-log.md` and `notes/plans/3-0-0-expedition.md` with accepted behavior. Remove current
+   `notes/plans/3-0-0-expedition.md` with accepted behavior. Remove current
    assertions that first-fork hint, result Depth or new story are unfinished. Preserve historical measurements
    as dated comparison, not current evidence. Never silently rewrite old measurement values.
-5. Correct the new bullet log's claim that the bot dodges worse than people and its hit rate is a floor. No
-   human comparison established either claim, and worse dodging would not imply that floor. State these are
-   automated measurements, with machine/seed limitations and no human play-feel verdict. Do not claim measured
-   average contrast proves that a texture never vanishes on every composite. The director inspected the eight
-   rendered barrage scenes, all six terrain composites and thirty corner views; label that scope precisely.
+5. Do not copy the bullet log's unsupported bot-vs-human comparison or contrast claims into these records. The final build-log correction belongs to brief 015, which is separate from this run. Automated measurements do not establish a human difficulty or fun verdict.
 6. Pin current entry/asset/test counts only when directly recounted or reproduced, and label commands by what
    you actually ran in this copy. A separate director final verification may still be pending; do not invent it.
    If direct commands fail in the sandbox, identify the limitation and run the isolated equivalents where valid.
@@ -71,7 +71,7 @@ pass. No store screenshot recapture, upload, analytics deployment, store submiss
 
 ## Do not
 
-Do not edit game code/art/locales, README, student reference pages or lessons; the separate docs audit owns those.
+Do not edit `notes/plans/3-0-0-build-log.md`, game code/art/locales, README, student reference pages or lessons; the separate docs audit owns those.
 Do not change engine, versions, package, purchases, checks or protected paths. Do not capture screenshots, run
 devices/emulators, network operations, deploy, commit, push, create/comment on a PR or merge.
 
