@@ -333,6 +333,71 @@ The spread between places is a fact about the grammars, not a target. The noise 
 What it can not say: whether any of this is fun, how a thumb on glass does against a 0.45 s warning, and how the
 game feels at 120 fps on a phone. Those stay with people (and the emulator only shows what things look like).
 
+### Bullet weaving: the fights are two-sided now
+
+The user watched the game being played and called it one-sided: the player auto-attacks while spirits and
+guardians barely answer. The ask was a shoot-'em-up drift — missiles everywhere, weave while attacking —
+kept cute. The shape that was already in the tree: `scripts/actors/bullet_field.gd` holds up to 150 small
+enemy bullets in packed arrays in one node (moved, hit-tested against the player's chest, stopped on
+structures, faded at range end, drawn as tinted `hostile_moon_bolt.png`), `bullet_emitter.gd` shoots
+spiral/aimed/ring/wave shapes into it, `guardian_streams.gd` builds each guardian's never-stopping aura plus
+a heavier stream while it is not winding anything up, and ordinary casters/weavers/wisps throw fans, aimed
+shots and rings off `SpiritKind.Barrage` settings. The arena wires one `Bullets` node, clears it on room
+change, dissolves it when a guardian falls, and grants a few seconds of quiet on arrival. This round registered
+the tests, pinned the fairness rules, tuned both layers against the bot, and documented it.
+
+Fairness rules (`tests/test_barrages.gd`, 2581 cases, registered in `run_regression_tests.mjs` next to the
+newly registered `test_bullet_field.gd`): every bullet slower than the slowest hero (keeper, 81.6 px/s, read
+off the hero resources); one shot's neighbours leave 27 px at 150 px (the player's hit width plus a drawn
+orb); every ring and arm set refires turned; one guardian stays under 110 in the air and a guardian plus the
+casters' worst case under the field's 150; intensity 0.6 at cycle 1, 1.0 at 4, 2.0 at 17 and after, monotonic;
+the stream silent while a volley or charge winds up, the aura never stopping. Each rule was broken on purpose
+after passing (old 0.075 slope, camp aura 66, camp fan spread 0.1, field ring step 0, rate cap 4.0, streams
+ticking in every move) and failed. Getting there changed the tree: guardian stream speeds 92–98 to 54–59
+(they outran the slowest hero), camp aura 66 to 59, caster 92 to 52, weaver 84 to 46, wisp 38 to 34,
+intensity slope to 1/13 so cycle 17 is exactly 2.0, and a new `GuardianStreams.MAX_RATE` of 2.0 with `stream_rate(cycle, haste)`
+(the old uncapped rate hit 12x at cycle 100 and would have held the field permanently full). The old angle name in the two bullet scripts became `angle`/`first_angle`:
+the hygiene check bans a certain word case-insensitively and the new files had slipped through with six hits.
+
+Tuning, measured with the play bot (it dodges worse than a person, so its hit rate is a floor; and the bot's
+numbers move with the machine's frame rate, so gaps under ~0.3 hits a minute or five points of weaving are
+noise — the bands were widened for that in round 2):
+
+- Natural first loops, twelve runs across the heroes (`tag=nat runs=12 seed=5 speed=3 loops=1`): before,
+  1.42 hits a minute with 5.6 bullets in the air on average and weaving 25% of the time; after the speed cuts
+  1.01 with 8.2 and 29% (slower bullets live longer, so presence rose while hits fell); after the density pass
+  (weaver share 0.6 to 0.75 and interval 2.6 to 2.3, wisp 0.1 to 0.2 and 4.6 to 4.2, caster interval 2.9 to 2.7,
+  the shared volley gap 1.3 to 1.1). Twelve tuning batches moved speed, density, ranges, quiets and first-shot delay; the finding that stuck is that density alone buys almost no weaving while it costs farm efficiency, so the frozen set uses short lives with fast near-rates: mob ranges down to 175/110/100, first shot at 0.15-0.5 of an interval, per-spirit quiet 0.5 s, arrival quiet 4 s. The last gap was the four chaser kinds, which never shot: stalker, ember, drifter and swarm now spit a rare slow single (share 0.2, every 6.5 s, 40 px/s, new `Source.MOB`). Frozen numbers: nat12 (frozen tree) 1.03 hits/min, peak 71, avg 11.7, weave 35.25 exact, kills 25.2/min; confirmation final_nat 0.91, peak 54, avg 12.4, weave 33.83, kills 31.7/min; mean of the two 0.97, 34.54, 28.5 — inside the round-2 bands (0.8–1.6, ≥30%, within 30% of the untouched 29.0). Same tree and command gave different numbers across runs (frame-rate dependence), which is why the bands are means.
+- Guardian gauntlet, eighteen runs over all six places at cycles 2, 6 and 12 (`tag=gaunt`, same seeds):
+  23 fights (some runs fought twice), 19 won (83%), 1.48 hits a fight, bullets peaking at 57, no frame spike
+  over 100 ms inside a fight (the 146 ms spikes all land in the first 3 s, while the debug boost grants dozens
+  of relic levels, before any fight starts). Aura and stream hits are a third of fight hits; the old tree
+  without them measured 89% won at 1.4. The camp siege (3.2 hits a fight) and the ruins got a gentler stream
+  interval (1.7 to 1.9, 1.25 to 1.4). Early reads were 23-24 fights, 83% won, 1.3-1.5 hits a fight,
+  bullets peaking under 60. Frozen (`tag=final_gaunt` on the frozen tree): 25 fights, 24 won (96%), 1.6 hits a fight, bullets peaking at 61, all frame spikes in the first 3 s of setup, none during a fight.
+- 2026-09-30 correction, gauntlet measures one fight: the battery command leaves `loops` unset, and the bot
+  applied its natural one-or-two-loop draw to gauntlet runs too, so some runs fought twice (all counts above
+  are dated observations of that behavior and stand). Gauntlet mode now targets exactly one loop; natural mode
+  still draws from `loops=` (`tools/bot_modes.gd`, held by `tests/test_play_bot_modes.gd`). The director's
+  partial gauntlet batch is reported honestly: run 10 (knight, frost, cycle 2, seed 1021) won its fight, then
+  kept exploring the next cycle until the 2400 s bot cap — a harness run-cap artifact, not a game soft-lock;
+  the batch was stopped and is being repeated with explicit `loops=1`. Separately, the director repeated the
+  natural batch on another machine: 12 runs, 46.89 simulated minutes, 1.173 hits/min, 23.12 scattered/min,
+  mean weaving 33.08%, bullet peak 52, no stuck or soft lock — an independent observation; brief 007
+  reconciles the full records.
+- The casters stayed the zone threat (about half the bullet hits), weavers second, chaser spit nearly harmless
+  (no attributed hits in the frozen batch). Everything shoots from cycle 1: gating kinds to cycle 2 would have
+  thinned the first loop, and the arrival quiet plus the per-spirit quiet already keep the first minute from
+  being a wall (forest runs at a fraction of a hit a minute).
+
+Look: `tools/shot_barrages.tscn` stages all six guardians mid-stream on their own floors plus a busy zone and
+a caster fan through the real shooting code, and validates headless (32–66 bullets per guardian scene, 35 in the zone, a 5-fan mid-flight). Tints
+kept: every tint measures at least 4.4:1 against every place floor's average (most over 6:1), so nothing
+vanishes. No screenshots could be rendered in the implementer sandbox (all render harnesses crash headless in
+the engine's Metal backend and windowed runs exit without a display); the director renders
+`node scripts/godot.mjs --path apps/game res://tools/shot_barrages.tscn -- <tag> 6` on a machine with a
+display. What a player sees is in `apps/docs/docs/game.md` under *Bullets*.
+
 ## Things that bit us
 
 - **`Script.reload` is a built-in.** A static function named `reload` on a
@@ -362,6 +427,17 @@ game feels at 120 fps on a phone. Those stay with people (and the emulator only 
 - **The right HUD's pinned width is measured, not guessed.** `tools/measure_hud.tscn`
   found 311px worst case (English, cycle 99, six-digit kills). Pinning it lower would
   have let the panel jump in a deep run.
+- **Godot inherits a crashing environment unless it is stripped.** On the implementer Mac,
+  `node scripts/godot.mjs --headless` (full environment) dies in the engine's Metal backend
+  on any run that draws, while `pnpm godot:isolated` (eight variables plus a throwaway HOME)
+  runs the same scene. Checks that invoke `godot.mjs` directly (`check:locale`'s second half,
+  `check:scripts`, `game:check`) can only be verified through the isolated runner there; the
+  content they check was verified that way instead.
+- **A running bot pins scripts but loads resources lazily.** GDScript compiles at startup,
+  so a `.gd` edit mid-run cannot affect that run; a `.tres` is read from disk on first load and
+  cached. The baseline batch launched before any edit (every shooting kind unlocks within the
+  first minute of run 1, long before the first tuning edit), and the final batches ran on a
+  frozen tree: nothing under `apps/game/` was touched while they ran.
 - **The shrine test asserts its frame stays inside the safe inset.** The roomy panel
   padding pushed it two pixels past, so dense screens use `panels/panel_tight`.
 - **`user://` inventories are guarded.** Store-capture tooling lists every persistent
@@ -428,6 +504,9 @@ off (no `firebase.cfg`), so only the local save is affected.
 
 ## Not done
 
+- Bullet-weaving pictures were staged (`tools/shot_barrages.tscn`, eight scenes) but not rendered: the
+  implementer sandbox cannot draw. Render them on a machine with a display before judging tints, size and
+  contrast by eye; the analytic contrast (4.4:1 minimum) is no substitute for a look.
 - Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded.
 - The result screen is restyled but its layout is the 2.1.0 one; a rank seal would be
   a good next step.
