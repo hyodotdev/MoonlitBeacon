@@ -12,12 +12,14 @@ extends Node
 ##   godot --path apps/game res://tools/shot_lantern_hollow.tscn -- shot=all tag=story locale=ko
 ##
 ## Shots: `opening`, `forest`, `field`, `camp`, `frost`, `marsh`, `ruins`
-## (each dim then lit), `fork`, `chronicle`, `choice_beyond` (the cycle-8
-## continue choice that resolves Nari's promise), `discovery_fork` and
-## `discovery_guardian` (a new place discovery staying readable on the real
-## fork and third-beacon paths), `ending_win`, `ending_escape`, `ending_lose`,
-## or `all`. Lives in `tools/`, which the capture fingerprint excludes.
-## Diagnostic desktop evidence, not store capture.
+## (each dim then lit), `fork`, `gate_rim_top`, `gate_rim_bottom`,
+## `gate_rim_left`, `gate_rim_right` (one fork gate at a real rim candidate
+## with the player beside it, through the real arena), `chronicle`,
+## `choice_beyond` (the cycle-8 continue choice that resolves Nari's promise),
+## `discovery_fork` and `discovery_guardian` (a new place discovery staying
+## readable on the real fork and third-beacon paths), `ending_win`,
+## `ending_escape`, `ending_lose`, or `all`. Lives in `tools/`, which the
+## capture fingerprint excludes. Diagnostic desktop evidence, not store capture.
 const ARENA: PackedScene = preload("res://scenes/gameplay/arena.tscn")
 const ROOM: PackedScene = preload("res://scenes/gameplay/room.tscn")
 const PLAYER: PackedScene = preload("res://scenes/actors/player.tscn")
@@ -40,9 +42,27 @@ const KINDS: Array[String] = [
 const SEED: int = 20260930
 const FRAME_AT: Vector2 = Vector2(950, 590)
 const SHOT_DIR: String = "res://../../builds/shots/story"
+## Rim stages: gate at a real escape candidate, player beside it toward the
+## room middle. Shared by the captures and the validate staging check.
+const GATE_RIMS: Dictionary = {
+	"top": [Vector2(950, 124), Vector2(950, 220)],
+	"bottom": [Vector2(950, 1056), Vector2(950, 960)],
+	"left": [Vector2(124, 590), Vector2(220, 590)],
+	"right": [Vector2(1776, 590), Vector2(1680, 590)],
+}
+## Minimum real seconds every capture settles before the shutter.
+##
+## Fades and count-ups are driven by time, not frames: on a fast desktop 30
+## frames expire in a fraction of a second, before the result card's 0.5 s
+## fade completes, and the capture comes out faded. Time first, then post-draw
+## sync. Discovery shots still land inside their 3 s readable guard
+## (`PLACE_GUARD_SECONDS`): fork 0.6 + 0.6, guardian 0.15 + 0.3 + 0.6, plus at
+## most 0.5 s of frames at 60 fps.
+const SETTLE_SECONDS: float = 0.6
 
 var _failed: int = 0
 var _checked: int = 0
+var _capture_failed: int = 0
 
 
 func _ready() -> void:
@@ -62,7 +82,7 @@ func _ready() -> void:
 	get_window().size = Vector2i(808, 360)
 	get_window().content_scale_size = Vector2i(808, 360)
 	await _capture(str(named.get("shot", "all")), str(named.get("tag", "")))
-	get_tree().quit(0)
+	get_tree().quit(1 if _capture_failed > 0 else 0)
 
 
 # --- validate -----------------------------------------------------------------
@@ -76,6 +96,8 @@ func _validate() -> void:
 	_expect_choice_beyond()
 	await _expect_beacon_ignite()
 	await _expect_discovery_staging()
+	await _expect_result_settles()
+	await _expect_gate_rim_staging()
 
 
 func _finish_validate() -> void:
@@ -249,6 +271,8 @@ func _expect_discovery_staging() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(Chronicle.path))
 	Chronicle.forget_cache()
 	var forked: Node2D = await _stage_arena()
+	_spend(forked, "moonfire")
+	_spend(forked, "swarm")
 	forked.set("_forks_enabled", true)
 	forked.set("_run_seed", 4_242_001)
 	forked.set("_cycle", 2)
@@ -262,10 +286,18 @@ func _expect_discovery_staging() -> void:
 		"the fork staging reads the discovery")
 	_expect_equal((forked.get("_fork_options") as Array).size(), 2,
 		"the fork staging opens two gates")
+	# The capture waits 0.6 s, then settles 0.6 s: the strip must still read
+	# the discovery, inside its 3 s guard.
+	await get_tree().create_timer(1.2, true).timeout
+	_expect_equal(_strip_text(forked), tr(PlaceMemory.memory_key(start)),
+		"the fork capture still reads the discovery after settling")
 	forked.queue_free()
 	await get_tree().process_frame
 
 	var dueled: Node2D = await _stage_arena()
+	_spend(dueled, "call_dark")
+	_spend(dueled, "guardian_down")
+	_spend(dueled, "swarm")
 	for _step in 3:
 		dueled.call("debug_light_next_beacon")
 		await get_tree().create_timer(0.15, true).timeout
@@ -280,8 +312,82 @@ func _expect_discovery_staging() -> void:
 	var banner: Label = (dueled.get("_hud") as Control).get("_banner") as Label
 	_expect_true(banner.text.contains(str(dueled.get("_guardian_title"))),
 		"the guardian staging banners its name")
+	# The capture waits 0.3 s, then settles 0.6 s: the strip must still read
+	# the discovery and the banner must still hold its pop-settled line.
+	await get_tree().create_timer(0.9, true).timeout
+	_expect_equal(_strip_text(dueled), tr(PlaceMemory.memory_key(terrain)),
+		"the guardian capture still reads the discovery after settling")
+	_expect_true(banner.visible and banner.modulate.a >= 0.99,
+		"the guardian capture still holds its banner after settling")
 	dueled.queue_free()
 	await get_tree().process_frame
+	get_tree().paused = false
+
+
+## The ending captures settle before the shutter: the 0.5 s fade completes
+## and the rank stamp lands. Mirrors `_shot_endings` staging.
+func _expect_result_settles() -> void:
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	var panel: Control = RESULT_PANEL.instantiate() as Control
+	layer.add_child(panel)
+	var score := Score.new()
+	score.cycles = 8
+	score.beacons = 3
+	score.survived = 640.0
+	score.level = 12
+	score.kills = 320
+	score.shards = 40
+	panel.show_result(true, score, false, false, 4)
+	await get_tree().process_frame
+	panel.call("_skip_reveal")
+	var settled: bool = await _settle_result(panel)
+	_expect_true(settled, "the staged result settles for its capture")
+	_expect_true(panel.modulate.a >= 0.999,
+		"the staged result fades fully in (%s)" % panel.modulate.a)
+	var stamp: Label = panel.get_node("Stamp") as Label
+	_expect_true(stamp.visible, "the staged result shows its rank stamp")
+	_expect_equal(stamp.scale, Vector2.ONE, "the staged rank stamp lands")
+	layer.queue_free()
+	await get_tree().process_frame
+
+
+## Each rim stage builds: a real arena, a gate at a valid candidate with its
+## three-line caption, the player beside it, the arena camera on them, and no
+## tutorial banner over the shot. The registered gate-caption test holds the
+## precise usable-rect geometry.
+func _expect_gate_rim_staging() -> void:
+	for rim in GATE_RIMS.keys():
+		var arena: Node2D = await _stage_arena()
+		_place_gate_rim(arena, str(rim))
+		for _frame in 5:
+			await get_tree().process_frame
+		var placed: Array = GATE_RIMS[rim] as Array
+		var gate: Node2D = arena.get("_gate") as Node2D
+		var player: Node2D = arena.get("_player") as Node2D
+		_expect_equal(
+			player.position, placed[1] as Vector2,
+			"the %s rim stages its player beside the gate" % rim)
+		_expect_equal(
+			get_viewport().get_camera_2d(),
+			player.get_node("Cam") as Camera2D,
+			"the %s rim stages its arena camera current" % rim)
+		var gate_screen: Vector2 = get_viewport().get_canvas_transform() \
+			* gate.global_position
+		_expect_true(
+			get_viewport().get_visible_rect().has_point(gate_screen),
+			"the %s rim stages its gate on screen" % rim)
+		var label: Label = gate.get("_label") as Label
+		_expect_equal(
+			label.text.split("\n").size(), 3,
+			"the %s rim stages its three-line caption" % rim)
+		var banner: Label = (arena.get("_hud") as Control).get("_banner") \
+			as Label
+		_expect_true(
+			not banner.visible,
+			"the %s rim stages no tutorial banner" % rim)
+		arena.queue_free()
+		await get_tree().process_frame
 	get_tree().paused = false
 
 
@@ -317,6 +423,11 @@ func _capture(want: String, tag: String) -> void:
 		await _shot_terrain(out, prefix, PlaceMemory.TERRAIN_IDS.find(want))
 	if want in ["all", "fork"]:
 		await _shot_fork(out, prefix)
+	if want == "all":
+		for rim in GATE_RIMS.keys():
+			await _shot_gate_rim(out, prefix, str(rim))
+	elif want.begins_with("gate_rim_"):
+		await _shot_gate_rim(out, prefix, want.trim_prefix("gate_rim_"))
 	if want in ["all", "discovery_fork"]:
 		await _shot_discovery_fork(out, prefix)
 	if want in ["all", "discovery_guardian"]:
@@ -359,11 +470,27 @@ func _stage_room(terrain: int) -> Dictionary:
 	return {"holder": holder, "beacon": beacon, "motif": motif}
 
 
-func _snap(out: String, name: String, waits: int = 30) -> void:
+func _snap(out: String, name: String, waits: int = 30, settle: float = SETTLE_SECONDS) -> void:
+	if settle > 0.0:
+		await get_tree().create_timer(settle, true).timeout
 	for _wait in waits:
 		await RenderingServer.frame_post_draw
 	var shot: Image = get_viewport().get_texture().get_image()
 	shot.save_png("%s/%s.png" % [out, name])
+
+
+## Wait until a staged result card has fully faded in and its rank stamp has
+## landed. A capture taken mid-fade comes out faded although production is
+## fine; the shutter must wait for the final values, not a frame count.
+func _settle_result(panel: Control) -> bool:
+	var stamp: Label = panel.get_node("Stamp") as Label
+	var start_msec: int = Time.get_ticks_msec()
+	while Time.get_ticks_msec() - start_msec < 3000:
+		if panel.modulate.a >= 0.999 and stamp.visible \
+				and stamp.scale.distance_to(Vector2.ONE) < 0.02:
+			return true
+		await get_tree().process_frame
+	return false
 
 
 func _shot_opening(out: String, prefix: String) -> void:
@@ -424,7 +551,8 @@ func _shot_fork(out: String, prefix: String) -> void:
 
 ## The discovery stays readable while the first fork's gates stand open.
 ## Driven through the real arena path; stray strip lines are spent so the
-## shot shows the memory, not a passing first sight.
+## shot shows the memory, not a passing first sight. Snapped inside the
+## discovery's 3 s guard: 0.6 + 0.6 plus frames.
 func _shot_discovery_fork(out: String, prefix: String) -> void:
 	var arena: Node2D = await _stage_arena()
 	_spend(arena, "moonfire")
@@ -446,7 +574,8 @@ func _shot_discovery_fork(out: String, prefix: String) -> void:
 
 ## The discovery stays readable while the guardian banner names the duel.
 ## Driven through the real three-beacon path; snapped while the banner still
-## holds and after its pop has settled.
+## holds (its pop settles in 0.24 s, it holds until 1.74 s) and inside the
+## discovery's 3 s guard: 0.15 + 0.3 + 0.6 plus frames.
 func _shot_discovery_guardian(out: String, prefix: String) -> void:
 	var arena: Node2D = await _stage_arena()
 	_spend(arena, "call_dark")
@@ -459,11 +588,51 @@ func _shot_discovery_guardian(out: String, prefix: String) -> void:
 			arena.call("_on_gate_entered")
 			while bool(arena.get("_transitioning")) and is_instance_valid(arena):
 				await get_tree().process_frame
-	await get_tree().create_timer(0.8, true).timeout
+	await get_tree().create_timer(0.3, true).timeout
 	await _snap(out, prefix + "discovery_guardian")
 	arena.queue_free()
 	get_tree().paused = false
 	await get_tree().process_frame
+
+
+## One fork gate at a real rim candidate with the player beside it, through
+## the real arena so camera and HUD match play. Settled past the 1.2 s gate
+## fade; the caption fix is what keeps the label readable up there.
+func _shot_gate_rim(out: String, prefix: String, rim: String) -> void:
+	if not GATE_RIMS.has(rim):
+		_capture_failed += 1
+		printerr("shot_lantern_hollow capture failed — unknown rim ", rim)
+		return
+	var arena: Node2D = await _stage_arena()
+	_place_gate_rim(arena, rim)
+	(arena.get("_gate") as Node2D).open()
+	await _snap(out, "%sgate_rim_%s" % [prefix, rim], 12, 1.3)
+	arena.queue_free()
+	get_tree().paused = false
+	await get_tree().process_frame
+
+
+## Stage one rim's gate and player. Shared by the captures and validate.
+func _place_gate_rim(arena: Node2D, rim: String) -> void:
+	# A fresh staged arena announces its move tip, and the teleport below
+	# would trade it for the dash tip; the rim shot judges the gate and the
+	# hero, not the tutorial, so finish the ladder and clear its banner the
+	# way `_spend` quiets stray voice lines. Production behavior untouched.
+	arena.set("_tutorial_step", 4)
+	arena.set("_onboarding", false)
+	(arena.get("_hud") as Control).clear_banner()
+	var gate: Node2D = arena.get("_gate") as Node2D
+	var player: Node2D = arena.get("_player") as Node2D
+	var camp_kind: SpiritKind = load(
+		"res://resources/guardian_camp.tres") as SpiritKind
+	gate.set_destination(tr("WORLD_CAMP"), tr(camp_kind.display_name),
+		Color(1.0, 0.72, 0.4, 1.0), tr(PlaceMemory.clue_key(2)))
+	gate.track_player(player)
+	var placed: Array = GATE_RIMS[rim] as Array
+	gate.position = placed[0] as Vector2
+	gate.reset_physics_interpolation()
+	player.position = placed[1] as Vector2
+	player.reset_physics_interpolation()
 
 
 func _spend(arena: Node2D, moment: String) -> void:
@@ -526,7 +695,11 @@ func _shot_endings(out: String, prefix: String, want: String) -> void:
 		panel.show_result(bool(entry[1]), score, false, false, int(entry[3]))
 		await get_tree().process_frame
 		panel.call("_skip_reveal")
-		await _snap(out, prefix + str(entry[0]))
+		if not await _settle_result(panel):
+			_capture_failed += 1
+			printerr("shot_lantern_hollow capture failed — %s never settled "
+				% str(entry[0]))
+		await _snap(out, prefix + str(entry[0]), 30, 0.0)
 		layer.queue_free()
 		await get_tree().process_frame
 

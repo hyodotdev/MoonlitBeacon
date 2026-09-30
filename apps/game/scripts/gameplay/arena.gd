@@ -3518,6 +3518,8 @@ func _name_gate(gate: Node2D, index: int) -> void:
 	gate.set_destination(
 		tr(str(step["name"])), detail, step["emblem"] as Color,
 		tr(PlaceMemory.clue_key(terrain)))
+	# The caption it just named must also clear the hero reading it.
+	gate.track_player(_player)
 
 
 ## Close the second gate and forget the fork. Safe to call any time.
