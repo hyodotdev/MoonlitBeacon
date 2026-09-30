@@ -6,6 +6,14 @@
 [resource]
 script = ExtResource("script")
 display_name = "밤 박쥐"
+barrage = 1
+barrage_share = 0.2
+barrage_interval = 6.5
+barrage_speed = 40.0
+barrage_count = 1
+barrage_spread = 0.0
+barrage_tint = 4
+barrage_source = 6
 sheet = ExtResource("sheet")
 cell = 48
 facings = 4

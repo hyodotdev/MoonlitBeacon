@@ -548,7 +548,7 @@ var _beacon_healed_cycle: int = 0
 
 var _room: Room = null
 ## Ordinary spirits throw nothing for this long after you arrive somewhere.
-const BULLET_QUIET_ON_ARRIVAL: float = 14.0
+const BULLET_QUIET_ON_ARRIVAL: float = 4.0
 ## Every small enemy bullet, in one node. Built in `_ready`.
 var _bullets: BulletField = null
 

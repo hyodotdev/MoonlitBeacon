@@ -31,7 +31,7 @@ const SPARK_SECONDS: float = 0.3
 const TEXTURE: Texture2D = preload("res://assets/custom/items/projectiles/hostile_moon_bolt.png")
 
 ## Whose a bullet is: only for the tests and the play bot, so a hit can say what threw it.
-enum Source { NONE, CASTER, WEAVER, WISP, AURA, STREAM }
+enum Source { NONE, CASTER, WEAVER, WISP, AURA, STREAM, MOB }
 
 ## The colours of the night's bullets. A guardian's stream is in its own colour, so whose it is reads at a glance.
 enum Tint { PINK, MINT, GOLD, LILAC, SKY }
@@ -159,12 +159,12 @@ func fan(at: Vector2, angle: float, count: int, spread: float, speed: float, tin
 	return placed
 
 
-## `count` bullets round a circle, the first at `phase`.
-func ring(at: Vector2, count: int, phase: float, speed: float, tint: int = Tint.PINK,
+## `count` bullets round a circle, the first at `first_angle`.
+func ring(at: Vector2, count: int, first_angle: float, speed: float, tint: int = Tint.PINK,
 		range_px: float = 300.0, advance: float = 0.0, source: int = Source.NONE) -> int:
 	var placed: int = 0
 	for index in count:
-		if spawn(at, phase + TAU * float(index) / float(count), speed, tint, range_px, 0.0, 0.0, advance, source):
+		if spawn(at, first_angle + TAU * float(index) / float(count), speed, tint, range_px, 0.0, 0.0, advance, source):
 			placed += 1
 	return placed
 

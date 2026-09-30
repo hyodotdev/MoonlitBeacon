@@ -35,7 +35,7 @@ var muzzle: float = 6.0
 var source: int = BulletField.Source.NONE
 
 var _timer: float = 0.0
-var _phase: float = 0.0
+var _angle: float = 0.0
 var _time: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 ## Bullets placed by the last tick, for the tests.
@@ -86,10 +86,10 @@ static func wave(sway: float, sway_speed: float, every: float, bullet_speed: flo
 	return emitter
 
 
-## Start again from a known state: the next shot comes after `delay` seconds, and a spiral begins at `phase`.
-func restart(delay: float = 0.0, phase: float = 0.0) -> void:
+## Start again from a known state: the next shot comes after `delay` seconds, and a spiral begins at `start_angle`.
+func restart(delay: float = 0.0, start_angle: float = 0.0) -> void:
 	_timer = interval - maxf(delay, 0.0)
-	_phase = phase
+	_angle = start_angle
 	_time = 0.0
 
 
@@ -118,10 +118,10 @@ func _fire(origin: Vector2, target: Vector2, field: BulletField, advance: float)
 	match pattern:
 		Pattern.SPIRAL:
 			for arm in count:
-				var angle: float = _phase + TAU * float(arm) / float(count) + _scatter()
+				var angle: float = _angle + TAU * float(arm) / float(count) + _scatter()
 				if _spawn(field, origin, angle, advance):
 					placed += 1
-			_phase += spin * interval
+			_angle += spin * interval
 		Pattern.AIMED:
 			for index in count:
 				var t: float = 0.0 if count == 1 else float(index) / float(count - 1) - 0.5
@@ -129,9 +129,9 @@ func _fire(origin: Vector2, target: Vector2, field: BulletField, advance: float)
 					placed += 1
 		Pattern.RING:
 			for index in count:
-				if _spawn(field, origin, _phase + TAU * float(index) / float(count) + _scatter(), advance):
+				if _spawn(field, origin, _angle + TAU * float(index) / float(count) + _scatter(), advance):
 					placed += 1
-			_phase += ring_step
+			_angle += ring_step
 		Pattern.WAVE:
 			if _spawn(field, origin, aim + spread * sin(_time * spin) + _scatter(), advance):
 				placed += 1

@@ -7,9 +7,9 @@
 script = ExtResource("script")
 display_name = "떠도는 정령"
 barrage = 2
-barrage_share = 0.1
-barrage_interval = 4.6
-barrage_speed = 38.0
+barrage_share = 0.35
+barrage_interval = 3.4
+barrage_speed = 34.0
 barrage_count = 6
 barrage_tint = 3
 sheet = ExtResource("sheet")

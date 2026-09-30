@@ -82,10 +82,10 @@ const HOSTILE_BOLT_LIMIT: int = 24
 const BARRAGE_REACH: float = 250.0
 const GUARDIAN_BARRAGE_REACH: float = 460.0
 ## Seconds between one caster starting a volley and the next one starting, wherever they stand.
-const MOB_VOLLEY_GAP: float = 1.3
+const MOB_VOLLEY_GAP: float = 1.1
 ## A spirit that has just appeared does not throw for this long, and nor does anything for the first moments in a
 ## new place (`BulletField.quiet_for`): what arrives is met before it shoots.
-const MOB_QUIET_SECONDS: float = 2.5
+const MOB_QUIET_SECONDS: float = 0.5
 ## Ordinary spirits leave room for a guardian: they stop throwing while this many bullets are in the air.
 const MOB_BULLET_SOFT_LIMIT: int = 80
 const PENDING_BOLT_META: StringName = &"moonlit_pending_hostile_bolts"
@@ -916,10 +916,11 @@ func _build_barrages() -> void:
 				kind.barrage_tint)
 		_:
 			emitter = BulletEmitter.ring(kind.barrage_count, kind.barrage_interval, speed, 0.7, kind.barrage_tint)
-	emitter.range_px = 190.0 if kind.barrage == SpiritKind.Barrage.RING else 300.0
-	emitter.source = BulletField.Source.WISP if kind.barrage == SpiritKind.Barrage.RING else BulletField.Source.WEAVER
-	# Spirits that appear together do not shoot together.
-	emitter.restart(kind.barrage_interval * randf_range(0.6, 1.4))
+	emitter.range_px = 100.0 if kind.barrage == SpiritKind.Barrage.RING else 110.0
+	emitter.source = BulletField.Source.WISP if kind.barrage == SpiritKind.Barrage.RING else kind.barrage_source
+	# Spirits that appear together do not shoot together, but the first shot comes fast: most engagements
+	# last a few seconds, and a shooter that waits out its own life never throws at all.
+	emitter.restart(kind.barrage_interval * randf_range(0.15, 0.5))
 	_barrages.append(emitter)
 
 
@@ -938,7 +939,7 @@ func _bullet_field() -> BulletField:
 ## An ordinary spirit throws a little oftener each cycle.
 func _barrage_rate() -> float:
 	if kind.behavior == SpiritKind.Behavior.GUARDIAN:
-		return GuardianStreams.intensity(guardian_cycle) * (1.0 + 0.5 * (_guardian_haste() - 1.0))
+		return GuardianStreams.stream_rate(guardian_cycle, _guardian_haste())
 	return 1.0 + 0.04 * float(mini(maxi(mob_cycle, 1) - 1, 12))
 
 
@@ -977,7 +978,7 @@ func _fire_caster_shot(direction: Vector2) -> void:
 		_fire(direction)
 		return
 	field.fan(global_position + Vector2(0, -6), direction.angle(), _caster_fan_count(), _caster_fan_spread(),
-		_mob_bullet_speed(), kind.barrage_tint, 320.0, 0.0, BulletField.Source.CASTER)
+		_mob_bullet_speed(), kind.barrage_tint, 175.0, 0.0, BulletField.Source.CASTER)
 
 
 ## Keep distance and fire moonlight.

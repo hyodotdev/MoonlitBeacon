@@ -13,7 +13,8 @@ extends Node
 ## wedge, the rays of a ring and the ghost of an echo, which it takes from the same lists the telegraph is
 ## drawn from (`Spirit.volley_shape()`), so it can never read more than the picture shows.
 ##
-## It is a proxy, not a person, and its deaths are a floor: it dies in the first loop of the 2.1.0 game too.
+## It is a proxy, not a person: fixed decisions ten times a second, a fixed reaction delay, and numbers
+## that move with the machine it runs on. No human comparison backs any claim about how a person would do.
 ## What it is good for is telling two versions of the game apart and finding what a stand-still soak cannot.
 ## Arguments (`-- key=value`): runs seed speed loops tag shots verbose overcharge react trace echo farm heroes
 ## starts (the cycle each run begins at; above 1 it uses the debug boost) sturdy guardians (the place each
@@ -22,7 +23,7 @@ extends Node
 ##
 ## What it writes down is what a person would feel: where the hits came from, how long a beacon took to
 ## light under pressure, whether it ever got stuck, how a guardian fight went, how the frame time held.
-## A run ends after one or two loops (an endless game is judged by its loops, not by its end): the bot
+## A natural run ends after one or two loops (an endless game is judged by its loops, not by its end): the bot
 ## takes the next cycle for the first loop and cashes out on the last, so the result route runs too.
 ##
 ## Headless and fast, with a throwaway HOME:
@@ -39,6 +40,7 @@ extends Node
 ## excludes.
 
 const ARENA: PackedScene = preload("res://scenes/gameplay/arena.tscn")
+const BOT_MODES: Script = preload("res://tools/bot_modes.gd")
 const OUT: String = "res://../../builds/play"
 const HERO_IDS: Array[String] = ["warden", "dancer", "keeper", "knight", "eclipse", "sage"]
 const PLACES: Array[String] = ["forest", "field", "camp", "frost", "marsh", "ruins"]
@@ -61,7 +63,7 @@ const MOB_WEIGHT: float = 0.12
 const BODY_DANGER: float = 14.0
 ## A small bullet's hit circle and the body it would meet, with a little room.
 const BULLET_DANGER: float = 14.0
-const BULLET_SOURCES: Array[String] = ["none", "caster", "weaver", "wisp", "aura", "stream"]
+const BULLET_SOURCES: Array[String] = ["none", "caster", "weaver", "wisp", "aura", "stream", "mob"]
 ## How long before an echo repeats a volley its ghost is on the floor (the game's `ECHO_WARN`).
 const ECHO_WARN: float = 0.7
 ## A run is given this long, in game seconds, before it is called a soft-lock.
@@ -268,7 +270,7 @@ func _start_run() -> void:
 	_room = _arena.get("_room") as Room
 	if _shield:
 		_arena.call("debug_shield")
-	_loops_target = _rng.randi_range(1, _loops_max)
+	_loops_target = BOT_MODES.loops_target_for(_gauntlet, _loops_max, _rng)
 	_loops_done = 0
 	_reset_run_state()
 	_run = {

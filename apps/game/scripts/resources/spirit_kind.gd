@@ -157,6 +157,8 @@ static func guardian_toughness_scale(cycle: int) -> float:
 @export var barrage_spread: float = 0.5
 ## Which colour the bullets are (`BulletField.Tint`).
 @export_range(0, 4, 1) var barrage_tint: int = 0
+## Whose the bullets are (`BulletField.Source`), so a hit can say what threw it.
+@export var barrage_source: int = BulletField.Source.WEAVER
 @export_group("")
 
 ## Sprite sheet.

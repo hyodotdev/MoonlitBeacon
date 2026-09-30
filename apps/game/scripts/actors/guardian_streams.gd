@@ -10,16 +10,26 @@ extends RefCounted
 ## the player and leave wide gaps: see `tests/test_barrages.gd` for the numbers that keep them so.
 ##
 ## The first meeting is gentle and the night thickens: `intensity()` is 0.6 at cycle 1, 1.0 by cycle 4, and reaches
-## 2.0 by cycle 17 and stays there.
+## 2.0 at cycle 17 and stays there.
 
 const MAX_INTENSITY: float = 2.0
+## How fast the two layers may ever run, however hot the tempo: past this a guardian alone would fill the field
+## (at three times the gale's worst case is the whole `BulletField.LIMIT`), so ordinary spirits could never place
+## a bullet. The thickening from cycle 1 to 17 is kept; only the endless stretch's extra tempo is cut.
+const MAX_RATE: float = 2.0
 
 
 static func intensity(cycle: int) -> float:
 	var safe_cycle: int = maxi(cycle, 1)
 	if safe_cycle <= 4:
 		return 0.6 + 0.4 * float(safe_cycle - 1) / 3.0
-	return minf(1.0 + 0.075 * float(safe_cycle - 4), MAX_INTENSITY)
+	return minf(1.0 + float(safe_cycle - 4) / 13.0, MAX_INTENSITY)
+
+
+## How fast a guardian's emitters run: how thick the night is, a share of the tempo (enrage, frenzy) it has on,
+## and never past `MAX_RATE`.
+static func stream_rate(cycle: int, haste: float) -> float:
+	return minf(intensity(cycle) * (1.0 + 0.5 * (haste - 1.0)), MAX_RATE)
 
 
 ## A little faster each cycle, up to a third faster: still slower than a player at every cycle.
@@ -57,7 +67,7 @@ static func aura(style: int, cycle: int) -> Array[BulletEmitter]:
 			made.append(_shaped(BulletEmitter.ring(8 + (2 if cycle >= 6 else 0), 2.0, 50.0 * fast, 0.41, tint), 250.0))
 		SpiritKind.GuardianStyle.CAMP:
 			# A lantern's smoke: one stream that sways across the aim.
-			made.append(_shaped(BulletEmitter.wave(0.55, 1.3, 0.36, 66.0 * fast, tint), 260.0))
+			made.append(_shaped(BulletEmitter.wave(0.55, 1.3, 0.36, 59.0 * fast, tint), 260.0))
 		SpiritKind.GuardianStyle.GALE:
 			# Feathers falling behind it, turning the other way from the thorns.
 			made.append(_shaped(BulletEmitter.spiral(2 + (1 if cycle >= 6 else 0), 0.36, 56.0 * fast, -0.85, tint), 250.0))
@@ -76,17 +86,17 @@ static func stream(style: int, cycle: int) -> Array[BulletEmitter]:
 	var made: Array[BulletEmitter] = []
 	match style:
 		SpiritKind.GuardianStyle.FOREST:
-			made.append(_shaped(BulletEmitter.aimed(3, 0.5, 1.15, 92.0 * fast, BulletField.Tint.LILAC), 300.0))
+			made.append(_shaped(BulletEmitter.aimed(3, 0.5, 1.15, 58.0 * fast, BulletField.Tint.LILAC), 300.0))
 		SpiritKind.GuardianStyle.FIELD:
-			made.append(_shaped(BulletEmitter.aimed(3, 0.44, 1.5, 98.0 * fast, BulletField.Tint.PINK), 300.0))
+			made.append(_shaped(BulletEmitter.aimed(3, 0.44, 1.5, 59.0 * fast, BulletField.Tint.PINK), 300.0))
 		SpiritKind.GuardianStyle.CAMP:
-			made.append(_shaped(BulletEmitter.aimed(5, 0.95, 1.7, 84.0 * fast, BulletField.Tint.GOLD), 300.0))
+			made.append(_shaped(BulletEmitter.aimed(5, 0.95, 1.9, 54.0 * fast, BulletField.Tint.GOLD), 300.0))
 		SpiritKind.GuardianStyle.GALE:
 			made.append(_shaped(BulletEmitter.ring(6, 1.7, 46.0 * fast, 0.52, BulletField.Tint.SKY), 260.0))
 		SpiritKind.GuardianStyle.LEAP:
-			made.append(_shaped(BulletEmitter.aimed(3, 0.5, 1.4, 88.0 * fast, BulletField.Tint.MINT), 300.0))
+			made.append(_shaped(BulletEmitter.aimed(3, 0.5, 1.4, 56.0 * fast, BulletField.Tint.MINT), 300.0))
 		_:
-			made.append(_shaped(BulletEmitter.aimed(2, 0.3, 1.25, 94.0 * fast, BulletField.Tint.GOLD), 300.0))
+			made.append(_shaped(BulletEmitter.aimed(2, 0.3, 1.4, 58.0 * fast, BulletField.Tint.GOLD), 300.0))
 	return made
 
 
