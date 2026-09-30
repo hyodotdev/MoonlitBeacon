@@ -94,7 +94,7 @@ test('rejects placeholders in full store descriptions', () => {
   const result = runFixture(({ storePage }) => {
     replaceRequired(
       storePage,
-      'The moon is hidden and every beacon across three lands has gone out.',
+      'The moon is hidden and every beacon across six lands has gone out.',
       'TODO: fill in the Korean full description.',
     );
   });
