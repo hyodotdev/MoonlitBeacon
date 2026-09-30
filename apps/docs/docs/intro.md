@@ -123,6 +123,6 @@ music too. The project gets heavy and the files you need get hard to find.
 Copy **only the files you actually use** into
 `apps/game/assets/third_party/`.
 The current game holds 75 selected third-party files plus original and
-derived work, 119 files in all (about 26.5MB). About 15MB of that is the
+derived work, 259 files in all (about 26.5MB). About 15MB of that is the
 Noto Sans CJK font that draws Korean, Chinese, and Japanese player names
 clearly. The `.import` files Godot makes automatically are not in that count.

@@ -171,8 +171,10 @@ one each at 13 and 16.
   defeating an elite guarantees one rescue dew.
 - Taking a hit at missile power 1 or above keeps relics and **exactly one
   power tier** pops out as an orange core. Reclaim it within 9 seconds
-  and it restores immediately; miss it and the lower power is locked.
-  The HUD's second countdown and an edge arrow point at the core.
+  and most of the lost tier comes back with it — 70% of the next tier's
+  kill value, so the rest must be fought for again; miss it and the
+  lower power is locked. The HUD's second countdown and an edge arrow
+  point at the core.
 
 ### Enemies
 
@@ -271,9 +273,10 @@ Past cycle 8 the count is **Depth** (cycle 9 is Depth 1). Cycles 1 to 8 are
 exactly the game that shipped; what follows is built to be played for as
 long as you like, getting a little harder each time and never a wall.
 
-- **A gentle curve.** Through cycle 8 fodder toughness grows x1.58 a cycle.
-  Past it, x1.22, and a guardian's own extra health x1.10. The elite chance
-  keeps climbing to 45%. The spirit cap stays at 40 for the phone.
+- **A gentle curve.** Fodder toughness grows x1.35 a cycle through cycle 3
+  and x1.58 a cycle from cycle 4 through cycle 8. Past it, x1.22, and a
+  guardian's own extra health x1.10. The elite chance keeps climbing to
+  45%. The spirit cap stays at 40 for the phone.
 - **A tempo you can read.** A guardian's windups, gaps, bolt speed and charge
   speed harden one step a cycle through cycle 8 exactly as they shipped, then a
   quarter as fast. Left to grow one for one, a cycle-14 windup would last a
@@ -406,7 +409,7 @@ permanent growth. Past cycle 8 the closing line also names the Depth
 the depth is a caption and adds no points. Below the table a road line
 states the waves reached and how many of the six places were remembered,
 and a settlement window glows on an official win, waits dim on an early
-return, and stays dark on defeat.
+return, and stays hidden on defeat.
 
 ### Save data
 
@@ -639,7 +642,7 @@ Health does not drain during a phone call.
   cycle changes terrain and decoration layout together.
 - Separate from decoration, 32 forest, 28 field, and 30 camp original
   structures are placed. Whichever 3×3 camera cell you are in, at least
-  three collision structures are visible. Player and spirits walk the
+  two collision structures are visible. Player and spirits walk the
   same circular bounds, and enemy bullets vanish if they hit a structure
   first.
 - Beacon positions are re-rolled from cycle number and run seed, preferring
@@ -685,14 +688,14 @@ verification for the current survivor complete build continue in
 ## 9. Version tags
 
 These tags preserve the screen as it looked during the course. The
-current working tree has grown from `release-1.0.0` through store
-`2.1.0` for iOS and Android. 2.0.0 is the build with a full art swap, a
-protagonist holding a beacon candle, and eight-cycle dialogue. 2.1.0 adds
-beacon Safe Kindle / Overcharge, pre-final-evolution relic resonance,
-return-or-continue after a guardian, and anonymous event instrumentation,
-consent, and reporting tools. 2.1.0's submission build ships collection
-disabled; the real baseline starts from a later version with a protected
-ingest path on.
+course closed with store `2.1.0` for iOS and Android. 2.0.0 is the build
+with a full art swap, a protagonist holding a beacon candle, and
+eight-cycle dialogue. 2.1.0 adds beacon Safe Kindle / Overcharge,
+pre-final-evolution relic resonance, return-or-continue after a
+guardian, and anonymous event instrumentation, consent, and reporting
+tools. 2.1.0's submission build ships collection disabled; the real
+baseline starts from a later version with a protected ingest path on.
+2.1.0 is the last recorded store release.
 
 A lesson's start point is the previous lesson's complete point, so we
 only keep complete tags.
@@ -711,5 +714,11 @@ release-1.0.0      # Lesson 16, APK + itch.io release
 release-2.1.0      # final tutorial release: the game and course as taught
 ```
 
-3.0.0 is not part of the course. It takes the game to a new UI and a structured
-story, and the lessons keep describing the `release-2.1.0` screens on purpose.
+3.0.0 is not part of the course, and it is not yet tagged. It takes the
+game to a new UI, a structured story, six places with forks, an endless
+stretch that stays playable, and more guardians and skills; the lessons
+keep describing the `release-2.1.0` screens on purpose. The premise is a
+road home: Nari, the signal keeper of Lantern Hollow, went to repair the
+beacon road and never came back, and each run keeps the road home lit.
+Each restored place speaks one discovery line — trail ribbons, wind
+chimes, her kettle, a signal bell, a paper boat, a signal lens.
