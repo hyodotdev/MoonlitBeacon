@@ -100,3 +100,64 @@ User answers are pending for protected next-build configuration, native
 ten-product checks, and final-build capture evidence. Current status is
 in `store-submit-3-0-0.md`; remote CI evidence belongs to the PR's latest
 published head, not an earlier green job.
+
+## Linux asset portability finding
+
+Corrected head `c4f876c5ec5c1c89b26abfb8c4f906dea6183a13` passes all
+Linux game regressions, including 404 weapon assertions. Docs, repository
+rules and Android APK/AAB jobs pass. Game check then fails three terrain
+structure PNG byte comparisons in run `36935891634`. This is a further
+confirmed validation defect, not a green full CI result.
+
+The director reproduces the unchanged generator in an isolated Linux
+x86_64 Python 3.12.14 / Pillow 12.3.0 / zlib 1.3.1 container with only
+non-secret tool, source-art and asset mounts. All three encodings differ
+from the Mac-generated committed sheets; all 65,536 RGBA pixels per sheet
+match, including alpha. The next terrain-tileset checker has the same
+defect: its three 384-by-336 sheets also have zero decoded pixel differences.
+The remaining generator checks pass; UI styles require the resource mount
+and pass when that mount is present. An initial missing-resource result
+is a measurement setup omission, not a production defect.
+
+Briefs 033/033b require strict decoded-artwork and PNG-integrity validation
+without changing any committed source-art or asset bytes. Independent
+reproduction records are `builds/verify/terrain-linux/measurement.json`,
+`nature-measurement.json` and `remaining-generators.json`. No store proof
+is rebound, recaptured or uploaded by this validation correction.
+
+The first implementer round is stopped normally by the director after its
+full-game import is sandbox-blocked and it retries with a changed HOME.
+Those failed game runs and wrappers that echo a pipeline status are not
+accepted verification. Round 033b explicitly ends that retry path, adds the
+second proven terrain boundary and requires genuine asset-check exit codes.
+No approval or sandbox setting is changed; the correction continues through
+the original Muse runner. Full verification remains the director's operation.
+
+Round 033b's final five-file diff is independently read and accepted after
+Mac's registered 24-group regression and full asset-chain success. All 258
+asset/input PNG hashes equal the original real tree. Independent controls in
+an isolated measurement copy restore byte comparison separately in each
+generator and fail exactly that generator's actual check-path group, exit 1.
+Ignoring all pixel differences fails eight groups, exit 1; exact candidate
+source restoration then passes all 24 again. The measurement copy runs the
+unchanged registered suite, not a substitute runner.
+
+Linux x86_64 independently passes the 24 groups and all twenty Python asset
+checks. The first broad measurement omits the icon check's export/config/docs
+mounts; its resulting missing-file failure is preserved, and a separate
+properly mounted icon check passes with real exit 0. Reconciled evidence is
+`builds/verify/terrain-linux/final-linux-validation-receipt.json`; independent
+negative controls and exact restoration are in `negative-probe/receipt.json`.
+The real tree's 304 source-asset files remain identical, and all 667 runtime
+files equal the already corrected circle witness. Full real-tree verification
+and latest-head GitHub CI are still required before a merge decision.
+
+Final real-tree `pnpm verify` exits 0 after the accepted portability patch:
+477 Node tests in sixteen groups, all 52 game steps, 122 compiled scripts,
+24 terrain regression groups, locales/store metadata, assets/graphics,
+skills/hygiene, docs and anchors. The fresh independent screenshot check
+still rejects the pre-circle-correction capture fingerprint; no recapture
+or proof rewrite occurs. Evidence is
+`builds/verify/director-pr10-final-portable-verify.log` and
+`director-pr10-final-store-screenshots.log`. Latest published-head GitHub
+CI is the remaining code-publication check; native/release gates are separate.

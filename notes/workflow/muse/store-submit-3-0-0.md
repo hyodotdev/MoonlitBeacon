@@ -192,3 +192,41 @@ create the human-owned PR guard signal or replace native purchase evidence.
   `apps/game/scripts/gameplay/arena.gd` differs. Existing art, audio, UI copy and
   other runtime resources remain byte-identical. This comparison records the
   source difference; it does not rebind or repair old device capture proofs.
+
+## Corrected-head Linux validation
+
+Head `c4f876c` passes Linux's actual 404 weapon checks and every other game
+regression, plus the independent Android build, docs and repository-rule
+jobs. CI run `36935891634` fails later at the three terrain structure PNG
+byte comparisons. Director Linux reproduction confirms that all pixels
+are equal despite different PNG encodings. The subsequent terrain-tileset
+generator has the same three-file encoding boundary; every decoded pixel
+also matches. Briefs 033/033b address these checks while preserving all
+art bytes. Latest-head full CI success, merge and public review submission
+are not claimed before that correction is independently verified.
+
+The final five-file tools correction is independently judged and accepted.
+Mac's registered regression passes 24 groups, full asset checks exit 0,
+and the director's Linux x86_64 runs pass those 24 groups plus all twenty
+Python asset checks. The initial broad container omits icon config/docs
+mounts; that missing-file failure is preserved, and the correctly mounted
+icon rerun exits 0. All 258 PNGs and the real tree's 304 source-asset files
+remain byte-identical; all 667 runtime files match the circle-corrected
+witness. Independent original-byte-comparison controls fail one real
+generator check group each; ignoring pixel changes fails eight groups.
+Exact source restoration passes again. Evidence is under
+`builds/verify/terrain-linux/`, including the reconciled Linux receipt and
+`negative-probe/receipt.json`. Full final real-tree verification is running.
+
+Fresh device readbacks at 23:25 UTC still show Android 3.0.0 (15) with
+installer null and iPad 2.0.0 (8). No user purchase/restore action is inferred.
+Both uploaded internal builds are from before the circle correction. Public
+submission remains pending the final binary identifiers, native purchase
+verification, capture boundary and human PR approval.
+
+Final real-tree `pnpm verify` exits 0 after the terrain correction: 477
+Node tests, 52 game steps, 122 scripts and 24 terrain regression groups,
+plus locale/store metadata, assets/graphics, hygiene, docs and anchors.
+The separate screenshot check remains red at the existing capture-source
+fingerprint; no recapture or re-upload occurs. Public release status is
+unchanged by these passing code checks.
