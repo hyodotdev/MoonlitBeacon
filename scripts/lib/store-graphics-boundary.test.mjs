@@ -825,7 +825,7 @@ expected_hero_copy = {
     "ko": {
         "name": "봉화지기",
         "description": (
-            "하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · "
+            "랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · "
             "달빛 파문·질긴 목숨"
         ),
         "states": {
@@ -837,8 +837,8 @@ expected_hero_copy = {
     "en": {
         "name": "Beacon Keeper",
         "description": (
-            "6 hearts · move -15% · dmg +25% · dash CD +30% · "
-            "Moonlit Ripple/Tenacious Life"
+            "Lantern shotgun · 6 hearts · move -15% · "
+            "dash CD +30% · Moonlit Ripple/Tenacious Life"
         ),
         "states": {
             "SHRINE_SELECTED": "Selected",
@@ -849,8 +849,8 @@ expected_hero_copy = {
     "ja": {
         "name": "烽火の守り人",
         "description": (
-            "ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · "
-            "月光の波紋・不屈の命"
+            "ランタンの散弾 · ハート6 · 移速 -15% · "
+            "ダッシュCD +30% · 月光の波紋・不屈の命"
         ),
         "states": {
             "SHRINE_SELECTED": "選択中",
@@ -861,7 +861,7 @@ expected_hero_copy = {
     "zh_CN": {
         "name": "烽火守护者",
         "description": (
-            "6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · "
+            "灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · "
             "月光波纹·坚韧生命"
         ),
         "states": {
@@ -873,7 +873,7 @@ expected_hero_copy = {
     "zh_TW": {
         "name": "烽火守護者",
         "description": (
-            "6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · "
+            "燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · "
             "月光波紋·堅韌生命"
         ),
         "states": {
