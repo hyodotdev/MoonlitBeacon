@@ -29,6 +29,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from terrain_sheet_check import check_sheet
+
 GAME_ROOT = Path(__file__).resolve().parents[1]
 TERRAIN_DIR = GAME_ROOT / "assets/custom/world/terrain"
 SOURCE = TERRAIN_DIR / "nature.png"
@@ -127,15 +129,14 @@ def main() -> int:
     source = Image.open(SOURCE).convert("RGBA")
     problems: list[str] = []
     for name, palette in PALETTES.items():
-        payload = _png(_recolour(source, palette))
+        baked = _recolour(source, palette)
         target = TERRAIN_DIR / f"{name}_nature.png"
         if args.check:
-            if not target.exists():
-                problems.append(f"missing {target.name}")
-            elif target.read_bytes() != payload:
-                problems.append(f"out of date {target.name}")
+            problem = check_sheet(target, baked)
+            if problem is not None:
+                problems.append(problem)
             continue
-        target.write_bytes(payload)
+        target.write_bytes(_png(baked))
         print(f"wrote {target.relative_to(GAME_ROOT)}")
     if args.check:
         if problems:

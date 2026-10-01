@@ -24,6 +24,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from terrain_sheet_check import check_sheet
+
 GAME_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = Path(__file__).resolve().parent / "terrain_structures"
 OUT_ROOT = GAME_ROOT / "assets/custom/world/terrain"
@@ -95,15 +97,14 @@ def main() -> int:
     args = parser.parse_args()
     problems: list[str] = []
     for terrain, names in SHEETS.items():
-        payload = _png(_bake(names))
+        baked = _bake(names)
         target = OUT_ROOT / f"{terrain}_props.png"
         if args.check:
-            if not target.exists():
-                problems.append(f"missing {target.name}")
-            elif target.read_bytes() != payload:
-                problems.append(f"out of date {target.name}")
+            problem = check_sheet(target, baked)
+            if problem is not None:
+                problems.append(problem)
             continue
-        target.write_bytes(payload)
+        target.write_bytes(_png(baked))
         print(f"wrote {target.relative_to(GAME_ROOT)}")
     if args.check:
         if problems:
