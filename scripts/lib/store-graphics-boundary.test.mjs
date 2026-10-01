@@ -12,6 +12,8 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { ANDROID_CAPTURE_PERSISTENT_FILES } from './android-capture-persistence.mjs';
+import { IOS_CODE_PERSISTENT_FILES } from './ios-device-evidence.mjs';
 
 test('store screenshot cleanup does not delete files outside a symbolic link', () => {
   const root = mkdtempSync(join(tmpdir(), 'moonlit-store-graphics-boundary-'));
@@ -4619,6 +4621,219 @@ print(json.dumps({
     }
     assert.match(payload.calls[0].graph, /\[foreground\]scale=1920:854:/u);
     assert.match(payload.calls[1].graph, /\[foreground\]scale=2560:1140:/u);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('Python capture persistence contract matches the Node producer including Chronicle state', () => {
+  const root = mkdtempSync(join(tmpdir(), 'moonlit-persistence-contract-'));
+  try {
+    const producer = [...ANDROID_CAPTURE_PERSISTENT_FILES];
+    assert.equal(producer.length, 20);
+    assert.deepEqual(producer.slice(3, 5), ['chronicle.json', 'chronicle.json.tmp']);
+    assert.deepEqual([...IOS_CODE_PERSISTENT_FILES], producer);
+    const probe = String.raw`
+import base64
+import copy
+import hashlib
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+module_path = Path(sys.argv[1])
+root = Path(sys.argv[2])
+producer = json.loads(sys.argv[3])
+spec = importlib.util.spec_from_file_location(
+    "store_graphics_persistence_contract", module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.REPO_ROOT = root
+
+android = list(module.ANDROID_CAPTURE_PERSISTENT_FILES)
+ios = list(module.IOS_CAPTURE_PERSISTENT_FILES)
+if android != producer:
+    raise RuntimeError(
+        "Android consumer list differs from the Node producer "
+        f"(missing={sorted(set(producer) - set(android))}, "
+        f"stale={sorted(set(android) - set(producer))})"
+    )
+if ios != producer:
+    raise RuntimeError(
+        "iOS consumer list differs from the Node producer "
+        f"(missing={sorted(set(producer) - set(ios))}, "
+        f"stale={sorted(set(ios) - set(producer))})"
+    )
+if android[3:5] != ["chronicle.json", "chronicle.json.tmp"]:
+    raise RuntimeError("Chronicle entries are out of order in the consumer")
+
+capture_root = root / "builds/shots/store-localized"
+capture_root.mkdir(parents=True)
+settings_before = b"locale=ko\n"
+settings_observed = b"locale=en\n"
+chronicle_tmp_before = b"chronicle-tmp-before"
+chronicle_tmp_observed = b"chronicle-tmp-observed"
+chronicle_created = b"capture-created-chronicle"
+before = {}
+observed = {}
+for name in producer:
+    if name == "settings.cfg":
+        before[name] = hashlib.sha256(settings_before).hexdigest()
+        observed[name] = hashlib.sha256(settings_observed).hexdigest()
+    elif name == "chronicle.json":
+        before[name] = None
+        observed[name] = hashlib.sha256(chronicle_created).hexdigest()
+    elif name == "chronicle.json.tmp":
+        before[name] = hashlib.sha256(chronicle_tmp_before).hexdigest()
+        observed[name] = hashlib.sha256(chronicle_tmp_observed).hexdigest()
+    else:
+        before[name] = None
+        observed[name] = None
+restored = dict(before)
+capture_id = "7" * 64
+anchor_relative = "builds/shots/store-localized/persistence-evidence.json"
+anchor_transcript = {
+    "schema": 1,
+    "capture_id": capture_id,
+    "persistent_data_files": list(producer),
+    "persistent_data_sha256_before": before,
+    "persistent_data_sha256_observed": observed,
+    "persistent_data_sha256_restored": dict(restored),
+    "settings_bytes": {
+        "original_base64": base64.b64encode(settings_before).decode(),
+        "observed_base64": base64.b64encode(settings_observed).decode(),
+        "restored_base64": base64.b64encode(settings_before).decode(),
+    },
+}
+anchor_bytes = (json.dumps(anchor_transcript, indent=2) + "\n").encode()
+(root / anchor_relative).write_bytes(anchor_bytes)
+report = {
+    "persistent_data_files": list(producer),
+    "persistent_data_sha256_before": before,
+    "persistent_data_sha256_observed": observed,
+    "persistent_data_sha256_restored": dict(restored),
+    "persistent_data_mutated_during_capture": True,
+    "persistent_data_restored_byte_exact": True,
+    "persistent_data_unchanged": True,
+    "settings_restore": {
+        "original_present": True,
+        "original_sha256": before["settings.cfg"],
+        "observed_sha256": observed["settings.cfg"],
+        "restored_sha256": before["settings.cfg"],
+        "byte_exact": True,
+    },
+    "persistence_anchor": {
+        "schema": 1,
+        "capture_id": capture_id,
+        "path": anchor_relative,
+        "sha256": hashlib.sha256(anchor_bytes).hexdigest(),
+    },
+}
+signature_relative = (
+    "builds/shots/store-localized/" + module.ANDROID_CAPTURE_SIGNATURE_FILENAME
+)
+signature_bytes = b"fixture-signed-persistence-jar"
+(root / signature_relative).write_bytes(signature_bytes)
+unsigned_report_bytes = (json.dumps(report, indent=2) + "\n").encode()
+report["persistence_signature"] = {
+    "schema": 1,
+    "format": "jar",
+    "signature_algorithm": "SHA256withRSA",
+    "digest_algorithm": "SHA-256",
+    "certificate_sha256": module.ANDROID_CAPTURE_UPLOAD_CERTIFICATE_SHA256,
+    "path": signature_relative,
+    "sha256": hashlib.sha256(signature_bytes).hexdigest(),
+    "report_entry": module.ANDROID_CAPTURE_SIGNATURE_REPORT_ENTRY,
+    "report_sha256": hashlib.sha256(unsigned_report_bytes).hexdigest(),
+    "anchor_entry": module.ANDROID_CAPTURE_SIGNATURE_ANCHOR_ENTRY,
+    "anchor_sha256": hashlib.sha256(anchor_bytes).hexdigest(),
+    "capture_id": capture_id,
+}
+def verify_fixture_signature(path, source):
+    return ({
+        module.ANDROID_CAPTURE_SIGNATURE_REPORT_ENTRY: unsigned_report_bytes,
+        module.ANDROID_CAPTURE_SIGNATURE_ANCHOR_ENTRY: anchor_bytes,
+    }, module.ANDROID_CAPTURE_UPLOAD_CERTIFICATE_SHA256)
+module._verified_android_capture_signature_payloads = verify_fixture_signature
+
+module._validate_android_capture_persistence(
+    report, "Producer fixture", capture_root)
+
+def rejected(label, mutate):
+    candidate = copy.deepcopy(report)
+    mutate(candidate)
+    try:
+        module._validate_android_capture_persistence(
+            candidate, "Producer fixture", capture_root)
+    except RuntimeError:
+        return
+    raise RuntimeError(f"invalid persistence proof was accepted: {label}")
+
+rejected("chronicle.json dropped from file list",
+         lambda value: value["persistent_data_files"].remove("chronicle.json"))
+rejected("chronicle.json.tmp dropped from file list",
+         lambda value: value["persistent_data_files"].remove("chronicle.json.tmp"))
+rejected("unexpected extra file",
+         lambda value: value["persistent_data_files"].append("unexpected.cfg"))
+rejected("chronicle.json dropped from before map",
+         lambda value: value["persistent_data_sha256_before"].pop("chronicle.json"))
+rejected("chronicle.json.tmp dropped from restored map",
+         lambda value: value["persistent_data_sha256_restored"].pop("chronicle.json.tmp"))
+def tamper_chronicle_restored(value):
+    value["persistent_data_sha256_restored"]["chronicle.json.tmp"] = "c" * 64
+rejected("chronicle.json.tmp restored hash changed", tamper_chronicle_restored)
+def keep_capture_created_chronicle(value):
+    value["persistent_data_sha256_restored"]["chronicle.json"] = \
+        value["persistent_data_sha256_observed"]["chronicle.json"]
+rejected("capture-created chronicle.json kept after restore",
+         keep_capture_created_chronicle)
+
+def ios_rejected(label, candidate):
+    try:
+        module._validate_ios_capture_persistence(
+            candidate, "ios-fixture",
+            "xcode-devices-take-screenshot-handoff")
+    except RuntimeError:
+        return
+    raise RuntimeError(f"invalid iOS persistence proof was accepted: {label}")
+
+ios_files = sorted(producer)
+ios_hashes = {name: None for name in ios_files}
+ios_rejected("chronicle.json dropped from iOS file list", {
+    "persistent_data_files": [
+        name for name in ios_files if name != "chronicle.json"
+    ],
+})
+ios_before = dict(ios_hashes)
+ios_before.pop("chronicle.json.tmp")
+ios_rejected("chronicle.json.tmp dropped from iOS before map", {
+    "persistent_data_files": list(ios_files),
+    "persistent_data_sha256_before": ios_before,
+    "persistent_data_sha256_after": dict(ios_hashes),
+    "persistent_data_sha256_restored": dict(ios_hashes),
+})
+
+print(json.dumps({"android": len(android), "ios": len(ios)}))
+`;
+    const result = spawnSync(
+      process.execPath,
+      [
+        'scripts/python.mjs',
+        '-B',
+        '-c',
+        probe,
+        resolve('apps/game/tools/build_store_graphics.py'),
+        root,
+        JSON.stringify(producer),
+      ],
+      { cwd: resolve('.'), encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    assert.deepEqual(JSON.parse(result.stdout.trim().split('\n').at(-1)), {
+      android: 20,
+      ios: 20,
+    });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
