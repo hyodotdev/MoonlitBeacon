@@ -38,8 +38,10 @@ screen as it looked when that lesson was finished.
 
 1. Pick a character on the title, and spend collected moon shards on
    permanent boons.
-2. Enter the night forest and scatter spirits with automatic slashes and
-   Moon Disc missiles.
+2. Enter the night forest and scatter spirits with your hero's automatic
+   primary weapon — wide sword cuts, twin blades, a piercing rifle, a
+   lantern shotgun, a heavy cannon, or an orbiting scythe — backed by a
+   lighter sidearm on the other range.
 3. Walk up to moonlight embers spirits leave behind and fill the
    **Moonfire gauge**. Ten pips raise every weapon's damage for 6.5
    seconds and speed up slash and Moon Disc.
@@ -49,9 +51,11 @@ screen as it looked when that lesson was finished.
 5. Kill count levels you up and you pick one of three relics. You can
    pick the same relic again and keep stacking the main weapon.
 6. After filling a region's beacon, choose **Safe Kindle** or
-   **Overcharge**. Safe Kindle continues immediately. Overcharge holds a
-   terrain raid beside the beacon for 6.5 seconds in exchange for a
-   weapon core and extra embers. The first two beacons fill Moonfire and
+   **Overcharge**. Safe Kindle lights the flame right away with no bonus
+   and you move on. Overcharge defends the beacon within 88px for
+   6.5 seconds in exchange for a weapon core and extra growth; stepping
+   away drains progress, and abandoning the defense kindles safely
+   without the bonus. The first two beacons fill Moonfire and
    open a moonlight gate with a pursuit pack. Break through the gate and
    you move to the next region.
 7. The third beacon locks Moonfire awakening until the guardian falls.
@@ -92,10 +96,29 @@ virtual stick work from mouse drag alone.
 
 ### Combat and in-run growth
 
-- The basic weapons are a close-range slash and a long-range Moon Disc.
-  Moon Disc starts at power 0 as a single straight shot, and picking up
-  cores to power 3 turns it into homing missiles that split among several
-  enemies.
+- Each of the six heroes fights with a distinct primary weapon from the
+  first fight, plus a lighter sidearm on the other range so every relic
+  family and weapon core stays useful in every kit. Up close the primary
+  carries most of the output — about two-thirds for the Knight's cannon
+  over its chop backup — and all six stay close one-on-one, while grouped
+  packs reward the ranged primaries. What differs is range, rhythm, shape,
+  and which formation each hero answers.
+
+| Hero | Primary weapon | How it fights |
+| --- | --- | --- |
+| Moonlit Warden | wide sword cuts | decisive close cone, the reference everything is tuned against |
+| Shadow Dancer | alternating twin blades | quick left-right cuts, fastest cadence |
+| Beacon Keeper | lantern shotgun fan | broad close burst that falls off fast |
+| Silver Moon Knight | heavy cannon shell | slow straight shell, then a delayed blast where it lands |
+| Eclipse Mage | orbiting scythe ring | timed full-circle sweeps with a safe hole at the feet |
+| Constellation Sage | piercing rifle line | one long bolt through the whole line |
+
+- Moon Disc volleys start at power 0 and grow with picked-up cores to
+  power 8. Normal fire stays straight: homing unlocks only with evolved
+  Starfall, or during Moonfire awakening at power 3 and above. Relic
+  families keep their meaning on every hero: Starfall feeds the volley,
+  Full Moon the close weapon, Moon Dance the orbiting ring and spreading
+  ripple.
 - There are 16 relics. Besides raising damage, speed, range, and Moon
   Disc volley power, there are new weapons like Moon Ring and Moonlit
   Ripple.
@@ -140,19 +163,27 @@ one each at 13 and 16.
 - Missile power is a separate growth track from relic cards. A normal
   spirit counts as kill value 1, an elite as 3, a guardian as 10. You
   **must pick up** a core dropped at the next table's threshold to gain
-  a tier.
+  a tier. The table below is the baseline core curve; each hero also
+  has native lanes, and the volley takes the wider of the two, so
+  Keeper opens with five pellets and Dancer and Eclipse with two at
+  power 0.
 
 | Current power | Kill value for next core | Shots | Fire mode |
 | ---: | ---: | ---: | --- |
 | 0 | 2 | 1 | straight |
 | 1 | 3 | 2 | straight |
 | 2 | 4 | 3 | straight |
-| 3 | 4 | 3 | homing |
-| 4 | 5 | 4 | homing |
-| 5 | 5 | 5 | homing |
-| 6 | 6 | 6 | homing |
-| 7 | 6 | 7 | homing |
-| 8 | max | 8 | homing |
+| 3 | 4 | 3 | straight* |
+| 4 | 5 | 4 | straight* |
+| 5 | 5 | 5 | straight* |
+| 6 | 6 | 6 | straight* |
+| 7 | 6 | 7 | straight* |
+| 8 | max | 8 | straight* |
+
+  \* Fire mode above is normal fire, which stays straight at every
+  power. Homing needs evolved Starfall, or Moonfire awakening at
+  power 3 and above; a dashed Resonant Starfall still homes the next
+  volley once.
 
 - A larger volley does not clone one shot's damage. A per-power total
   damage budget is split across the volley so early bosses do not melt,
@@ -662,6 +693,19 @@ Master
 ```
 
 Combat, beacon, and UI SFX share the `Sfx` bus.
+
+Arena and guardian music are six original synthesized loops on a shared
+night motif — three driving arena grounds that rotate per region and roll on
+at the end of each whole track, and three faster guardian tracks drawn at
+each entrance that add layers rather than just volume. Defeating a guardian
+returns to a fresh arena track; a shuffled bag tours each pool with no
+repeats and never restarts a track mid-fight. Each hero's primary weapon
+speaks its own voice with the sidearm quieter on its own voice behind it, so
+both sound even when both attacks fire in the same tick; hits land with a
+crisp knock, and kills, levels, cores, and overcharge wins each play their
+own reward cue. Combat runs five bounded voices with capped polyphony
+(primary 3, sidearm 2, impact 4, kill 2, growth 2), rate-limited, ducking under
+dialogue, hero lines, and choices, and the title and story stay calm.
 
 ## 8. Mapping to the official tutorial
 

@@ -497,7 +497,8 @@ Creator:        Pixel-Boy and AAA
 License:        CC0
 Original path:  Audio/Musics/27 - Chill.ogg
 Project path:   res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg
-Used:           arena BGM
+Used:           formerly arena BGM; combat now runs the original arena_kinetic.wav loop.
+                kept because course lessons reference this track
 Modification:   renamed to arena_theme.ogg. audio not re-encoded
 ```
 
@@ -596,7 +597,8 @@ License:        CC0
 Original path:  Actor/Monster/Spirit2/SpriteSheet.png, Actor/Monster/BlueBat/SpriteSheet.png,
                 Actor/Boss/GiantSpirit/Idle.png, Audio/Musics/17 - Fight.ogg
 Project path:   res://assets/third_party/ninja_adventure/actor/, res://assets/third_party/ninja_adventure/audio/music/guardian_theme.ogg
-Used:           guardian_theme.ogg is used as boss music.
+Used:           guardian_theme.ogg was boss music; combat now runs the original
+                guardian_assault.wav loop. kept because course lessons reference this track.
                 spirit_ember.png, spirit_bat.png, guardian.png are currently unused at runtime
 Modification:   filenames lowercased. audio not re-encoded
 ```
@@ -1114,6 +1116,36 @@ the sound. So we excluded it.
 
 ---
 
+## Original combat music loops
+
+```text
+Source:         original (deterministic synthesis)
+Creator:        Moonlit Beacon
+License:        follows the project license
+Project path:   res://assets/custom/audio/music/
+Used:           arena_kinetic/ember/watch.wav = three night-motif arena loops;
+                guardian_assault/hunt/storm.wav = three faster guardian loops
+Modification:   n/a. apps/game/tools/build_combat_audio.py bakes them
+```
+
+Same rule as the dialogue blip below: bake, do not fetch. All six share
+one A-minor lantern motif over driving drums and bass, so the guardian
+escalation sounds like the same night turning dangerous. The arena draws one
+of three tracks per region and each guardian entrance draws one of three
+faster tracks; defeating the guardian returns to a fresh arena draw, and a
+shuffled no-repeat bag tours each pool without restarting a track mid-fight.
+Musically exact whole bars with short raised-cosine edge fades, so each loop
+starts and ends at exact zero and the boundary cannot click.
+
+| File | Length | Peak | Role |
+| --- | --- | --- | --- |
+| `arena_kinetic.wav` | 14.55s | 0.620 | kinetic arena ground, 132 BPM × 8, motif lead |
+| `arena_ember.wav` | 15.24s | 0.620 | shuffling triplets, 126 BPM × 8, motif in thirds |
+| `arena_watch.wav` | 13.91s | 0.620 | half-time watch, 138 BPM × 8, eighth-note arps |
+| `guardian_assault.wav` | 17.14s | 0.620 | same motif doubling as the loop heats, 140 BPM × 10 |
+| `guardian_hunt.wav` | 12.63s | 0.620 | four-on-the-floor pursuit, 152 BPM × 8, motif stabs |
+| `guardian_storm.wav` | 15.00s | 0.620 | double-kick storm, 160 BPM × 10, racing 8ths |
+
 ## Dialogue-window letter sound
 
 ```text
@@ -1121,8 +1153,13 @@ Source:         original (deterministic synthesis)
 Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/audio/sfx/
-Used:           dialogue_blip.wav = the sound of letters printing in a visual-novel dialogue window
-Modification:   n/a. apps/game/tools/build_dialogue_sfx.py bakes it
+Used:           dialogue_blip.wav = the sound of letters printing in a visual-novel dialogue window;
+                weapon_sword/twin/rifle/shotgun/cannon/scythe.wav = the six heroes' attack voices;
+                impact_hit.wav = crisp contact knock; kill_pop.wav = kill tick;
+                level_up.wav = growth surge; core_pickup.wav = core chime;
+                overcharge_win.wav = overcharge triumph
+Modification:   n/a. apps/game/tools/build_dialogue_sfx.py bakes the blip,
+                apps/game/tools/build_combat_audio.py bakes the combat cues
 ```
 
 We do not download it. We bake it. Pictures are all made with
