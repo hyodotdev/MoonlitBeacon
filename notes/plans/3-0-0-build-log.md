@@ -1108,16 +1108,105 @@ screenshot recaptured or uploaded, no store or network action taken,
 nothing merged or deployed. Attestation rebuild and the real
 five-locale phone capture retry stay with the director.
 
+## Align the consumer's Chronicle persistence contract: brief 026 (2026-10-01)
+
+Tools-file correction only; no production change. The director
+reported `pnpm store:screenshots:play` failing at
+`apps/game/tools/build_store_graphics.py:2864` with `Pixel phone
+permanent file list differs from the fixed contract`, after genuine
+five-locale phone (40 PNGs), seven-inch (30) and ten-inch (30)
+captures whose reports carry the full 20-entry
+`persistent_data_files` list with byte-exact before/restored
+equality, including removal of capture-created Chronicle state. Root
+cause confirmed in this copy: the accepted Node producer
+`ANDROID_CAPTURE_PERSISTENT_FILES`
+(`scripts/lib/android-capture-persistence.mjs`, mirrored as
+`IOS_CODE_PERSISTENT_FILES` in
+`scripts/lib/ios-device-evidence.mjs`) lists 20 ordered entries with
+`chronicle.json` and `chronicle.json.tmp` at indices 3-4, while the
+Python consumer tuple at line 517 (aliased as
+`IOS_CAPTURE_PERSISTENT_FILES`) still held the older 18. Reproduced
+exactly here: a genuine 20-entry report is rejected by
+`_validate_android_capture_persistence` with the reported message.
+Every existing boundary fixture was built from the consumer's own
+tuple, so the drift passed all 32 acceptance tests silently.
+
+The consumer tuple now lists the same 20 entries in the same order
+(two added lines; the iOS alias follows). All strict checks are
+untouched: exact ordered file-list equality, exact hash-map sets,
+SHA-256 shape, before/restored equality, byte-exact restore flags,
+the settings.cfg proof, the anchor transcript cross-check, and the
+signature gate. A new cross-language regression in the registered
+`store-graphics-boundary.test.mjs` suite, `Python capture
+persistence contract matches the Node producer including Chronicle
+state`, loads the actual Node producer lists and the actual Python
+consumer, asserts complete ordered equality for Android and iOS
+plus explicit Chronicle positions, then validates a genuine
+producer-driven fixture (settings mutation, capture-created
+`chronicle.json` removed on restore, `chronicle.json.tmp`
+round-tripped) through the real
+`_validate_android_capture_persistence` including anchor and
+signature descriptor, with seven Android negative controls (each
+Chronicle file dropped from the list, an extra file, each
+Chronicle map entry dropped, a Chronicle restored hash changed, a
+capture-created Chronicle kept) and two iOS negative controls
+(Chronicle dropped from the iOS file list and before map) through
+the real `_validate_ios_capture_persistence`. All pre-existing
+signature, settings, path, and missing/extra-file rejection cases
+are preserved.
+
+Measured in this copy: the new regression fails on the uncorrected
+tree with `missing=['chronicle.json', 'chronicle.json.tmp']`;
+after the fix, `node --test
+scripts/lib/store-graphics-boundary.test.mjs
+scripts/lib/android-capture-persistence.test.mjs` is 33/33 green,
+and the full registered `pnpm test:play-release-package` is
+210/210 green. Each stale-list negative control was demonstrated:
+removing either Chronicle entry from the Python tuple fails the
+new regression (`missing=['chronicle.json']` /
+`missing=['chronicle.json.tmp']`); both were restored exactly and
+the suites re-ran green. Each committed negative was attributed to
+its intended strict gate (file list, hash map, before/restored,
+iOS file list, iOS hash). `git diff --name-only` lists only the
+generator, the boundary suite, and this log — no game runtime,
+CSV, art, audio, export preset, version, producer, or signing
+change, and no capture proof touched, so production runtime bytes
+and pixels are unchanged (`tools/` is excluded from
+`_runtime_fingerprint`). Capture freshness splits by device: the
+phone capture becomes stale, because the generator is a pinned
+phone capture input (phone `CAPTURE_INPUTS` and the generator's
+own phone contract). The completed seven-/ten-inch captures do
+not become stale from this fix: the generator appears in neither
+the tablet capture script's source/build inputs nor the
+`ANDROID_DEVICE_CAPTURE_SOURCE_INPUTS` tuple, and production
+runtime excludes `tools/` — so the tablet reports remain current
+if their unchanged strict source/build/runtime/persistence checks
+pass. Those post-acceptance tablet validations have not happened
+here, and no capture or submission completion is claimed.
+
+Authorization versus completion: the user requested merge on good
+review, fresh store screenshots, and direct deployment. None of
+that is done here: no capture was run, no screenshot recaptured or
+uploaded, no store or network action taken, nothing merged or
+deployed. Phone attestation rebuild and the authorized phone
+capture retry stay with the director; the tablet reports stand on
+their unchanged checks without implying a tablet recapture.
+
 ## Not done
 
-- Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded. Fresh captures of
-  changed screens are now requested by the user; marketing proofs are stale after the visual changes, and
-  actual validation, capture and publication are still pending with the director.
+- Store screenshots: the fresh five-locale Android originals (phone 40 PNGs, seven-inch 30, ten-inch 30)
+  were genuinely captured and reviewed before the Chronicle generator correction. The phone set becomes stale
+  pinned-input evidence once that fix lands, so current phone submission images are still pending with the
+  director, as are the iPad captures. The seven-/ten-inch sets remain current if their unchanged strict
+  source/build/runtime/persistence checks pass — those validations are pending, not claimed. Nothing has been
+  uploaded.
 - Later deployment and release gates are uncompleted: merge when review is good and deployment are now
-  requested by the user, but nothing has been completed — no device install or play validation is claimed,
-  Firestore rules are committed but not deployed, analytics collection stays gated, and no signed
-  distribution build, store submission, tag or merge has happened. Push confirmation, the human PR signal
-  and the physical-device/tunnel prerequisites remain pending with the director.
+  requested by the user. Local checkpoints exist — the director independently built and verified the
+  3.0.0/code15 Play AAB and direct release APK — but they are local artifacts, not store uploads: no iOS
+  archive, no native store purchase E2E, and no physical-device E2E is claimed from this copy. Firestore
+  rules are committed but not deployed, analytics collection stays gated, and no store submission, release
+  tag or merge has happened. Push confirmation, the human PR signal and the physical-device/tunnel
+  prerequisites remain pending with the director.
 - An Echo on a ring guardian (field, forest, toad, sentinel) still trims the repeat under the hostile
   projectile cap while its picture shows the whole ring — the safe way to be wrong. No evidence justifies
   uncapping the mobile budget; the limitation stays visible.
