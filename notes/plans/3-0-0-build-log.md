@@ -1053,6 +1053,53 @@ is not gated and each extra pop is two nodes for 0.16s.
   two of fourteen pre-fix samples here. The new fixture forces the split across a
   real physics frame instead of hoping the live sample catches it.
 
+## Align capture copy pins with the current Keeper: brief 025 (2026-10-01)
+
+Capture-input attestation fix only; no production change. The director
+reported that the real Pixel_10 capture passed title and shrine, then
+failed in `scripts/lib/capture-run-state.mjs:1754` with `Hero-preview
+live description differs from current-locale Keeper copy`: the live
+English description is the renewed lantern-shotgun wording
+(`HERO_KEEPER_DESC`, `description_copy_valid` true, locale en, ready
+true) while the independent `HERO_PREVIEW_COPY_BY_GAME_LOCALE` pins and
+the `HERO_PREVIEW_COPY` test fixture retained the pre-renewal
+damage-bonus wording in all five locales. Confirmed in this copy by
+reading the pins against `apps/game/localization/moonlit.csv` row 283
+(the renewed five-language `HERO_KEEPER_DESC`), `test_shrine_portraits.gd`,
+and the accepted `expected_hero_copy` in
+`store-graphics-boundary.test.mjs`; no device run was made from here.
+
+The five validator pins and the five fixture literals now pin the
+current copy exactly (lantern shotgun lead, hearts/move/dash/openings,
+no flat damage percent). Source keys, state keys, names, states, and
+every strict text/source/locale/readiness assertion are unchanged, as
+are the canonical atomic publication rules. A new regression,
+`hero-preview Keeper proof built from moonlit.csv passes every locale
+pin`, builds the five-locale hero-preview proof (name, locked-state,
+description) from the live CSV rows instead of the duplicated fixture,
+so a stale-but-self-consistent pin/fixture pair can no longer pass
+silently; it also pins the two negative controls (pre-renewal
+damage-bonus wording fails, another locale's current copy fails). All
+pre-existing wrong-copy/source/locale rejection cases are preserved.
+
+Measured in this copy: `node --test
+scripts/lib/capture-run-state.test.mjs
+scripts/lib/store-graphics-boundary.test.mjs` 61/61 green (40 + 21).
+Negative control demonstrated both ways: one stale pin fails the new
+CSV regression, and a stale-consistent pin/fixture pair passes the old
+hero-preview test while failing the new one; both were restored
+exactly and the suite re-ran green. `git diff --name-only` lists only
+the two `scripts/lib` files plus this log — `apps/game`, the CSV,
+scenes, art, audio, export presets, and prices are byte-identical, so
+`pnpm check:store-screenshots` is unaffected by this change.
+
+Authorization versus completion: the user requested merge on good
+review, fresh store screenshots including changed title imagery, and
+direct deployment. None of that is done here: no capture was run, no
+screenshot recaptured or uploaded, no store or network action taken,
+nothing merged or deployed. Attestation rebuild and the real
+five-locale phone capture retry stay with the director.
+
 ## Not done
 
 - Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded. Fresh captures of
@@ -1073,4 +1120,7 @@ is not gated and each extra pop is two nodes for 0.16s.
   still show the 2.1.0 art. They are redone together with the store set, on the user's word, and are not
   touched here.
 - The title screen keeps its own atmosphere and does not get the grade. Its store
-  capture checks inspect the title's own nodes, and a recapture is not planned.
+  capture checks inspect the title's own nodes. Correction to the earlier
+  "no recapture planned" line: the user has now requested changed title
+  imagery as well, so a title recapture is authorized and pending with the
+  director — not done here.
