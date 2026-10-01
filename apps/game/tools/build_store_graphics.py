@@ -112,7 +112,7 @@ APP_STORE_LOCALES = {
 }
 STALE_APP_STORE_LOCALES = ("ko-KR", "ja-JP")
 SCENE_CROP_BOTTOM = {
-    "combat": 180,
+    "combat": 0,
     "title": 90,
     "shrine": 0,
     "hero-preview": 0,
@@ -204,7 +204,7 @@ IAP_REVIEW_BUY_TEXT = "구매"
 IAP_REVIEW_RESTORE_TEXT = "구매 복원"
 SCREENSHOT_CONTRACTS = {
     "01-moonlight-barrage.png": {
-        "scene": "combat", "crop_bottom": 180,
+        "scene": "combat", "crop_bottom": 0,
         "labels": {
             "en-US": "UNLEASH A STORM OF HOMING MOONLIGHT",
             "ko-KR": "추적하는 달빛 탄막을 펼치세요",
@@ -214,7 +214,7 @@ SCREENSHOT_CONTRACTS = {
         },
     },
     "02-field-guardian.png": {
-        "scene": "combat", "crop_bottom": 180,
+        "scene": "combat", "crop_bottom": 0,
         "labels": {
             "en-US": "THREE BEACONS • A DIFFERENT GUARDIAN",
             "ko-KR": "봉화 셋 뒤에는 지형별 수호자",
@@ -224,7 +224,7 @@ SCREENSHOT_CONTRACTS = {
         },
     },
     "03-missile-core-drop.png": {
-        "scene": "combat", "crop_bottom": 180,
+        "scene": "combat", "crop_bottom": 0,
         "labels": {
             "en-US": "TAKE A HIT • RECLAIM YOUR MISSILE CORE",
             "ko-KR": "피격하면 떨어진 미사일 코어를 되찾으세요",

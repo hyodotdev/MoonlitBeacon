@@ -4558,6 +4558,112 @@ expect_rejected("33px physical inset", thirty_three_pixel_inset)
   }
 });
 
+test('Play phone combat screenshots preserve the full 2424x1080 viewport', () => {
+  const root = mkdtempSync(join(tmpdir(), 'moonlit-store-phone-viewport-'));
+  try {
+    const source = join(root, 'android-source.png');
+    writeFileSync(source, 'source placeholder');
+    const probe = `
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+module_path = Path(sys.argv[1])
+spec = importlib.util.spec_from_file_location("store_graphics_phone_viewport", module_path)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+source = Path(sys.argv[2])
+work = Path(sys.argv[3])
+module.PLAY_SCREENSHOT_OUTPUT = work / "release-play"
+# Real manifest entries against the real literal contracts: a crop restored in
+# only one of the two files is already rejected here.
+entries = module._screenshot_entries()
+module._entry_source = lambda entry, locale, device=None: source
+module._png_size = lambda path: (2424, 1080)
+module._render_marketing_text = lambda *args: (200, 40)
+calls = []
+module._run_screenshot_composite = (
+    lambda ffmpeg, sources, output, graph: calls.append(
+        {"output": str(output), "graph": graph}))
+module._validate_screenshot_file = lambda *args: None
+for index, entry in enumerate(entries, start=1):
+    module._render_play_screenshot(
+        "ffmpeg", "", Path("."), entry, index, "ko-KR", work)
+print(json.dumps({
+    "entries": [
+        {"output": entry["output"], "scene": entry["scene"],
+         "crop_bottom": entry["crop_bottom"]}
+        for entry in entries
+    ],
+    "calls": calls,
+}, sort_keys=True))
+`;
+    const result = spawnSync(
+      process.execPath,
+      [
+        'scripts/python.mjs',
+        '-B',
+        '-c',
+        probe,
+        resolve('apps/game/tools/build_store_graphics.py'),
+        source,
+        root,
+      ],
+      { cwd: resolve('.'), encoding: 'utf8' },
+    );
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    const payload = JSON.parse(result.stdout.trim().split('\n').at(-1));
+    assert.equal(payload.entries.length, 6);
+    assert.equal(payload.calls.length, 6);
+    const combat = payload.entries.filter((entry) => entry.scene === 'combat');
+    assert.deepEqual(
+      combat.map((entry) => entry.output),
+      [
+        '01-moonlight-barrage.png',
+        '02-field-guardian.png',
+        '03-missile-core-drop.png',
+      ],
+    );
+    for (const [index, entry] of payload.entries.entries()) {
+      const call = payload.calls[index];
+      assert.match(call.output, new RegExp(`/${entry.output}$`, 'u'));
+      // Full clean captures are 2424x1080; the phone compositor must consume
+      // every source row it was given instead of deleting a bottom strip.
+      const keptHeight = 1080 - entry.crop_bottom;
+      assert.match(
+        call.graph,
+        new RegExp(`crop=2424:${keptHeight}:0:0`, 'u'),
+        `${entry.output} must keep ${keptHeight} of 1080 source rows`,
+      );
+      assert.match(call.graph, /pad=1920:1080:\d+:\d+/u);
+      assert.match(call.graph, /format=rgb24\[out\]/u);
+    }
+    for (const entry of combat) {
+      const call = payload.calls[payload.entries.indexOf(entry)];
+      // The obsolete 180-row cut cropped to 2424x900 and fitted 1920x712,
+      // deleting the dialogue ribbon and clipping the dash control. The full
+      // viewport fits 1920x854 centered at y=113, so the restored bottom
+      // strip (source rows 900..1080) lands at output y 824..967, inside the
+      // game frame and above the brand caption zone starting at y=995.
+      assert.match(call.graph, /crop=2424:1080:0:0/u);
+      assert.match(call.graph, /scale=1920:854:flags=lanczos/u);
+      assert.match(call.graph, /pad=1920:1080:0:113/u);
+      assert.match(call.graph, /drawbox=x=0:y=113:w=1920:h=854/u);
+    }
+    const byOutput = Object.fromEntries(
+      payload.entries.map((entry, index) => [entry.output, payload.calls[index]]),
+    );
+    // Title, shrine, and hero-preview policies are unchanged by this fix.
+    assert.match(byOutput['04-title.png'].graph, /crop=2424:990:0:0/u);
+    assert.match(byOutput['04-title.png'].graph, /scale=1920:784:flags=lanczos/u);
+    assert.match(byOutput['05-moonlit-shrine.png'].graph, /crop=2424:1080:0:0/u);
+    assert.match(byOutput['06-hero-preview.png'].graph, /crop=2424:1080:0:0/u);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('Play tablets render each Android tablet device source with aspect ratio preserved', () => {
   const root = mkdtempSync(join(tmpdir(), 'moonlit-store-tablet-contract-'));
   try {
