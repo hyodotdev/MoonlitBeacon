@@ -78,7 +78,7 @@ in the lesson prose.
 # No ZIP inside res://
 find apps/game -name "*.zip" | head
 
-# Only files actually used (currently 259 / about 26.5MB — same count as check-manifest.mjs)
+# Only files actually used (currently 276 / about 30.8MB — same count as check-manifest.mjs)
 find apps/game/assets -type f -not -name "*.import" -not -name ".gitkeep" | wc -l
 du -sh apps/game/assets
 ```
