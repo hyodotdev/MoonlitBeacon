@@ -51,7 +51,7 @@ func _run() -> void:
 		return
 	Engine.max_fps = 60
 	_test_spatial_collision()
-	_test_knight_splash_budget()
+	await _test_knight_splash_budget()
 	_test_work_diagnostic_lifecycle()
 	var level_twenty: Dictionary = await _sample(20, 3)
 	var level_forty: Dictionary = await _sample(40, 5)
@@ -257,6 +257,35 @@ func _test_knight_splash_budget() -> void:
 		body.queue_free()
 	for body in spread:
 		body.queue_free()
+	# Split-tick pierce strikes must not each pop on a blast shell: the
+	# exhausting strike detonates in the same tick under the 2.4x flash, so a
+	# pierce-2 volley always costs two pops per shell and the late-game node
+	# peak stops swinging with wall-clock tick alignment. Runs after the roster
+	# asserts above so its detonation cannot disturb them.
+	var split_shell: Node2D = load(
+		"res://scenes/actors/moon_arrow.tscn").instantiate() as Node2D
+	split_shell.set("damage", 22)
+	split_shell.set("blast_radius", 48.0)
+	split_shell.set("pierce", 2)
+	split_shell.position = Vector2(27, 18)
+	var split_one := DamageTarget.new()
+	var split_two := DamageTarget.new()
+	add_child(split_one)
+	add_child(split_two)
+	var split_targets: Array[Node2D] = [split_one, split_two]
+	split_shell.call("set_candidates", split_targets)
+	add_child(split_shell)
+	split_shell.call("_cache_body_geometry")
+	var split_before: int = _impact_glyphs()
+	split_shell.call("_strike", split_one, Vector2(27, 18))
+	await get_tree().physics_frame
+	split_shell.call("_strike", split_two, Vector2(30, 20))
+	_expect_equal(_impact_glyphs() - split_before, 2,
+		"split-tick exhausting strike shares the detonation flash")
+	_expect_true(split_one.received == 22 and split_two.received == 22,
+		"skipped pop still damages every strike")
+	split_one.queue_free()
+	split_two.queue_free()
 
 
 func _impact_glyphs() -> int:

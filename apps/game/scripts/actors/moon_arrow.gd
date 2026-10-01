@@ -498,7 +498,14 @@ func _strike(spirit: Node2D, at: Vector2) -> void:
 
 	_hit.append(spirit)
 	spirit.take_damage(damage, at)
-	_spark(at)
+	# A blast shell that exhausts its pierce on this strike detonates later in
+	# the same tick, and the 2.4x detonation flash lands within a body radius of
+	# this mark, so the small strike pop would hide under it. Skipping the hidden
+	# pop keeps a volley's pop count independent of which tick each pierce strike
+	# landed on, so the late-game node peak stops swinging with wall-clock
+	# scheduling. Same-tick multi-strike sharing in `_spark` is unchanged.
+	if blast_radius <= 0.0 or pierce > 1:
+		_spark(at)
 	if get_tree() != null:
 		get_tree().call_group(
 			&"moonlit_combat_sfx", "combat_impact", at, false)
