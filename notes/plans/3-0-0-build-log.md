@@ -1091,7 +1091,15 @@ hero-preview test while failing the new one; both were restored
 exactly and the suite re-ran green. `git diff --name-only` lists only
 the two `scripts/lib` files plus this log — `apps/game`, the CSV,
 scenes, art, audio, export presets, and prices are byte-identical, so
-`pnpm check:store-screenshots` is unaffected by this change.
+production runtime bytes are unchanged. Capture-input freshness is
+separate and is not preserved: `scripts/capture-store-screenshots.mjs`
+lists `scripts/lib/capture-run-state.mjs` in CAPTURE_INPUTS, and
+`apps/game/tools/build_store_graphics.py` lists the same file in its
+capture contract, so the old capture-input attestations are stale and
+the director must rebuild that attestation before the real capture
+retry; the old capture proof does not still pass. (Correction, brief
+025b: the earlier wording claimed `pnpm check:store-screenshots` was
+unaffected by this change; that was wrong as stated.)
 
 Authorization versus completion: the user requested merge on good
 review, fresh store screenshots including changed title imagery, and
