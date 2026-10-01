@@ -61,3 +61,42 @@ requires the human-owned `.claude/allow-pr` signal, which the director must
 never create. Publication outcome and any resulting CI status are recorded
 below when observed; native/store completion is not inferred from code
 checks.
+
+## PR follow-up on 2026-10-02
+
+The human guard signal was consumed by the original guard and PR 10 was
+created: https://github.com/hyodotdev/MoonlitBeacon/pull/10. The original
+head passed docs, repo rules and Android builds but failed the Linux
+`orbit sweep is a full circle` assertion. Five Mac full checks had not
+exposed that platform boundary; it is not waived.
+
+Confirmed corrections go through briefs 029, 030/030b and 032. The circle
+fix covers full moon, Eclipse orbit and genuine Wide Arc takes reaching
+360 degrees while retaining partial arcs, radial limits, damage and
+cadence. The two App Store tool corrections handle distinct released
+history and current-payload authorization instead of an obsolete literal
+2.1.0 (9) gate. Their accepted diffs do not change products or prices.
+
+| Round | Independent evidence | Outcome |
+| --- | --- | --- |
+| 5 | Final accepted-diff review; exact restoration; original circle negative control 2/388 failures; special-flags-only negative control 2/404 failures; final weapon scene 404/404, exit 0. App Store suite 58/58 without skips; original history predicate and original target pin fail their intended new regressions. | First clean round after the confirmed corrections. No further production defect in these boundaries. |
+| 6 | Different angle: full corrected-root `pnpm verify`, exit 0; 477 Node checks in 16 groups, 52 game steps, 122 scripts, locale/100 IAP rows, deterministic assets/graphics, hygiene, docs and anchors. Re-hash all 667 runtime witness files: only the reviewed arena differs. Fetch current main: zero commits behind. | Second clean code-review round. Corrected-head GitHub Linux CI still must pass before merge; native and capture release gates remain incomplete. |
+
+Evidence is in `builds/verify/director-pr10-corrected-root-verify.log`,
+`director-pr10-corrected-runtime-witness.json`, and the director logs in
+the three accepted Muse run folders. These records do not claim native
+purchase E2E or a completed store release.
+
+Signing is now resolved and TestFlight 3.0.0 (10) is VALID and assigned
+to the existing internal group. Play internal 3.0.0 (15), five-language
+copy and ninety new images are applied and independently read back.
+Six native landscape English iPad images are accepted, but five locales
+are not complete. The producer was canceled cleanly with no restoration
+errors. Both public reviews and merge remain unperformed.
+
+The old Android capture source fingerprint fails after the circle fix;
+uploaded image bytes are preserved and no automatic recapture occurs.
+User answers are pending for protected next-build configuration, native
+ten-product checks, and final-build capture evidence. Current status is
+in `store-submit-3-0-0.md`; remote CI evidence belongs to the PR's latest
+published head, not an earlier green job.

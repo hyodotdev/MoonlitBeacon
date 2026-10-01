@@ -95,11 +95,100 @@ create the human-owned PR guard signal or replace native purchase evidence.
 
 ## Remaining release boundaries
 
-- Human PR guard signal is absent. Do not retry the blocked PR creation or
-  create `.claude/allow-pr` as the agent.
+- The user created the human PR guard signal and asked to finish everything.
+  The original guard consumed that signal; PR 10 now exists at
+  https://github.com/hyodotdev/MoonlitBeacon/pull/10 and is attached to the chat.
 - No production promotion, production review submission, PR merge,
   App Store screenshot apply or App Store review
   submission is claimed by the internal upload.
 - Continue native capture and independently inspect its actual output.
   Normal AppIcon/Assets.car archive, distribution IPA, remote Validate and
   TestFlight upload pass. Native ten-product purchase checks remain pending.
+
+## Continued release review after user setup
+
+- Native Xcode capture now returns true landscape 2266 x 1488. Six English
+  title, shrine, hero-preview, barrage, missile-core and guardian screenshots
+  were individually inspected and accepted by the unchanged handoff publisher.
+  This is not a complete five-language canonical set. The producer was canceled
+  normally before continuing after a newly discovered game CI failure; its
+  record has six completed captures and zero restoration errors, and the
+  original keychain search list is restored.
+- Exact valid TestFlight build 10 is assigned to the existing Moonlit Beacon
+  Internal group. Fresh GET-only audit confirms that assignment; no new tester
+  or external group was created. Evidence is
+  `builds/verify/director-testflight-internal-group-receipt.json`.
+- PR docs, repo rules and signed Android package checks pass. The Linux game
+  job fails the original `orbit sweep is a full circle` assertion (expected
+  one hit, observed zero). The configured implementer is handling the narrow
+  confirmed full-circle defect under brief 030; no CI waiver or merge occurs.
+- A separate official App Store GET returned released-only 2.1.0/2.0.0 history.
+  The old local version-create predicate incorrectly demanded exactly one
+  released entry. Brief 029's two-file correction was read and accepted after
+  56 independent App Store tests, zero skipped tests, a negative control with
+  two failures under the original predicate, exact restoration, and replay of
+  the real response in both list orders. Runtime and capture code are unchanged
+  by this store-tool correction. Final root verification follows the game fix.
+- Revised production binaries will require new upload identifiers because
+  Android 15 and iOS 10 have already been uploaded. Brief 031 names only the
+  necessary next Android 16 / iOS 11 configuration values for review. The
+  implementer correctly refused the protected version file and made no change.
+  Specific authorization for the director's three-line edit is pending.
+- Native purchase evidence remains unestablished. The last connected Galaxy
+  still reported installer null, and it subsequently disconnected. The user
+  was asked whether all ten-product native test checks are already complete;
+  no answer is counted as proof.
+
+## CI correction, second review
+
+- Brief 030 round 1 adds full-circle bearing handling and portable precision
+  regressions. Independent director runs in the copy pass the actual standard
+  52-step game suite and all 388 weapon assertions. The director's negative
+  control restores the old predicate and produces the two intended precision
+  failures, exit 1. Its wrapper initially treated the result as unexpected
+  because it looked for the failure summary in stdout; the summary is in
+  stderr. Inspection of the saved combined log confirms the test failures,
+  and the finally clause restored the candidate source bytes.
+- The next review finds the same defect in the reachable Wide Arc 360-degree
+  cap: five genuine Warden card takes reach that cap. Round 1 is not accepted.
+  Correction brief 030b requires this path, a partial-arc control and a portable
+  negative control against round 1's logic. Only the existing arena and weapon
+  test files may change. The final diff will be regenerated after the correction;
+  a transient diff taken during the negative control is not an acceptance patch.
+- Round 1's implementer wrote 53 identified scratch files outside its copy.
+  The director byte-verified archival into the ignored run's
+  `director-preserved-scratch/` folder and removed only those identified files.
+  Round 030b explicitly forbids further outside-copy writes and substitute
+  suite runners. The implementer's claims are not counted as director evidence.
+- Android reconnected at 21:53 UTC; a fresh package GET still shows 3.0.0 (15)
+  with installer null. Native Play purchase verification is therefore not
+  established. The iPad's actual QuickTime mirror is landscape and shows the
+  TestFlight app; this observation does not establish a Moonlit TestFlight
+  installation, a purchase or restore. No recording was started.
+- Round 030b's final two-file diff is independently read. The director repeats
+  the round-1 negative control and confirms precisely two new failures out of
+  404, exit 1; restores the candidate byte-for-byte; then independently reruns
+  the actual weapon scene: all 404 pass, exit 0, in 170.5 seconds. The final
+  patch is regenerated after restoration, check-applies cleanly, and is accepted
+  into the real tree. Radial bounds, damage, cadence and attack visuals remain
+  unchanged; the original 355 assertions are untouched.
+- Real-tree `pnpm check:store-screenshots` now fails at its source-fingerprint
+  comparison. Existing uploaded image bytes and framing are unchanged; no
+  automatic Android recapture or image re-upload is performed. Per AGENTS.md's
+  failed-check rule, a question about final-build recapture is pending.
+- A different deployment-path review confirms the App Store authorization
+  function still hardcodes 2.1.0 (9), rejecting current 3.0.0 manifests. Brief
+  032 requests the narrow current-payload authorization correction while
+  preserving identity, manifest, token-purpose and provenance boundaries.
+  The director reads its two-file patch, independently passes all 58 App Store
+  tests with zero skips, and proves the new 3.0.0 fixture fails when the original
+  pin is restored. The apply module is byte-restored; the patch is regenerated,
+  check-applies cleanly and is accepted. No remote apply is performed. The
+  corrected real tree's full `pnpm verify` finishes successfully: 477 Node
+  tests across 16 groups, 52 game steps, 122 script compilations, locale/store
+  metadata, deterministic assets/graphics, hygiene, docs and internal anchors.
+  Evidence: `builds/verify/director-pr10-corrected-root-verify.log`.
+- The director re-hashes all 667 files of the previous runtime witness. Only
+  `apps/game/scripts/gameplay/arena.gd` differs. Existing art, audio, UI copy and
+  other runtime resources remain byte-identical. This comparison records the
+  source difference; it does not rebind or repair old device capture proofs.
