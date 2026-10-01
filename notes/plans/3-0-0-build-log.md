@@ -994,15 +994,75 @@ scripts/lib/store-graphics-boundary.test.mjs` 21/21 green,
 green. Old literals verified to fail the gate before the fix was
 restored.
 
+## Stabilize the late cannon node budget: brief 024 (2026-10-01)
+
+The fresh `pnpm verify` failure (Knight Lv40 node_peak=1202 over the
+unchanged 1200 cap) is a tick-alignment flake in impact-pop transient
+nodes: split-tick strikes can produce eight extra two-node pops in the
+unchanged live stress stage. Staged
+knight shells are pierce 2 (measured `pierce=2, blast=48, volley=8`):
+each shell strikes twice, and brief 020's same-tick sharing collapses
+the pair to one pop only when both strikes land on the same physics
+tick. Wall-clock warmup/sample timing decides the alignment, so a
+volley costs 16 pops (32 nodes, peak ~1186) when strikes share a tick
+and 24 pops (48 nodes, peak 1202-1203) when they split. A temporary
+probe (deleted after use) caught both: 12 samples at 1186-1187 with
+maxpops=16, one at 1202 and one at 1203 with maxpops=24, everything
+else identical (8 fading shells, 40 spirits, 0 hostile/embers).
+
+Minimal production fix in `moon_arrow.gd` `_strike`: a blast shell
+that exhausts its pierce on a strike skips the small strike pop,
+because `_finish` detonates later in the same tick and the 2.4x
+detonation flash lands within a body radius of the mark, so the skipped
+pop hides under the big flash for its 0.16s life by construction. Whether
+that reads identically on screen is the director's rendering check; no
+visual pass is claimed here.
+Same-tick behavior is unchanged (the pair already shared one pop);
+split-tick pairs now also cost one strike pop plus the detonation, so
+every shell costs exactly two pops regardless of alignment. Damage,
+pierce, timing, 48px geometry, detonation count and all other heroes'
+pops are untouched; no cap, count, budget or seed changed.
+
+Measured, all isolated: original test passes four consecutive runs at
+node_peak 1186 (71 -> 73 cases; detonations=16, spirit_peak=40,
+candidate work well inside 256/step); eight probe samples peak
+1186-1188 with maxpops=16 every time (residual ±2 is starfall-missile
+node presence). New deterministic fixture pins the mechanism
+(pierce-2 shell, strikes on two physics ticks, exactly 2 pops, both
+strikes still deal 22); with the fix disabled it fails 2-vs-3 and
+nothing else. `test_hero_combat_profiles` (1128), missile loop (244),
+missile progression, game smoke, script compile (122) and hygiene all
+green; `check:store-screenshots` red as expected after touching
+`apps/game` (no recapture).
+
+Limitations, explicit: headroom is 12-14 nodes, and the gate still
+samples wall-clock windows, so scheduling decides which alignments
+get observed — the fix works by making every alignment cost the
+same, not by widening the margin. Staged pierce is deterministically
+2; live relic stacking beyond that reintroduces up to one extra
+strike pop per shell per additional split-tick strike, but live play
+is not gated and each extra pop is two nodes for 0.16s.
+
+- **Peak composition, not just peak.** The brief's numbers alone
+  (1202 vs 1187) could not name the culprit; per-frame node-class
+  counts (live/fading arrows, pops, missiles, spirits) showed the
+  +16 is exactly eight extra two-node pops and nothing else.
+- **Sharing must cover the worst alignment, not the typical one.**
+  Brief 020's same-tick sharing fixed the common case and measured
+  green three times, but the split-tick case it left behind failed
+  two of fourteen pre-fix samples here. The new fixture forces the split across a
+  real physics frame instead of hoping the live sample catches it.
+
 ## Not done
 
-- Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded, and no recapture is
-  authorized in this continuation. Marketing proofs are stale after the visual changes; that is reported,
-  not a recapture order.
-- Later deployment and release gates are uncompleted: the device choice (dedicated emulator, connected
-  test Pixel, or desktop only) is still pending with the user and no device install or play validation is
-  claimed, Firestore rules are committed but not deployed, analytics collection stays gated, and no signed
-  distribution build, store submission, tag or merge has happened. Each needs its own separate authorization.
+- Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded. Fresh captures of
+  changed screens are now requested by the user; marketing proofs are stale after the visual changes, and
+  actual validation, capture and publication are still pending with the director.
+- Later deployment and release gates are uncompleted: merge when review is good and deployment are now
+  requested by the user, but nothing has been completed — no device install or play validation is claimed,
+  Firestore rules are committed but not deployed, analytics collection stays gated, and no signed
+  distribution build, store submission, tag or merge has happened. Push confirmation, the human PR signal
+  and the physical-device/tunnel prerequisites remain pending with the director.
 - An Echo on a ring guardian (field, forest, toad, sentinel) still trims the repeat under the hostile
   projectile cap while its picture shows the whole ring — the safe way to be wrong. No evidence justifies
   uncapping the mobile budget; the limitation stays visible.
