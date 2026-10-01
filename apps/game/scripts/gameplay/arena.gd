@@ -3983,6 +3983,28 @@ func _nearest_in_band(inner: float, outer: float) -> Node2D:
 	return best
 
 
+## Full-circle test for one swing: the full moon, the orbit ring, and any arc
+## widened to 360 degrees all reach the antipodal bearing, so they skip the fan
+## check. Anything narrower keeps it.
+func _swing_full_circle(
+	full_moon: bool, orbit: bool, attack_arc_degrees: float
+) -> bool:
+	return full_moon or orbit or attack_arc_degrees >= 360.0
+
+
+## One bearing check inside a swing: full-circle swings hit every bearing.
+##
+## A computed antipodal angle lands within one float ulp of PI, and
+## single-precision PI itself sits above the double PI a `> half_arc` comparison
+## uses, so that comparison can flip one enemy by platform libm. Full-circle
+## swings skip the fan check instead of trusting the boundary; partial fans
+## keep it.
+func _swing_arc_hits(angle_diff: float, half_arc: float, full_circle: bool) -> bool:
+	if full_circle:
+		return true
+	return absf(angle_diff) <= half_arc
+
+
 ## Swing the moon blade and cut every spirit inside the fan.
 ##
 ## One swing **hits everything it reaches.** Hitting only the nearest leaves no way out when
@@ -4016,7 +4038,9 @@ func _swing_at(target: Node2D) -> void:
 	var reach: float = _player.attack_range * (1.15 if full_moon else 1.0)
 	var orbit: bool = bool(melee.get("orbit", false)) and not full_moon
 	var inner: float = reach * HeroWeapons.ORBIT_INNER_FRACTION if orbit else 0.0
-	var half_arc: float = PI if (full_moon or orbit) \
+	var full_circle: bool = _swing_full_circle(
+		full_moon, orbit, _player.attack_arc)
+	var half_arc: float = PI if full_circle \
 		else deg_to_rad(_player.attack_arc) * 0.5
 	var damage: int = _scaled(_player.attack_damage, 1.10) \
 		if full_moon else _player.attack_damage
@@ -4028,7 +4052,7 @@ func _swing_at(target: Node2D) -> void:
 		if to_spirit.length() > reach or to_spirit.length() < inner:
 			continue
 		# Outside the fan is also outside the drawn slash. Visible range and hit range stay the same.
-		if absf(direction.angle_to(to_spirit)) > half_arc:
+		if not _swing_arc_hits(direction.angle_to(to_spirit), half_arc, full_circle):
 			continue
 		spirit.take_damage(damage, _player.global_position)
 		connected += 1

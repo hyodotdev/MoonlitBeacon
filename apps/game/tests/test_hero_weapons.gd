@@ -60,6 +60,10 @@ func _run() -> void:
 	await _test_guided_volley_agreement()
 	await _test_knight_cannon()
 	await _test_eclipse_orbit()
+	await _test_full_circle_antipodal_ring()
+	await _test_full_moon_circle()
+	await _test_wide_arc_full_circle()
+	await _test_swing_arc_precision()
 	await _test_rate_floors()
 	await _test_invalid_targets()
 	await _test_resets_and_growth()
@@ -532,6 +536,162 @@ func _test_eclipse_orbit() -> void:
 		0.0, "sweep tick pulses the orbit")
 	_expect_equal(int(player.get("attack_damage")), 9, "orbit sweep damage")
 	await _free_arena(arena)
+
+
+## The orbit ring bites every bearing in its band: eight compass points plus bodies
+## just inside both radial edges, all hit by one sweep aimed ahead. The hole and
+## past-the-rim bodies still go untouched.
+func _test_full_circle_antipodal_ring() -> void:
+	var setup: Array = await _fresh_arena("eclipse")
+	var arena: Node2D = setup[0]
+	var player: Node2D = setup[1]
+	var bodies: Array[DurableTargetSpirit] = []
+	for degrees in [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0]:
+		bodies.append(_target(arena, player,
+			Vector2.RIGHT.rotated(deg_to_rad(degrees)) * 50.0))
+	var near_hole: DurableTargetSpirit = _target(arena, player, Vector2(36, 0))
+	var near_edge: DurableTargetSpirit = _target(arena, player, Vector2(-63, 0))
+	var hole: DurableTargetSpirit = _target(arena, player, Vector2(34, 0))
+	var outside: DurableTargetSpirit = _target(arena, player, Vector2(65, 0))
+	_swing(arena, player, bodies[0])
+	for i in bodies.size():
+		_expect_equal(bodies[i].hits, 1, "orbit ring bites bearing %d" % i)
+	_expect_equal(near_hole.hits, 1, "orbit ring bites just outside the hole")
+	_expect_equal(near_edge.hits, 1, "orbit ring bites just inside the rim")
+	_expect_equal(hole.hits, 0, "orbit ring still spares the hole")
+	_expect_equal(outside.hits, 0, "orbit ring still spares past the rim")
+	await _free_arena(arena)
+
+
+## A primed full-moon swing is a full circle on a partial-arc hero: the same
+## behind-body an ordinary swing spares, the primed swing bites. Reach still ends.
+func _test_full_moon_circle() -> void:
+	var setup: Array = await _fresh_arena("warden")
+	var arena: Node2D = setup[0]
+	var player: Node2D = setup[1]
+	await _take_relics(arena, [
+		"res://resources/relics/long_blade.tres",
+		"res://resources/relics/swift_hand.tres",
+	])
+	_expect_true(
+		Relic.family_resonant(arena.get("_taken"), Relic.Family.FULL_MOON),
+		"full-moon build genuinely resonates")
+	var reach: float = float(player.get("attack_range"))
+	var front: DurableTargetSpirit = _target(arena, player, Vector2(40, 0))
+	var behind: DurableTargetSpirit = _target(arena, player, Vector2(-40, 0))
+	var past: DurableTargetSpirit = _target(
+		arena, player, Vector2(reach * 1.15 + 5.0, 0))
+	_swing(arena, player, front)
+	_expect_equal(front.hits, 1, "ordinary swing bites ahead")
+	_expect_equal(behind.hits, 0, "ordinary swing still spares behind")
+	front.hits = 0
+	behind.hits = 0
+	arena.set("_full_moon_primed", true)
+	_swing(arena, player, front)
+	_expect_true(not bool(arena.get("_full_moon_primed")),
+		"primed swing consumes its full-moon prime")
+	_expect_equal(front.hits, 1, "full-moon swing bites ahead")
+	_expect_equal(behind.hits, 1, "full-moon swing is a full circle")
+	_expect_equal(past.hits, 0, "full-moon swing still ends at reach")
+	await _free_arena(arena)
+
+
+## Five genuine Wide Arc takes cap a Warden fan at 360 degrees, and the capped
+## swing is a full circle: the behind-body the ordinary fan spares, it bites.
+## Cadence is untouched and damage follows the existing overflow rule
+## (130 * 1.25^5 = 396.7, capped at 360, so 36.7 leftover turns into damage).
+func _test_wide_arc_full_circle() -> void:
+	var setup: Array = await _fresh_arena("warden")
+	var arena: Node2D = setup[0]
+	var player: Node2D = setup[1]
+	var front: DurableTargetSpirit = _target(arena, player, Vector2(40, 0))
+	var behind: DurableTargetSpirit = _target(arena, player, Vector2(-40, 0))
+	var past: DurableTargetSpirit = _target(arena, player, Vector2(51, 0))
+	_swing(arena, player, front)
+	_expect_equal(front.hits, 1, "ordinary fan bites ahead")
+	_expect_equal(behind.hits, 0, "ordinary fan spares behind")
+	_expect_equal(past.hits, 0, "ordinary fan ends at reach")
+	front.hits = 0
+	behind.hits = 0
+	await _take_relics(arena, [
+		"res://resources/relics/wide_arc.tres",
+		"res://resources/relics/wide_arc.tres",
+		"res://resources/relics/wide_arc.tres",
+		"res://resources/relics/wide_arc.tres",
+		"res://resources/relics/wide_arc.tres",
+	])
+	_expect_equal(float(player.get("attack_arc")), 360.0,
+		"five wide arcs cap the fan")
+	_expect_equal(float(player.get("attack_cooldown_time")), 0.50,
+		"wide arcs leave cadence alone")
+	_expect_equal(int(player.get("attack_damage")), 11,
+		"capped overflow follows the damage rule")
+	_swing(arena, player, front)
+	_expect_equal(front.hits, 1, "capped fan bites ahead")
+	_expect_equal(behind.hits, 1, "capped fan is a full circle")
+	_expect_equal(past.hits, 0, "capped fan still ends at reach")
+	await _free_arena(arena)
+
+
+## The PI boundary itself: a computed antipodal angle lands within one float ulp
+## of PI, and single-precision PI sits above the double PI the old comparison
+## used. Full-circle swings ignore the bearing entirely; partial fans keep the
+## inclusive edge they always had.
+func _test_swing_arc_precision() -> void:
+	var setup: Array = await _fresh_arena("warden")
+	var arena: Node2D = setup[0]
+	var float_pi: float = PackedFloat32Array([PI])[0]
+	_expect_true(float_pi > PI, "single-precision PI sits above double PI")
+	_expect_true(bool(arena.call("_swing_arc_hits", 0.0, PI, true)),
+		"full circle hits straight ahead")
+	_expect_true(bool(arena.call("_swing_arc_hits", PI, PI, true)),
+		"full circle hits the exact antipode")
+	_expect_true(bool(arena.call("_swing_arc_hits", -PI, PI, true)),
+		"full circle hits the mirrored antipode")
+	_expect_true(bool(arena.call("_swing_arc_hits", float_pi, PI, true)),
+		"full circle hits a rounding step past PI")
+	_expect_true(bool(arena.call("_swing_arc_hits", -float_pi, PI, true)),
+		"full circle hits a mirrored rounding step past PI")
+	var half: float = deg_to_rad(130.0) * 0.5
+	_expect_true(bool(arena.call("_swing_arc_hits", 0.0, half, false)),
+		"partial fan hits straight ahead")
+	_expect_true(bool(arena.call("_swing_arc_hits", half, half, false)),
+		"partial fan keeps its inclusive edge")
+	_expect_true(not bool(arena.call("_swing_arc_hits", half + 0.01, half, false)),
+		"partial fan still misses past its edge")
+	_expect_true(not bool(arena.call("_swing_arc_hits", PI, half, false)),
+		"partial fan still misses exactly behind")
+	_expect_true(not bool(arena.call("_swing_arc_hits", float_pi, half, false)),
+		"partial fan still misses a rounding step past PI")
+	# The capped arc counts as full circle through the same production path:
+	# derive the flag the swing uses, then check the past-PI bearing with it.
+	var capped: bool = bool(arena.call("_swing_full_circle", false, false, 360.0))
+	var near_capped: bool = bool(
+		arena.call("_swing_full_circle", false, false, 359.0))
+	var ordinary: bool = bool(
+		arena.call("_swing_full_circle", false, false, 130.0))
+	_expect_true(capped, "a 360-degree arc is a full circle")
+	_expect_true(not near_capped, "a 359-degree arc stays partial")
+	_expect_true(not ordinary, "an ordinary fan stays partial")
+	_expect_true(bool(arena.call("_swing_arc_hits", float_pi, PI, capped)),
+		"a capped arc hits a rounding step past PI")
+	var near_half: float = deg_to_rad(359.0) * 0.5
+	_expect_true(not bool(arena.call(
+		"_swing_arc_hits", float_pi, near_half, near_capped)),
+		"a 359-degree arc still misses a rounding step past PI")
+	_expect_true(not bool(arena.call(
+		"_swing_arc_hits", PI, near_half, near_capped)),
+		"a 359-degree arc still misses exactly behind")
+	await _free_arena(arena)
+
+
+## Production card takes, one frame apart so HUD and rate settles land.
+func _take_relics(arena: Node2D, paths: Array) -> void:
+	for path in paths:
+		arena.call("_on_relic_picked",
+			arena.get("_relic").call("take_named", path), false, "stage")
+		await get_tree().process_frame
+	arena.call("_settle_rates")
 
 
 func _test_rate_floors() -> void:
