@@ -1192,14 +1192,119 @@ deployed. Phone attestation rebuild and the authorized phone
 capture retry stay with the director; the tablet reports stand on
 their unchanged checks without implying a tablet recapture.
 
+## Preserve the full phone combat viewport: brief 027 (2026-10-01)
+
+Storefront framing correction only; no production change. The
+director examined the actual final Korean composites against the
+clean 2424×1080 phone originals and confirmed the defect by crop
+dimension: the three combat entries (01 barrage, 02 guardian, 03
+core) carried `crop_bottom: 180` from
+`notes/release/store-assets/screenshots.json`, so
+`_render_play_screenshot` cropped each source to 2424×900 before
+fitting 1920×1080. At the 3× device scale that deletes the lower
+60 internal pixels — the new hero/story dialogue ribbon is gone
+and the bottom-right dash circle is clipped in all three final
+Play images. The renderer itself already fits a full viewport
+with room for captions and brand, and tablet screenshots already
+preserve the whole screen, so only the obsolete combat crop
+contract was wrong.
+
+The fix sets the combat crop contract to zero in both pinned
+places: the three combat `crop_bottom` values in
+`screenshots.json`, and `SCENE_CROP_BOTTOM["combat"]` plus the
+three combat `SCREENSHOT_CONTRACTS` literals in
+`apps/game/tools/build_store_graphics.py` (seven changed
+numbers, no logic change). Title keeps 90, shrine and
+hero-preview keep 0, and every strict check is untouched:
+exact six-output set, per-locale real-UI sources, 1:1 unique
+hashes, label literals, brand literals, provenance, and the
+scene/crop literal gate that rejects arbitrary values. No game
+runtime, scene, art, audio, locale, IAP, price, version, export
+preset, capture producer, signature, or fingerprint-exclusion
+change.
+
+A new regression in the registered
+`store-graphics-boundary.test.mjs` suite, `Play phone combat
+screenshots preserve the full 2424x1080 viewport`, drives the
+real `_screenshot_entries` (real manifest against the real
+literal contracts) and the real `_render_play_screenshot` for
+all six entries at 2424×1080, then asserts on the emitted
+ffmpeg filter graph: each combat call crops the full
+`2424:1080:0:0`, scales `1920:854`, and centers the game frame
+at y=113 with its gold border, so the restored bottom strip
+(source rows 900..1080, the dialogue ribbon and whole dash
+circle) lands at output y 824..967 — inside the game frame and
+above the brand caption zone that starts at y=995. It also pins
+the unchanged policies (title `2424:990`/`1920:784`, shrine and
+hero-preview full viewport). No existing test covered the phone
+compositor's crop dimensions, so this guard is not a repeated
+literal: it verifies full-source rows reach the compositor and
+where they land.
+
+Measured in this copy: the compositor probe confirms full-fit
+1920×854 versus the old cropped 1920×712 for all three combat
+entries, with title/shrine/preview unmodified; the new guard
+fails on an intentionally restored double-sided 180-pixel
+combat crop (`crop=2424:900`, `scale=1920:712`) and a
+single-sided manifest-only restore fails at the literal
+contract (`scene/crop/locale copy differs`); both were restored
+exactly and the full registered `pnpm
+test:play-release-package` is 211/211 green (210 existing + 1
+new). `pnpm check:store-graphics` passes (tracked graphics
+deterministic). `pnpm check:store-screenshots` fails as expected
+in this copy because the gitignored capture proofs are absent
+(`device capture proof file is missing`), before any crop logic
+runs — reported, never recaptured. `git diff --name-only`
+lists the screenshot config, the generator, the boundary suite,
+the framing README (brief 027b alignment below), and this log —
+five files — so production runtime bytes and pixels are
+unchanged (`tools/` is excluded from `_runtime_fingerprint`).
+Capture freshness splits by device: the phone proofs become
+stale, because the screenshot config and the generator are both
+pinned phone capture inputs (phone `CAPTURE_INPUTS` and the
+generator's own `_source_fingerprints`). The completed
+seven-/ten-inch captures do not become stale from this fix: the
+tablet source/build maps (`ANDROID_DEVICE_CAPTURE_SOURCE_INPUTS`
+and the tablet evidence inputs) include neither the screenshot
+JSON nor the generator, and production runtime excludes
+`tools/` — so the tablet reports can remain current after their
+unchanged strict source/build/runtime/persistence validation.
+Those post-acceptance validations have not happened here, and
+no capture or submission completion is claimed.
+
+Authorization versus completion: the user requested careful
+review, merge on good review, fresh store screenshots, and
+direct deployment. None of that is done here: no capture was
+run, no screenshot recaptured or uploaded, no store or network
+action taken, nothing merged or deployed. Phone proof rebuild
+and the authorized current submission set stay with the
+director; the tablet reports stand on their unchanged checks
+without implying a tablet recapture.
+
+Brief 027b alignment (same acceptance): the
+accepted-in-principle generator/config/test diff above is
+unchanged. Only `notes/release/store-assets/README.md` was
+edited: the two combat debug-strip cropping passages now state
+that capture automation hides the debug UI before each shot and
+the three clean combat sources keep the full viewport including
+the dialogue ribbon and dash control, the title's existing
+90-pixel policy is recorded as unchanged, and the tablet
+sentence now states the seven-/ten-inch sets use their
+respective native Android tablet captures rather than a Pixel
+phone capture. Minimum-change recapture rules and strict
+provenance requirements are untouched. No new tests, no
+runtime, capture, or remote operations; final screenshots and
+deployment remain pending with the director.
+
 ## Not done
 
 - Store screenshots: the fresh five-locale Android originals (phone 40 PNGs, seven-inch 30, ten-inch 30)
-  were genuinely captured and reviewed before the Chronicle generator correction. The phone set becomes stale
-  pinned-input evidence once that fix lands, so current phone submission images are still pending with the
-  director, as are the iPad captures. The seven-/ten-inch sets remain current if their unchanged strict
-  source/build/runtime/persistence checks pass — those validations are pending, not claimed. Nothing has been
-  uploaded.
+  were genuinely captured and reviewed. The phone proofs become stale pinned-input evidence when their pinned
+  screenshot config or generator changes — as with this combat viewport fix — so current phone submission
+  images are still pending with the director, as are the iPad captures. The tablet source/build maps exclude
+  the screenshot JSON and the generator, so the seven-/ten-inch sets can remain current after their unchanged
+  strict source/build/runtime/persistence checks pass — those validations are pending, not claimed. Nothing has
+  been uploaded.
 - Later deployment and release gates are uncompleted: merge when review is good and deployment are now
   requested by the user. Local checkpoints exist — the director independently built and verified the
   3.0.0/code15 Play AAB and direct release APK — but they are local artifacts, not store uploads: no iOS
