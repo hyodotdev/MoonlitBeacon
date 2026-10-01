@@ -439,7 +439,7 @@ const HERO_PREVIEW_STATE_SOURCE_KEYS = new Set([
 const HERO_PREVIEW_COPY_BY_GAME_LOCALE = Object.freeze({
   ko: Object.freeze({
     name: '봉화지기',
-    description: '하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨',
+    description: '랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · 달빛 파문·질긴 목숨',
     states: Object.freeze({
       SHRINE_SELECTED: '선택 중',
       SHRINE_OWNED: '해금됨',
@@ -448,7 +448,7 @@ const HERO_PREVIEW_COPY_BY_GAME_LOCALE = Object.freeze({
   }),
   en: Object.freeze({
     name: 'Beacon Keeper',
-    description: '6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life',
+    description: 'Lantern shotgun · 6 hearts · move -15% · dash CD +30% · Moonlit Ripple/Tenacious Life',
     states: Object.freeze({
       SHRINE_SELECTED: 'Selected',
       SHRINE_OWNED: 'Unlocked',
@@ -457,7 +457,7 @@ const HERO_PREVIEW_COPY_BY_GAME_LOCALE = Object.freeze({
   }),
   ja: Object.freeze({
     name: '烽火の守り人',
-    description: 'ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命',
+    description: 'ランタンの散弾 · ハート6 · 移速 -15% · ダッシュCD +30% · 月光の波紋・不屈の命',
     states: Object.freeze({
       SHRINE_SELECTED: '選択中',
       SHRINE_OWNED: '解放済み',
@@ -466,7 +466,7 @@ const HERO_PREVIEW_COPY_BY_GAME_LOCALE = Object.freeze({
   }),
   zh_CN: Object.freeze({
     name: '烽火守护者',
-    description: '6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命',
+    description: '灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · 月光波纹·坚韧生命',
     states: Object.freeze({
       SHRINE_SELECTED: '已选择',
       SHRINE_OWNED: '已解锁',
@@ -475,7 +475,7 @@ const HERO_PREVIEW_COPY_BY_GAME_LOCALE = Object.freeze({
   }),
   zh_TW: Object.freeze({
     name: '烽火守護者',
-    description: '6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命',
+    description: '燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · 月光波紋·堅韌生命',
     states: Object.freeze({
       SHRINE_SELECTED: '已選擇',
       SHRINE_OWNED: '已解鎖',
