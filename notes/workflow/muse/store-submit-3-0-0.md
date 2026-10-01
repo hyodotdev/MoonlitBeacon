@@ -70,6 +70,10 @@ create the human-owned PR guard signal or replace native purchase evidence.
   version 3.0.0 (10), state `PROCESSING`, and zero errors/warnings. This
   confirms receipt by Apple, not a tester-ready build or review submission.
   Evidence: `builds/verify/director-store-submit-asc-upload-state.json`.
+- Final official GET at 20:23 UTC confirms `COMPLETE`, linked build 10
+  `VALID` and not expired, with zero errors/warnings. Apple processing is
+  complete. Evidence: `director-store-submit-asc-upload-final-readback.json`
+  under the same verification directory. Public review remains unsubmitted.
 - Physical iPad mini (A17 Pro) is paired and has Developer Mode enabled.
   Started the existing nonce-bound Xcode screenshot handoff producer for
   all five locales in the isolated `.storecapture` bundle. This is native
