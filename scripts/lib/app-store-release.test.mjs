@@ -149,7 +149,7 @@ function fixtureCsv() {
   ].join('\n');
 }
 
-function fixtureStorePage() {
+function fixtureStorePage({ version = '1.0.0' } = {}) {
   const headings = {
     'en-US': '## English description',
     ko: '## Korean description',
@@ -169,7 +169,7 @@ function fixtureStorePage() {
     '',
     '| Item | Value |',
     '| --- | --- |',
-    '| Version | 1.0.0 |',
+    `| Version | ${version} |`,
     '',
     '- [x] App Store copyright — `2026 Hyo Jang`',
     '',
@@ -217,14 +217,14 @@ function fixtureProjectGodot({ contacts = false, version = '1.0.0' } = {}) {
   ].join('\n');
 }
 
-function fixtureExportPresets({ version = '1.0.0' } = {}) {
+function fixtureExportPresets({ version = '1.0.0', build = '1' } = {}) {
   return [
     '[preset.0]',
     'name="iOS"',
     'platform="iOS"',
     `application/bundle_identifier="com.crossplatformkorea.moonlitbeacon"`,
     `application/short_version="${version}"`,
-    'application/version="1"',
+    `application/version="${build}"`,
     'application/app_store_team_id="PRDQGB267K"',
     '',
   ].join('\n');
@@ -405,7 +405,7 @@ function writeFixtureScreenshotProvenance(root) {
   writeFileSync(provenancePath, JSON.stringify(provenance, null, 2) + '\n');
 }
 
-function writeFixture(root) {
+function writeFixture(root, { version = '1.0.0', build = '1' } = {}) {
   const releaseNotes = join(root, 'notes/release');
   const appStore = join(root, 'builds/release/app-store');
   mkdirSync(releaseNotes, { recursive: true });
@@ -416,16 +416,16 @@ function writeFixture(root) {
   );
   writeFileSync(
     join(releaseNotes, 'store-page.md'),
-    fixtureStorePage(),
+    fixtureStorePage({ version }),
   );
   mkdirSync(join(root, 'apps/game'), { recursive: true });
   writeFileSync(
     join(root, 'apps/game/project.godot'),
-    fixtureProjectGodot(),
+    fixtureProjectGodot({ version }),
   );
   writeFileSync(
     join(root, 'apps/game/export_presets.cfg'),
-    fixtureExportPresets(),
+    fixtureExportPresets({ version, build }),
   );
   let unique = 1;
   for (const locale of APPLE_LOCALES) {
@@ -452,8 +452,8 @@ function writeFixture(root) {
   writeFixtureScreenshotProvenance(root);
 }
 
-function fixturePayload(root) {
-  writeFixture(root);
+function fixturePayload(root, options) {
+  writeFixture(root, options);
   return buildAppStoreReleasePayload({ repoRoot: root });
 }
 
@@ -1507,6 +1507,283 @@ test('ASC version state normalize/reuse/create proofs are fail-closed', () => {
   );
 });
 
+function releasedIosVersion(id, versionString, stateAttributes) {
+  return {
+    type: 'appStoreVersions',
+    id,
+    attributes: {
+      copyright: '2026 Hyo Jang',
+      platform: 'IOS',
+      versionString,
+      ...stateAttributes,
+    },
+  };
+}
+
+function realReleasedHistory() {
+  return [
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appStoreState: 'READY_FOR_SALE',
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appStoreState: 'READY_FOR_SALE',
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+  ];
+}
+
+test('released-only 2.1.0/2.0.0 history with distinct iOS identity can create', () => {
+  const history = realReleasedHistory();
+  assert.equal(canCreateNewAppStoreVersion(history), true);
+  assert.equal(canCreateNewAppStoreVersion([...history].reverse()), true);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appStoreState: 'READY_FOR_SALE',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appStoreState: 'READY_FOR_SALE',
+    }),
+  ]), true);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+  ]), true);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appStoreState: 'READY_FOR_SALE',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+  ]), true);
+});
+
+test('multiple-live history stays fail-closed without distinct iOS identity', () => {
+  const live = { appVersionState: 'READY_FOR_DISTRIBUTION' };
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-a', '2.1.0', live),
+    releasedIosVersion('asc-version-b', '2.1.0', live),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-same', '2.1.0', live),
+    releasedIosVersion('asc-version-same', '2.0.0', live),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      attributes: {
+        appVersionState: 'READY_FOR_DISTRIBUTION',
+        platform: 'IOS',
+        versionString: '2.0.0',
+      },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    releasedIosVersion('   ', '2.0.0', live),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-2-0-0',
+      attributes: { appVersionState: 'READY_FOR_DISTRIBUTION', platform: 'IOS' },
+    },
+  ]), false);
+  for (const versionString of ['v2.1.0', '2.1.0.0', '', '  ', '2..1']) {
+    assert.equal(canCreateNewAppStoreVersion([
+      releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+      releasedIosVersion('asc-version-2-0-0', versionString, live),
+    ]), false);
+  }
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', live),
+    resource('old', { appVersionState: 'REPLACED_WITH_NEW_VERSION' }),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-2-0-0',
+      attributes: {
+        appVersionState: 'READY_FOR_DISTRIBUTION',
+        versionString: '2.0.0',
+      },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-2-0-0',
+      attributes: {
+        appVersionState: 'READY_FOR_DISTRIBUTION',
+        platform: 'MAC_OS',
+        versionString: '2.0.0',
+      },
+    },
+  ]), false);
+  for (const appVersionState of [
+    'WAITING_FOR_REVIEW',
+    'IN_REVIEW',
+    'PREPARE_FOR_SUBMISSION',
+    'DEVELOPER_REJECTED',
+  ]) {
+    assert.equal(canCreateNewAppStoreVersion([
+      ...realReleasedHistory(),
+      releasedIosVersion('asc-version-next', '3.0.0', { appVersionState }),
+    ]), false);
+  }
+  assert.equal(canCreateNewAppStoreVersion([
+    ...realReleasedHistory(),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-unknown',
+      attributes: { platform: 'IOS', versionString: '1.0.0' },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-unknown',
+      attributes: { platform: 'IOS', versionString: '2.0.0' },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appVersionState: 'REPLACED_WITH_NEW_VERSION',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appVersionState: 'REPLACED_WITH_NEW_VERSION',
+    }),
+  ]), false);
+});
+
+test('remote audit creates from released-only 2.1.0/2.0.0 history regardless of order', async () => {
+  const payload = minimalReleasePayload();
+  const history = realReleasedHistory();
+  for (const allVersions of [history, [...history].reverse()]) {
+    const audit = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({ allVersions }),
+    });
+    const createEntry = audit.plan.find((entry) => (
+      entry.target === 'appStoreVersion' && entry.action === 'create'
+    ));
+    assert.deepEqual(createEntry.desired, {
+      copyright: payload.release.copyright,
+      platform: 'IOS',
+      versionString: payload.release.version,
+    });
+    assert.equal(audit.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+    )), false);
+    assert.equal(audit.remote.versionId, null);
+  }
+});
+
+test('remote audit keeps competing/duplicate/unidentified released history unresolved', async () => {
+  const payload = minimalReleasePayload();
+  const live = { appVersionState: 'READY_FOR_DISTRIBUTION' };
+  const histories = {
+    'duplicate versionString': [
+      releasedIosVersion('asc-version-a', '2.1.0', live),
+      releasedIosVersion('asc-version-b', '2.1.0', live),
+    ],
+    'duplicate id': [
+      releasedIosVersion('asc-version-same', '2.1.0', live),
+      releasedIosVersion('asc-version-same', '2.0.0', live),
+    ],
+    'missing identity evidence': [
+      resource('live-a', { appVersionState: 'READY_FOR_DISTRIBUTION' }),
+      resource('live-b', { appVersionState: 'READY_FOR_DISTRIBUTION' }),
+    ],
+    'missing platform': [
+      releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+      {
+        type: 'appStoreVersions',
+        id: 'asc-version-2-0-0',
+        attributes: {
+          appVersionState: 'READY_FOR_DISTRIBUTION',
+          versionString: '2.0.0',
+        },
+      },
+    ],
+    'malformed versionString': [
+      releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+      releasedIosVersion('asc-version-2-0-0', '2.1.0-beta', live),
+    ],
+    'competing waiting version': [
+      ...realReleasedHistory(),
+      releasedIosVersion('asc-version-next', '3.0.0', {
+        appVersionState: 'WAITING_FOR_REVIEW',
+      }),
+    ],
+    'competing in-review version': [
+      ...realReleasedHistory(),
+      releasedIosVersion('asc-version-next', '3.0.0', {
+        appVersionState: 'IN_REVIEW',
+      }),
+    ],
+    'unknown state': [
+      ...realReleasedHistory(),
+      {
+        type: 'appStoreVersions',
+        id: 'asc-version-unknown',
+        attributes: { platform: 'IOS', versionString: '1.0.0' },
+      },
+    ],
+  };
+  for (const [label, allVersions] of Object.entries(histories)) {
+    const audit = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({ allVersions }),
+    });
+    assert.equal(audit.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+      && entry.action === 'unresolved'
+    )), true, label);
+    assert.equal(audit.plan.some((entry) => (
+      entry.target === 'appStoreVersion' && entry.action === 'create'
+    )), false, label);
+  }
+});
+
+test('remote audit still adopts the single pre-release beside released history', async () => {
+  const payload = minimalReleasePayload();
+  const audit = await auditAppStoreConnectRelease({
+    payload,
+    client: versionAuditClient({
+      allVersions: [
+        ...realReleasedHistory(),
+        releasedIosVersion('asc-version-draft', '3.0.0', {
+          appVersionState: 'PREPARE_FOR_SUBMISSION',
+        }),
+      ],
+    }),
+  });
+  assert.equal(audit.remote.versionId, 'asc-version-draft');
+  assert.equal(audit.remote.versionState, 'PREPARE_FOR_SUBMISSION');
+  assert.equal(audit.plan.some((entry) => (
+    entry.target === 'appStoreVersion' && entry.action === 'update'
+  )), true);
+  assert.equal(audit.plan.some((entry) => (
+    entry.target === 'appStoreVersion' && entry.action === 'create'
+  )), false);
+  assert.equal(audit.plan.some((entry) => (
+    entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+    || entry.code === 'ASC_APP_STORE_VERSION_ADOPTION_AMBIGUOUS'
+  )), false);
+});
+
 test('DEVELOPER_REJECTED iOS version updates versionString/copyright on the same ID', async () => {
   const payload = minimalReleasePayload();
   const client = versionAuditClient({
@@ -2179,6 +2456,131 @@ test('remote apply confirmation token is bound to the current 2.1.0(9) manifest 
       reviewConfirmation: confirmation,
       submitReview: true,
     }), /review-submission-only/u);
+  }));
+
+test('remote apply authorizes the current 3.0.0(10) manifest and a regenerated 3.0.0(11) payload', () =>
+  withTempRoot((root) => {
+    const payload10 = fixturePayload(root, { version: '3.0.0', build: '10' });
+    assert.equal(payload10.release.version, '3.0.0');
+    assert.equal(payload10.release.buildNumber, '10');
+    const manifest10 = createAppStoreReleaseManifest(payload10);
+    const confirmation10 = appStoreConfirmationToken(manifest10, 'apply');
+    assert.equal(assertAppStoreApplyAuthorization({
+      confirmation: confirmation10,
+      manifest: manifest10,
+      payload: payload10,
+      reviewConfirmation: appStoreConfirmationToken(manifest10, 'review'),
+      submitReview: true,
+    }), true);
+
+    // A new upload regenerates the payload from the edited export presets.
+    writeFileSync(
+      join(root, 'apps/game/export_presets.cfg'),
+      fixtureExportPresets({ version: '3.0.0', build: '11' }),
+    );
+    const payload11 = buildAppStoreReleasePayload({ repoRoot: root });
+    assert.equal(payload11.release.version, '3.0.0');
+    assert.equal(payload11.release.buildNumber, '11');
+    const manifest11 = createAppStoreReleaseManifest(payload11);
+    const confirmation11 = appStoreConfirmationToken(manifest11, 'apply');
+    assert.notEqual(confirmation11, confirmation10);
+    assert.equal(assertAppStoreApplyAuthorization({
+      confirmation: confirmation11,
+      manifest: manifest11,
+      payload: payload11,
+      reviewConfirmation: appStoreConfirmationToken(manifest11, 'review'),
+      submitReview: true,
+    }), true);
+
+    // The old build's token cannot authorize the new build, and a stale
+    // payload no longer matches its manifest.
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: confirmation10,
+      manifest: manifest11,
+      payload: payload11,
+    }), /remote-apply token/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: confirmation11,
+      manifest: manifest11,
+      payload: payload10,
+    }), /differs from current metadata/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: confirmation10,
+      manifest: manifest10,
+      payload: payload11,
+    }), /differs from current metadata/u);
+  }));
+
+test('remote apply still rejects tampered, malformed, and mis-purposed current-release confirmations', () =>
+  withTempRoot((root) => {
+    const payload = fixturePayload(root, { version: '3.0.0', build: '11' });
+    const manifest = createAppStoreReleaseManifest(payload);
+    const confirmation = appStoreConfirmationToken(manifest, 'apply');
+    const reviewConfirmation = appStoreConfirmationToken(manifest, 'review');
+
+    const retargeted = structuredClone(manifest);
+    retargeted.payload.release.buildNumber = '10';
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest: retargeted,
+      payload,
+    }), /sha256 verification/u);
+
+    const editedCopy = structuredClone(manifest);
+    editedCopy.payload.inAppPurchases.products[0]
+      .localizations[0].description += ' tampered';
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest: editedCopy,
+      payload,
+    }), /sha256 verification/u);
+
+    for (const mutate of [
+      (release) => { release.buildNumber = ''; },
+      (release) => { release.buildNumber = '11a'; },
+      (release) => { release.version = '3.0.0.0.0'; },
+      (release) => { release.appId = ''; },
+      (release) => { release.bundleId = '   '; },
+      (release) => { release.platform = 'ANDROID'; },
+    ]) {
+      const malformedPayload = structuredClone(payload);
+      mutate(malformedPayload.release);
+      const malformedManifest = createAppStoreReleaseManifest(malformedPayload);
+      assert.throws(() => assertAppStoreApplyAuthorization({
+        confirmation: appStoreConfirmationToken(malformedManifest, 'apply'),
+        manifest: malformedManifest,
+        payload: malformedPayload,
+      }), /ASC_TARGET_RELEASE_MISMATCH/u);
+    }
+    // A missing release never reaches the target check: manifest
+    // verification already rejects it at the availability gate.
+    const missingPayload = structuredClone(payload);
+    delete missingPayload.release;
+    const missingManifest = createAppStoreReleaseManifest(missingPayload);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: 'app-store:apply:missing',
+      manifest: missingManifest,
+      payload: missingPayload,
+    }), /availability-country gate/u);
+
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest,
+      payload,
+      reviewConfirmation: confirmation,
+      submitReview: true,
+    }), /review-submission-only/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: reviewConfirmation,
+      manifest,
+      payload,
+    }), /remote-apply token/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest,
+      payload,
+      reviewConfirmation,
+    }), /without submitting for review/u);
   }));
 
 test('IAP prices read the 10 sale products manual base prices exactly and do not change them', async () => {

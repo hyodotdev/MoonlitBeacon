@@ -54,6 +54,35 @@ const RELEASED_APP_VERSION_STATES = new Set([
   'REPLACED_WITH_NEW_VERSION',
 ]);
 
+const IOS_APP_VERSION_STRING_PATTERN = /^[0-9]+(?:\.[0-9]+){0,2}$/u;
+
+function hasDistinctReleasedHistoryIdentity(versionResources) {
+  const ids = new Set();
+  const versionStrings = new Set();
+  for (const versionResource of versionResources) {
+    if (
+      typeof versionResource?.id !== 'string'
+      || versionResource.id.trim() === ''
+    ) {
+      return false;
+    }
+    if (ids.has(versionResource.id)) return false;
+    ids.add(versionResource.id);
+    const resourceAttributes = attributes(versionResource);
+    if (resourceAttributes.platform !== 'IOS') return false;
+    const versionString = resourceAttributes.versionString;
+    if (
+      typeof versionString !== 'string'
+      || !IOS_APP_VERSION_STRING_PATTERN.test(versionString)
+    ) {
+      return false;
+    }
+    if (versionStrings.has(versionString)) return false;
+    versionStrings.add(versionString);
+  }
+  return true;
+}
+
 export function normalizeAppVersionState(state) {
   if (state === 'READY_FOR_SALE') return 'READY_FOR_DISTRIBUTION';
   if (state === 'PROCESSING_FOR_APP_STORE') {
@@ -83,8 +112,15 @@ export function canCreateNewAppStoreVersion(versionResources) {
   }
   if (versionResources.length === 0) return true;
   const states = versionResources.map(appVersionState);
-  return states.filter((state) => state === 'READY_FOR_DISTRIBUTION').length === 1
-    && states.every((state) => RELEASED_APP_VERSION_STATES.has(state));
+  if (!states.every((state) => RELEASED_APP_VERSION_STATES.has(state))) {
+    return false;
+  }
+  const readyCount = states.filter(
+    (state) => state === 'READY_FOR_DISTRIBUTION',
+  ).length;
+  if (readyCount === 0) return false;
+  if (readyCount === 1) return true;
+  return hasDistinctReleasedHistoryIdentity(versionResources);
 }
 
 export const IAP_PRODUCT_IDS = Object.freeze([

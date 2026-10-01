@@ -20,7 +20,9 @@ const ASC_ORIGIN = 'https://api.appstoreconnect.apple.com';
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const JWT_LIFETIME_SECONDS = 1199;
 const JWT_SAFETY_MARGIN_SECONDS = 120;
-const EXPECTED_RELEASE = Object.freeze({ buildNumber: '9', version: '2.1.0' });
+const RELEASE_VERSION_PATTERN = /^[0-9]+(?:\.[0-9]+){0,2}$/u;
+const RELEASE_BUILD_PATTERN = /^[0-9]+$/u;
+const RELEASE_APP_ID_PATTERN = /^[0-9]+$/u;
 const INTERNAL_BETA_GROUP_NAME = 'Moonlit Beacon Internal';
 const REVIEWABLE_IAP_VERSION_STATES = new Set([
   'PREPARE_FOR_SUBMISSION',
@@ -408,6 +410,26 @@ export function appStoreConfirmationToken(manifest, purpose = 'apply') {
   ].join(':');
 }
 
+function assertSensibleReleaseTarget(release) {
+  if (
+    !release
+    || release.platform !== 'IOS'
+    || typeof release.appId !== 'string'
+    || !RELEASE_APP_ID_PATTERN.test(release.appId)
+    || typeof release.bundleId !== 'string'
+    || release.bundleId.trim() === ''
+    || typeof release.version !== 'string'
+    || !RELEASE_VERSION_PATTERN.test(release.version)
+    || typeof release.buildNumber !== 'string'
+    || !RELEASE_BUILD_PATTERN.test(release.buildNumber)
+  ) {
+    throw fail(
+      'ASC_TARGET_RELEASE_MISMATCH',
+      'release target platform, app identity, version, or build is missing or malformed.',
+    );
+  }
+}
+
 export function assertAppStoreApplyAuthorization({
   confirmation,
   manifest,
@@ -416,16 +438,11 @@ export function assertAppStoreApplyAuthorization({
   submitReview = false,
 } = {}) {
   verifyAppStoreReleaseManifest(manifest, payload);
-  const release = payload.release;
-  if (
-    release.version !== EXPECTED_RELEASE.version
-    || release.buildNumber !== EXPECTED_RELEASE.buildNumber
-  ) {
-    throw fail(
-      'ASC_TARGET_RELEASE_MISMATCH',
-      `this applier only allows ${EXPECTED_RELEASE.version}(${EXPECTED_RELEASE.buildNumber}).`,
-    );
-  }
+  // The caller builds `payload` from the current local export metadata and
+  // re-verifies `manifest` against it (scripts/app-store-release.mjs), so
+  // this binds authorization to that freshly verified current pair plus the
+  // exact manifest-bound confirmation below — never to a pinned past release.
+  assertSensibleReleaseTarget(payload?.release);
   if (confirmation !== appStoreConfirmationToken(manifest, 'apply')) {
     throw fail('ASC_APPLY_CONFIRMATION_MISMATCH', 'remote-apply token bound to the manifest differs.');
   }
