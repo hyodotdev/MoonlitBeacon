@@ -13,6 +13,10 @@ extends Node2D
 var pierce: int = 1
 var damage: int = 10
 var speed: float = 210.0
+## Seconds this shot may fly. Range is speed × flight, so short weapons die young.
+var flight_time: float = LIFETIME
+## Splash radius on burst or burnout. 0 flies clean; the knight's shell booms.
+var blast_radius: float = 0.0
 ## Times invested in the Starfall line. Used only for visual rank.
 var upgrade_rank: int = 0
 ## Look while moon embers are charged. Does not touch damage, pierce, or hitbox.
@@ -39,6 +43,16 @@ static var _shared_centers: PackedVector2Array = PackedVector2Array()
 static var _shared_body_radii: PackedFloat32Array = PackedFloat32Array()
 static var _shared_body_cells: Dictionary = {}
 static var _shared_max_body_radius: float = 0.0
+## Work diagnostics. Same shape as the missile's: naive counts the full-scan
+## equivalent, broadphase the candidates actually visited, and the cache pair
+## splits rebuilds from shared reuse. Off in normal play.
+static var _work_diagnostics: bool = false
+static var _diagnostic_naive_checks: int = 0
+static var _diagnostic_broadphase_checks: int = 0
+static var _diagnostic_cache_builds: int = 0
+static var _diagnostic_cache_scanned: int = 0
+static var _diagnostic_cache_hits: int = 0
+static var _diagnostic_detonations: int = 0
 
 @onready var _sprite: Sprite2D = $Sprite
 
@@ -63,6 +77,9 @@ var _frame_body_radii: PackedFloat32Array = PackedFloat32Array()
 var _frame_body_cells: Dictionary = {}
 var _frame_max_body_radius: float = 0.0
 var _dead: bool = false
+## Last physics tick this shell popped a strike spark. Same-tick marks share
+## one pop (see `_spark`); the detonation landing always flashes.
+var _spark_frame: int = -1
 
 
 func _ready() -> void:
@@ -72,6 +89,37 @@ func _ready() -> void:
 func set_candidates(candidates: Array[Node2D], shared_cache_key: int = 0) -> void:
 	_candidates = candidates
 	_geometry_cache_key = shared_cache_key if shared_cache_key != 0 else get_instance_id()
+
+
+## Start/stop the work counters. No per-instance lane state to seed: arrows
+## count only aggregate candidate visits, cache builds and detonations.
+static func begin_work_diagnostics() -> void:
+	_work_diagnostics = true
+	_diagnostic_naive_checks = 0
+	_diagnostic_broadphase_checks = 0
+	_diagnostic_cache_builds = 0
+	_diagnostic_cache_scanned = 0
+	_diagnostic_cache_hits = 0
+	_diagnostic_detonations = 0
+
+
+static func end_work_diagnostics() -> Dictionary:
+	var result: Dictionary = {
+		"naive_checks": _diagnostic_naive_checks,
+		"broadphase_checks": _diagnostic_broadphase_checks,
+		"cache_builds": _diagnostic_cache_builds,
+		"cache_scanned": _diagnostic_cache_scanned,
+		"cache_hits": _diagnostic_cache_hits,
+		"detonations": _diagnostic_detonations,
+	}
+	_work_diagnostics = false
+	_diagnostic_naive_checks = 0
+	_diagnostic_broadphase_checks = 0
+	_diagnostic_cache_builds = 0
+	_diagnostic_cache_scanned = 0
+	_diagnostic_cache_hits = 0
+	_diagnostic_detonations = 0
+	return result
 
 
 func configure_profile(
@@ -131,6 +179,7 @@ func launch(direction: Vector2) -> void:
 	_direction = direction.normalized()
 	_base_direction = _direction
 	_age = 0.0
+	_left = maxf(flight_time, 0.05)
 	rotation = _direction.angle()
 	_sprite.position = Vector2.ZERO
 
@@ -187,7 +236,11 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 	_left -= delta
 	if _left <= 0.0:
-		queue_free()
+		# A shell with a blast still goes off where it falls, even on a clean miss.
+		if blast_radius > 0.0 and not _dead:
+			_finish()
+		else:
+			queue_free()
 
 
 func _profile_heading(_delta: float) -> Vector2:
@@ -313,7 +366,12 @@ func _cache_body_geometry() -> void:
 		_frame_body_radii = _shared_body_radii
 		_frame_body_cells = _shared_body_cells
 		_frame_max_body_radius = _shared_max_body_radius
+		if _work_diagnostics:
+			_diagnostic_cache_hits += 1
 		return
+	if _work_diagnostics:
+		_diagnostic_cache_builds += 1
+		_diagnostic_cache_scanned += _candidates.size()
 
 	_frame_bodies = []
 	_frame_centers = PackedVector2Array()
@@ -371,11 +429,15 @@ func _sweep(from: Vector2, destination: Vector2) -> void:
 		var best: Node2D = null
 		var best_at: Vector2 = Vector2.ZERO
 		var best_t: float = INF
+		if _work_diagnostics:
+			_diagnostic_naive_checks += _frame_bodies.size()
 		for cell_y in range(first_cell_y, last_cell_y + 1):
 			for cell_x in range(first_cell_x, last_cell_x + 1):
 				var bucket = _frame_body_cells.get(Vector2i(cell_x, cell_y))
 				if bucket == null:
 					continue
+				if _work_diagnostics:
+					_diagnostic_broadphase_checks += (bucket as Array).size()
 				for candidate_index: int in bucket:
 					var center: Vector2 = _frame_centers[candidate_index]
 					var reach: float = HIT_RADIUS + _frame_body_radii[candidate_index]
@@ -437,17 +499,27 @@ func _strike(spirit: Node2D, at: Vector2) -> void:
 	_hit.append(spirit)
 	spirit.take_damage(damage, at)
 	_spark(at)
+	if get_tree() != null:
+		get_tree().call_group(
+			&"moonlit_combat_sfx", "combat_impact", at, false)
 
 	pierce -= 1
 	if pierce <= 0:
-		_burst()
+		_finish()
 
 
 ## A small spark bursts at the hit.
 ##
 ## A hit that only shows **on the hit side** is not enough. The striker needs
-## a mark too or there is no feel. Pierce bursts at every place it passes.
-func _spark(at: Vector2) -> void:
+## a mark too or there is no feel. Pierce bursts at every place it passes,
+## except marks landed in the same tick share one pop: same shell, same
+## frame, same few pixels, so one flash reads exactly like three.
+func _spark(at: Vector2, size_mult: float = 1.0, force: bool = false) -> void:
+	if not force:
+		var frame: int = Engine.get_physics_frames()
+		if _spark_frame == frame:
+			return
+		_spark_frame = frame
 	var flash: Sprite2D = Sprite2D.new()
 	flash.texture = _sprite.texture
 	flash.hframes = 4
@@ -459,7 +531,7 @@ func _spark(at: Vector2) -> void:
 	# At a 0.025 tier factor even the top-price hero's flash was 12% larger
 	# than default, visible only side by side. "Costly characters should
 	# feel chewy" means that gap must be seen at once, so spread it to 2×.
-	flash.scale = Vector2.ONE * (0.42 + 0.085 * float(vfx_tier))
+	flash.scale = Vector2.ONE * (0.42 + 0.085 * float(vfx_tier)) * size_mult
 	flash.rotation = randf() * TAU
 	flash.global_position = at
 	flash.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
@@ -527,6 +599,44 @@ func _impact_points() -> PackedVector2Array:
 
 func _glow(color: Color, energy: float, alpha: float) -> Color:
 	return Color(color.r * energy, color.g * energy, color.b * energy, alpha)
+
+
+## Heavy-shell landing: every attackable body in the blast takes the shell's damage
+## once, except bodies the shell already struck directly. One big flash.
+func _detonate() -> void:
+	if _dead:
+		return
+	_cache_body_geometry()
+	if _work_diagnostics:
+		_diagnostic_detonations += 1
+		_diagnostic_naive_checks += _frame_bodies.size()
+		_diagnostic_broadphase_checks += _frame_bodies.size()
+	for index in _frame_bodies.size():
+		var spirit: Node2D = _frame_bodies[index]
+		if not is_instance_valid(spirit) or _hit.has(spirit) \
+				or not spirit.is_attackable():
+			continue
+		var center: Vector2 = _frame_centers[index]
+		var reach: float = blast_radius + _frame_body_radii[index]
+		if global_position.distance_squared_to(center) > reach * reach:
+			continue
+		_hit.append(spirit)
+		spirit.take_damage(damage, global_position)
+	_spark(global_position, 2.4, true)
+	if get_tree() != null:
+		get_tree().call_group(
+			&"moonlit_combat_sfx", "combat_impact", global_position, true)
+	_burst()
+
+
+## End of the flight: splash first when this shot carries a blast, then fade.
+func _finish() -> void:
+	if _dead:
+		return
+	if blast_radius > 0.0:
+		_detonate()
+		return
+	_burst()
 
 
 func _burst() -> void:

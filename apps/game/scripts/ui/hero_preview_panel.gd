@@ -30,35 +30,35 @@ const CAPTURE_HERO_VISUAL_BY_PATH: Dictionary = {
 const CAPTURE_KEEPER_COPY_BY_LOCALE: Dictionary = {
 	"ko": {
 		"name": "봉화지기",
-		"description": "하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨",
+		"description": "랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · 달빛 파문·질긴 목숨",
 		"SHRINE_SELECTED": "선택 중",
 		"SHRINE_OWNED": "해금됨",
 		"HERO_PREVIEW_IAP_LOCKED": "잠김 · 기기 스토어에서 구매",
 	},
 	"en": {
 		"name": "Beacon Keeper",
-		"description": "6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life",
+		"description": "Lantern shotgun · 6 hearts · move -15% · dash CD +30% · Moonlit Ripple/Tenacious Life",
 		"SHRINE_SELECTED": "Selected",
 		"SHRINE_OWNED": "Unlocked",
 		"HERO_PREVIEW_IAP_LOCKED": "Locked · purchase in device store",
 	},
 	"ja": {
 		"name": "烽火の守り人",
-		"description": "ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命",
+		"description": "ランタンの散弾 · ハート6 · 移速 -15% · ダッシュCD +30% · 月光の波紋・不屈の命",
 		"SHRINE_SELECTED": "選択中",
 		"SHRINE_OWNED": "解放済み",
 		"HERO_PREVIEW_IAP_LOCKED": "未購入 · 端末ストアで購入",
 	},
 	"zh_CN": {
 		"name": "烽火守护者",
-		"description": "6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命",
+		"description": "灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · 月光波纹·坚韧生命",
 		"SHRINE_SELECTED": "已选择",
 		"SHRINE_OWNED": "已解锁",
 		"HERO_PREVIEW_IAP_LOCKED": "未购买 · 在设备商店购买",
 	},
 	"zh_TW": {
 		"name": "烽火守護者",
-		"description": "6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命",
+		"description": "燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · 月光波紋·堅韌生命",
 		"SHRINE_SELECTED": "已選擇",
 		"SHRINE_OWNED": "已解鎖",
 		"HERO_PREVIEW_IAP_LOCKED": "未購買 · 在裝置商店購買",
@@ -140,9 +140,10 @@ func close_preview() -> void:
 
 ## How this hero's shot flies. The only evidence you see before buying.
 ##
-## The six heroes are a sidegrade with the same damage and fire rate, so the
-## only reason to pick is feel, and a portrait cannot tell a pistol-straight
-## shot from one that draws a wide circle. Show the name and the real trail
+## The six heroes are sidegrades with distinct weapons — private bases, lanes
+## and cadences in `HeroWeapons` — so the motion name and trail promise flight
+## shape only, never damage. A portrait cannot tell a pistol-straight shot
+## from one that draws a wide circle. Show the name and the real trail
 ## together.
 func _refresh_motion() -> void:
 	if _hero == null:

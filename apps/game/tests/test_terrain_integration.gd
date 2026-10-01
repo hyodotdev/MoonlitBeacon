@@ -65,9 +65,12 @@ func _run() -> void:
 	if run_hero != null:
 		_expect_equal(run_hero.resource_path, KEEPER, "run-start Keeper resource path")
 	_expect_equal(int(arena.get("_max_health")), 6, "Keeper starts with 6 hearts")
-	_expect_equal(player.attack_damage, 13, "Keeper starting damage +25%")
-	_expect_approx(player.speed, 81.6, "Keeper starting move speed -15%")
-	_expect_approx(player.dash_cooldown_time, 1.495, "Keeper dash cooldown +30%")
+	# Since real primary weapons the Keeper's close side is a soft wide sweep:
+	# round(10 × 1.25 × 0.35) = 4, not the old full-strength 13. Move 112 and
+	# dash 0.95 are the new traversal bases.
+	_expect_equal(player.attack_damage, 4, "Keeper starting damage +25%")
+	_expect_approx(player.speed, 95.2, "Keeper starting move speed -15%")
+	_expect_approx(player.dash_cooldown_time, 1.235, "Keeper dash cooldown +30%")
 	_expect_equal(_hero_sprite_source(player), KEEPER_IDLE, "run-start Keeper sheet")
 
 	# A payment refund immediately reverts vault select to Warden, but the already-open run's look, start
@@ -83,9 +86,9 @@ func _run() -> void:
 	if run_hero != null:
 		_expect_equal(run_hero.resource_path, KEEPER, "Keeper resource path kept after refund")
 	_expect_equal(int(arena.get("_max_health")), 6, "Keeper hearts kept after refund")
-	_expect_equal(player.attack_damage, 13, "Keeper damage kept after refund")
-	_expect_approx(player.speed, 81.6, "Keeper move speed kept after refund")
-	_expect_approx(player.dash_cooldown_time, 1.495, "Keeper dash kept after refund")
+	_expect_equal(player.attack_damage, 4, "Keeper damage kept after refund")
+	_expect_approx(player.speed, 95.2, "Keeper move speed kept after refund")
+	_expect_approx(player.dash_cooldown_time, 1.235, "Keeper dash kept after refund")
 	_expect_equal(_hero_sprite_source(player), KEEPER_IDLE, "Keeper sheet kept after refund")
 	_expect_equal(player.get_parent(), arena, "Player shared y-sort root")
 	_expect_equal(spirit.get_parent(), arena, "Spirit shared y-sort root")

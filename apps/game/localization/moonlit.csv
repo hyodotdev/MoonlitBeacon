@@ -191,10 +191,10 @@ CYCLE_CLEARED,%d순환 시작 · 하트 1칸 회복,Wave %d · restore 1 heart,�
 BEACON_CHOICE_TITLE,봉화의 불꽃을 고르세요,CHOOSE THE BEACON FLAME,烽火の灯し方を選べ,选择烽火点燃方式,選擇烽火點燃方式
 BEACON_CHOICE_SUBTITLE,이번 순환 과충전 %d/3,Overcharges this wave %d/3,今回の過充電 %d/3,本轮过充能 %d/3,本輪過充能 %d/3
 BEACON_CHOICE_LEFT_TITLE,안정 점화,SAFE KINDLE,安定点火,稳定点燃,穩定點燃
-BEACON_CHOICE_LEFT_DESC,바로 지피고 다음 지형으로 간다,Kindle now and move to the next terrain,すぐ灯して次の地形へ進む,立即点燃并前往下一地形,立即點燃並前往下一地形
+BEACON_CHOICE_LEFT_DESC,바로 점화 · 탈출 카운트 +1 · 싸움 없음,Kindle now · escape counts up · no fight,すぐ点火 · 脱出カウント+1 · 戦闘なし,立即点燃 · 逃脱计数+1 · 无需战斗,立即點燃 · 逃脫計數+1 · 無需戰鬥
 BEACON_CHOICE_RIGHT_TITLE,과충전,OVERCHARGE,過充電,过充能,過充能
-BEACON_CHOICE_RIGHT_DESC,6.5초를 지키면 코어와 성장을 얻는다,Hold for 6.5 seconds to earn a core and growth,6.5秒守ればコアと成長を得る,坚守6.5秒获得核心和成长,堅守6.5秒獲得核心和成長
-BEACON_CHOICE_RIGHT_DESC_MAX,6.5초를 지키면 추가 성장을 얻는다,Hold for 6.5 seconds to gain extra growth,6.5秒守れば追加の成長を得る,坚守6.5秒获得额外成长,堅守6.5秒獲得額外成長
+BEACON_CHOICE_RIGHT_DESC,고리 안에서 6.5초 방어 · 코어와 성장 획득,Hold the ring 6.5s · earn a core and growth,輪の中で6.5秒防衛 · コアと成長を得る,在光环内坚守6.5秒 · 获得核心和成长,在光環內堅守6.5秒 · 獲得核心和成長
+BEACON_CHOICE_RIGHT_DESC_MAX,고리 안에서 6.5초 방어 · 추가 성장 획득,Hold the ring 6.5s · earn extra growth,輪の中で6.5秒防衛 · 追加の成長を得る,在光环内坚守6.5秒 · 获得额外成长,在光環內堅守6.5秒 · 獲得額外成長
 CYCLE_CHOICE_TITLE,%d순환을 지켜냈다,WAVE %d SECURED,第%d巡を守り抜いた,守住第%d轮,守住第%d輪
 CYCLE_CHOICE_SUBTITLE,지금 정산하거나 보상을 들고 더 깊이 간다,Cash out now or carry the reward deeper,今精算するか報酬を持ってさらに奥へ進む,现在结算或带着奖励继续深入,現在結算或帶著獎勵繼續深入
 CYCLE_CHOICE_LEFT_TITLE,귀환 · 정산,RETURN · CASH OUT,帰還 · 精算,返回 · 结算,返回 · 結算
@@ -276,17 +276,17 @@ BOON_DEW_SENSE_DESC,이슬 확률 +%s%%,Moon Dew chance +%s%%,月露の確率 +%
 BOON_SHARD_SENSE_NAME,조각 감각,Shard Sense,欠片の気配,碎片感知,碎片感知
 BOON_SHARD_SENSE_DESC,조각 획득 +%s%%,Shard gain +%s%%,欠片獲得量 +%s%%,碎片获取 +%s%%,碎片獲取 +%s%%
 HERO_WARDEN_NAME,달빛 파수꾼,Moonlit Warden,月光の番人,月光守望者,月光守望者
-HERO_WARDEN_DESC,하트 5칸 · 고른 성능 · 손에 든 봉화 초에서 베기와 화살을 부름,5 hearts · balanced · calls slash and arrows from the beacon candle,ハート5 · バランス型 · 手にした烽火のろうそくから斬撃と矢を放つ,5颗心 · 均衡型 · 从手中的烽火蜡烛召唤斩击与箭矢,5顆心 · 均衡型 · 從手中的烽火蠟燭召喚斬擊與箭矢
+HERO_WARDEN_DESC,넓은 검 베기 · 하트 5칸 · 고른 성능,Wide sword cuts · 5 hearts · balanced,広い剣の斬撃 · ハート5 · バランス型,宽阔剑斩 · 5颗心 · 均衡型,寬闊劍斬 · 5顆心 · 均衡型
 HERO_DANCER_NAME,그림자 무희,Shadow Dancer,影の舞姫,暗影舞者,暗影舞者
-HERO_DANCER_DESC,하트 3칸 · 이속 +43.75% · 피해 -10% · 대시 쿨 -40% · 달빛 고리·잰걸음,3 hearts · move +43.75% · dmg -10% · dash CD -40% · Moon Ring/Light Step,ハート3 · 移速 +43.75% · ダメージ -10% · ダッシュCD -40% · 月光の輪・軽快な足さばき,3颗心 · 移速 +43.75% · 伤害 -10% · 冲刺冷却 -40% · 月光环·轻捷步法,3顆心 · 移速 +43.75% · 傷害 -10% · 衝刺冷卻 -40% · 月光環·輕捷步法
+HERO_DANCER_DESC,쌍검 연타 · 하트 3칸 · 이속 +41.07% · 대시 쿨 -40% · 달빛 고리·잰걸음,Twin-blade flurry · 3 hearts · move +41.07% · dash CD -40% · Moon Ring/Light Step,双剣の連撃 · ハート3 · 移速 +41.07% · ダッシュCD -40% · 月光の輪・軽快な足さばき,双刃连击 · 3颗心 · 移速 +41.07% · 冲刺冷却 -40% · 月光环·轻捷步法,雙刃連擊 · 3顆心 · 移速 +41.07% · 衝刺冷卻 -40% · 月光環·輕捷步法
 HERO_KEEPER_NAME,봉화지기,Beacon Keeper,烽火の守り人,烽火守护者,烽火守護者
-HERO_KEEPER_DESC,하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨,6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life,ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命,6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命,6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命
+HERO_KEEPER_DESC,랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · 달빛 파문·질긴 목숨,Lantern shotgun · 6 hearts · move -15% · dash CD +30% · Moonlit Ripple/Tenacious Life,ランタンの散弾 · ハート6 · 移速 -15% · ダッシュCD +30% · 月光の波紋・不屈の命,灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · 月光波纹·坚韧生命,燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · 月光波紋·堅韌生命
 HERO_KNIGHT_NAME,백월 기사,Silver Moon Knight,白月の騎士,白月骑士,白月騎士
-HERO_KNIGHT_DESC,하트 5칸 · 이속 -12% · 피해 +8% · 대시 쿨 +25% · 긴 칼날·그림자 장막,5 hearts · move -12% · dmg +8% · dash CD +25% · Long Blade/Shadow Veil,ハート5 · 移速 -12% · ダメージ +8% · ダッシュCD +25% · 長い刃・影の帳,5颗心 · 移速 -12% · 伤害 +8% · 冲刺冷却 +25% · 长刃·暗影帷幕,5顆心 · 移速 -12% · 傷害 +8% · 衝刺冷卻 +25% · 長刃·暗影帷幕
+HERO_KNIGHT_DESC,중형 캐넌 · 하트 5칸 · 이속 -12% · 대시 쿨 +25% · 긴 칼날·그림자 장막,Heavy cannon blast · 5 hearts · move -12% · dash CD +25% · Long Blade/Shadow Veil,重カノン · ハート5 · 移速 -12% · ダッシュCD +25% · 長い刃・影の帳,重型火炮 · 5颗心 · 移速 -12% · 冲刺冷却 +25% · 长刃·暗影帷幕,重型火炮 · 5顆心 · 移速 -12% · 衝刺冷卻 +25% · 長刃·暗影帷幕
 HERO_ECLIPSE_NAME,월식 마도사,Eclipse Mage,月蝕の魔導士,月蚀法师,月蝕法師
-HERO_ECLIPSE_DESC,하트 3칸 · 이속 +8% · 피해 +10% · 대시 쿨 -31.75% · 빠른 손·달빛 걸음,3 hearts · move +8% · dmg +10% · dash CD -31.75% · Swift Hand/Moonlit Step,ハート3 · 移速 +8% · ダメージ +10% · ダッシュCD -31.75% · 早業・月影の歩み,3颗心 · 移速 +8% · 伤害 +10% · 冲刺冷却 -31.75% · 快手·月影步,3顆心 · 移速 +8% · 傷害 +10% · 衝刺冷卻 -31.75% · 快手·月影步
+HERO_ECLIPSE_DESC,궤도 낫 고리 · 하트 3칸 · 이속 +8% · 대시 쿨 -31.75% · 빠른 손·달빛 걸음,Orbiting scythe ring · 3 hearts · move +8% · dash CD -31.75% · Swift Hand/Moonlit Step,周回する鎌の輪 · ハート3 · 移速 +8% · ダッシュCD -31.75% · 早業・月影の歩み,环绕镰刀 · 3颗心 · 移速 +8% · 冲刺冷却 -31.75% · 快手·月影步,環繞鐮刀 · 3顆心 · 移速 +8% · 衝刺冷卻 -31.75% · 快手·月影步
 HERO_SAGE_NAME,성좌 현자,Constellation Sage,星座の賢者,星座贤者,星座賢者
-HERO_SAGE_DESC,하트 4칸 · 이속 -8% · 피해 -16% · 대시 쿨 +15% · 쌍월륜·관통 월륜,4 hearts · move -8% · dmg -16% · dash CD +15% · Twin Moon Discs/Piercing Moon Disc,ハート4 · 移速 -8% · ダメージ -16% · ダッシュCD +15% · 双月輪・貫通月輪,4颗心 · 移速 -8% · 伤害 -16% · 冲刺冷却 +15% · 双月轮·穿透月轮,4顆心 · 移速 -8% · 傷害 -16% · 衝刺冷卻 +15% · 雙月輪·穿透月輪
+HERO_SAGE_DESC,관통 라이플 · 하트 4칸 · 이속 -8% · 대시 쿨 +15% · 쌍월륜·관통 월륜,Piercing rifle · 4 hearts · move -8% · dash CD +15% · Piercing Moon Disc/Twin Moon Discs,貫通ライフル · ハート4 · 移速 -8% · ダッシュCD +15% · 双月輪・貫通月輪,穿透步枪 · 4颗心 · 移速 -8% · 冲刺冷却 +15% · 双月轮·穿透月轮,穿透步槍 · 4顆心 · 移速 -8% · 衝刺冷卻 +15% · 雙月輪·穿透月輪
 HERO_SWIPE_HINT,‹ 밀어서 영웅 6명 보기 ›,‹ Swipe to view all 6 heroes ›,‹ スワイプして6人を見る ›,‹ 滑动查看全部6名英雄 ›,‹ 滑動查看全部6名英雄 ›
 SCORE_SHARDS,얻은 조각,Shards earned,獲得した欠片,获得碎片,獲得碎片
 LADDER_TITLE,순위표,High Scores,ハイスコア,最高分,最高分

@@ -13,7 +13,7 @@ extends CharacterBody2D
 enum Facing { DOWN, UP, LEFT, RIGHT }
 
 ## Walk speed. World pixels per second.
-## Crosses the 4/3 camera's 606px visible width in about 6.3s. Fast enough to move between
+## Crosses the 4/3 camera's 606px visible width in about 5.4s. Fast enough to move between
 ## beacons without feeling stuck, not so fast the zoomed view feels rushed.
 ## Default walk speed. Relics raise it; restore falls back to this.
 ## Center for body-wrapping effects. Root (0,0) is **at the feet.**
@@ -28,12 +28,12 @@ enum Facing { DOWN, UP, LEFT, RIGHT }
 ## Better a measured value than trusting the math and missing twice.
 const BODY_CENTER: Vector2 = Vector2(0.0, -17.0)
 
-const DEFAULT_SPEED: float = 96.0
+const DEFAULT_SPEED: float = 112.0
 @export var speed: float = DEFAULT_SPEED
 
 ## Response when stopping and starting. Larger values slide more.
-const ACCELERATION: float = 900.0
-const FRICTION: float = 1200.0
+const ACCELERATION: float = 1100.0
+const FRICTION: float = 1500.0
 
 ## Slower than this counts as standing still.
 const WALK_THRESHOLD: float = 4.0
@@ -42,7 +42,7 @@ const WALK_THRESHOLD: float = 4.0
 const DASH_SPEED: float = 320.0
 const DASH_SECONDS: float = 0.19
 ## Until it can be used again. Too short and dash becomes the only movement.
-const DEFAULT_DASH_COOLDOWN: float = 1.15
+const DEFAULT_DASH_COOLDOWN: float = 0.95
 var dash_cooldown_time: float = DEFAULT_DASH_COOLDOWN
 ## Short moonlight speed lines left only at the dash start, not a full-body afterimage.
 ## Must end before the dash (0.19s) so it does not linger behind a stopped body.
@@ -94,9 +94,16 @@ const SLASH_OFFSET: float = 13.0
 const SLASH_PIVOT: Vector2 = Vector2(0, -6)
 ## Where the little guardian holds the beacon candle in both hands.
 ##
-## Ranged attacks must start here so shots do not pop in outside the body, or look like
-## they are fired from a prop held to the side.
+## Melee heroes keep their small moonlight backup here: the spark shots leave
+## from the candle, and the cast cue sits on it. Gun heroes aim from the hand
+## and fire from the muzzle instead (see `muzzle_origin`).
 const MOONLIGHT_ORIGIN: Vector2 = Vector2(0, -20)
+## Where the held weapon sits: hand height at the chest, below the face.
+const WEAPON_GRIP: Vector2 = Vector2(0, -8)
+## Side-hand shift for vertical aim. A gun held dead-center points straight
+## through the nose; 10px right puts the barrel beside the face (eyes at ±4,
+## hood edge at ±10) while the stock stays on the body's silhouette.
+const HAND_SIDE_X: float = 10.0
 const MOONLIGHT_CAST_SECONDS: float = MoonlightCast.CAST_SECONDS
 ## Hero art is already painted as if lit by moonlight. Undo the Player root night tint
 ## (0.315, 0.35, 0.57) on the sprite only so the face does not die into a purple blotch.
@@ -131,6 +138,15 @@ const FACING_NAMES: Array[StringName] = [&"down", &"up", &"left", &"right"]
 @onready var _slash: Sprite2D = $Slash
 @onready var _moonfire: Node2D = $MoonfireAura
 @onready var _breathe: AnimationPlayer = $Breathe
+
+## Drawn held-weapon layer and Eclipse orbit blades. Built in code so the Player scene
+## keeps one shape for every hero; both clear/freeze with the body itself.
+var _rig: WeaponRig = null
+var _scythe: ScytheOrbit = null
+## Cannon recoil kick. One short tween, killed by the next shot.
+var _recoil_play: Tween = null
+## Sprite rest height. Recoil must settle exactly here or the feet drift.
+var _sprite_base_y: float = -8.0
 
 var _walking: bool = false
 var _attack_cooldown: float = 0.0
@@ -169,6 +185,7 @@ func _ready() -> void:
 	# Final heroes already have 4-frame idle, so full-body offset animation is unnecessary.
 	# Even at 4× scale a 1px Breathe is a 4px jump, so pin the Sprite baseline.
 	_breathe.stop()
+	_sprite_base_y = _sprite.position.y
 	_sprite.offset = Vector2(0.0, -8.0)
 	_set_facing(facing)
 	_slash.visible = false
@@ -177,6 +194,16 @@ func _ready() -> void:
 	_slash_back.visible = false
 	_slash_back.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	add_child(_slash_back)
+	_rig = WeaponRig.new()
+	_rig.name = "WeaponRig"
+	_rig.position = WEAPON_GRIP
+	add_child(_rig)
+	_rig.configure(_hero_profile, _hero_primary, _hero_secondary)
+	_scythe = ScytheOrbit.new()
+	_scythe.name = "ScytheOrbit"
+	_scythe.position = BODY_CENTER
+	add_child(_scythe)
+	_scythe.configure(_hero_primary, _hero_secondary)
 
 
 ## Build eight animations from the chosen hero's sheets.
@@ -196,12 +223,19 @@ func apply_hero_visual(hero: Hero) -> bool:
 	_hero_secondary = hero.projectile_secondary
 	_moonlight_cast.configure_profile(
 		_hero_profile, _hero_primary, _hero_secondary, _hero_vfx_tier)
+	if _rig != null:
+		_rig.configure(_hero_profile, _hero_primary, _hero_secondary)
+	if _scythe != null:
+		_scythe.configure(_hero_primary, _hero_secondary)
+		_scythe.set_active(_hero_profile == Hero.AttackProfile.ECLIPSE
+			and not _debug_direction_capture_vfx_suppressed)
 	_sprite.sprite_frames = frames
 	_sprite.self_modulate = HERO_READABILITY_TINT
 	# Custom cells larger than the default 16px still keep feet at the same world point.
 	# Sprite offset stays -8, so only raise the node by half the extra height.
 	# A 32px cell then is position -8 + offset -8 = center -16, so the bottom edge is at 0.
 	_sprite.position.y = -float(maxi(hero.sprite_cell.y - 16, 0)) * 0.5
+	_sprite_base_y = _sprite.position.y
 	_play_current()
 	return true
 
@@ -282,7 +316,21 @@ func attack(direction: Vector2, full_moon: bool = false) -> void:
 		return
 	_attack_cooldown = attack_cooldown_time
 	face_toward(direction)
+	var melee_sidearm: bool = HeroWeapons.primary_side(_hero_profile) \
+		!= HeroWeapons.Side.MELEE
+	_seat_held_weapon(direction, melee_sidearm)
+	if _hero_profile == Hero.AttackProfile.ECLIPSE and not full_moon:
+		# The scythe sweep is a ring, not a crescent: pulse the orbit instead.
+		if _scythe != null:
+			_scythe.pulse()
+		if _rig != null:
+			_rig.flash(direction, WeaponRig.RING_PULSE, melee_sidearm)
+		return
 	_show_slash(direction, full_moon)
+	if _rig != null:
+		_rig.flash(direction, WeaponRig.TWIN_CUT
+			if _hero_profile == Hero.AttackProfile.DANCER else WeaponRig.CUT,
+			melee_sidearm)
 
 
 ## Show the blade. Art is one frame facing +x, so it is rotated into place.
@@ -398,9 +446,45 @@ func set_charge_overcharge(value: bool) -> void:
 	_ring.set_overcharge(value)
 
 
-## World position of the candle held in both hands. Arrows and missiles share it.
+## World position of the candle held in both hands. Melee backup shots and
+## their cast cue share it; gun heroes fire from `muzzle_origin` instead.
 func moonlight_origin() -> Vector2:
 	return to_global(MOONLIGHT_ORIGIN)
+
+
+## Grip shift for one aim: vertical-dominant aims hold the weapon in the side
+## hand so the barrel clears the face; horizontal aims stay centered.
+static func side_shift(aim: Vector2) -> Vector2:
+	if absf(aim.y) > absf(aim.x):
+		return Vector2(HAND_SIDE_X, 0.0)
+	return Vector2.ZERO
+
+
+## World point shots are aimed from: the hand for gun heroes, the candle for
+## melee heroes whose ranged slot is a spark backup.
+func shot_anchor() -> Vector2:
+	if HeroWeapons.primary_side(_hero_profile) == HeroWeapons.Side.RANGED:
+		return to_global(WEAPON_GRIP)
+	return to_global(MOONLIGHT_ORIGIN)
+
+
+## Aim point for one resolved aim: the side hand when the aim runs vertical,
+## so the muzzle sits on the aim line instead of firing parallel to it.
+## Melee heroes keep the candle whatever the aim.
+func hand_for_aim(aim: Vector2) -> Vector2:
+	if HeroWeapons.primary_side(_hero_profile) != HeroWeapons.Side.RANGED:
+		return to_global(MOONLIGHT_ORIGIN)
+	return to_global(WEAPON_GRIP + side_shift(aim))
+
+
+## World launch point for one resolved aim: the held gun's muzzle — the same
+## seat the rig's flash lights — for gun heroes, the candle for melee backup.
+func muzzle_origin(aim: Vector2) -> Vector2:
+	if HeroWeapons.primary_side(_hero_profile) != HeroWeapons.Side.RANGED:
+		return to_global(MOONLIGHT_ORIGIN)
+	var flat: Vector2 = aim.normalized() if aim.length() > 0.01 else Vector2.RIGHT
+	return to_global(WEAPON_GRIP + side_shift(flat)) \
+		+ flat * WeaponRig.muzzle_length(_muzzle_kind())
 
 
 ## A 0.16s cue that "the character sent moonlight" without growing a separate attack sheet.
@@ -412,6 +496,56 @@ func play_moonlight_cast(direction: Vector2, count: int = 1) -> void:
 	if cast_direction.length() < 0.01:
 		cast_direction = facing_vector()
 	_moonlight_cast.play(cast_direction, count)
+	var ranged_sidearm: bool = HeroWeapons.primary_side(_hero_profile) \
+		== HeroWeapons.Side.MELEE
+	if ranged_sidearm:
+		_moonlight_cast.position = MOONLIGHT_ORIGIN
+	else:
+		_moonlight_cast.position = to_local(muzzle_origin(cast_direction))
+	_seat_held_weapon(cast_direction, ranged_sidearm)
+	if _rig != null and not _debug_direction_capture_vfx_suppressed:
+		_rig.flash(cast_direction, _muzzle_kind(), ranged_sidearm)
+
+
+## Seat the held weapon for one aim. The primary owns the hand: a vertical
+## primary aim moves the grip to the side hand so the barrel clears the face.
+## A sidearm cue never moves the held primary.
+func _seat_held_weapon(aim: Vector2, sidearm: bool) -> void:
+	if sidearm or _rig == null:
+		return
+	_rig.position = WEAPON_GRIP + side_shift(aim.normalized()
+		if aim.length() > 0.01 else Vector2.RIGHT)
+
+
+## Muzzle grammar per hero. Rifle snaps, the shotgun blooms, the cannon booms.
+func _muzzle_kind() -> StringName:
+	match _hero_profile:
+		Hero.AttackProfile.SAGE:
+			return WeaponRig.MUZZLE_RIFLE
+		Hero.AttackProfile.KEEPER:
+			return WeaponRig.MUZZLE_SCATTER
+		Hero.AttackProfile.KNIGHT:
+			return WeaponRig.MUZZLE_CANNON
+	return WeaponRig.MUZZLE_SPARK
+
+
+## Heavy-cannon kick: the sprite hops back a few pixels and settles. One short tween,
+## killed by the next shot, so rapid fire never stacks offsets into a jitter.
+func recoil(direction: Vector2) -> void:
+	if _sprite == null or direction.length() < 0.01:
+		return
+	if _recoil_play != null and _recoil_play.is_valid():
+		_recoil_play.kill()
+	_sprite.position.x = 0.0
+	_sprite.position.y = _sprite_base_y
+	var kick: Vector2 = -direction.normalized() * 5.0
+	_recoil_play = create_tween()
+	_recoil_play.tween_property(_sprite, "position:x", kick.x, 0.05)
+	_recoil_play.parallel().tween_property(
+		_sprite, "position:y", _sprite_base_y + kick.y * 0.4, 0.05)
+	_recoil_play.tween_property(_sprite, "position:x", 0.0, 0.09)
+	_recoil_play.parallel().tween_property(
+		_sprite, "position:y", _sprite_base_y, 0.09)
 
 
 ## Pass Arena's moonfire awakening state to the body-side marker.
@@ -478,11 +612,25 @@ func debug_set_direction_capture_vfx_suppressed(value: bool) -> void:
 		_moonlight_cast.visible = true
 		_ring.visible = true
 		_moonfire.visible = true
+		if _rig != null:
+			_rig.visible = true
+		if _scythe != null:
+			_scythe.set_active(_hero_profile == Hero.AttackProfile.ECLIPSE)
 		return
 	_dash_streak_left = 0.0
 	_continue_burst_left = 0.0
 	if _slash_play != null and _slash_play.is_valid():
 		_slash_play.kill()
+	if _recoil_play != null and _recoil_play.is_valid():
+		_recoil_play.kill()
+	_recoil_play = null
+	_sprite.position.x = 0.0
+	_sprite.position.y = _sprite_base_y
+	if _rig != null:
+		_rig.clear()
+		_rig.visible = false
+	if _scythe != null:
+		_scythe.set_active(false)
 	_slash_play = null
 	_slash.visible = false
 	if _slash_back != null and is_instance_valid(_slash_back):
@@ -558,6 +706,9 @@ func resume_after_continue(clear_radius: float) -> void:
 	process_mode = Node.PROCESS_MODE_INHERIT
 	set_physics_process(true)
 	set_walking(false)
+	if _scythe != null:
+		_scythe.set_active(_hero_profile == Hero.AttackProfile.ECLIPSE
+			and not _debug_direction_capture_vfx_suppressed)
 	_continue_burst_radius = maxf(clear_radius, 1.0)
 	_continue_burst_left = CONTINUE_BURST_SECONDS
 	queue_redraw()
@@ -584,6 +735,10 @@ func stop_for_result() -> void:
 	_moonlight_cast.stop()
 	_ring.set_progress(0.0)
 	_moonfire.set_active(false)
+	if _rig != null:
+		_rig.clear()
+	if _scythe != null:
+		_scythe.set_active(false)
 	for ghost in get_tree().get_nodes_in_group(&"player_afterimages"):
 		if is_instance_valid(ghost):
 			ghost.queue_free()

@@ -38,6 +38,7 @@ func _run() -> void:
 	await _test_freeze_and_thaw_discard_progress()
 	await _test_inactive_beacon_discards_pending_choice()
 	await _test_inactive_beacon_discards_overcharge()
+	await _test_defense_ring_and_copy()
 	await _test_arena_choice_and_overcharge_flow()
 
 	if _failed > 0:
@@ -198,6 +199,67 @@ func _test_inactive_beacon_discards_overcharge() -> void:
 	_expect_color(_light(beacon).color, normal_light, "hidden overcharging beacon color restored")
 	_expect_false(_monitoring(beacon), "hidden overcharging beacon monitoring stopped")
 	await _free_beacon(beacon)
+
+
+## The choice promises "the ring": a mint circle at exactly the overcharge
+## defense radius, shown while choosing or defending, hidden otherwise. The copy
+## names no engine units and says what each side does.
+func _test_defense_ring_and_copy() -> void:
+	var beacon_script: Script = load("res://scripts/objectives/beacon.gd") as Script
+	var arena_script: Script = load("res://scripts/gameplay/arena.gd") as Script
+	_expect_equal(beacon_script.OVERCHARGE_RING_RADIUS,
+		arena_script.OVERCHARGE_RADIUS,
+		"ring art radius matches the defense rule")
+	var beacon: Node2D = await _spawn_unlit_beacon()
+	_expect_equal(float(beacon.call("defense_ring_radius")), -1.0,
+		"no ring before the choice")
+	_complete_charge(beacon)
+	await get_tree().process_frame
+	var want: float = 88.0 / maxf(absf(beacon.scale.x), 0.01)
+	_expect_approx(float(beacon.call("defense_ring_radius")), want, 0.001,
+		"ring rises at the defense radius while choosing")
+	_expect_true(bool(beacon.call("begin_overcharge")), "defense starts for the ring check")
+	_expect_approx(float(beacon.call("defense_ring_radius")), want, 0.001,
+		"ring holds at the defense radius while defending")
+	_expect_true(bool(beacon.call("resolve_overcharge")), "defense resolves for the ring check")
+	_expect_equal(float(beacon.call("defense_ring_radius")), -1.0,
+		"ring clears once the beacon lights")
+	await _free_beacon(beacon)
+	# Exact choice copy in every locale, pinned as a shipping contract.
+	var locales: Array[String] = ["ko", "en", "ja", "zh_CN", "zh_TW"]
+	var left: Array[String] = [
+		"바로 점화 · 탈출 카운트 +1 · 싸움 없음",
+		"Kindle now · escape counts up · no fight",
+		"すぐ点火 · 脱出カウント+1 · 戦闘なし",
+		"立即点燃 · 逃脱计数+1 · 无需战斗",
+		"立即點燃 · 逃脫計數+1 · 無需戰鬥",
+	]
+	var right: Array[String] = [
+		"고리 안에서 6.5초 방어 · 코어와 성장 획득",
+		"Hold the ring 6.5s · earn a core and growth",
+		"輪の中で6.5秒防衛 · コアと成長を得る",
+		"在光环内坚守6.5秒 · 获得核心和成长",
+		"在光環內堅守6.5秒 · 獲得核心和成長",
+	]
+	var right_max: Array[String] = [
+		"고리 안에서 6.5초 방어 · 추가 성장 획득",
+		"Hold the ring 6.5s · earn extra growth",
+		"輪の中で6.5秒防衛 · 追加の成長を得る",
+		"在光环内坚守6.5秒 · 获得额外成长",
+		"在光環內堅守6.5秒 · 獲得額外成長",
+	]
+	var previous_locale: String = TranslationServer.get_locale()
+	for index in locales.size():
+		TranslationServer.set_locale(locales[index])
+		_expect_equal(tr("BEACON_CHOICE_LEFT_DESC"), left[index],
+			locales[index] + " safe kindle says what it does")
+		_expect_equal(tr("BEACON_CHOICE_RIGHT_DESC"), right[index],
+			locales[index] + " overcharge names the ring, not pixels")
+		_expect_equal(tr("BEACON_CHOICE_RIGHT_DESC_MAX"), right_max[index],
+			locales[index] + " maxed overcharge names the ring, not pixels")
+		_expect_false("px" in tr("BEACON_CHOICE_RIGHT_DESC"),
+			locales[index] + " overcharge copy hides engine units")
+	TranslationServer.set_locale(previous_locale)
 
 
 func _test_arena_choice_and_overcharge_flow() -> void:

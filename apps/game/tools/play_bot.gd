@@ -941,10 +941,11 @@ func _goal() -> Dictionary:
 		"name": "beacon"}
 
 
-## The slash reaches thirty-four pixels and does most of the killing in the first minutes: whatever comes
+## The close weapon does most of the killing in the first minutes: whatever comes
 ## within reach is cut down, so the pack is met where the player stands, stepping out of the way of a
 ## touch and of what is thrown, and not led round the map. With the hearts low the player runs a wide
-## circle instead, looking for dew.
+## circle instead, looking for dew. Three-heart heroes fight on at two hearts: fleeing on the first
+## scratch strands their short-range primaries out of every fight while the pack trails behind.
 func _fight_goal(none: Dictionary) -> Dictionary:
 	var nearest_distance: float = 9999.0
 	for spirit in _spirits:
@@ -952,7 +953,8 @@ func _fight_goal(none: Dictionary) -> Dictionary:
 			nearest_distance = minf(nearest_distance, spirit.global_position.distance_to(_me))
 	if nearest_distance > 260.0:
 		return none
-	if int(_arena.get("_health")) > 2:
+	var flee_at: int = 1 if int(_arena.get("_max_health")) <= 3 else 2
+	if int(_arena.get("_health")) > flee_at:
 		return {"pos": _me, "has": true, "hold": true, "name": "fight"}
 	var center: Vector2 = Room.MAP * 0.5
 	var from_center: Vector2 = _me - center

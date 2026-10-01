@@ -109,7 +109,7 @@ func _run() -> void:
 		var opening: Dictionary = _opening_state(hero)
 		_test_sidegrade(hero, opening, index)
 		ranged_budgets.append(_ranged_budget(hero, opening))
-		melee_rates.append(hero.damage_scale / float(opening["attack_cooldown_scale"]))
+		melee_rates.append(_melee_side_output(hero, opening))
 
 		var arrow: Node2D = ARROW_SCENE.instantiate() as Node2D
 		root.add_child(arrow)
@@ -177,16 +177,27 @@ func _run() -> void:
 		previous = hero
 
 	_test_color_distance(primary_colors)
-	_expect_equal(ranged_budgets, [5, 5, 6, 5, 6, 5],
+	# Since real primary weapons, the volley budget is damage_scale × the profile's
+	# spec multiplier — a primary for ranged heroes, a quiet sidearm for close ones.
+	# Price order still must not read as a power order.
+	_expect_equal(ranged_budgets, [3, 3, 41, 22, 4, 24],
 		"raising price does not increase power-0 long-range total damage")
 	for index in melee_rates.size():
-		_expect_true(melee_rates[index] >= 0.8 and melee_rates[index] <= 1.3,
-			str(CASES[index]["id"]) + " melee DPS sidegrade range")
+		var hero_id: String = str(CASES[index]["id"])
+		# The melee side is a primary up close and a sidearm at range; the behavior
+		# test (`test_hero_weapons`) proves the shapes, this guards the structure.
+		if hero_id in ["warden", "dancer", "eclipse"]:
+			_expect_true(float(melee_rates[index]) >= 12.0,
+				hero_id + " melee side is a primary")
+		else:
+			_expect_true(float(melee_rates[index]) <= 10.0,
+				hero_id + " melee side is a sidearm")
 	_expect_true(not _strictly_increasing(ranged_budgets), "no ranged-DPS price ladder")
 	_expect_true(not _strictly_increasing_floats(melee_rates), "no melee-DPS price ladder")
 	_test_tier_is_visual_only()
 	await _test_profiles_hit_aimed_targets()
 	await _test_missile_power_never_reverses()
+	_test_guided_lane_agreement()
 	await _test_missile_store_capture_visual_proof()
 	# Run every profile's live physics/draw for at least two frames, so a getter-only
 	# matching, then catch regressions that error at runtime in orbit arrays or draw shapes.
@@ -431,9 +442,23 @@ func _test_sidegrade(hero: Hero, opening: Dictionary, index: int) -> void:
 
 
 func _ranged_budget(hero: Hero, opening: Dictionary) -> int:
-	var base_damage: int = maxi(int(round(5.0 * hero.damage_scale)), 1)
+	# Mirrors `Arena._settle_rates`: hero scale times the profile spec multiplier.
+	var spec: Dictionary = HeroWeapons.ranged_spec(hero.attack_profile)
+	var base_damage: int = maxi(
+		int(round(5.0 * hero.damage_scale * float(spec["damage"]))), 1)
 	return MissileProgression.damage_budget(
 		base_damage, 0, int(opening["count_cards"]))
+
+
+## Melee-side damage per second at run open: spec damage over spec cadence, with
+## opening attack-speed relics applied the way `_opening_state` already tracks.
+func _melee_side_output(hero: Hero, opening: Dictionary) -> float:
+	var spec: Dictionary = HeroWeapons.melee_spec(hero.attack_profile)
+	var damage: float = float(maxi(
+		int(round(10.0 * hero.damage_scale * float(spec["damage"]))), 1))
+	var interval: float = float(spec["cooldown"]) \
+		* float(opening["attack_cooldown_scale"])
+	return damage / maxf(interval, 0.01)
 
 
 func _raw_dominates(costlier: Hero, cheaper: Hero) -> bool:
@@ -599,6 +624,70 @@ func _test_missile_power_never_reverses() -> void:
 		if is_instance_valid(target):
 			target.queue_free()
 	await process_frame
+
+
+## The guided budget split covers exactly the lanes the arena fires. A wide hero
+## at low power used to fire more meteors than budgeted lanes, and every extra
+## lane fell back to the anchor's whole damage — a power-0 Keeper dealt five
+## full budgets. Now size, sum, and the live volley all agree.
+func _test_guided_lane_agreement() -> void:
+	for expected in CASES:
+		var hero_id: String = str(expected["id"])
+		var profile: Hero.AttackProfile = expected["profile"]
+		var hero_lanes: int = int(HeroWeapons.ranged_spec(profile)["lanes"])
+		var previous_anchor: int = 0
+		for power in range(MissileProgression.MAX_POWER + 1):
+			var lanes: PackedInt32Array = MissileProgression.guided_lane_damages(
+				5, power, 0, hero_lanes)
+			_expect_true(lanes[0] >= previous_anchor,
+				"%s power %d anchor never drops below an earlier rank" % [hero_id, power])
+			previous_anchor = lanes[0]
+			var want_size: int = maxi(
+				hero_lanes, MissileProgression.volley_for_power(power))
+			var budget: int = MissileProgression.damage_budget(5, power, 0)
+			_expect_equal(lanes.size(), want_size,
+				"%s power %d guided split covers fired lanes" % [hero_id, power])
+			_expect_equal(_sum_packed(lanes), maxi(budget, want_size),
+				"%s power %d guided split sums to budget-or-floor" % [hero_id, power])
+			var weakest: int = 1 << 30
+			var anchor_holds: bool = true
+			for lane in lanes:
+				weakest = mini(weakest, lane)
+				if lanes[0] < lane:
+					anchor_holds = false
+			_expect_true(weakest >= 1,
+				"%s power %d every guided lane deals at least 1" % [hero_id, power])
+			_expect_true(anchor_holds,
+				"%s power %d anchor meteor stays the strongest" % [hero_id, power])
+		# Live path at the widest divergence: power-0 base lanes fire once each,
+		# and the volley total is one budget, not one budget per lane.
+		var flat: PackedInt32Array = MissileProgression.guided_lane_damages(
+			5, 0, 0, hero_lanes)
+		var missile: Node2D = MISSILE_SCENE.instantiate() as Node2D
+		root.add_child(missile)
+		missile.set("damage", flat[0])
+		var no_targets: Array[Node2D] = []
+		missile.call("set_candidates", no_targets)
+		missile.call("launch_volley", no_targets, maxi(hero_lanes, 1), flat)
+		_expect_equal(_sum_ints(missile.get("_damages") as Array),
+			maxi(MissileProgression.damage_budget(5, 0, 0), hero_lanes),
+			hero_id + " power-0 live volley totals one budget")
+		missile.queue_free()
+		# Awakened homing at power 5 splits the same way: one budget, no clones.
+		var hot: PackedInt32Array = MissileProgression.guided_lane_damages(
+			6, 5, 1, hero_lanes)
+		var budget5: int = MissileProgression.damage_budget(6, 5, 1)
+		_expect_equal(hot.size(), maxi(hero_lanes, MissileProgression.volley_for_power(5)),
+			hero_id + " awakened split covers fired lanes")
+		_expect_equal(_sum_packed(hot), maxi(budget5, hot.size()),
+			hero_id + " awakened split sums to budget-or-floor")
+
+
+func _sum_packed(values: PackedInt32Array) -> int:
+	var total: int = 0
+	for value in values:
+		total += value
+	return total
 
 
 func _hero_path(id: String) -> String:

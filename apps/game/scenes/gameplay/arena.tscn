@@ -1,7 +1,7 @@
 [gd_scene load_steps=27 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="beacon"]
-[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg" id="bgm"]
+[ext_resource type="AudioStream" path="res://assets/custom/audio/music/arena_kinetic.wav" id="bgm"]
 [ext_resource type="Script" path="res://scripts/audio/music_player.gd" id="music"]
 [ext_resource type="Script" path="res://scripts/gameplay/arena.gd" id="arena"]
 [ext_resource type="PackedScene" path="res://scenes/ui/relic_panel.tscn" id="relic"]
@@ -85,6 +85,36 @@ script = ExtResource("music")
 stream = ExtResource("focus")
 volume_db = -14.0
 max_polyphony = 4
+bus = &"Sfx"
+
+[node name="WeaponSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+volume_db = -9.0
+max_polyphony = 3
+bus = &"Sfx"
+
+[node name="SidearmSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+volume_db = -15.0
+max_polyphony = 2
+bus = &"Sfx"
+
+[node name="ImpactSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+volume_db = -12.0
+max_polyphony = 4
+bus = &"Sfx"
+
+[node name="RewardSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+volume_db = -8.0
+max_polyphony = 2
+bus = &"Sfx"
+
+[node name="GrowthSfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+volume_db = -8.0
+max_polyphony = 2
 bus = &"Sfx"
 
 [node name="Ui" type="CanvasLayer" parent="."]

@@ -91,10 +91,19 @@ static func lane_damages(total_damage: int, volley: int) -> PackedInt32Array:
 ## then raise center damage by 1 per later core. Leftover budget splits across
 ## side meteors within 1, so a wider volley does not clone total damage and
 ## does not reverse-power at close range.
+##
+## `hero_lanes` is the hero's base lane count: the split always covers
+## `maxi(hero_lanes, volley_for_power(power))`, the same count the arena fires.
+## Without it a wide hero at low power fired more meteors than budgeted lanes,
+## and every extra lane fell back to the anchor's whole damage — five full
+## budgets for a power-0 Keeper. The anchor still takes at least 1: when the
+## budget itself is smaller than the lane count, every lane deals 1, exactly
+## like the straight path's floor.
 static func guided_lane_damages(
-		base_damage: int, power: int, count_cards: int = 0) -> PackedInt32Array:
+		base_damage: int, power: int, count_cards: int = 0,
+		hero_lanes: int = 1) -> PackedInt32Array:
 	var safe_power: int = clampi(power, 0, MAX_POWER)
-	var volley: int = volley_for_power(safe_power)
+	var volley: int = maxi(hero_lanes, volley_for_power(safe_power))
 	var total: int = damage_budget(base_damage, safe_power, count_cards)
 	if safe_power < HOMING_AT:
 		return straight_lane_damages(total, volley)
@@ -108,7 +117,7 @@ static func guided_lane_damages(
 	var straight_center: int = straight_lane_damages(
 		straight_budget, volley_for_power(HOMING_AT - 1))[0]
 	var anchor_floor: int = straight_center + safe_power - (HOMING_AT - 1)
-	var anchor: int = mini(anchor_floor, maximum_anchor)
+	var anchor: int = maxi(1, mini(anchor_floor, maximum_anchor))
 	var result: PackedInt32Array = PackedInt32Array([anchor])
 	if volley <= 1:
 		return result

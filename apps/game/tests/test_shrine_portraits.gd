@@ -22,31 +22,31 @@ const KEEPER_EXPECTED_COPY: Dictionary = {
 		"name": "봉화지기",
 		"state": "선택 중",
 		"locked_state": "잠김 · 기기 스토어에서 구매",
-		"description": "하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨",
+		"description": "랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · 달빛 파문·질긴 목숨",
 	},
 	"en": {
 		"name": "Beacon Keeper",
 		"state": "Selected",
 		"locked_state": "Locked · purchase in device store",
-		"description": "6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life",
+		"description": "Lantern shotgun · 6 hearts · move -15% · dash CD +30% · Moonlit Ripple/Tenacious Life",
 	},
 	"ja": {
 		"name": "烽火の守り人",
 		"state": "選択中",
 		"locked_state": "未購入 · 端末ストアで購入",
-		"description": "ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命",
+		"description": "ランタンの散弾 · ハート6 · 移速 -15% · ダッシュCD +30% · 月光の波紋・不屈の命",
 	},
 	"zh_CN": {
 		"name": "烽火守护者",
 		"state": "已选择",
 		"locked_state": "未购买 · 在设备商店购买",
-		"description": "6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命",
+		"description": "灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · 月光波纹·坚韧生命",
 	},
 	"zh_TW": {
 		"name": "烽火守護者",
 		"state": "已選擇",
 		"locked_state": "未購買 · 在裝置商店購買",
-		"description": "6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命",
+		"description": "燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · 月光波紋·堅韌生命",
 	},
 }
 
@@ -79,7 +79,39 @@ func _ready() -> void:
 		await _test_keeper_screen_touch_select()
 		_test_back_closes_preview_first()
 		await _test_capture_visual_guards()
+		_test_hero_descs_lead_with_weapons()
 	_finish()
+
+
+## Every hero description opens with its primary weapon in every locale, so the
+## shrine sells the weapon first and the numbers second. Keeper's full lines
+## stay pinned in `KEEPER_EXPECTED_COPY`; the other five pin their weapon head.
+func _test_hero_descs_lead_with_weapons() -> void:
+	var heads: Dictionary = {
+		"HERO_WARDEN_DESC": ["넓은 검 베기", "Wide sword cuts", "広い剣の斬撃", "宽阔剑斩", "寬闊劍斬"],
+		"HERO_DANCER_DESC": ["쌍검 연타", "Twin-blade flurry", "双剣の連撃", "双刃连击", "雙刃連擊"],
+		"HERO_KEEPER_DESC": ["랜턴 산탄", "Lantern shotgun", "ランタンの散弾", "灯笼霰弹", "燈籠霰彈"],
+		"HERO_KNIGHT_DESC": ["중형 캐넌", "Heavy cannon blast", "重カノン", "重型火炮", "重型火炮"],
+		"HERO_ECLIPSE_DESC": ["궤도 낫 고리", "Orbiting scythe ring", "周回する鎌の輪", "环绕镰刀", "環繞鐮刀"],
+		"HERO_SAGE_DESC": ["관통 라이플", "Piercing rifle", "貫通ライフル", "穿透步枪", "穿透步槍"],
+	}
+	var order: Array[String] = ["ko", "en", "ja", "zh_CN", "zh_TW"]
+	var original_locale: String = TranslationServer.get_locale()
+	for key in heads.keys():
+		var wants: Array = heads[key] as Array
+		for index in order.size():
+			TranslationServer.set_locale(order[index])
+			_expect_true(str(tr(key)).begins_with(str(wants[index])),
+				order[index] + " " + key + " leads with its weapon")
+	# The weapon table gives each hero private bases, lanes and cooldowns, so a
+	# flat cross-hero damage percent cannot be meaningful: no description shows one.
+	var damage_marks: Array[String] = ["피해 ", "dmg ", "ダメージ ", "伤害 ", "傷害 "]
+	for key in heads.keys():
+		for index in order.size():
+			TranslationServer.set_locale(order[index])
+			_expect_true(not str(tr(key)).contains(damage_marks[index]),
+				order[index] + " " + key + " shows no flat damage percent")
+	TranslationServer.set_locale(original_locale)
 
 
 func _test_layout_bounds() -> void:

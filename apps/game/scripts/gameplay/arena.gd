@@ -269,17 +269,56 @@ const DEW_LIMIT: int = 3
 const DEW_DROP_COOLDOWN: float = 12.0
 ## Score given instead when health is full so dew is not dropped.
 const DEW_FULL_HEALTH_SCORE: int = 150
-const ARENA_THEME: AudioStream = preload("res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg")
+const ARENA_THEME: AudioStream = preload("res://assets/custom/audio/music/arena_kinetic.wav")
+const ARENA_EMBER_THEME: AudioStream = preload("res://assets/custom/audio/music/arena_ember.wav")
+const ARENA_WATCH_THEME: AudioStream = preload("res://assets/custom/audio/music/arena_watch.wav")
 
 const VOICE_PANEL: Script = preload("res://scripts/ui/voice_panel.gd")
 
-## BGM tempo. The source track is exploration music — too leisurely for survivor hands —
-## so the goal is "bright and urgent like Cookie Run." No new track; playback rate does it.
-## Pitch rises a little each cycle so late-game squeeze is heard as well as seen.
-const BGM_PITCH_BASE: float = 1.14
+## BGM tempo. The loop is already cut driving, so the base rate stays near 1.0.
+## Pitch still rises a little each cycle so late-game squeeze is heard as well as seen.
+const BGM_PITCH_BASE: float = 1.0
 const BGM_PITCH_PER_CYCLE: float = 0.03
-const BGM_PITCH_MAX: float = 1.32
-const GUARDIAN_THEME: AudioStream = preload("res://assets/third_party/ninja_adventure/audio/music/guardian_theme.ogg")
+const BGM_PITCH_MAX: float = 1.18
+## Guardian fights push harder than explore. The guardian pool is also cut faster
+## (140–160 BPM against the arena's 126–138), so the step up is tempo, not volume.
+const GUARDIAN_PITCH_BONUS: float = 0.10
+const GUARDIAN_THEME: AudioStream = preload("res://assets/custom/audio/music/guardian_assault.wav")
+const GUARDIAN_HUNT_THEME: AudioStream = preload("res://assets/custom/audio/music/guardian_hunt.wav")
+const GUARDIAN_STORM_THEME: AudioStream = preload("res://assets/custom/audio/music/guardian_storm.wav")
+## Draw pools for the music bag. Index 0 keeps the round-1 approved track; the arena
+## tscn still defaults to it, and `_ready` swaps in the drawn track before first mix.
+const ARENA_THEMES: Array[AudioStream] = [ARENA_THEME, ARENA_EMBER_THEME, ARENA_WATCH_THEME]
+const GUARDIAN_THEMES: Array[AudioStream] = [GUARDIAN_THEME, GUARDIAN_HUNT_THEME, GUARDIAN_STORM_THEME]
+## A looped track wraps its playback position by its whole length (12s+); only
+## a drop this deep rolls the bag, so clock jitter can never cut a phrase.
+const BGM_WRAP_MARGIN: float = 2.0
+
+## Original combat cues, baked by `tools/build_combat_audio.py`.
+const SFX_SWORD: AudioStream = preload("res://assets/custom/audio/sfx/weapon_sword.wav")
+const SFX_TWIN: AudioStream = preload("res://assets/custom/audio/sfx/weapon_twin.wav")
+const SFX_RIFLE: AudioStream = preload("res://assets/custom/audio/sfx/weapon_rifle.wav")
+const SFX_SHOTGUN: AudioStream = preload("res://assets/custom/audio/sfx/weapon_shotgun.wav")
+const SFX_CANNON: AudioStream = preload("res://assets/custom/audio/sfx/weapon_cannon.wav")
+const SFX_SCYTHE: AudioStream = preload("res://assets/custom/audio/sfx/weapon_scythe.wav")
+const SFX_IMPACT: AudioStream = preload("res://assets/custom/audio/sfx/impact_hit.wav")
+const SFX_KILL: AudioStream = preload("res://assets/custom/audio/sfx/kill_pop.wav")
+const SFX_LEVEL: AudioStream = preload("res://assets/custom/audio/sfx/level_up.wav")
+const SFX_CORE: AudioStream = preload("res://assets/custom/audio/sfx/core_pickup.wav")
+const SFX_OVERCHARGE: AudioStream = preload("res://assets/custom/audio/sfx/overcharge_win.wav")
+
+## Projectiles call `combat_impact` on this group. No audio nodes on shots.
+const COMBAT_SFX_GROUP: StringName = &"moonlit_combat_sfx"
+const WEAPON_SFX_GAP: float = 0.07
+const IMPACT_SFX_GAP: float = 0.09
+const KILL_SFX_GAP: float = 0.12
+const WEAPON_DB: float = -9.0
+const IMPACT_DB: float = -12.0
+## Reward-pop resting gain, matching the RewardSfx node. The growth voice shares it.
+const REWARD_DB: float = -8.0
+## Sidearm attacks speak through the weapon voice at this lower gain.
+const SIDEARM_DB: float = -15.0
+const DUCK_DB: float = -22.0
 
 ## Moon embers enemies leave, and moonfire awakening.
 ##
@@ -388,6 +427,11 @@ enum ResultAction {
 @onready var _compass: Control = $Ui/Compass
 @onready var _event_sfx: AudioStreamPlayer = $EventSfx
 @onready var _pickup_sfx: AudioStreamPlayer = $PickupSfx
+@onready var _weapon_sfx: AudioStreamPlayer = $WeaponSfx
+@onready var _sidearm_sfx: AudioStreamPlayer = $SidearmSfx
+@onready var _impact_sfx: AudioStreamPlayer = $ImpactSfx
+@onready var _reward_sfx: AudioStreamPlayer = $RewardSfx
+@onready var _growth_sfx: AudioStreamPlayer = $GrowthSfx
 @onready var _zone_wipe: ColorRect = $Ui/ZoneWipe
 @onready var _zone_wipe_label: Label = $Ui/ZoneWipe/Label
 
@@ -551,6 +595,42 @@ var _arrow_damage: int = ARROW_BASE_HIT
 var _arrow_timer: float = 0.6
 ## Park the leftover shot of an even-count volley on alternating sides. Center shot always stays.
 var _arrow_fan_side: float = 1.0
+## This run's weapon bases from `HeroWeapons`. Set in `_base_stats()` so `_recompute()`
+## restores them after a hit exactly like speed and damage.
+var _melee_base_cd: float = Player.DEFAULT_ATTACK_COOLDOWN
+var _melee_spec_mult: float = 1.0
+var _ranged_base_cd: float = ARROW_COOLDOWN
+var _ranged_spec_mult: float = 1.0
+var _ranged_range: float = ARROW_RANGE
+var _ranged_lanes: int = 1
+var _ranged_fan: float = 27.0
+var _ranged_speed: float = 210.0
+var _ranged_blast: float = 0.0
+## Dancer alternates twin cuts left/right around the aim each swing.
+var _twin_side: float = 1.0
+## Combat-voice rate limits. Five bounded voices (primary, sidearm, impact,
+## kill, growth) plus these floors keep rapid hits and pickups from stacking
+## into a wall. Each weapon voice keeps its own gap, so a sidearm backup can
+## never arm the gate the signature primary cue needs in the same tick.
+var _weapon_sfx_left: float = 0.0
+var _sidearm_sfx_left: float = 0.0
+var _impact_sfx_left: float = 0.0
+var _kill_sfx_left: float = 0.0
+var _ducked: bool = false
+## Music-only RNG for the track bag. Gameplay keeps the global `randf` stream, so
+## a track draw can never shift a spawn roll and no bot seed depends on music.
+var _music_rng := RandomNumberGenerator.new()
+var _arena_bag: Array[int] = []
+var _guardian_bag: Array[int] = []
+var _arena_track: int = -1
+var _guardian_track: int = -1
+## Which pool the current BGM came from: the end-of-track roll draws the same
+## pool back. A mode switch always re-seeds it, so a pending wrap can never
+## continue the pool that just ended.
+var _music_arena_pool: bool = true
+## Last-seen BGM playback position. A looped track wraps this to zero at its
+## end; the wrap is the roll signal, read off the audio clock.
+var _bgm_last_pos: float = 0.0
 ## Missile power from kill cores. Separate from relic cards so the first upgrade timing is fixed.
 var _missile_power: int = 0
 var _missile_progress: int = 0
@@ -685,8 +765,20 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_recenter)
 	_recenter()
 
-	# Start the first run bright too. Bgm is autoplay, so only pitch is applied here.
-	_bgm.pitch_scale = _arena_bgm_pitch()
+	# Start the first run on a drawn arena track. Bgm autoplays the tscn default,
+	# but this runs before the first mix, so the swap is silent.
+	_music_rng.randomize()
+	_select_arena_theme()
+	# Projectiles report hits here instead of carrying audio nodes of their own.
+	add_to_group(COMBAT_SFX_GROUP)
+	# Ducking must also work while paused, when `_process` never runs. Panels and
+	# the pause notification drive it directly; the per-frame tick only covers the
+	# unpaused dialogue and voice-line cases.
+	_relic.visibility_changed.connect(_update_duck)
+	_run_choice.visibility_changed.connect(_update_duck)
+	_result.visibility_changed.connect(_update_duck)
+	# String-based: the attached dialogue script owns `finished`, not `Control`.
+	_dialogue.connect(&"finished", _update_duck)
 
 	# Hero lines appear as a dialogue-style strip at the bottom. The old balloon floated over the
 	# player's head, and because the camera follows the player it **always covered the hero** —
@@ -701,6 +793,7 @@ func _ready() -> void:
 	if ui_layer != null:
 		ui_layer.add_child(_voice_panel)
 		ui_layer.move_child(_voice_panel, _dialogue.get_index())
+		_voice_panel.visibility_changed.connect(_update_duck)
 
 	_capture_run_hero()
 	# Art comes from the same chosen Hero as the stats. Build eight animations from each of the six
@@ -1046,6 +1139,21 @@ func _base_stats() -> void:
 	_player.speed = Player.DEFAULT_SPEED * hero.speed_scale \
 		+ Vault.grace(Boon.Grace.START_SPEED)
 	_player.dash_cooldown_time = Player.DEFAULT_DASH_COOLDOWN * hero.dash_scale
+	# This run's weapon bases. Price and vfx_tier never enter: only the profile row.
+	var melee: Dictionary = HeroWeapons.melee_spec(hero.attack_profile)
+	var ranged: Dictionary = HeroWeapons.ranged_spec(hero.attack_profile)
+	_player.attack_range = float(melee["reach"])
+	_player.attack_arc = float(melee["arc"])
+	_melee_base_cd = float(melee["cooldown"])
+	_melee_spec_mult = float(melee["damage"])
+	_ranged_base_cd = float(ranged["cooldown"])
+	_ranged_spec_mult = float(ranged["damage"])
+	_ranged_range = float(ranged["range"])
+	_ranged_lanes = maxi(int(ranged["lanes"]), 1)
+	_ranged_fan = float(ranged["fan"])
+	_ranged_speed = float(ranged["speed"])
+	_ranged_blast = float(ranged["blast"])
+	_arrow_pierce = 1 + maxi(int(ranged["pierce"]), 0)
 	_damage_mult *= hero.damage_scale * (1.0 + Vault.grace(Boon.Grace.START_DAMAGE))
 	_arrow_mult *= hero.damage_scale * (1.0 + Vault.grace(Boon.Grace.START_DAMAGE))
 	_dew_multiplier *= 1.0 + Vault.grace(Boon.Grace.DEW_LUCK)
@@ -2919,12 +3027,20 @@ func _restart() -> void:
 ## Mute audio before swapping the scene.
 ##
 ## Otherwise `AudioFlush.wait()` lands on the transition frame and the screen freezes.
-## Same issue the title hit in Lesson 3. Each of the three beacons also has its own SFX, so
-## restarting with all lit stacks that wait four times.
+## Same issue the title hit in Lesson 3. Each voice is released, then stopped
+## and dropped outright: a cue that started this same frame has not armed the
+## player's flush flag yet, so `release()` alone would let it play on past
+## the transition. The three beacons carry their own SFX and release too.
 func _release_audio() -> void:
-	_bgm.release()
-	_event_sfx.release()
-	_pickup_sfx.release()
+	for voice in [
+		_bgm, _event_sfx, _pickup_sfx, _weapon_sfx, _sidearm_sfx,
+		_impact_sfx, _reward_sfx, _growth_sfx,
+	]:
+		if voice == null or not is_instance_valid(voice):
+			continue
+		(voice as AudioStreamPlayer).release()
+		(voice as AudioStreamPlayer).stop()
+		(voice as AudioStreamPlayer).stream = null
 	for beacon in _beacons:
 		beacon.release_audio()
 	await get_tree().process_frame
@@ -2935,6 +3051,9 @@ func _release_audio() -> void:
 ## Playing → pause → title. The app does not quit in one press.
 ## Pass through the pause screen once so an in-progress run is not wiped by accident.
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_UNPAUSED:
+		_update_duck()
+		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
 	if _transitioning:
@@ -3005,6 +3124,8 @@ func _process(delta: float) -> void:
 	_player.set_move_input(_stick.get_value())
 	_tick_tutorial()
 	_tick_shake(delta)
+	_tick_combat_sfx(delta)
+	_tick_music_rotation()
 	_tick_overcharge(delta)
 	_tick_guardian_call()
 
@@ -3629,6 +3750,8 @@ func _on_gate_entered(which: int = 0) -> void:
 		_route[_zone_index] = chosen_terrain
 	# Pickups move below by entrance-relative coords, then resolve against the new terrain collision.
 	_change_world(false, false)
+	# A new region draws the next arena track; the screen is still covered.
+	_select_arena_theme()
 	_player.position = _room.nearest_clear(_zone_entry_position(), 4.0)
 	_player.velocity = Vector2.ZERO
 	_player.reset_physics_interpolation()
@@ -3835,18 +3958,43 @@ func _clear_friendly_projectiles() -> void:
 ## **Finding enemies is the arena's job, not the player's.** The enemy list already lives here, and
 ## this is the third place Lesson 6's "the player does not even read the stick" rule applies.
 func _nearest_spirit() -> Node2D:
+	var melee: Dictionary = HeroWeapons.melee_spec(_hero_for_run().attack_profile)
+	if bool(melee.get("orbit", false)):
+		# The scythe only bites its ring: trigger on band presence, not the hole.
+		return _nearest_in_band(_player.attack_range
+			* HeroWeapons.ORBIT_INNER_FRACTION, _player.attack_range)
 	return _nearest_in(_player.attack_range)
+
+
+## Nearest spirit between two distances. Null if the band is empty.
+func _nearest_in_band(inner: float, outer: float) -> Node2D:
+	var best: Node2D = null
+	var best_distance_sq: float = outer * outer
+	var inner_sq: float = inner * inner
+	for spirit in _spirits:
+		if not is_instance_valid(spirit) or not spirit.is_attackable():
+			continue
+		var distance_sq: float = spirit.global_position.distance_squared_to(
+			_player.global_position)
+		if distance_sq < inner_sq or distance_sq > best_distance_sq:
+			continue
+		best = spirit
+		best_distance_sq = distance_sq
+	return best
 
 
 ## Swing the moon blade and cut every spirit inside the fan.
 ##
 ## One swing **hits everything it reaches.** Hitting only the nearest leaves no way out when
-## three spirits stick overlapping.
+## three spirits stick overlapping. Dancer alternates twin cuts left/right; Eclipse sweeps a
+## timed ring with a safe hole at the feet.
 func _swing_at(target: Node2D) -> void:
 	var direction: Vector2 = (target.global_position - _player.global_position).normalized()
 	if direction.length() < 0.01:
 		direction = Vector2.DOWN
 
+	var profile: Hero.AttackProfile = _hero_for_run().attack_profile
+	var melee: Dictionary = HeroWeapons.melee_spec(profile)
 	var full_moon: bool = false
 	var full_moon_evolved: bool = Relic.family_evolved(
 		_taken, Relic.Family.FULL_MOON)
@@ -3858,22 +4006,34 @@ func _swing_at(target: Node2D) -> void:
 		full_moon = _full_moon_primed \
 			or (full_moon_evolved and _full_moon_swings % 3 == 0)
 		_full_moon_primed = false
+	if bool(melee.get("twin", false)) and not full_moon:
+		direction = direction.rotated(
+			deg_to_rad(HeroWeapons.TWIN_OFFSET_DEGREES) * _twin_side)
+		_twin_side *= -1.0
 	_player.attack(direction, full_moon)
+	_play_weapon_sfx(profile, HeroWeapons.primary_side(profile) != HeroWeapons.Side.MELEE)
 
 	var reach: float = _player.attack_range * (1.15 if full_moon else 1.0)
-	var half_arc: float = PI if full_moon else deg_to_rad(_player.attack_arc) * 0.5
+	var orbit: bool = bool(melee.get("orbit", false)) and not full_moon
+	var inner: float = reach * HeroWeapons.ORBIT_INNER_FRACTION if orbit else 0.0
+	var half_arc: float = PI if (full_moon or orbit) \
+		else deg_to_rad(_player.attack_arc) * 0.5
 	var damage: int = _scaled(_player.attack_damage, 1.10) \
 		if full_moon else _player.attack_damage
+	var connected: int = 0
 	for spirit in _spirits:
 		if not is_instance_valid(spirit) or not spirit.is_attackable():
 			continue
 		var to_spirit: Vector2 = spirit.global_position - _player.global_position
-		if to_spirit.length() > reach:
+		if to_spirit.length() > reach or to_spirit.length() < inner:
 			continue
 		# Outside the fan is also outside the drawn slash. Visible range and hit range stay the same.
 		if absf(direction.angle_to(to_spirit)) > half_arc:
 			continue
 		spirit.take_damage(damage, _player.global_position)
+		connected += 1
+	if connected > 0:
+		combat_impact(_player.global_position, false)
 
 
 ## Raid. Appear all at once around the player.
@@ -4359,7 +4519,8 @@ func _feed(relic: Relic, restore_health: bool = true) -> void:
 			_apply_haste()
 		Relic.Effect.ATTACK_DAMAGE:
 			_damage_mult *= relic.amount
-			_player.attack_damage = _scaled(Player.DEFAULT_ATTACK_DAMAGE, _damage_mult)
+			_player.attack_damage = _scaled(
+				Player.DEFAULT_ATTACK_DAMAGE, _damage_mult * _melee_spec_mult)
 		Relic.Effect.ATTACK_ARC:
 			# Stops at 360°. Beyond that double-counts the same space and means nothing.
 			#
@@ -4375,7 +4536,8 @@ func _feed(relic: Relic, restore_health: bool = true) -> void:
 				# on screen. Not a crescent — a plank.
 				# Damage is an invisible axis, so it does not break the art.
 				_damage_mult *= 1.0 + (want - 360.0) / 540.0
-				_player.attack_damage = _scaled(Player.DEFAULT_ATTACK_DAMAGE, _damage_mult)
+				_player.attack_damage = _scaled(
+					Player.DEFAULT_ATTACK_DAMAGE, _damage_mult * _melee_spec_mult)
 		Relic.Effect.MOVE_SPEED:
 			_player.speed += relic.amount
 		Relic.Effect.MAX_HEALTH:
@@ -4451,6 +4613,11 @@ func _recompute() -> void:
 	_damage_mult = 1.0
 	_arrow_mult = 1.0
 	_arrow_haste = 1.0
+	_melee_base_cd = Player.DEFAULT_ATTACK_COOLDOWN
+	_melee_spec_mult = 1.0
+	_ranged_base_cd = ARROW_COOLDOWN
+	_ranged_spec_mult = 1.0
+	_twin_side = 1.0
 	_max_health = mini(
 		hero.health + int(Vault.grace(Boon.Grace.START_HEALTH)),
 		MAX_HEALTH_LIMIT)
@@ -4735,6 +4902,7 @@ func _on_missile_core_collected(was_ejected: bool) -> void:
 			Color(0.58, 0.88, 1.0, 1))
 	_pickup_sfx.pitch_scale = 1.0 + 0.04 * float(_missile_power)
 	_pickup_sfx.play()
+	_play_reward_sfx(SFX_CORE, 1.0 + 0.04 * float(_missile_power))
 
 
 func _on_missile_core_expired(was_ejected: bool) -> void:
@@ -4787,6 +4955,7 @@ func _on_spirit_perished(kind: SpiritKind, at: Vector2, was_elite: bool) -> void
 	_gain_missile_progress(at, was_elite, was_guardian)
 	_gain_progress(not was_guardian)
 	_heat_up()
+	_play_kill_sfx(was_elite or was_guardian)
 	# Pricier heroes get a heavier kill recoil. **Presentation only** —
 	# damage, fire rate, and pierce stay sidegrade-equal; only the weight in the hand
 	# follows the tier.
@@ -4866,7 +5035,7 @@ func _fire_arrows(delta: float) -> void:
 	if _arrow_timer > 0.0:
 		return
 
-	var target: Node2D = _nearest_in(ARROW_RANGE)
+	var target: Node2D = _nearest_in(_ranged_range)
 	if target == null:
 		return                                   # Save the shot if nobody is in range
 
@@ -4877,10 +5046,13 @@ func _fire_arrows(delta: float) -> void:
 		_fire_missiles(target)
 		return
 
-	# New guardians hold no weapon — both hands cradle a beacon seed. Shots must start from that
-	# seed, not body origin or feet, so cast and fire read as one motion.
-	var origin: Vector2 = _player.moonlight_origin()
-	var base: Vector2 = (target.global_position - origin).normalized()
+	# Gun heroes aim from the hand and fire from the muzzle, so cast, flash
+	# and shot read as one motion; melee heroes keep the small candle backup.
+	# The second pass re-aims through the side hand on vertical aims, or the
+	# muzzle would sit 10px off the aim line and fly parallel past its mark.
+	var base: Vector2 = (target.global_position - _player.shot_anchor()).normalized()
+	base = (target.global_position - _player.hand_for_aim(base)).normalized()
+	var profile: Hero.AttackProfile = _hero_for_run().attack_profile
 
 	# The first shot always goes to the target's exact center.
 	#
@@ -4888,14 +5060,22 @@ func _fire_arrows(delta: float) -> void:
 	# combined hit radius is only 11px, so the first multi-shot upgrade was a downgrade.
 	# Pin the center shot and fan extras left/right in turn. An even volley's leftover shot flips
 	# sides each fire so it does not bias one way.
-	const ARROW_HALF_FAN: float = 27.0
 	var invest: int = _arrow_invest()
 	var volley: int = _missile_volley()
 	var total_damage: int = MissileProgression.damage_budget(
 		_arrow_damage, _missile_power, maxi(_arrow_count - 1, 0))
-	var lane_damages: PackedInt32Array = MissileProgression.straight_lane_damages(
-		total_damage, volley)
+	# The shotgun spreads its budget evenly: every pellet matters up close, and no
+	# single center shot carries the volley. Every other hero keeps the center-heavy
+	# split so a core can never reverse-power single-target damage.
+	var lane_damages: PackedInt32Array = MissileProgression.lane_damages(
+		total_damage, volley) \
+		if profile == Hero.AttackProfile.KEEPER \
+		else MissileProgression.straight_lane_damages(total_damage, volley)
 	_player.play_moonlight_cast(base, volley)
+	_play_weapon_sfx(profile, HeroWeapons.primary_side(profile) == HeroWeapons.Side.MELEE)
+	if profile == Hero.AttackProfile.KNIGHT:
+		_player.recoil(base)
+		_shake(1.6)
 	var extra: int = maxi(volley - 1, 0)
 	var rings: int = maxi(int(ceil(float(extra) * 0.5)), 1)
 	var first_side: float = _arrow_fan_side
@@ -4906,17 +5086,21 @@ func _fire_arrows(delta: float) -> void:
 			var lane: int = i
 			var ring: int = (lane + 1) / 2
 			var side: float = first_side if lane % 2 == 1 else -first_side
-			angle = deg_to_rad(ARROW_HALF_FAN) * float(ring) / float(rings) * side
+			angle = deg_to_rad(_ranged_fan) * float(ring) / float(rings) * side
 		var arrow: Node2D = ARROW_SCENE.instantiate()
 		arrow.pierce = _arrow_pierce
 		arrow.damage = lane_damages[i]
+		arrow.speed = _ranged_speed
+		arrow.flight_time = _ranged_range / maxf(_ranged_speed, 1.0) + 0.12
+		arrow.blast_radius = _ranged_blast
 		arrow.upgrade_rank = _missile_power + invest
 		arrow.awakened = _moonfire_on
 		_configure_hero_projectile(arrow, i, volley)
 		arrow.set_candidates(_spirits, get_instance_id())
 		add_child(arrow)
-		arrow.global_position = origin
-		arrow.launch(base.rotated(angle))
+		var lane_dir: Vector2 = base.rotated(angle)
+		arrow.global_position = _player.muzzle_origin(lane_dir)
+		arrow.launch(lane_dir)
 		arrow.reset_physics_interpolation()
 
 
@@ -4926,7 +5110,8 @@ func _arrow_invest() -> int:
 
 
 func _missile_volley() -> int:
-	return MissileProgression.volley_for_power(_missile_power)
+	# A hero's base lanes never shrink under core growth; cores only widen past them.
+	return maxi(_ranged_lanes, MissileProgression.volley_for_power(_missile_power))
 
 
 func _missile_threshold_power() -> int:
@@ -4990,15 +5175,19 @@ func _starfall_evolved() -> bool:
 func _fire_missiles(first: Node2D) -> void:
 	var invest: int = _arrow_invest()
 	var volley: int = _missile_volley()
-	var origin: Vector2 = _player.moonlight_origin()
+	# Sized by the same volley that fires below, so no lane falls back to cloning.
 	var lane_damages: PackedInt32Array = MissileProgression.guided_lane_damages(
-		_arrow_damage, _missile_power, maxi(_arrow_count - 1, 0))
-	var marks: Array[Node2D] = _nearest_many(ARROW_RANGE * 1.3, volley)
+		_arrow_damage, _missile_power, maxi(_arrow_count - 1, 0), _ranged_lanes)
+	var marks: Array[Node2D] = _nearest_many(_ranged_range * 1.3, volley)
 	if marks.is_empty():
 		marks.append(first)
 
-	var cast_direction: Vector2 = (first.global_position - origin).normalized()
+	var cast_direction: Vector2 = (first.global_position - _player.shot_anchor()).normalized()
+	cast_direction = (first.global_position - _player.hand_for_aim(cast_direction)).normalized()
 	_player.play_moonlight_cast(cast_direction, volley)
+	_play_weapon_sfx(
+		_hero_for_run().attack_profile,
+		HeroWeapons.primary_side(_hero_for_run().attack_profile) == HeroWeapons.Side.MELEE)
 	_shake(0.6 + 0.14 * float(_hero_vfx_tier()))
 	var missile: Node2D = MISSILE_SCENE.instantiate()
 	missile.damage = lane_damages[0]
@@ -5009,7 +5198,7 @@ func _fire_missiles(first: Node2D) -> void:
 	# Every live volley shares one computation of spirit positions for this physics tick.
 	missile.set_candidates(_spirits, get_instance_id())
 	add_child(missile)
-	missile.global_position = origin
+	missile.global_position = _player.muzzle_origin(cast_direction)
 	missile.launch_volley(marks, volley, lane_damages)
 	missile.reset_physics_interpolation()
 
@@ -5119,6 +5308,217 @@ func _stop_shake() -> void:
 		_camera.offset = Vector2.ZERO
 
 
+## Loop the whole BGM sample. The baked loops start and end at exact zero, so the
+## boundary cannot click; without this the track stops dead after one play.
+##
+## The endpoint is decoded samples (`length × mix_rate`), never WAV bytes. The
+## baked loops import as QOA, where `data` is ~5 bytes per 20 samples — dividing
+## bytes by two loops one bar and cuts the rest of the track.
+func _loop_bgm(stream: AudioStream) -> void:
+	var wav: AudioStreamWAV = stream as AudioStreamWAV
+	if wav == null:
+		return
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_begin = 0
+	var total: int = int(wav.get_length() * float(wav.mix_rate))
+	if total > 0:
+		wav.loop_end = total
+
+
+## Draw one track from the arena or guardian bag. Each bag holds all three pool
+## indexes shuffled; when it empties it refills, and the refill's first draw is
+## never the track already playing — a full tour with no repeats, no restarts.
+## Typed arrays share their reference, so `bag` refills the member in place.
+func _draw_music_track(arena_pool: bool) -> int:
+	var bag: Array[int] = _arena_bag if arena_pool else _guardian_bag
+	if bag.is_empty():
+		var last: int = _arena_track if arena_pool else _guardian_track
+		var order: Array[int] = [0, 1, 2]
+		for i in range(2, 0, -1):
+			var j: int = _music_rng.randi_range(0, i)
+			var tmp: int = order[i]
+			order[i] = order[j]
+			order[j] = tmp
+		if order[2] == last:
+			var swap_i: int = _music_rng.randi_range(0, 1)
+			var tmp2: int = order[2]
+			order[2] = order[swap_i]
+			order[swap_i] = tmp2
+		bag.append_array(order)
+	var track: int = bag.pop_back()
+	if arena_pool:
+		_arena_track = track
+	else:
+		_guardian_track = track
+	return track
+
+
+## Roll the music bag at the end of a whole track. The loop wrap is read off
+## the audio clock, never a gameplay countdown, so the boundary follows
+## audible playback at any time scale: pause freezes the position, a mode
+## switch re-seeds it, and release stops the player — none of them can strand
+## a stale continuation on the wrong pool. Full phrases only; attacks and
+## hits never touch the roll.
+func _tick_music_rotation() -> void:
+	if _bgm == null or not is_instance_valid(_bgm) or not _bgm.playing:
+		_bgm_last_pos = 0.0
+		return
+	var pos: float = _bgm.get_playback_position()
+	if pos < _bgm_last_pos - BGM_WRAP_MARGIN:
+		if _music_arena_pool:
+			_select_arena_theme()
+		else:
+			_select_guardian_theme()
+		return
+	_bgm_last_pos = pos
+
+
+## Switch to a freshly drawn arena track: run start, region entry, guardian down.
+func _select_arena_theme() -> void:
+	_bgm.stop()
+	_bgm.stream = ARENA_THEMES[_draw_music_track(true)]
+	_loop_bgm(_bgm.stream)
+	_bgm.pitch_scale = _arena_bgm_pitch()
+	_music_arena_pool = true
+	_bgm_last_pos = 0.0
+	_bgm.play()
+
+
+## Switch to a freshly drawn guardian track at the encounter call.
+func _select_guardian_theme() -> void:
+	_bgm.stop()
+	_bgm.stream = GUARDIAN_THEMES[_draw_music_track(false)]
+	_music_arena_pool = false
+	_bgm_last_pos = 0.0
+	_loop_bgm(_bgm.stream)
+	_bgm.pitch_scale = minf(_arena_bgm_pitch() + GUARDIAN_PITCH_BONUS, BGM_PITCH_MAX)
+	_bgm.play()
+
+
+## One hero's attack voices. Rate-limited: twin blades at full haste must not stack.
+##
+## The primary weapon owns its voice at full gain; a sidearm attack speaks the
+## quieter backup voice. Melee heroes back up with spark shots, ranged heroes
+## with a close bash — the cue follows the backup, not the hero. Two voices
+## with two gaps, so when both real clocks fire in one tick the signature
+## primary cue can never be swallowed by the backup's gate: the two overlap
+## instead, whichever order the swing and the volley called in. Retrigger
+## policy: each voice takes its latest call; calls inside the 70 ms gap are
+## swallowed, so a primary volley and its Starfall answer share one cue.
+func _play_weapon_sfx(profile: Hero.AttackProfile, sidearm: bool = false) -> void:
+	if sidearm:
+		_play_sidearm_sfx(profile)
+		return
+	if _weapon_sfx_left > 0.0 or _weapon_sfx == null:
+		return
+	_weapon_sfx_left = WEAPON_SFX_GAP
+	match profile:
+		Hero.AttackProfile.DANCER:
+			_weapon_sfx.stream = SFX_TWIN
+		Hero.AttackProfile.SAGE:
+			_weapon_sfx.stream = SFX_RIFLE
+		Hero.AttackProfile.KEEPER:
+			_weapon_sfx.stream = SFX_SHOTGUN
+		Hero.AttackProfile.KNIGHT:
+			_weapon_sfx.stream = SFX_CANNON
+		Hero.AttackProfile.ECLIPSE:
+			_weapon_sfx.stream = SFX_SCYTHE
+		_:
+			_weapon_sfx.stream = SFX_SWORD
+	_weapon_sfx.volume_db = DUCK_DB if _ducked else WEAPON_DB
+	_weapon_sfx.pitch_scale = randf_range(0.97, 1.03)
+	_weapon_sfx.play()
+
+
+## The backup slot's own capped voice. Same gap, quieter gain, never the
+## primary's stream — a melee backup that fires first in the tick leaves the
+## ranged signature cue (and the reverse) exactly where the ear expects it.
+func _play_sidearm_sfx(profile: Hero.AttackProfile) -> void:
+	if _sidearm_sfx_left > 0.0 or _sidearm_sfx == null:
+		return
+	_sidearm_sfx_left = WEAPON_SFX_GAP
+	if HeroWeapons.primary_side(profile) == HeroWeapons.Side.RANGED:
+		_sidearm_sfx.stream = SFX_SWORD
+	else:
+		_sidearm_sfx.stream = SFX_TWIN
+	_sidearm_sfx.volume_db = DUCK_DB if _ducked else SIDEARM_DB
+	_sidearm_sfx.pitch_scale = randf_range(0.97, 1.03)
+	_sidearm_sfx.play()
+
+
+## A shot or swing connected. Projectiles in flight call this through
+## `COMBAT_SFX_GROUP` so hits make sound without audio nodes on every shot.
+func combat_impact(_at: Vector2, big: bool) -> void:
+	if _impact_sfx_left > 0.0 or _impact_sfx == null:
+		return
+	_impact_sfx_left = IMPACT_SFX_GAP
+	_impact_sfx.stream = SFX_IMPACT
+	_impact_sfx.pitch_scale = randf_range(0.72, 0.8) if big \
+		else randf_range(0.94, 1.06)
+	_impact_sfx.volume_db = DUCK_DB if _ducked else IMPACT_DB
+	_impact_sfx.play()
+
+
+## Kill tick. Rate-limited harder: a chain clear is one pop, not twelve.
+func _play_kill_sfx(big: bool) -> void:
+	if _kill_sfx_left > 0.0 or _reward_sfx == null:
+		return
+	_kill_sfx_left = KILL_SFX_GAP
+	_reward_sfx.stream = SFX_KILL
+	_reward_sfx.pitch_scale = randf_range(0.85, 0.92) if big \
+		else randf_range(1.0, 1.08)
+	_reward_sfx.volume_db = DUCK_DB if _ducked else REWARD_DB
+	_reward_sfx.play()
+
+
+## Growth moments are never rate-limited: level, core, and overcharge are rare by
+## design, and swallowing one would steal the earned surge. They get their own
+## bounded voice, so a kill pop can never cut a level surge short and a surge
+## never eats the kill tick — the two overlap instead. Retrigger policy: the
+## latest growth call wins the growth voice; kill pops keep their own gap.
+func _play_reward_sfx(stream: AudioStream, pitch: float = 1.0) -> void:
+	if _growth_sfx == null:
+		return
+	_growth_sfx.stream = stream
+	_growth_sfx.pitch_scale = pitch
+	_growth_sfx.volume_db = DUCK_DB if _ducked else REWARD_DB
+	_growth_sfx.play()
+
+
+func _tick_combat_sfx(delta: float) -> void:
+	_weapon_sfx_left = maxf(_weapon_sfx_left - delta, 0.0)
+	_sidearm_sfx_left = maxf(_sidearm_sfx_left - delta, 0.0)
+	_impact_sfx_left = maxf(_impact_sfx_left - delta, 0.0)
+	_kill_sfx_left = maxf(_kill_sfx_left - delta, 0.0)
+	_update_duck()
+
+
+## Duck busy combat voices while dialogue, a hero line, or a choice needs the ear.
+## Runs from the per-frame tick (unpaused cases) and from panel visibility, the
+## dialogue `finished` signal, and pause notifications (paused cases), so the gain
+## is right whichever froze the tree. UI confirm voices stay loud on purpose.
+func _update_duck() -> void:
+	if not is_inside_tree():
+		return
+	var voice_up: bool = _voice_panel != null and is_instance_valid(_voice_panel) \
+		and _voice_panel.visible
+	var wants_duck: bool = _relic.visible or _run_choice.visible \
+		or _result.visible or _dialogue.is_open() or voice_up or get_tree().paused
+	if wants_duck == _ducked:
+		return
+	_ducked = wants_duck
+	if _weapon_sfx != null:
+		_weapon_sfx.volume_db = DUCK_DB if wants_duck else WEAPON_DB
+	if _sidearm_sfx != null:
+		_sidearm_sfx.volume_db = DUCK_DB if wants_duck else SIDEARM_DB
+	if _impact_sfx != null:
+		_impact_sfx.volume_db = DUCK_DB if wants_duck else IMPACT_DB
+	if _reward_sfx != null:
+		_reward_sfx.volume_db = DUCK_DB if wants_duck else REWARD_DB
+	if _growth_sfx != null:
+		_growth_sfx.volume_db = DUCK_DB if wants_duck else REWARD_DB
+
+
 ## Floor the fire interval and turn overflow into damage.
 ##
 ## **Without a floor the game stalls.** When only `_arrow_cooldown *= 0.7` existed,
@@ -5135,14 +5535,14 @@ const MELEE_CD_FLOOR: float = 0.11
 
 func _settle_rates() -> void:
 	var moonfire_rate: float = MOONFIRE_HASTE if _moonfire_on else 1.0
-	var raw: float = ARROW_COOLDOWN * _arrow_haste * moonfire_rate
+	var raw: float = _ranged_base_cd * _arrow_haste * moonfire_rate
 	var over: float = 1.0
 	if raw < ARROW_CD_FLOOR:
 		over = ARROW_CD_FLOOR / raw
 		raw = ARROW_CD_FLOOR
 	_arrow_cooldown = raw
 	_arrow_damage = _scaled(ARROW_BASE_HIT,
-		_arrow_mult * over * _moonfire_damage() * _frailty())
+		_arrow_mult * _ranged_spec_mult * over * _moonfire_damage() * _frailty())
 	_apply_haste()
 	_refresh_aux_weapons()
 
@@ -5295,7 +5695,7 @@ func _apply_haste() -> void:
 	var heat: float = 1.0 - COMBO_HASTE * float(_combo_tier)
 	var moonfire_rate: float = MOONFIRE_HASTE if _moonfire_on else 1.0
 	# Lower power lengthens the interval. Divide because `_frailty()` is ≤ 1.
-	var raw: float = Player.DEFAULT_ATTACK_COOLDOWN * _relic_haste * heat \
+	var raw: float = _melee_base_cd * _relic_haste * heat \
 		* moonfire_rate / _frailty()
 
 	# Melee gets a floor too. Same reason as `_settle_rates()` above — when the interval falls under a
@@ -5306,7 +5706,7 @@ func _apply_haste() -> void:
 		raw = MELEE_CD_FLOOR
 	_player.attack_cooldown_time = raw
 	_player.attack_damage = _scaled(Player.DEFAULT_ATTACK_DAMAGE,
-		_damage_mult * over * _moonfire_damage())
+		_damage_mult * _melee_spec_mult * over * _moonfire_damage())
 
 
 ## Kills raise level, and each level picks one relic.
@@ -5324,6 +5724,7 @@ func _gain_progress(offer_now: bool = true) -> void:
 	_level_progress = 0
 	_level += 1
 	_to_next = mini(int(ceil(float(_to_next) * LEVEL_GROWTH)), LEVEL_CAP)
+	_play_reward_sfx(SFX_LEVEL, 1.0 + 0.03 * float(mini(_level, 12)))
 	_hud.set_level(_level)
 	_queue_combat_hud()
 	_owed += 1
@@ -5453,10 +5854,7 @@ func _finish_cycle() -> void:
 	# Unlock awakening locked during the guardian fight and return to explore music.
 	_moonfire_charge = 0.0
 	_end_moonfire()
-	_bgm.stop()
-	_bgm.stream = ARENA_THEME
-	_bgm.pitch_scale = _arena_bgm_pitch()
-	_bgm.play()
+	_select_arena_theme()
 	# Guardian cleared. One line before the next peak.
 	_say("guardian_down")
 	_show_cycle_story()
@@ -6116,11 +6514,7 @@ func _tick_guardian_call() -> void:
 	_say("call_dark")
 
 	# Music changes. The ear knows the finale first.
-	_bgm.stop()
-	_bgm.stream = GUARDIAN_THEME
-	# A guardian fight pushes one step harder than explore.
-	_bgm.pitch_scale = minf(_arena_bgm_pitch() + 0.05, BGM_PITCH_MAX)
-	_bgm.play()
+	_select_guardian_theme()
 
 
 func _materialize_or_discard_guardian(guardian: Node2D) -> void:
@@ -6512,6 +6906,7 @@ func _finish_overcharge(success: bool, abandoned: bool = false) -> void:
 		core_granted = _grant_overcharge_core(beacon.position)
 		reward = "core" if core_granted else "growth"
 		_gain_progress(false)
+		_play_reward_sfx(SFX_OVERCHARGE)
 		_shake(4.0)
 	_analytics_track_overcharge_resolution(outcome, reward)
 	beacon.resolve_overcharge()

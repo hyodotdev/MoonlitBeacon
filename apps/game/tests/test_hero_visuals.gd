@@ -79,6 +79,7 @@ func _run() -> void:
 	_test_distinct_accents()
 	_test_paid_hero_descriptions()
 	_test_moonlight_cast(player)
+	_test_weapon_rig(player)
 
 	player.queue_free()
 	await process_frame
@@ -220,8 +221,12 @@ func _test_paid_hero_descriptions() -> void:
 
 		var speed_marker: String = _signed_percent(
 			(effective_speed / Player.DEFAULT_SPEED - 1.0) * 100.0)
-		var damage_marker: String = _signed_percent((effective_damage - 1.0) * 100.0)
 		var dash_marker: String = _signed_percent((effective_dash - 1.0) * 100.0)
+		# Damage multipliers stay on the resource: the weapon table gives each
+		# hero private bases, lanes and cooldowns, so no flat cross-hero
+		# percent is shown. Hearts, move, dash and openings still match live.
+		_expect_true(effective_damage > 0.0,
+			hero_path.get_file() + " damage multiplier stays on the resource")
 		for locale in UI_LOCALES:
 			TranslationServer.set_locale(locale)
 			var label: String = "%s %s" % [hero_path.get_file(), locale]
@@ -232,9 +237,6 @@ func _test_paid_hero_descriptions() -> void:
 			_expect_true(
 				description.contains(speed_marker),
 				label + " actual starting move speed " + speed_marker)
-			_expect_true(
-				description.contains(damage_marker),
-				label + " actual damage " + damage_marker)
 			_expect_true(
 				description.contains(dash_marker),
 				label + " actual dash " + dash_marker)
@@ -309,6 +311,98 @@ func _test_moonlight_cast(player: Player) -> void:
 		cast.remaining_seconds(),
 		0.0,
 		"cast cue cleared on the result screen")
+
+
+## The held weapon sits at hand height below the face, aims where the last shot
+## went, and speaks each hero's own cue. A sidearm cue never cuts a live
+## primary flash short.
+func _test_weapon_rig(player: Player) -> void:
+	var rig: Node2D = player.get_node("WeaponRig") as Node2D
+	_expect_true(rig != null, "weapon-rig node rides the player")
+	if rig == null:
+		return
+	_expect_equal(rig.position, Vector2(0.0, -8.0), "rig grip at hand height")
+	_expect_equal(rig.position, Player.WEAPON_GRIP, "rig grip follows its constant")
+	_expect_true(Player.WEAPON_GRIP.y > Player.MOONLIGHT_ORIGIN.y,
+		"grip hangs below the candle, off the face")
+	_expect_true(absf(Player.WEAPON_GRIP.y - Player.SLASH_PIVOT.y) <= 4.0,
+		"grip stays near the hand the slash orbits")
+	var muzzle_want: Dictionary = {
+		Hero.AttackProfile.SAGE: WeaponRig.MUZZLE_RIFLE,
+		Hero.AttackProfile.KEEPER: WeaponRig.MUZZLE_SCATTER,
+		Hero.AttackProfile.KNIGHT: WeaponRig.MUZZLE_CANNON,
+	}
+	for hero_case in HERO_CASES:
+		var hero: Hero = load(hero_case["resource"]) as Hero
+		player.call("apply_hero_visual", hero)
+		_expect_equal(int(rig.get("_profile")), int(hero.attack_profile),
+			str(hero_case["id"]) + " rig draws its own hero")
+		var want: StringName = muzzle_want.get(
+			hero.attack_profile, WeaponRig.MUZZLE_SPARK) as StringName
+		_expect_equal(player.call("_muzzle_kind"), want,
+			str(hero_case["id"]) + " speaks its own muzzle cue")
+	# Priority on the live path: the Warden's cut owns the flash while it burns,
+	# and the sidearm spark waits its turn instead of cutting in.
+	var warden: Hero = load("res://resources/heroes/warden.tres") as Hero
+	player.call("apply_hero_visual", warden)
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.RIGHT)
+	_expect_equal(rig.get("_kind"), WeaponRig.CUT, "primary cut lights the flash")
+	_expect_equal(rig.call("aim"), Vector2.RIGHT, "held blade points at the cut")
+	player.call("play_moonlight_cast", Vector2.UP, 1)
+	_expect_equal(rig.get("_kind"), WeaponRig.CUT,
+		"sidearm spark yields to the live cut")
+	_expect_equal(rig.call("aim"), Vector2.RIGHT,
+		"held blade keeps its aim while yielding")
+	rig.call("_process", 0.2)
+	player.call("play_moonlight_cast", Vector2.UP, 1)
+	_expect_equal(rig.get("_kind"), WeaponRig.MUZZLE_SPARK,
+		"sidearm spark shows once the cut fades")
+	_expect_equal(rig.call("aim"), Vector2.UP, "aim follows the shown flash")
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.LEFT)
+	_expect_equal(rig.get("_kind"), WeaponRig.CUT,
+		"primary cut retakes a live sidearm flash")
+	# Melee grammar per hero: twins cut twice, the scythe pulses its ring.
+	var dancer: Hero = load("res://resources/heroes/dancer.tres") as Hero
+	player.call("apply_hero_visual", dancer)
+	rig.call("clear")
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.RIGHT)
+	_expect_equal(rig.get("_kind"), WeaponRig.TWIN_CUT, "twin blades cut twice")
+	var eclipse: Hero = load("res://resources/heroes/eclipse.tres") as Hero
+	player.call("apply_hero_visual", eclipse)
+	rig.call("clear")
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.RIGHT)
+	_expect_equal(rig.get("_kind"), WeaponRig.RING_PULSE, "scythe pulses its ring")
+	# The Sage mirrors it: rifle owns, bash waits.
+	var sage: Hero = load("res://resources/heroes/sage.tres") as Hero
+	player.call("apply_hero_visual", sage)
+	rig.call("clear")
+	player.call("play_moonlight_cast", Vector2.RIGHT, 1)
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.UP)
+	_expect_equal(rig.get("_kind"), WeaponRig.MUZZLE_RIFLE,
+		"sidearm bash yields to the live rifle flash")
+	# A vertical primary aim seats the side hand so the barrel clears the
+	# face; a sidearm cue never moves the held primary.
+	player.call("play_moonlight_cast", Vector2.UP, 1)
+	_expect_equal(rig.position,
+		Player.WEAPON_GRIP + Vector2(Player.HAND_SIDE_X, 0.0),
+		"vertical rifle aim takes the side hand")
+	player.call("apply_hero_visual", warden)
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.UP)
+	_expect_equal(rig.position,
+		Player.WEAPON_GRIP + Vector2(Player.HAND_SIDE_X, 0.0),
+		"vertical sword swing takes the side hand")
+	player.call("apply_hero_visual", sage)
+	rig.position = Player.WEAPON_GRIP
+	player.set("_attack_cooldown", 0.0)
+	player.call("attack", Vector2.UP)
+	_expect_equal(rig.position, Player.WEAPON_GRIP,
+		"sidearm bash never moves the held rifle")
 
 
 ## Open a live Shrine card and confirm Hero.portrait is consumed by Buy/select UI.

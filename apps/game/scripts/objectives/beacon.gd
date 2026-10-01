@@ -48,6 +48,11 @@ const CHARGE_SECONDS: float = 1.3
 ## look far, not to be hard to approach. Divide by `scale` to get world space.
 const REACH_RADIUS: float = 34.0
 
+## Overcharge defense ring radius in world pixels. Must match
+## `Arena.OVERCHARGE_RADIUS` — the choice copy promises "the ring", and the test
+## pins both numbers together so art and rule cannot drift apart.
+const OVERCHARGE_RING_RADIUS: float = 88.0
+
 ## Drain speed when you leave. Faster than the fill so a brief step-out
 ## is not a big loss.
 const DECAY_MULTIPLIER: float = 1.8
@@ -188,6 +193,7 @@ func _process(delta: float) -> void:
 		_awaiting_choice = true
 		_reach.set_deferred("monitoring", false)
 		set_process(false)
+		queue_redraw()
 		charge_completed.emit(self)
 	elif _charge <= 0.0 and _visitors == 0:
 		set_process(false)                       # all gone. turn on again when someone arrives
@@ -208,6 +214,23 @@ func _on_body_exited(_body: Node2D) -> void:
 ## How full it is now (0–1). Lit is 0 — no reason to show the ring.
 func get_charge() -> float:
 	return 0.0 if lit else _charge
+
+
+## Defense-ring radius in local pixels while the choice is open or a defense
+## runs, else -1. Scale-compensated like the reach: a far-drawn beacon still
+## defends the same world ring.
+func defense_ring_radius() -> float:
+	if not _awaiting_choice and not _overcharging:
+		return -1.0
+	var s: float = maxf(absf(scale.x), 0.01)
+	return OVERCHARGE_RING_RADIUS / s
+
+
+func _draw() -> void:
+	var radius: float = defense_ring_radius()
+	if radius <= 0.0:
+		return
+	TelegraphArt.glow_ring(self, Vector2.ZERO, radius, TelegraphArt.SAFE, 0.9, 2.0)
 
 
 func is_awaiting_choice() -> bool:
@@ -268,6 +291,7 @@ func reset() -> void:
 	_visitors = 0
 	_awaiting_choice = false
 	_overcharging = false
+	queue_redraw()
 	_apply_lantern_palette()
 	_reach.monitoring = true
 	set_process(false)                           # run again when someone enters
@@ -287,6 +311,7 @@ func set_active(value: bool) -> void:
 		_overcharging = false
 		_show_overcharge_visual(false)
 		_apply_lantern_palette()
+		queue_redraw()
 		charge_changed.emit(self, 0.0)
 
 
@@ -313,6 +338,7 @@ func freeze() -> void:
 		_overcharging = false
 		_show_overcharge_visual(false)
 		_apply_lantern_palette()
+		queue_redraw()
 		charge_changed.emit(self, 0.0)           # clear the ring at the feet too
 
 
@@ -330,6 +356,7 @@ func ignite() -> void:
 	_awaiting_choice = false
 	_overcharging = false
 	_show_overcharge_visual(false)
+	queue_redraw()
 	_reach.set_deferred("monitoring", false)
 	_apply_lantern_palette()
 	lit = true

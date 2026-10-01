@@ -46,6 +46,8 @@ const checks = [
   ['Skills: cards unlock by cycle, each skill does what it says', ['res://tests/test_skills.tscn'], true, false],
   ['Hero custom sheets and fallback', ['--script', 'res://tests/test_hero_visuals.gd'], true, false],
   ['Six-hero sidegrade combat profiles', ['--script', 'res://tests/test_hero_combat_profiles.gd'], true, false],
+  ['Six real primary weapons on the arena path', ['res://tests/test_hero_weapons.tscn'], true, false],
+  ['Original combat audio wiring and bounds', ['res://tests/test_combat_audio.tscn'], true, false],
   ['Shrine hero full-body previews', ['res://tests/test_shrine_portraits.tscn'], true, false],
   ['IAP hero full-body previews', ['res://tests/test_iap_hero_previews.tscn'], true, false],
   ['Spirit and guardian custom sheets', ['--script', 'res://tests/test_spirit_visuals.gd'], true, false],
