@@ -737,6 +737,263 @@ resolution: all twenty rim pictures, fifteen fully settled win/escape/defeat car
 collisions and five quit cards across five locales. These are diagnostic desktop stages — debug controls
 were visible on the rim/discovery stages — not marketing images and not device proof.
 
+## Six weapons, a faster pulse, and a rewarding sound: brief 017 (2026-09-30)
+
+One combat-feel pass. The six heroes ran one shared slash plus one shared
+volley with decoration-only profiles; now each hero fires a real primary
+with its own hit shape and cadence on the same two arena clocks, traversal
+is ~17% quicker, and combat audio is original synthesized loops and cues.
+
+- **Weapons.** New `scripts/gameplay/hero_weapons.gd` holds the per-profile
+  spec table both clocks read in `_base_stats` (so `_recompute` restores
+  it after a hit exactly like speed and damage). Warden wide sword cone
+  (46px/130°/0.50s); Dancer alternating twin cuts (38px/85°/0.30s,
+  ±28° sides); Eclipse timed orbit ring (64px band, 0.62s, safe hole at
+  55%); Sage rifle (300px, pierce 6, 1.20s, whole budget on one bolt);
+  Keeper shotgun (125px, five even-split pellets, 30° fan, 1.0s); Knight
+  cannon (150px/s shell, 2.3s, 48px delayed blast on hit or burnout).
+  Each kit keeps a reduced sidearm on the other clock (~1/3 output, also
+  profile-parameterized) so every relic family, core, resonance, and
+  evolution keeps working for every hero with no second free full weapon.
+  Rate floors and overflow-to-damage cover both clocks as before.
+- **Traversal.** `DEFAULT_SPEED` 96 → 112, dash cooldown 1.15 → 0.95s,
+  accel 900 → 1100, friction 1200 → 1500. Hero speed/dash multipliers,
+  enemy windups, story typing, and modal timers untouched. Dancer's
+  localized speed marker moved +43.75% → +41.07% in all five locales.
+- **Visuals.** Bounded drawn layer, no new sheets: `WeaponRig` (held
+  weapon per hero plus cut/muzzle flashes, ≤0.22s, self-clearing) and
+  `ScytheOrbit` (twin circling blades plus sweep pulse) as `Player`
+  children, cannon recoil as one short killed-by-next-shot tween, cannon
+  splash as one blast flash. Hero and beacon copy rewritten in all five
+  locales (no ASCII commas); beacon choices now say safe-immediate-no-
+  bonus versus defend-within-88px-for-6.5s.
+- **Audio.** New `tools/build_combat_audio.py` bakes 13 original cues
+  (fixed-seed LCG noise, `--check` registered in `check:assets`): a
+  14.55s driving arena loop and a 17.14s escalating guardian loop on one
+  shared motif (whole bars, edge fades, boundary step exactly 0.0, peak
+  0.62), six weapon voices, impact/kill/level/core/overcharge cues.
+  Three bounded players (polyphony 3/4/2) plus per-voice rate floors;
+  projectiles report hits through `moonlit_combat_sfx` instead of
+  carrying audio nodes; combat ducks under dialogue/choices; title theme
+  and UI sounds kept. Old arena/guardian OGGs stay on disk because
+  course lessons reference them; the manifest says so.
+- **Tests.** New registered `test_hero_weapons` (183 cases: six hit
+  shapes with intentional misses on the live arena, twin alternation,
+  rifle pierce, even pellet split, delayed blast, orbit hole, invalid
+  and freed targets, both rate floors, reset/growth, price/tier
+  independence, result/VFX cleanup, deterministic same-target comparison —
+  Warden 135, others 100–102 over 6s, i.e. 0.74–0.76x — and a grouped
+  tradeoff comparison) and `test_combat_audio` (88 cases: waveform
+  headroom/silence/boundary, per-hero wiring, impact/kill/reward
+  handlers, loop config, ducking, bus mutes, release cleanup).
+  `test_hero_combat_profiles` keeps its resource/decoration/vfx-tier
+  contract; its power-0 budget math is revised to the spec-aware formula
+  ([3,3,41,16,4,24], melee side primary ≥12 vs sidearm ≤10) with the old
+  decoration-only assertions intact. Both new tests were mutation-checked
+  (warden reach 46→40 fails two; twin cue swapped fails two; green
+  restored).
+- **Harness.** New `tools/shot_weapons.tscn`: real arena per hero at
+  early and strong (fixed 8-relic + 5-core) builds, live spirit in the
+  weapon's pocket, capture only after a production hit lands with live
+  effects; four-frame motion strips; beacon panel in five locales × both
+  core states. `validate=1` runs the 46 observations headless (green in
+  the sandbox); PNGs render on a real display. Audio audition:
+  `build_combat_audio.py --audition builds/audio/audition.wav`.
+
+What bit us: physics runs 30 ticks a second, so the first comparison
+drove 12 melee-seconds against 6 volley-seconds (Warden read 242, not
+132) until both clocks advanced 1/30 per tick; Godot 4.7 rejects an
+inner-enum static return type, so `primary_side` returns int; shots leave
+the muzzle 20px above the aim point, so close-range test geometry must
+follow the firing ray and bodies sit 6px above their roots, which breaks
+fan symmetry enough that lane-test distances are hand-derived; swapping
+the BGM stream without stopping first orphans looped playback, and the
+release-then-quit race in the audio test needs the 0.25s settle the
+`AudioFlush` docs describe.
+
+The 183 weapon, 88 audio, 840 profile, and 46 harness counts above are
+the implementer's measured counts and stand. Screenshots were staged and
+headless-validated only; no PNG was rendered in the sandbox. Bot smoke,
+guardian fights, and the full suite ran separately; see the report.
+Late in the round the suite replica caught three of ours: the Warden
+sidearm cadence returned to 1.15 for the Lv40 fire-rate stage, terrain
+Keeper pins moved to the new bases, and Keeper copy was updated in the
+shrine test plus the preview panel's pinned table. Shrine en/ja safe
+margins fail identically on the untouched baseline (sandbox font
+metrics), so they were left alone.
+
+## Runtime boundaries and six-track combat rotation: brief 018 (2026-09-30)
+
+Corrections to brief 017 plus a music rotation: three arena tracks and three
+faster guardian tracks on a no-repeat bag (region/entry draw, guardian draw,
+arena return), QOA loop endpoints in decoded samples, a separate growth
+voice with primary-loud/sidearm-quiet mapping, guided lane/budget agreement,
+a beacon defense ring with unit-free copy, weapon-first hero descriptions,
+a repaired capture harness, the rig moved to hand height with six distinct
+silhouettes, and a Knight rebalance (cannon 4.0/2.10s, chop 0.55) that holds
+the 102 total at a 65/35 primary split.
+
+- **Guided cloning.** `guided_lane_damages` sized its split by power volley
+  while the arena fired `max(hero lanes, power volley)`; extra lanes fell
+  back to the anchor's whole damage — a power-0 Keeper dealt 205 (5×41).
+  The split now takes the live lane count; the arena passes `_ranged_lanes`.
+- **Shrine margins, corrected record.** The 8 en/ja failures are a round-1
+  desc-length regression, not baseline: HEAD CSV fails 0, round-1 CSV fails
+  the identical 8, round-2 reorder fails the identical 8. The round-1
+  "untouched baseline" note was a stale-import artifact (`.translation`
+  files are gitignored, so a stash without reimport keeps the long strings).
+  Layout left alone: resizing the shrine risks the capture-gate rects.
+- **Music determinism.** Track choice uses a dedicated RNG; bot seeds and
+  gameplay `randf` are untouched by music. Two same-config natural batches
+  (seed 17): 2568 kills, 0.73 hits/min; knight 0 spikes in both.
+- **Sandbox notes.** Bare `godot --headless` segfaults in Metal before game
+  code, so `test:game` as shipped cannot run here; all 50 checks ran via
+  `pnpm godot:isolated`. Display captures need the director's real display;
+  the harness validates headless (`validate=1`).
+
+## Preserve primary weapon sound on simultaneous clocks: brief 019 (2026-09-30)
+
+Corrections to brief 018, all confirmed against the round-2 source by the
+director's own probes. The primary weapon owns its voice and the sidearm owns
+a second capped voice, so a same-tick backup can never swallow the signature
+cue; the music bag rolls on at the end of each whole track inside one mode,
+read off the audio clock so pause, time scale and release cannot strand it;
+gun heroes fire from the muzzle with a side-hand seat on vertical aims while
+melee heroes keep the candle backup; the capture harness stages four real
+body facings; hero descriptions drop the flat cross-hero damage percent and
+fit the shrine in all five locales; GrowthSfx joins the release path; the two
+new audio/weapon tests and the harness refuse to run without the isolated
+test root; and the cannon budget is measured live (real Knight, 34/40
+spirits, max-power growth, repeated volleys: ~14 visits/step against 256).
+
+- **Shared-gate swallow.** The melee call ran first in `_process` and armed
+  the one 70 ms gate, so the later primary call died silently — Knight heard
+  sword at -15 dB instead of cannon. Two voices with two gaps; both director
+  probes now exit 0.
+- **Release race.** `music_player.release()` no-ops when no frame has passed
+  since `play()`, so a same-frame cue survived release even once listed.
+  `_release_audio` now stops and drops every stream explicitly after the
+  release call, and the test asserts all eight players silent and streamless.
+- **Wrap, not countdown.** `get_playback_position()` wraps 12.0 → 0.0 on the
+  loop boundary (probed), so a 2.0-margin wrap detector rolls the bag with no
+  timers, no nodes, and no time-scale skew. Seeks only ever jump forward, so
+  the detector cannot false-fire on a seek.
+- **Side-hand two-pass aim.** Shifting the grip 10px sideways without
+  re-aiming would fire parallel past the mark; the second pass aims through
+  the shifted hand so muzzle, flash, cast cue and target share one line.
+- **Shrine is a copy fit.** en Keeper/Sage wrapped to 3 lines (frame 365 vs
+  352 budget). Dropping the damage percent fixed ja; en needed "fan"/"line"
+  trimmed and the Sage tail reordered — both pinned, both deterministic.
+- **Billion-pierce staging lies about nodes.** Stress pierce lets each shell
+  strike half the roster, and the impact VFX alone spikes past 1200. The
+  Knight sample keeps its recomputed real pierce; work lands at ~14/step and
+  the 1203-crest worst case is reported with its cause, not optimized.
+- **`set()` bounces typed arrays.** Assigning an untyped Array to
+  `Array[Relic] _taken` via `set()` silently keeps the old one; mutate the
+  live array in place instead.
+
+## Keep the late cannon budget and capture claims: brief 020 (2026-09-30)
+
+Narrow corrections to round 3. The Knight sample holds the 1200-node budget
+again via a minimal production tweak (same-tick strike pops share one flash
+per shell; detonation still flashes big): 1201 -> 1186-1187 across three
+samples, work ~14/step against 256, with a revert-catching negative control.
+The capture harness stages controlled stationary targets (spawns suppressed,
+one still live mark, quiet-room top-up) and asserts the anchored primary aim
+per strip instead of inferring it from body facing; beacon captures wait for
+the fade to settle and choices to arm. The sequential-runner missile-loop
+failure was shared-vault contamination (an earlier shrine select leaves
+Keeper equipped): origins are now staged explicitly for all six profiles
+with independent seat/shift/side literals, and the perf defaults pin Warden
+after the same contamination tripped the Lv20 cadence assert.
+
+- **Tautological expectations.** The first origin rewrite derived expected
+  muzzles from `muzzle_origin()` itself and passed with guns forced to the
+  candle. My own mutant caught it; literals now pin both sides.
+- **Suppression starves the anchor.** Clearing wild spirits removed the
+  backup targets that kept the 6s primary poll fed; one-shot kills left the
+  wait quiet (4 misses). Top-up resummon when the room empties fixed it.
+- **Staged kills paused later stages.** A kill levels, the level opens the
+  relic draft, the draft pauses with no cancel path, and the pause outlives
+  the freed arena — every later stage staged frozen (29 fails, timing-flaky
+  with the kill/draft/teardown race). Staging now calls the sanctioned
+  `debug_freeze_capture_progress`, with unpause insurance at setup and
+  teardown. Firing, damage, HP, and perish stay production.
+- **Outer fan lanes cross the axis by design.** At dancer's close pocket the
+  muzzle sits ~30° off the compass axis; the symmetric ±16° fan then crosses
+  45° while centered on the mark. The volley center (fan cancels) now
+  carries the lane aim; a negated-average mutant fails exactly it.
+- **`pnpm test:game` cannot run in-sandbox.** The two `--editor` import
+  steps fail before any test (editor-settings save blocked, no audio
+  hardware, no adb). A shared-HOME 50-check replica in runner order went
+  50/50 green; the director runs the original outside.
+
+## Finish the combat reference and capture evidence: brief 021 (2026-09-30)
+
+Reference-only round plus one harness assertion swap; production,
+tests, balance, and other tools byte-identical. The combat overview no
+longer says power 3 always homes: normal fire stays straight at every
+power, homing needs evolved Starfall or Awakening at power 3+, and the
+missile table is labeled the baseline core curve with native floors
+(Keeper five pellets, Dancer/Eclipse two at power 0). Thresholds and
+historical figures unchanged.
+
+- **Survivors are not a volley.** The director's windowed run failed
+  `dancer early right volley center flies right`: averaging surviving
+  arrows cannot reconstruct a volley (hits eat the center lane, even
+  volleys alternate the unpaired side). Each lane is now judged alone
+  against its own origin-to-mark line within the hero's live fan plus
+  6° slack — muzzle for gun primaries, candle for melee backups, via
+  the same `muzzle_origin` production launches from. Rig-aim, body,
+  hit, primary-effect, recoil, strip, and beacon evidence untouched.
+- **Negative control reverses flight, not aim.** Negating the launch
+  direction fails `lane flies its mark` on gun and candle lanes while
+  rig aim still passes and dancer's melee hits still land; restored
+  byte-identical (sha256 matched). Full six-hero headless validate
+  green (730 checks); windowed rendering stays the director's.
+- **Hygiene now sees staged files.** `check-hygiene` scans `git
+  ls-files`, so the round-5 staging surfaced a pre-existing local
+  oscillator variable name in `build_combat_audio.py` (round-4
+  untracked: green). Out of that round's change surface; reported,
+  not fixed.
+
+## Remove the staged generator's forbidden token: brief 022 (2026-09-30)
+
+Small naming correction plus one capture-tool sampling fix; production,
+tests, balance, music, and approved evidence unchanged. The staged audio
+generator's local oscillator variable is renamed to `angle`, and the
+brief-021 log entry no longer quotes the old name. Synthesis expression,
+sample parameters, RNG calls, and call order identical; all seventeen
+combat WAVs byte-identical and `check:hygiene` green.
+
+- **Per-frame primary anchor.** The director's windowed round-5 harness
+  failed `dancer strong left primary shows for the strip` (1/718): the
+  0.25s poll sampled cooldown gaps while the slash showed on frames
+  between polls (frame observer: 1/119 with a rising per-frame
+  counter). The wait now inspects every process frame until the same
+  bounded six-second wall deadline, latching only a primary observed
+  live that frame. Six repeated dancer strong-left stages and the full
+  six-hero headless validate all green; the windowed repeat stays the
+  director's. This is a new sampling defect, distinct from the fixed
+  lane-direction average and the pause leak.
+
+## Reconcile the Keeper copy regression: brief 023 (2026-10-01)
+
+Integration-test-only fix for the staged `test:play-release-package` gate
+(`keeper preview localized copy contract is incomplete`). The five
+`expected_hero_copy` description literals in
+`scripts/lib/store-graphics-boundary.test.mjs` still pinned the old
+flat-damage wording; they now pin the accepted lantern-shotgun wording
+(hearts/move/dash/openings retained, no flat stat superiority), matching
+accepted `STORE_CAPTURE_HERO_COPY` and `HERO_KEEPER_DESC` in all five
+locales. Names, states, source keys, literal independence, and all
+corruption/swap/both-wrong negative cases unchanged; no production,
+capture-generator, catalog, or locked-value change. `node --test
+scripts/lib/store-graphics-boundary.test.mjs` 21/21 green,
+`pnpm test:play-release-package` 208/208 green, `pnpm check:hygiene`
+green. Old literals verified to fail the gate before the fix was
+restored.
+
 ## Not done
 
 - Store screenshots (phone, 7-inch, 10-inch, iPad) were not recaptured or uploaded, and no recapture is
