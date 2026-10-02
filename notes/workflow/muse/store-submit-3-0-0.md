@@ -1,5 +1,35 @@
 # 3.0.0 store submission operations
 
+## Final-build request on 2026-10-02
+
+- The user explicitly requests final builds and review submission on both
+  stores. Brief 034 narrowly authorizes the necessary unique build numbers.
+  Its three-line preset diff is independently byte-compared, then accepted
+  with the existing protected-path `--allow` mechanism. Android is now
+  3.0.0 (16), iOS 3.0.0 (11); every other preset byte is preserved.
+- The director independently confirms all 667 corrected-runtime witness
+  hashes match the reviewed game. The signed AAB is 60,357,666 bytes with
+  SHA-256 `46c6e65220a3cad736b07d3249585989c609ff6a4c5598e6e3ab0d66396ae781`.
+  Actual manifest, configured signer pin, localized names, IAP/Billing and
+  release resource boundaries pass. Android and iOS build-test groups pass
+  34 and 58 checks, respectively, and hygiene passes.
+- Normal iOS archive and manual distribution export succeed for build 11.
+  The unchanged verified local certificate/profile are reused. Both
+  operations restore the original keychain search list. Local IPA validation
+  passes AppIcon/Assets.car, arm64, signature/profile, identity, exact versions,
+  IAPKit public-key-only and resource checks. No public review is claimed.
+- Existing store PNGs remain byte-identical to the reviewed head: 90 Play
+  and 70 App Store files. The final App Store canonical provenance remains
+  incomplete; the strict Android capture source check remains stale after
+  the non-visual circle correction. No proof is rebound or forged. A preset
+  bump is excluded from the runtime fingerprint but is still included in the
+  separate capture-input maps; the implementer's report conflates these.
+- Native ten-product purchases and final device direction evidence remain
+  unestablished. The connected Android is a sideload with installer null;
+  Pixel 10 is not connected. Human answers about using the Galaxy, test
+  accounts and new five-language iPad captures are pending. General submission
+  authorization is not a substitute for those observations.
+
 The user explicitly requested new submissions to both stores, including
 screenshots. This extends the previously approved release work. It does not
 create the human-owned PR guard signal or replace native purchase evidence.
