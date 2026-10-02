@@ -1331,6 +1331,21 @@ export async function createGooglePlayPublisherClient({
           label: 'Google Play edit insert',
         });
     },
+    async listEditImages(packageName, editId, language, imageType) {
+      return jsonRequest('GET',
+        `/androidpublisher/v3/applications/${segment(packageName, 'packageName')}`
+        + `/edits/${segment(editId, 'editId')}/listings/`
+        + `${segment(language, 'language')}/${segment(imageType, 'imageType')}`, {
+          label: `Google Play ${language}/${imageType} image list`,
+        });
+    },
+    async listEditListings(packageName, editId) {
+      return jsonRequest('GET',
+        `/androidpublisher/v3/applications/${segment(packageName, 'packageName')}`
+        + `/edits/${segment(editId, 'editId')}/listings`, {
+          label: 'Google Play listing list',
+        });
+    },
     async listOneTimeProducts(packageName, pageToken) {
       return jsonRequest('GET',
         `/androidpublisher/v3/applications/${segment(packageName, 'packageName')}`

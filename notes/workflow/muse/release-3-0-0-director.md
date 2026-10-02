@@ -199,3 +199,43 @@ pending. Do not infer approval from a default option or elapsed time.
 
 - App Store preparation continues without claiming a complete submission set: the existing renderer generates thirty five-locale iPhone 6.5-inch previews plus ten per-product IAP review images in `builds/release/app-store-preview/`, explicitly using the permitted Android Pixel AVD source mode. All forty fully decode as 2778×1284 RGB; the five six-screen boards and ten-product board were personally viewed. Every combat frame retains the entire source viewport. The preview portrait pixel ROI matches exactly across all languages (SHA-256 `90d340ef…`, 22,358 green pixels each). These files are partial local previews; no native iPad proof, full App Store provenance, submission-ready manifest or upload is asserted. The tracked App Store images remain unchanged.
 - Final post-candidate hygiene check passes: 1,924 tracked files, 35 clips within the 903KB maximum and all ten locked project settings. Production runtime/source remains the reviewed capture witness. The human PR signal is absent and the iPad tunnel REST service is unreachable at the final local preparation checkpoint.
+
+## Final binary internal delivery (2026-10-02)
+
+- Final signed release artifacts are preserved under
+  builds/release/final-3.0.0-build16-11/: Android APK/AAB 3.0.0 (16),
+  iOS IPA 3.0.0 (11). The IPA passes local and Apple remote validation,
+  uploads successfully and is COMPLETE/VALID, then is assigned to the
+  existing internal TestFlight group. Assignment is not a purchase test.
+- Briefs 035/035b produce a separate binary-only Play internal updater.
+  The director reproduces a newer-remote-code downgrade hole in round 1
+  before any real store mutation. Round 2 blocks it before edit or intent.
+  Independent registered tests pass 225/225; neutralizing the guard in a
+  sanitized measurement copy fails both added cases, exact restore passes.
+  Candidate module SHA-256 is
+  32a61b554ca283097029b746aff8b6a46328ab6e8ab14ea4488d4bf72ba573b3.
+  All four deliverables are judged and accepted via Muse.
+- Play binary-only update commits internal code 16 on edit
+  11168174040830595564. Independent post-commit track and all five listing
+  /100 ordered image hash readbacks pass; durable receipt is APPLIED.
+  Retained screenshots are explicitly historical gallery evidence, not
+  final-runtime capture or native purchase evidence. No production
+  promotion, listing/image/product write or review submission is done.
+- The signed release APK is preserved before the fresh phone capture can
+  replace the canonical APK path with a debug build. Existing canonical
+  phone captures are also copied byte-exactly before recapture.
+- New App Store screenshots are authorized by the user's earlier explicit
+  renewal request. Actual title navigation/layout and every requested
+  combat/shrine/hero screen changed versus the existing 2.0 gallery. Scope:
+  five languages, six named screens each, iPhone and physical iPad sources;
+  no unnecessary Android tablet recapture or existing Play media upload.
+- PR 10 remains open without human review or merge. Native Play-installed
+  and iPad Sandbox ten-product purchase checks are still pending; no E2E
+  or public review completion is claimed. Full real-tree verification after
+  tooling acceptance is running.
+
+The user explicitly authorizes this submission to proceed with real-device
+purchase verification unfinished, and confirms the iPad will remain
+connected, landscape and unlocked for fresh captures. This overrides the
+skill purchase gate only for this release; native evidence remains
+NOT_DONE, never PASS. Both-store review submission authorization persists.
