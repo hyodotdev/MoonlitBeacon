@@ -90,6 +90,8 @@ Desktop.ini
 # settings.local.json is a per-machine permission allow-list and is not shared.
 # Team-shared settings go in .claude/settings.json.
 .claude/settings.local.json
+# The user's one-shot approval for a pull request. See scripts/guard-pull-request.mjs.
+.claude/allow-pr
 firebase.cfg
 
 # Agent MCP ------------------------------------------------------------------

@@ -1,8 +1,9 @@
-[gd_resource type="Resource" script_class="RoomKind" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="RoomKind" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/nature.png" id="tileset"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field.png" id="field"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/ground_field.png" id="floor"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field_props.png" id="obstacles"]
 
 [resource]
@@ -10,12 +11,11 @@ script = ExtResource("script")
 display_name = "달빛 들판"
 encounter = 1
 tileset = ExtResource("tileset")
-floor_texture = ExtResource("field")
-floor_region = Rect2i(16, 64, 16, 16)
-tint = Color(0.44, 0.52, 0.62, 1)
-floor_tint = Color(0.88, 1.05, 0.92, 1)
+floor_texture = ExtResource("floor")
+tint = Color(0.72, 0.8, 0.9, 1)
+floor_tint = Color(1, 1, 1, 1)
 border_count = 168
-decor_count = 380
+decor_count = 350
 clump_count = 20
 prop_tileset = ExtResource("field")
 prop_count = 32
@@ -24,3 +24,16 @@ obstacle_tileset = ExtResource("obstacles")
 obstacle_count = 28
 tree_kinds = PackedStringArray("sm0", "sm1", "sm2", "sm3", "mid", "bigA")
 decor_kinds = PackedStringArray("bush", "twig", "rockS", "rockS2", "stump2")
+tone_count = 44
+tone_colors = PackedColorArray(0.18, 0.42, 0.26, 0.17, 0.05, 0.07, 0.2, 0.18, 0.4, 0.6, 0.9, 0.07, 0.18, 0.42, 0.26, 0.17)
+dapple_count = 24
+dapple_color = Color(0.18, 0.3, 0.5, 0.22)
+flora_count = 140
+flora_plants = PackedInt32Array(1, 1, 1, 2, 2, 0)
+flora_colors = PackedColorArray(1, 0.68, 0.82, 1, 1, 0.95, 0.7, 1, 0.78, 0.7, 1, 1)
+flora_glow = 0.6
+mist_color = Color(0.6, 0.82, 1, 0.13)
+beam_count = 6
+beam_color = Color(0.85, 0.92, 1, 0.26)
+mote_count = 56
+mote_color = Color(0.85, 1, 0.55, 1)

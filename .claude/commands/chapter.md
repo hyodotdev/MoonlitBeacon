@@ -14,6 +14,13 @@ is in the table below.
 
 ---
 
+## Who writes it
+
+The director does not write these documents. Brief the implementer with this file as the spec
+([`/muse`](./muse.md)): the file list, the lesson list, the four requirements and the prose skeleton below are what
+the brief points at. Everything under **Wrap-up** that edits a file (the table of contents link, the two `README.md`
+rows) is part of that brief; the steps that only run something (verify, device, commit, tag) are the director's.
+
 ## What to create
 
 | File | Audience |
@@ -161,7 +168,7 @@ aloud.
    - That row in the lesson-list table: `⬜` → `✅`
    - `Current version | 0.0.1 (through Lesson N)`
 
-5. PR with [`/commit`](./commit.md)
+5. Commit with [`/commit`](./commit.md) (a PR only if the user asks for one)
 6. Run [`/review-self`](../skills/review-self/SKILL.md) until two consecutive
    rounds are clean
 7. Squash-merge, return to `main`, `git pull`

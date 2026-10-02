@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Assemble Maple-style chibi sources into 48×64 hero sheets.
+"""Assemble chibi hero sources into 48×64 hero sheets.
 
-Sources are tools/hero_maple/<id>/{front,back,left}.jpg. Strip magenta,
-fit to the cell from the feet, then right is an exact flip of left.
+Sources are tools/hero_maple/<id>/{front,back,left}.png, transparent PNGs cut out of a
+ChatGPT lineup by tools/cut_lineup.py (see hero_maple/README.md), plus optional
+walk_<front|back|left>_<0..3>.png frames. Older alpha .webp and magenta .jpg sources
+still load. Fit to the cell from the feet, then right is an exact flip of left.
 """
 
 from __future__ import annotations
@@ -85,7 +87,7 @@ def _bbox(image: Image.Image) -> tuple[int, int, int, int]:
 
 
 def _ensure_rgba(source: Image.Image) -> Image.Image:
-    # Use alpha PNGs (Ludo export) as-is; key only magenta-background JPGs.
+    # Use alpha PNGs as-is; key only magenta-background JPGs.
     if source.mode in ("RGBA", "LA"):
         rgba = source.convert("RGBA")
         low, _high = rgba.getchannel("A").getextrema()
@@ -139,8 +141,8 @@ def _fit_cells_union(
     """Fit one facing's walk frames into the cell with a shared bbox and shared scale.
 
     Fitting each frame alone makes the lifted-foot (shorter bbox) frame grow so
-    the body bobs while walking. Ludo export already floor-aligns, so
-    preserve relative motion between frames as-is.
+    the body bobs while walking. The walk frames are cut onto one shared canvas with the
+    feet on one baseline (`cut_lineup.py --frames`), so preserve relative motion as-is.
     """
     keyed = [_ensure_rgba(source) for source in sources]
     boxes = [_bbox(image) for image in keyed]
@@ -294,7 +296,7 @@ def _open_optional(path: Path) -> Image.Image | None:
 
 
 def _open_view(folder: Path, view: str) -> Image.Image:
-    # Ludo sources are alpha webp; Grok sources are magenta jpg. Search extensions in order.
+    # Current sources are alpha png; older ones were alpha webp or magenta jpg. Search in order.
     for ext in ("webp", "png", "jpg"):
         path = folder / f"{view}.{ext}"
         if path.is_file():

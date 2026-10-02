@@ -19,6 +19,11 @@ extends Resource
 ## not changed by this. A paid hero's price gap should be felt only as richer
 ## shape and afterglow; if a higher price means higher DPS, character pick
 ## becomes a payment.
+##
+## These six are the ranged slot's grammar only: the primary weapon for
+## Sage, Keeper, and Knight, and the backup shot for Warden, Dancer, and
+## Eclipse. Their melee primaries — sword, twin blades, orbiting scythe —
+## live in `HeroWeapons`, not here.
 enum AttackProfile {
 	WARDEN,  ## A blue round moon wheel turns wide and rewinds.
 	DANCER,  ## Twin violet arcs coil into each other as they go.

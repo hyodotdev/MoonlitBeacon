@@ -22,8 +22,14 @@ const FONT: Font = preload(
 const FONT_BOLD: Font = preload(
 	"res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres"
 )
-const WOOD: Texture2D = preload(
-	"res://assets/custom/ui/panel_moonlit.png")
+## Rows and buttons here are built in code, so they load the same shared styles
+## the scenes point at by path. Changing the look is a change in the UI kit.
+const ROW_STYLE: StyleBox = preload("res://resources/ui/panels/chip.tres")
+const ROW_STYLE_HIGHLIGHT: StyleBox = preload("res://resources/ui/panels/chip_gold.tres")
+const BUTTON_NORMAL: StyleBox = preload("res://resources/ui/buttons_gold/normal.tres")
+const BUTTON_HOVER: StyleBox = preload("res://resources/ui/buttons_gold/hover.tres")
+const BUTTON_PRESSED: StyleBox = preload("res://resources/ui/buttons_gold/pressed.tres")
+const BUTTON_DISABLED: StyleBox = preload("res://resources/ui/buttons_gold/disabled.tres")
 
 const TEXT: Color = Color(0.86, 0.9, 0.98, 1)
 const MUTED: Color = Color(0.55, 0.6, 0.7, 1)
@@ -491,21 +497,12 @@ func _price_label(cost: int, centered: bool = false) -> Label:
 	return _label(text, 11, SUCCESS if enough else ERROR, false, centered)
 
 
-func _card(accent: Color, highlighted: bool) -> PanelContainer:
+## One list row. The accent used to tint a one-pixel border; the row text is
+## still coloured by it, so the border only has to say "look here".
+func _card(_accent: Color, highlighted: bool) -> PanelContainer:
 	var panel: PanelContainer = PanelContainer.new()
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.04, 0.085, 0.95)
-	var border: int = 2 if highlighted else 1
-	style.border_width_left = border
-	style.border_width_top = border
-	style.border_width_right = border
-	style.border_width_bottom = border
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.9 if highlighted else 0.38)
-	style.content_margin_left = 4.0
-	style.content_margin_top = 3.0
-	style.content_margin_right = 4.0
-	style.content_margin_bottom = 3.0
-	panel.add_theme_stylebox_override("panel", style)
+	panel.add_theme_stylebox_override(
+		"panel", ROW_STYLE_HIGHLIGHT if highlighted else ROW_STYLE)
 	return panel
 
 
@@ -533,27 +530,12 @@ func _button(text: String, accent: Color) -> Button:
 	button.add_theme_color_override("font_color", accent)
 	button.add_theme_color_override("font_disabled_color", Color(
 		accent.r, accent.g, accent.b, 0.38))
-	button.add_theme_stylebox_override(
-		"normal", _wood_style(Color(0.8, 0.83, 0.95, 0.82)))
-	button.add_theme_stylebox_override(
-		"hover", _wood_style(Color(1, 1, 1, 0.96)))
-	button.add_theme_stylebox_override(
-		"pressed", _wood_style(Color(0.58, 0.65, 0.82, 0.9)))
-	button.add_theme_stylebox_override(
-		"disabled", _wood_style(Color(0.38, 0.4, 0.48, 0.54)))
+	button.add_theme_stylebox_override("normal", BUTTON_NORMAL)
+	button.add_theme_stylebox_override("hover", BUTTON_HOVER)
+	button.add_theme_stylebox_override("pressed", BUTTON_PRESSED)
+	button.add_theme_stylebox_override("disabled", BUTTON_DISABLED)
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	return button
-
-
-func _wood_style(tone: Color) -> StyleBoxTexture:
-	var style: StyleBoxTexture = StyleBoxTexture.new()
-	style.texture = WOOD
-	style.texture_margin_left = 5.0
-	style.texture_margin_top = 5.0
-	style.texture_margin_right = 5.0
-	style.texture_margin_bottom = 5.0
-	style.modulate_color = tone
-	return style
 
 
 func _purchase_boon(boon: Boon, path: String, expected_rank: int) -> void:

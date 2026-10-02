@@ -94,8 +94,8 @@ test('rejects placeholders in full store descriptions', () => {
   const result = runFixture(({ storePage }) => {
     replaceRequired(
       storePage,
-      'The moon is hidden and every beacon across three lands has gone out.',
-      'TODO: fill in the Korean full description.',
+      'Nari, signal keeper of Lantern Hollow, went to mend the beacon road and never came home.',
+      'TODO: fill in the English full description.',
     );
   });
   assertPlaceholderRejected(result);

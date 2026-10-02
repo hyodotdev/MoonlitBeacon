@@ -122,7 +122,7 @@ func _physics_process(delta: float) -> void:
 	if _taken or not _armed or target == null or not is_instance_valid(target):
 		return
 	var distance: float = global_position.distance_to(target.global_position)
-	if distance > MAGNET_RANGE:
+	if distance > MAGNET_RANGE * PickupMagnet.scale:
 		return
 	if distance <= 10.0:
 		_collect()

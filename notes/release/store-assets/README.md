@@ -45,9 +45,12 @@ pnpm check:store-graphics
 ## Play and App Store screenshots
 
 `screenshots.json` selects only six on-device captures that show the title and
-the current 2-head-tall heroes. Combat captures have test controls and a
-performance HUD at the bottom, so that bottom strip is cropped.
-Do not overpaint game pixels or composite a scene. Remaining real screen keeps
+the current 2-head-tall heroes. Capture automation hides the debug UI
+(TestLauncher, ArenaTools, FrameMeter) before each shot, so the three combat
+sources are clean and keep their full 2424×1080 viewport, including the
+dialogue ribbon and the dash control; only the title keeps its existing
+90-pixel bottom crop.
+Do not overpaint game pixels or composite a scene. The real screen keeps
 aspect ratio and sits inside a per-store night-sky marketing frame. The game
 screen is not stretched; title and brand marks are drawn only in the margin
 outside real UI.
@@ -97,8 +100,9 @@ Outputs are build products and are not tracked by the repo.
 iPad 13" places the physical iPad framebuffer with aspect preserved and uses
 only a dark, strongly blurred background from the same iPad source in empty
 areas. Play 7-inch and 10-inch sets are the official large-screen 16:9 spec:
-the full Android source shot on Pixel 10 sits centered with no distortion or
-crop, and only a neutral dark extension of that same Android source fills
+the full Android source shot on each set's native tablet target sits centered
+with no distortion or crop, and only a neutral dark extension of that same
+Android source fills
 empty area. No extra device frame or marketing copy, and iPad outputs are not
 reused. The sharp front screen shows the full UI at the same ratio; letters
 and UI in the background cannot be read.
@@ -108,9 +112,10 @@ and UI in the background cannot be read.
 The first submission set uses current 2-head-tall hero runtime screens
 reshoot on a 2424×1080 AVD matching Pixel 10. The first three shots
 reproduced real late-game barrage, region Guardian, and hit missile drop on
-a debug build; only the bottom test buttons and performance meter are removed
-with `crop_bottom`. en/ko/ja/zh_CN/zh_TW are actually chosen on the settings
-screen, then the saved `settings.cfg` is reread to confirm the switch.
+a debug build with the test UI hidden before capture, so the clean combat
+sources keep the full viewport — dialogue ribbon and dash control included —
+with no `crop_bottom` cut. en/ko/ja/zh_CN/zh_TW are actually chosen on the
+settings screen, then the saved `settings.cfg` is reread to confirm the switch.
 English, Korean, Japanese, Simplified Chinese, and Traditional Chinese sets
 each use a different real UI source, and marketing titles in the same
 language sit in the frame outside real UI. Do not overpaint a translation

@@ -1,0 +1,35 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/marsh.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/marsh_windup.png" id="windup"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/marsh_charge.png" id="charge"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/marsh_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_MARSH_NAME"
+behavior = 4
+guardian_style = 4
+boss_accent = Color(0.7, 1, 0.42, 1)
+guardian_rule = "GUARDIAN_MARSH_RULE"
+guardian_burst_fraction = 0.16
+guardian_sustain_fraction = 0.14
+guardian_windup_sheet = ExtResource("windup")
+guardian_alt_windup_sheet = ExtResource("windup")
+guardian_charge_sheet = ExtResource("charge")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 52.0
+turn_rate = 3.2
+health = 720
+score_value = 900
+stagger_seconds = 0.05
+body_scale = 1.06
+tint = Color(1, 1, 1, 1)
+anim_fps = 3.8

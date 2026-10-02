@@ -11,6 +11,7 @@ signal title_requested
 signal pause_changed(paused: bool)
 
 @onready var _overlay: ColorRect = $Overlay
+@onready var _objective: Label = $Overlay/Objective
 
 
 func _ready() -> void:
@@ -37,6 +38,11 @@ func set_overlay_visible(value: bool) -> void:
 ## Hide the pause button when the run is over. Stacking it on the result panel looks ugly.
 func set_available(value: bool) -> void:
 	$Button.visible = value
+
+
+## The immediate story objective, set by the arena every time pause opens.
+func set_objective(text: String) -> void:
+	_objective.text = text
 
 
 func _notification(what: int) -> void:

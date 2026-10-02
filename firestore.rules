@@ -98,7 +98,10 @@ service cloud.firestore {
           'dew_hunter', 'heavy_arrow', 'light_step', 'long_blade',
           'moon_dash', 'moon_ring', 'moon_ripple', 'pierce_arrow',
           'quick_arrow', 'shadow_veil', 'sharp_moon', 'swift_hand',
-          'tough_life', 'twin_arrow', 'warm_beacon', 'wide_arc'
+          'tough_life', 'twin_arrow', 'warm_beacon', 'wide_arc',
+          'lantern_familiar', 'moon_ward', 'comet_call', 'star_magnet',
+          'thorn_bloom', 'second_light', 'moon_burst', 'winter_bell',
+          'comet_trail'
         ])
         && (!p.keys().hasAny(['family'])
           || p.family in ['starfall', 'full_moon', 'moon_dance', 'support'])
@@ -120,7 +123,7 @@ service cloud.firestore {
         && (!p.keys().hasAny(['cycle'])
           || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
         && (!p.keys().hasAny(['terrain'])
-          || p.terrain in ['forest', 'field', 'camp'])
+          || p.terrain in ['forest', 'field', 'camp', 'frost', 'marsh', 'ruins'])
         && (!p.keys().hasAny(['mode'])
           || p.mode in ['normal', 'overcharge'])
         && (!p.keys().hasAny(['elapsed_ms'])
@@ -135,7 +138,7 @@ service cloud.firestore {
         && (!p.keys().hasAny(['outcome'])
           || p.outcome in ['success', 'failed', 'abandoned', 'defeat'])
         && (!p.keys().hasAny(['terrain'])
-          || p.terrain in ['forest', 'field', 'camp'])
+          || p.terrain in ['forest', 'field', 'camp', 'frost', 'marsh', 'ruins'])
         && (!p.keys().hasAny(['cycle'])
           || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
         && (!p.keys().hasAny(['duration_ms'])
@@ -150,7 +153,7 @@ service cloud.firestore {
         && (!p.keys().hasAny(['cycle'])
           || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
         && (!p.keys().hasAny(['terrain'])
-          || p.terrain in ['forest', 'field', 'camp'])
+          || p.terrain in ['forest', 'field', 'camp', 'frost', 'marsh', 'ruins'])
         && (!p.keys().hasAny(['elapsed_ms'])
           || (p.elapsed_ms is int && p.elapsed_ms >= 0
             && p.elapsed_ms <= 604800000));
@@ -163,10 +166,12 @@ service cloud.firestore {
         && (!p.keys().hasAny(['guardian']) || p.guardian in [
           'guardian', 'guardian_forest', 'guardian_forest_thorn',
           'guardian_field', 'guardian_field_storm', 'guardian_camp',
-          'guardian_camp_siege'
+          'guardian_camp_siege', 'guardian_frost', 'guardian_frost_rime',
+          'guardian_marsh', 'guardian_marsh_glow', 'guardian_ruins',
+          'guardian_ruins_halo'
         ])
         && (!p.keys().hasAny(['terrain'])
-          || p.terrain in ['forest', 'field', 'camp'])
+          || p.terrain in ['forest', 'field', 'camp', 'frost', 'marsh', 'ruins'])
         && (!p.keys().hasAny(['cycle'])
           || (p.cycle is int && p.cycle >= 0 && p.cycle <= 999))
         && (!p.keys().hasAny(['duration_ms'])

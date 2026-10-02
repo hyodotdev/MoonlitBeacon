@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Bake 22 guardian sheets from 6 painted sources.
+"""Bake 44 guardian sheets from 12 sources.
 
-Sources are six `tools/guardian_ludo/<name>.webp` files — three terrains and their evolved set.
+Sources are twelve `tools/guardian_ludo/<name>.png` files (or `.webp`) with a transparent
+background — six terrains and their evolved set. The current set is a ChatGPT grid cut
+apart by `cut_lineup.py` (see `guardian_ludo/README.md`); the folder name is historical.
 Each source makes idle, windup, charge, and recover sheets. Do not pull a separate picture per state;
 **composite by deforming**. It is the same body changing pose, so if silhouettes
 drift they look like a different monster.
@@ -53,6 +55,14 @@ STATES: dict[str, tuple[str, ...]] = {
     "field_storm": ("windup_cross", "windup_radial", "recover"),
     "camp": ("windup", "recover"),
     "camp_siege": ("windup", "recover"),
+    # The three later places. The owl dives and the toad leaps, so each has a charge sheet;
+    # the sentinel only writes and rests.
+    "frost": ("windup", "charge", "recover"),
+    "frost_rime": ("windup", "charge", "recover"),
+    "marsh": ("windup", "charge", "recover"),
+    "marsh_glow": ("windup", "charge", "recover"),
+    "ruins": ("windup", "recover"),
+    "ruins_halo": ("windup", "recover"),
 }
 
 
@@ -143,13 +153,18 @@ def _frames(art: Image.Image, state: str) -> list[Image.Image]:
     ]
 
 
+def _source_path(name: str) -> Path:
+    for ext in ("png", "webp"):
+        path = SOURCE_ROOT / f"{name}.{ext}"
+        if path.is_file():
+            return path
+    raise RuntimeError(f"source is missing: {SOURCE_ROOT / name}.(png|webp)")
+
+
 def build() -> dict[Path, Image.Image]:
     out: dict[Path, Image.Image] = {}
     for name, states in STATES.items():
-        source = SOURCE_ROOT / f"{name}.webp"
-        if not source.is_file():
-            raise RuntimeError(f"source is missing: {source}")
-        art = _fit(Image.open(source))
+        art = _fit(Image.open(_source_path(name)))
         out[OUT_ROOT / f"{name}.png"] = _quantize(_sheet(_frames(art, "idle")))
         for state in states:
             out[OUT_ROOT / f"{name}_{state}.png"] = _quantize(

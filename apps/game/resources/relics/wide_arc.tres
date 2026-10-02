@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="Relic" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="Relic" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/icons/wide_arc.png" id="icon"]
 
 [resource]
 script = ExtResource("script")
@@ -9,3 +10,4 @@ description = "RELIC_WIDE_ARC_DESC"
 effect = 3
 amount = 1.25
 accent = Color(1, 0.86, 0.5, 1)
+icon = ExtResource("icon")

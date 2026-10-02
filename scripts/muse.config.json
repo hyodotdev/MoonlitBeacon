@@ -1,0 +1,9 @@
+{
+  "implementer": {
+    "name": "Muse",
+    "command": "muse",
+    "model": "muse-spark-1.3-contributor",
+    "reasoningEffort": "max"
+  },
+  "timeoutMinutes": 300
+}

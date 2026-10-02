@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="RoomKind" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/marsh_nature.png" id="tileset"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/ground_marsh.png" id="floor"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/marsh_props.png" id="obstacles"]
+
+[resource]
+script = ExtResource("script")
+display_name = "안개 늪숲"
+encounter = 4
+tileset = ExtResource("tileset")
+floor_texture = ExtResource("floor")
+tint = Color(0.72, 0.88, 0.82, 1)
+floor_tint = Color(1, 1, 1, 1)
+border_count = 240
+decor_count = 250
+clump_count = 40
+obstacle_tileset = ExtResource("obstacles")
+obstacle_count = 30
+tree_kinds = PackedStringArray("dead", "dead", "sm0", "sm1", "sm2", "mid")
+decor_kinds = PackedStringArray("bush", "twig", "stump2", "deadstub", "branch", "rockS")
+light_obstacle_variants = PackedInt32Array(0, 2)
+light_radius = 108.0
+light_color = Color(0.3, 0.6, 0.42, 1)
+tone_count = 46
+tone_colors = PackedColorArray(0.1, 0.4, 0.28, 0.18, 0.05, 0.2, 0.2, 0.2, 0.5, 0.7, 0.3, 0.06, 0.1, 0.4, 0.28, 0.18)
+dapple_count = 16
+dapple_color = Color(0.2, 0.5, 0.4, 0.2)
+flora_count = 150
+flora_plants = PackedInt32Array(0, 0, 0, 0, 2, 1)
+flora_colors = PackedColorArray(0.5, 1, 0.7, 1, 0.9, 1, 0.5, 1, 0.4, 0.9, 1, 1)
+flora_glow = 1.0
+mist_color = Color(0.55, 0.85, 0.75, 0.2)
+beam_count = 3
+beam_color = Color(0.7, 1, 0.85, 0.18)
+mote_count = 54
+mote_color = Color(0.9, 1, 0.5, 1)

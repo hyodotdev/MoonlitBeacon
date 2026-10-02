@@ -10,6 +10,23 @@ const CORE_TEXTURE_PATH: String = \
 const DEBUG_CAPTURE_REQUEST: String = "user://store_capture_missile_core.request"
 const DEBUG_CAPTURE_STATE: String = "user://store_capture_state.json"
 const DEBUG_CAPTURE_TEMP: String = "user://store_capture_state.tmp"
+const HERO_REQUEST: String = "user://test_hero.request"
+const HERO_PATHS: Array[String] = [
+	"res://resources/heroes/warden.tres",
+	"res://resources/heroes/dancer.tres",
+	"res://resources/heroes/keeper.tres",
+	"res://resources/heroes/knight.tres",
+	"res://resources/heroes/eclipse.tres",
+	"res://resources/heroes/sage.tres",
+]
+## Independent origin contract, deliberately not read from the player: gun
+## heroes aim from the hand and launch from the muzzle seat, melee backups
+## from the candle. A change to either side fails loudly here.
+const RANGED_HEROES: Array[String] = ["keeper.tres", "knight.tres", "sage.tres"]
+const MUZZLE_SEAT: Dictionary = {
+	"sage.tres": 16.0, "keeper.tres": 9.0, "knight.tres": 9.0,
+}
+const SIDE_HAND: Vector2 = Vector2(10.0, 0.0)
 
 var _failed: int = 0
 var _checked: int = 0
@@ -57,11 +74,11 @@ func _run() -> void:
 	# The materialize Tween is frozen too, so only this focused check marks them attackable.
 	first_spirit.set("_materialized", true)
 	second_spirit.set("_materialized", true)
-	var first_spirit_at: Vector2 = first_spirit.global_position
-	first_spirit.global_position = player.global_position + Vector2.RIGHT * 80.0
-	await _test_moonlight_projectile_origin(
-		arena, player, first_spirit)
-	first_spirit.global_position = first_spirit_at
+	# Origins are staged per hero on purpose: the sequential runner shares one
+	# vault, and an earlier shrine select can leave any hero equipped. Gun
+	# primaries fire from the coherent gun muzzle; melee backups keep the
+	# candle. Every profile's real origin is covered, none assumed.
+	await _test_all_hero_origins()
 	first_spirit.call("take_damage", 999999, Vector2(460, 300))
 	_expect_equal(int(arena.get("_missile_progress")), 1, "first actual Spirit kill progress is 1/2")
 	_expect_equal(_cores().size(), 0, "no core yet on the first actual Spirit kill")
@@ -660,65 +677,134 @@ func _remove_capture_file(path: String) -> void:
 
 ## Confirm both straight moon discs and guided volleys spawn at the beacon candle in front of Player's chest, via the live
 ## Arena fire path. Stops the regression where only the character art changed and shots still spawned at the feet.
+## Every equipped profile's real origin: one fresh pinned arena per hero, so
+## whatever the shared runner vault holds, no origin is assumed.
+func _test_all_hero_origins() -> void:
+	for hero_path in HERO_PATHS:
+		var request: FileAccess = FileAccess.open(HERO_REQUEST, FileAccess.WRITE)
+		request.store_string(hero_path + "\n")
+		request.close()
+		var arena: Node2D = ARENA_SCENE.instantiate() as Node2D
+		add_child(arena)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_freeze_existing(arena)
+		_expect_equal(
+			(arena.get("_run_hero") as Hero).resource_path, hero_path,
+			hero_path.get_file() + " origin arena equips its pinned hero")
+		var player: Node2D = arena.get_node("Player") as Node2D
+		var target: Node2D = arena.call(
+			"_summon", player.global_position + Vector2.RIGHT * 80.0,
+			"res://resources/wisp.tres", 0.5, false) as Node2D
+		_freeze_existing(target)
+		target.set("_materialized", true)
+		await _test_moonlight_projectile_origin(
+			arena, player, target, hero_path.get_file())
+		arena.queue_free()
+		await get_tree().process_frame
+		await get_tree().process_frame
+
+
 func _test_moonlight_projectile_origin(
 		arena: Node2D,
 		player: Node2D,
 		target: Node2D,
+		label: String,
 	) -> void:
-	var expected: Vector2 = player.call("moonlight_origin")
+	# Independent two-pass aim from the contract above: anchor, then the side
+	# hand for guns. Nothing here is read from the player's own helpers.
+	var gun: bool = RANGED_HEROES.has(label)
+	var candle: Vector2 = player.call("moonlight_origin")
+	var anchor: Vector2 = player.to_global(Player.WEAPON_GRIP) \
+		if gun else candle
+	var first: Vector2 = (target.global_position - anchor).normalized()
+	var shift: Vector2 = _independent_shift(first, gun)
+	var base: Vector2 = (target.global_position - (anchor + shift)).normalized()
+	var origin_name: String = "gun muzzle" if gun else "beacon candle"
+	# The player's helpers agree with the independent contract.
+	_expect_true(player.call("shot_anchor").distance_to(anchor) < 0.01,
+		label + " shot anchor matches the contract")
+	_expect_true(player.call("hand_for_aim", first).distance_to(anchor + shift) < 0.01,
+		label + " side-hand aim matches the contract")
 	var spirits_before: Array[Node2D] = arena.get("_spirits")
 	arena.set("_spirits", [target])
 	arena.set("_missile_power", 0)
 	arena.set("_arrow_timer", 0.0)
 	arena.call("_fire_arrows", 0.0)
 	var projectiles: Array[Node] = _friendly_projectiles()
-	_expect_true(not projectiles.is_empty(), "straight moon disc actually created")
+	_expect_true(not projectiles.is_empty(),
+		label + " straight moon disc actually created")
+	_expect_equal(projectiles.size(), int(arena.call("_missile_volley")),
+		label + " straight volley fires every lane")
+	var center_found: bool = false
 	for projectile in projectiles:
 		_expect_equal(
 			int(projectile.call("profile_id")),
 			int(player.call("attack_profile_id")),
-			"selected-hero combat profile is passed to the straight moon disc")
+			label + " selected-hero combat profile is passed to the straight moon disc")
+		var lane: Vector2 = projectile.get("_base_direction") as Vector2
+		var lane_shift: Vector2 = _independent_shift(lane, gun)
+		var want: Vector2 = candle
+		if gun:
+			want = anchor + lane_shift \
+				+ lane * float(MUZZLE_SEAT[label])
 		_expect_true(
-			(projectile as Node2D).global_position.distance_to(expected) < 0.01,
-			"straight moon disc is created at the beacon candle")
+			player.call("muzzle_origin", lane).distance_to(want) < 0.01,
+			label + " muzzle helper matches the contract")
 		_expect_true(
-			(projectile.get("_direction") as Vector2).distance_to(
-				(target.global_position - expected).normalized()) < 0.0001,
-			"straight moon disc aims from the beacon candle")
+			(projectile as Node2D).global_position.distance_to(want) < 0.01,
+			label + " straight moon disc is created at the " + origin_name)
+		if (projectile.get("_direction") as Vector2).distance_to(base) < 0.0001:
+			center_found = true
+	_expect_true(center_found,
+		label + " straight center lane aims the resolved aim")
 	var cast: MoonlightCast = player.get_node("MoonlightCast") as MoonlightCast
 	_expect_true(
 		cast.remaining_seconds() > 0.0,
-		"cast cue starts when a straight moon disc is fired")
+		label + " cast cue starts when a straight moon disc is fired")
 	_clear_projectiles(projectiles)
 	await get_tree().process_frame
 
 	arena.set("_missile_power", MissileProgression.HOMING_AT)
 	arena.call("_fire_missiles", target)
 	projectiles = _friendly_projectiles()
-	_expect_equal(projectiles.size(), 1, "guided volley is created as a single node")
+	_expect_equal(projectiles.size(), 1,
+		label + " guided volley is created as a single node")
+	var guided_expected: Vector2 = candle
+	if gun:
+		guided_expected = anchor + shift + base * float(MUZZLE_SEAT[label])
 	if not projectiles.is_empty():
 		var missile: Node2D = projectiles[0] as Node2D
 		_expect_equal(
 			int(missile.call("profile_id")),
 			int(player.call("attack_profile_id")),
-			"selected-hero combat profile is passed to the guided volley")
+			label + " selected-hero combat profile is passed to the guided volley")
 		_expect_true(
-			missile.global_position.distance_to(expected) < 0.01,
-			"guided-volley node is created at the beacon candle")
+			missile.global_position.distance_to(guided_expected) < 0.01,
+			label + " guided-volley node is created at the " + origin_name)
 		var positions: Array = missile.get("_positions") as Array
-		_expect_true(not positions.is_empty(), "guided-volley inner-shot positions created")
+		_expect_true(not positions.is_empty(),
+			label + " guided-volley inner-shot positions created")
 		if not positions.is_empty():
 			_expect_true(
-				(positions[0] as Vector2).distance_to(expected) < 0.01,
-				"guided-volley inner shots also start at the beacon candle")
+				(positions[0] as Vector2).distance_to(guided_expected) < 0.01,
+				label + " guided-volley inner shots also start at the " + origin_name)
 	_expect_equal(
 		cast.cast_count(),
 		int(arena.call("_missile_volley")),
-		"guided volley count is reflected on the cast glow")
+		label + " guided volley count is reflected on the cast glow")
 	_clear_projectiles(projectiles)
 	await get_tree().process_frame
 	arena.set("_missile_power", 0)
 	arena.set("_spirits", spirits_before)
+
+
+## The side-hand rule, restated literally: vertical-dominant gun aims shift
+## 10px right; everything else stays centered.
+func _independent_shift(aim: Vector2, gun: bool) -> Vector2:
+	if gun and absf(aim.y) > absf(aim.x):
+		return SIDE_HAND
+	return Vector2.ZERO
 
 
 func _friendly_projectiles() -> Array[Node]:

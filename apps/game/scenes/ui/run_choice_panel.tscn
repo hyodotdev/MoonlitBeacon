@@ -1,26 +1,13 @@
 [gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/run_choice_panel.gd" id="script"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/normal.tres" id="button_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/hover.tres" id="button_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/pressed.tres" id="button_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/disabled.tres" id="button_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/focus.tres" id="button_focus"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-
-[sub_resource type="StyleBoxFlat" id="panel_style"]
-bg_color = Color(0.055, 0.065, 0.15, 0.98)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.57, 0.47, 0.91, 0.95)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-shadow_color = Color(0.015, 0.02, 0.08, 0.72)
-shadow_size = 10
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel"]
 
 [node name="RunChoicePanel" type="Control"]
 process_mode = 3
@@ -57,15 +44,15 @@ mouse_filter = 2
 custom_minimum_size = Vector2(640, 238)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("panel_style")
+theme_override_styles/panel = ExtResource("panel")
 
 [node name="Content" type="MarginContainer" parent="Center/Frame"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/margin_left = 22
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 22
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
 
 [node name="Rows" type="VBoxContainer" parent="Center/Frame/Content"]
 layout_mode = 2
@@ -103,7 +90,7 @@ autowrap_mode = 2
 custom_minimum_size = Vector2(0, 1)
 layout_mode = 2
 mouse_filter = 2
-color = Color(0.5, 0.46, 0.78, 0.6)
+color = Color(0.96, 0.9, 0.78, 0.28)
 
 [node name="Choices" type="HBoxContainer" parent="Center/Frame/Content/Rows"]
 custom_minimum_size = Vector2(0, 112)

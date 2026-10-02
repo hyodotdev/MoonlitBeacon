@@ -1,0 +1,2 @@
+# These are cut-out sources for tools/build_skill_icons.py, not runtime textures. Keep Godot from importing or exporting them.
+*

@@ -5,6 +5,10 @@ extends Node2D
 ## Three beacons → guardian → the next cycle is one loop. Closing a cycle also
 ## advances terrain and time of day. Long fights stay on one loop without the screen freezing into a single still.
 
+## The chapter card shown when an act begins. Built on demand (see
+## `_flush_cycle_story`), so it costs no nodes between acts.
+const ACT_CARD_SCENE: PackedScene = preload("res://scenes/ui/act_card.tscn")
+
 ## Time to brighten. Kept longer than the catch time (`Beacon.IGNITE_SECONDS`, 0.45s) so
 ## the beacon flames first and the forest brightens after.
 const BRIGHTEN_SECONDS: float = 1.1
@@ -72,6 +76,8 @@ const RAID_BASE: int = 7
 const RAID_RING: float = 210.0
 ## Quiet after a raid.
 const RAID_LULL: float = 4.5
+## Ruins: seconds between the first group of a vigil and the one behind you.
+const VIGIL_SECOND_BEAT: float = 3.2
 ## Spawning a whole raid pack in one frame stacks every spirit's SpriteFrames build.
 ## Stagger them at a short step (about two visible at a time) to avoid mobile hitching.
 const RAID_SPAWN_STEP: float = 0.08
@@ -86,12 +92,12 @@ const RAID_SPAWN_STEP: float = 0.08
 ## new faces *is* the rhythm — raise density alone and open kinds late, and the run is only
 ## the same spirit flooding in.
 const SPIRIT_UNLOCKS: Array = [
-	[0.0,   "res://resources/wisp.tres"],      # Wandering spirit — chases
+	[0.0,   "res://resources/wisp.tres"],      # Wandering spirit — chases, and lets fall a slow ring now and then
 	[16.0,  "res://resources/drifter.tres"],   # Night bat — chases fast
-	[36.0,  "res://resources/weaver.tres"],    # Orbiting soul — circles
-	[60.0,  "res://resources/ember.tres"],     # Ember spirit — faster than the player
-	[84.0,  "res://resources/stalker.tres"],   # Night stalker — locks on and lunges
-	[112.0, "res://resources/caster.tres"],    # Moonlight caster — keeps distance and shoots
+	[26.0,  "res://resources/weaver.tres"],    # Orbiting soul — circles you, throwing as it goes
+	[60.0,  "res://resources/caster.tres"],    # Moonlight caster — keeps distance and throws a fan
+	[62.0,  "res://resources/ember.tres"],     # Ember spirit — faster than the player
+	[86.0,  "res://resources/stalker.tres"],   # Night stalker — locks on and lunges
 	[144.0, "res://resources/swarm.tres"],     # Tiny ember — weak and very fast
 ]
 
@@ -127,6 +133,7 @@ const HERO_DIRECTION_PICKUP_GROUPS: Array[StringName] = [
 const SPIRIT_SCENE: PackedScene = preload("res://scenes/actors/spirit.tscn")
 const DEW_SCENE: PackedScene = preload("res://scenes/items/moon_dew.tscn")
 const ROOM_SCENE: PackedScene = preload("res://scenes/gameplay/room.tscn")
+const MOON_GATE_SCENE: PackedScene = preload("res://scenes/objectives/moon_gate.tscn")
 const ARROW_SCENE: PackedScene = preload("res://scenes/actors/moon_arrow.tscn")
 
 ## Moon arrow — the second weapon.
@@ -167,40 +174,11 @@ const TEST_STRESS_RELICS: Array[String] = [
 const ARROW_BASE_HIT: int = 5
 const AUX_BASE_HIT: int = 5
 
-## Terrain per cycle step.
+## Every place a run can visit. The table lives in `Expedition`; the index is the terrain id.
 ##
-## Night forest → open field → abandoned camp, then back to forest.
-## Small props are passable; unique structures actually block. All three terrains share
-## `Room.PLAY` and reserve entrances/spawns, so combat coords stay safe when the room changes.
-const WORLD_STEPS: Array[Dictionary] = [
-	{
-		"room": "res://resources/rooms/forest.tres",
-		"name": "WORLD_FOREST",
-		"guardian": "res://resources/guardian_forest.tres",
-		"guardians": [
-			"res://resources/guardian_forest.tres",
-			"res://resources/guardian_forest_thorn.tres",
-		],
-	},
-	{
-		"room": "res://resources/rooms/field.tres",
-		"name": "WORLD_FIELD",
-		"guardian": "res://resources/guardian_field.tres",
-		"guardians": [
-			"res://resources/guardian_field.tres",
-			"res://resources/guardian_field_storm.tres",
-		],
-	},
-	{
-		"room": "res://resources/rooms/camp.tres",
-		"name": "WORLD_CAMP",
-		"guardian": "res://resources/guardian_camp.tres",
-		"guardians": [
-			"res://resources/guardian_camp.tres",
-			"res://resources/guardian_camp_siege.tres",
-		],
-	},
-]
+## Small props are passable; unique structures actually block. Every terrain shares
+## `Room.PLAY` and reserves entrances/spawns, so combat coords stay safe when the room changes.
+const WORLD_STEPS: Array[Dictionary] = Expedition.TERRAINS
 ## Real frame sources allowed for the field guardian in store shot 04. Reading the expected sheet back
 ## from the current `kind` misses the case where a wrong sheet is stuck on both kind and Sprite.
 ##
@@ -255,6 +233,13 @@ const ESCAPE_WAVE_INTERVAL: float = 3.0
 const ESCAPE_WAVE_COUNT: int = 3
 const ESCAPE_WAVE_MAX: int = 3
 const GATE_EDGE_INSET: float = 34.0
+## Where the memory motif stands relative to its beacon, one offset per
+## terrain in `Expedition.TERRAINS` order. Beside the clearing, never under the
+## beacon's feet and never out in a movement corridor.
+const MOTIF_OFFSETS: Array[Vector2] = [
+	Vector2(58, 30), Vector2(-58, 30), Vector2(58, -34),
+	Vector2(-58, -34), Vector2(40, 52), Vector2(-40, -52),
+]
 ## Real collision radius used to push permanent/recoverable loot clear of new structures on terrain change.
 const POWER_ORB_TERRAIN_RADIUS: float = 12.0
 const MISSILE_CORE_TERRAIN_RADIUS: float = 10.0
@@ -284,17 +269,56 @@ const DEW_LIMIT: int = 3
 const DEW_DROP_COOLDOWN: float = 12.0
 ## Score given instead when health is full so dew is not dropped.
 const DEW_FULL_HEALTH_SCORE: int = 150
-const ARENA_THEME: AudioStream = preload("res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg")
+const ARENA_THEME: AudioStream = preload("res://assets/custom/audio/music/arena_kinetic.wav")
+const ARENA_EMBER_THEME: AudioStream = preload("res://assets/custom/audio/music/arena_ember.wav")
+const ARENA_WATCH_THEME: AudioStream = preload("res://assets/custom/audio/music/arena_watch.wav")
 
 const VOICE_PANEL: Script = preload("res://scripts/ui/voice_panel.gd")
 
-## BGM tempo. The source track is exploration music — too leisurely for survivor hands —
-## so the goal is "bright and urgent like Cookie Run." No new track; playback rate does it.
-## Pitch rises a little each cycle so late-game squeeze is heard as well as seen.
-const BGM_PITCH_BASE: float = 1.14
+## BGM tempo. The loop is already cut driving, so the base rate stays near 1.0.
+## Pitch still rises a little each cycle so late-game squeeze is heard as well as seen.
+const BGM_PITCH_BASE: float = 1.0
 const BGM_PITCH_PER_CYCLE: float = 0.03
-const BGM_PITCH_MAX: float = 1.32
-const GUARDIAN_THEME: AudioStream = preload("res://assets/third_party/ninja_adventure/audio/music/guardian_theme.ogg")
+const BGM_PITCH_MAX: float = 1.18
+## Guardian fights push harder than explore. The guardian pool is also cut faster
+## (140–160 BPM against the arena's 126–138), so the step up is tempo, not volume.
+const GUARDIAN_PITCH_BONUS: float = 0.10
+const GUARDIAN_THEME: AudioStream = preload("res://assets/custom/audio/music/guardian_assault.wav")
+const GUARDIAN_HUNT_THEME: AudioStream = preload("res://assets/custom/audio/music/guardian_hunt.wav")
+const GUARDIAN_STORM_THEME: AudioStream = preload("res://assets/custom/audio/music/guardian_storm.wav")
+## Draw pools for the music bag. Index 0 keeps the round-1 approved track; the arena
+## tscn still defaults to it, and `_ready` swaps in the drawn track before first mix.
+const ARENA_THEMES: Array[AudioStream] = [ARENA_THEME, ARENA_EMBER_THEME, ARENA_WATCH_THEME]
+const GUARDIAN_THEMES: Array[AudioStream] = [GUARDIAN_THEME, GUARDIAN_HUNT_THEME, GUARDIAN_STORM_THEME]
+## A looped track wraps its playback position by its whole length (12s+); only
+## a drop this deep rolls the bag, so clock jitter can never cut a phrase.
+const BGM_WRAP_MARGIN: float = 2.0
+
+## Original combat cues, baked by `tools/build_combat_audio.py`.
+const SFX_SWORD: AudioStream = preload("res://assets/custom/audio/sfx/weapon_sword.wav")
+const SFX_TWIN: AudioStream = preload("res://assets/custom/audio/sfx/weapon_twin.wav")
+const SFX_RIFLE: AudioStream = preload("res://assets/custom/audio/sfx/weapon_rifle.wav")
+const SFX_SHOTGUN: AudioStream = preload("res://assets/custom/audio/sfx/weapon_shotgun.wav")
+const SFX_CANNON: AudioStream = preload("res://assets/custom/audio/sfx/weapon_cannon.wav")
+const SFX_SCYTHE: AudioStream = preload("res://assets/custom/audio/sfx/weapon_scythe.wav")
+const SFX_IMPACT: AudioStream = preload("res://assets/custom/audio/sfx/impact_hit.wav")
+const SFX_KILL: AudioStream = preload("res://assets/custom/audio/sfx/kill_pop.wav")
+const SFX_LEVEL: AudioStream = preload("res://assets/custom/audio/sfx/level_up.wav")
+const SFX_CORE: AudioStream = preload("res://assets/custom/audio/sfx/core_pickup.wav")
+const SFX_OVERCHARGE: AudioStream = preload("res://assets/custom/audio/sfx/overcharge_win.wav")
+
+## Projectiles call `combat_impact` on this group. No audio nodes on shots.
+const COMBAT_SFX_GROUP: StringName = &"moonlit_combat_sfx"
+const WEAPON_SFX_GAP: float = 0.07
+const IMPACT_SFX_GAP: float = 0.09
+const KILL_SFX_GAP: float = 0.12
+const WEAPON_DB: float = -9.0
+const IMPACT_DB: float = -12.0
+## Reward-pop resting gain, matching the RewardSfx node. The growth voice shares it.
+const REWARD_DB: float = -8.0
+## Sidearm attacks speak through the weapon voice at this lower gain.
+const SIDEARM_DB: float = -15.0
+const DUCK_DB: float = -22.0
 
 ## Moon embers enemies leave, and moonfire awakening.
 ##
@@ -403,6 +427,11 @@ enum ResultAction {
 @onready var _compass: Control = $Ui/Compass
 @onready var _event_sfx: AudioStreamPlayer = $EventSfx
 @onready var _pickup_sfx: AudioStreamPlayer = $PickupSfx
+@onready var _weapon_sfx: AudioStreamPlayer = $WeaponSfx
+@onready var _sidearm_sfx: AudioStreamPlayer = $SidearmSfx
+@onready var _impact_sfx: AudioStreamPlayer = $ImpactSfx
+@onready var _reward_sfx: AudioStreamPlayer = $RewardSfx
+@onready var _growth_sfx: AudioStreamPlayer = $GrowthSfx
 @onready var _zone_wipe: ColorRect = $Ui/ZoneWipe
 @onready var _zone_wipe_label: Label = $Ui/ZoneWipe/Label
 
@@ -430,6 +459,10 @@ var _pending_result_action: ResultAction = ResultAction.NONE
 var _spawn_timer: float = SPAWN_INTERVAL_START
 var _spirits: Array[Node2D] = []
 var _guardian: Node2D = null
+## How many times this run has met each terrain's guardian (terrain id to count), for its numeral.
+var _guardian_meetings: Dictionary = {}
+var _guardian_title: String = ""
+var _guardian_detail: String = ""
 ## While a coordinate-free device-capture request is live, lock the real field guardian's framing.
 ## In release, debug_prepare_store_capture() returns immediately, so combat is untouched.
 var _debug_guardian_capture_active: bool = false
@@ -457,6 +490,42 @@ var _voice_panel: VoicePanel = null
 var _cycle: int = 1
 ## Terrain index inside one cycle. Advances 0→1→2 per beacon.
 var _zone_index: int = 0
+## Terrain id of each zone of this cycle; `-1` until a fork chooses it. See `_terrain_at()`.
+var _route: Array[int] = [-1, -1, -1]
+## Real runs from the title offer forks from cycle 2. A test that builds the arena by hand keeps the
+## single classic gate unless it turns this on.
+var _forks_enabled: bool = false
+## The two places an open fork leads to, the direction each gate sits in, and the second gate.
+## Omens of the current zone (`Expedition.Omen`) and their combined effect. Empty before Depth 1.
+## Built the first time a skill card is taken; a run without skills carries no extra node.
+var _skills: PlayerSkills = null
+var _omens: Array[int] = []
+var _omen_effects: Dictionary = Expedition.omen_effects([])
+var _fork_options: Array[int] = []
+var _fork_directions: Array[Vector2] = []
+var _gate_b: Node2D = null
+var _compass_b: BeaconCompass = null
+## The memory motif standing by this zone's beacon, and the terrain ids whose
+## discovery line already played this run. The motif is one reused node; the
+## set keeps a repeated terrain from spamming its line twice in one run.
+var _motif: PlaceMotif = null
+var _places_seen_run: Dictionary = {}
+## Seconds a fresh place discovery owns the voice strip. The fork and guardian
+## lines that fire on the same beacon are spoken after this, not instead.
+const PLACE_GUARD_SECONDS: float = 3.0
+## Real-time clock (msec) until which the discovery owns the strip.
+var _place_guard_until_msec: int = 0
+## Terrains whose discovery was suppressed by a modal, a transition or capture,
+## oldest first. Their chronicle entry is already recorded at restore time; the
+## line itself plays when the screen is quiet again.
+var _places_pending: Array[int] = []
+## A taken voice line waiting out the discovery guard. Last one wins, the way
+## the strip itself swaps in place; its chronicle entry (a guardian first meet)
+## is already marked, so dropping it loses flavor, never a record.
+var _say_deferred_line: String = ""
+var _strip_flush_running: bool = false
+## Bumped when the run ends so a delayed strip callback never speaks past it.
+var _run_generation: int = 0
 ## On only while running for the gate after the first two beacons.
 var _escape_active: bool = false
 var _escape_wave_left: float = 0.0
@@ -526,6 +595,42 @@ var _arrow_damage: int = ARROW_BASE_HIT
 var _arrow_timer: float = 0.6
 ## Park the leftover shot of an even-count volley on alternating sides. Center shot always stays.
 var _arrow_fan_side: float = 1.0
+## This run's weapon bases from `HeroWeapons`. Set in `_base_stats()` so `_recompute()`
+## restores them after a hit exactly like speed and damage.
+var _melee_base_cd: float = Player.DEFAULT_ATTACK_COOLDOWN
+var _melee_spec_mult: float = 1.0
+var _ranged_base_cd: float = ARROW_COOLDOWN
+var _ranged_spec_mult: float = 1.0
+var _ranged_range: float = ARROW_RANGE
+var _ranged_lanes: int = 1
+var _ranged_fan: float = 27.0
+var _ranged_speed: float = 210.0
+var _ranged_blast: float = 0.0
+## Dancer alternates twin cuts left/right around the aim each swing.
+var _twin_side: float = 1.0
+## Combat-voice rate limits. Five bounded voices (primary, sidearm, impact,
+## kill, growth) plus these floors keep rapid hits and pickups from stacking
+## into a wall. Each weapon voice keeps its own gap, so a sidearm backup can
+## never arm the gate the signature primary cue needs in the same tick.
+var _weapon_sfx_left: float = 0.0
+var _sidearm_sfx_left: float = 0.0
+var _impact_sfx_left: float = 0.0
+var _kill_sfx_left: float = 0.0
+var _ducked: bool = false
+## Music-only RNG for the track bag. Gameplay keeps the global `randf` stream, so
+## a track draw can never shift a spawn roll and no bot seed depends on music.
+var _music_rng := RandomNumberGenerator.new()
+var _arena_bag: Array[int] = []
+var _guardian_bag: Array[int] = []
+var _arena_track: int = -1
+var _guardian_track: int = -1
+## Which pool the current BGM came from: the end-of-track roll draws the same
+## pool back. A mode switch always re-seeds it, so a pending wrap can never
+## continue the pool that just ended.
+var _music_arena_pool: bool = true
+## Last-seen BGM playback position. A looped track wraps this to zero at its
+## end; the wrap is the roll signal, read off the audio clock.
+var _bgm_last_pos: float = 0.0
 ## Missile power from kill cores. Separate from relic cards so the first upgrade timing is fixed.
 var _missile_power: int = 0
 var _missile_progress: int = 0
@@ -550,6 +655,10 @@ var _beacon_heal: int = 0
 var _beacon_healed_cycle: int = 0
 
 var _room: Room = null
+## Ordinary spirits throw nothing for this long after you arrive somewhere.
+const BULLET_QUIET_ON_ARRIVAL: float = 4.0
+## Every small enemy bullet, in one node. Built in `_ready`.
+var _bullets: BulletField = null
 
 ## Time survived. **Counts up, never down.**
 ##
@@ -656,8 +765,20 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_recenter)
 	_recenter()
 
-	# Start the first run bright too. Bgm is autoplay, so only pitch is applied here.
-	_bgm.pitch_scale = _arena_bgm_pitch()
+	# Start the first run on a drawn arena track. Bgm autoplays the tscn default,
+	# but this runs before the first mix, so the swap is silent.
+	_music_rng.randomize()
+	_select_arena_theme()
+	# Projectiles report hits here instead of carrying audio nodes of their own.
+	add_to_group(COMBAT_SFX_GROUP)
+	# Ducking must also work while paused, when `_process` never runs. Panels and
+	# the pause notification drive it directly; the per-frame tick only covers the
+	# unpaused dialogue and voice-line cases.
+	_relic.visibility_changed.connect(_update_duck)
+	_run_choice.visibility_changed.connect(_update_duck)
+	_result.visibility_changed.connect(_update_duck)
+	# String-based: the attached dialogue script owns `finished`, not `Control`.
+	_dialogue.connect(&"finished", _update_duck)
 
 	# Hero lines appear as a dialogue-style strip at the bottom. The old balloon floated over the
 	# player's head, and because the camera follows the player it **always covered the hero** —
@@ -672,6 +793,7 @@ func _ready() -> void:
 	if ui_layer != null:
 		ui_layer.add_child(_voice_panel)
 		ui_layer.move_child(_voice_panel, _dialogue.get_index())
+		_voice_panel.visibility_changed.connect(_update_duck)
 
 	_capture_run_hero()
 	# Art comes from the same chosen Hero as the stats. Build eight animations from each of the six
@@ -681,6 +803,14 @@ func _ready() -> void:
 	# The forest changes every run. Until now there was not a single seed line, so
 	# every run was literally identical.
 	_run_seed = randi()
+	PickupMagnet.scale = 1.0
+	# The small bullets you weave through: one node for all of them, above the actors.
+	_bullets = BulletField.new()
+	_bullets.name = "Bullets"
+	add_child(_bullets)
+	_bullets.set_target(_player)
+	_bullets.struck.connect(_on_player_hit)
+	_forks_enabled = RunEntry.from_title
 	_rooms_root.modulate = Color.WHITE
 	_change_world(false)
 	_player.set_bounds(Room.PLAY)
@@ -694,6 +824,12 @@ func _ready() -> void:
 		beacon.lit_changed.connect(_on_beacon_lit_changed)
 		beacon.charge_changed.connect(_on_beacon_charge_changed)
 		beacon.charge_completed.connect(_on_beacon_charge_completed)
+	# One memory motif for the whole run, reused across zones. It sits ahead of
+	# the player in the tree so it draws under the hero, above the room.
+	_motif = PlaceMotif.new()
+	_motif.name = &"PlaceMotif"
+	add_child(_motif)
+	move_child(_motif, _player.get_index())
 	_place_beacons()
 	_gate.entered.connect(_on_gate_entered)
 
@@ -724,6 +860,7 @@ func _ready() -> void:
 	_pause.settings_requested.connect(_open_settings)
 	_pause.title_requested.connect(_return_to_title)
 	_pause.pause_changed.connect(_hud.set_banner_suppressed)
+	_pause.pause_changed.connect(_on_pause_changed)
 	_settings.credits_requested.connect(_open_credits)
 	_settings.closed.connect(_on_settings_closed)
 	_credits.closed.connect(_settings.open)
@@ -774,6 +911,15 @@ func _hero_for_run() -> Hero:
 	if _run_hero == null:
 		_capture_run_hero()
 	return _run_hero
+
+
+## File name of this run's hero (`warden`, `dancer`, ...), which is what
+## `HeroVoice` keys its per-hero lines by. Empty when there is no hero yet.
+func _hero_id() -> String:
+	var hero: Hero = _hero_for_run()
+	if hero == null or hero.resource_path.is_empty():
+		return ""
+	return hero.resource_path.get_file().get_basename()
 
 
 func _hero_path_for_run() -> String:
@@ -894,6 +1040,12 @@ func _analytics_terrain_id() -> String:
 			return "field"
 		RoomKind.Encounter.CARAVAN:
 			return "camp"
+		RoomKind.Encounter.SQUALL:
+			return "frost"
+		RoomKind.Encounter.TIDE:
+			return "marsh"
+		RoomKind.Encounter.VIGIL:
+			return "ruins"
 		_:
 			return "forest"
 
@@ -987,6 +1139,21 @@ func _base_stats() -> void:
 	_player.speed = Player.DEFAULT_SPEED * hero.speed_scale \
 		+ Vault.grace(Boon.Grace.START_SPEED)
 	_player.dash_cooldown_time = Player.DEFAULT_DASH_COOLDOWN * hero.dash_scale
+	# This run's weapon bases. Price and vfx_tier never enter: only the profile row.
+	var melee: Dictionary = HeroWeapons.melee_spec(hero.attack_profile)
+	var ranged: Dictionary = HeroWeapons.ranged_spec(hero.attack_profile)
+	_player.attack_range = float(melee["reach"])
+	_player.attack_arc = float(melee["arc"])
+	_melee_base_cd = float(melee["cooldown"])
+	_melee_spec_mult = float(melee["damage"])
+	_ranged_base_cd = float(ranged["cooldown"])
+	_ranged_spec_mult = float(ranged["damage"])
+	_ranged_range = float(ranged["range"])
+	_ranged_lanes = maxi(int(ranged["lanes"]), 1)
+	_ranged_fan = float(ranged["fan"])
+	_ranged_speed = float(ranged["speed"])
+	_ranged_blast = float(ranged["blast"])
+	_arrow_pierce = 1 + maxi(int(ranged["pierce"]), 0)
 	_damage_mult *= hero.damage_scale * (1.0 + Vault.grace(Boon.Grace.START_DAMAGE))
 	_arrow_mult *= hero.damage_scale * (1.0 + Vault.grace(Boon.Grace.START_DAMAGE))
 	_dew_multiplier *= 1.0 + Vault.grace(Boon.Grace.DEW_LUCK)
@@ -1509,6 +1676,7 @@ func _invalidate_debug_missile_capture() -> void:
 
 ## Do not leave proof of a previous live core when the scene changes without ending the run.
 func _exit_tree() -> void:
+	PickupMagnet.scale = 1.0
 	_invalidate_debug_missile_capture()
 	if _overcharge_beacon != null:
 		# Close unfinished defense so app exit or scene swap also drops out of the choice denominator.
@@ -2557,6 +2725,12 @@ func debug_freeze_capture_progress() -> void:
 	_missile_progress = 0
 	_capture_progress_frozen = true
 	_refresh_missile_hud()
+	# Secondary HUD lines pop bright on change and fade back to rest. Settle them
+	# now, or a line caught mid-fade makes the before and after capture frames
+	# differ and ejects the shot. Firelight breathes for the same reason.
+	_hud.debug_settle_quiet_labels()
+	if _room != null and is_instance_valid(_room):
+		_room.debug_settle_lights()
 
 
 func _debug_color_array(color: Color) -> Array[float]:
@@ -2591,6 +2765,8 @@ func _finish(won: bool) -> void:
 	# Otherwise JSON can stay live while no core is on screen.
 	_invalidate_debug_missile_capture()
 	_over = true
+	# A strip flush scheduled before the end must not speak over the result.
+	_run_generation += 1
 	if _overcharge_beacon != null:
 		# Defeat during overcharge is the most dangerous choice outcome. Dropping that event inflates
 		# success rate, so record the terminal result before clearing beacon state.
@@ -2672,7 +2848,9 @@ func _finish(won: bool) -> void:
 	_board_score = score.total()
 	_board_rank = score.rank()
 	_board_cycles = score.cycles
-	_result.show_result(won, score, is_best, Ladder.makes_board(_board_score))
+	_result.show_result(
+		won, score, is_best, Ladder.makes_board(_board_score),
+		_places_seen_run.size())
 
 
 func _on_continue_requested() -> void:
@@ -2849,12 +3027,20 @@ func _restart() -> void:
 ## Mute audio before swapping the scene.
 ##
 ## Otherwise `AudioFlush.wait()` lands on the transition frame and the screen freezes.
-## Same issue the title hit in Lesson 3. Each of the three beacons also has its own SFX, so
-## restarting with all lit stacks that wait four times.
+## Same issue the title hit in Lesson 3. Each voice is released, then stopped
+## and dropped outright: a cue that started this same frame has not armed the
+## player's flush flag yet, so `release()` alone would let it play on past
+## the transition. The three beacons carry their own SFX and release too.
 func _release_audio() -> void:
-	_bgm.release()
-	_event_sfx.release()
-	_pickup_sfx.release()
+	for voice in [
+		_bgm, _event_sfx, _pickup_sfx, _weapon_sfx, _sidearm_sfx,
+		_impact_sfx, _reward_sfx, _growth_sfx,
+	]:
+		if voice == null or not is_instance_valid(voice):
+			continue
+		(voice as AudioStreamPlayer).release()
+		(voice as AudioStreamPlayer).stop()
+		(voice as AudioStreamPlayer).stream = null
 	for beacon in _beacons:
 		beacon.release_audio()
 	await get_tree().process_frame
@@ -2865,6 +3051,9 @@ func _release_audio() -> void:
 ## Playing → pause → title. The app does not quit in one press.
 ## Pass through the pause screen once so an in-progress run is not wiped by accident.
 func _notification(what: int) -> void:
+	if what == NOTIFICATION_PAUSED or what == NOTIFICATION_UNPAUSED:
+		_update_duck()
+		return
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
 	if _transitioning:
@@ -2935,6 +3124,8 @@ func _process(delta: float) -> void:
 	_player.set_move_input(_stick.get_value())
 	_tick_tutorial()
 	_tick_shake(delta)
+	_tick_combat_sfx(delta)
+	_tick_music_rotation()
 	_tick_overcharge(delta)
 	_tick_guardian_call()
 
@@ -2946,8 +3137,10 @@ func _process(delta: float) -> void:
 	_hud.set_boss(
 		boss_alive,
 		_guardian.get_health_ratio() if boss_alive else 0.0,
-		tr(_guardian.kind.display_name) if boss_alive else "",
-		_guardian.kind.boss_accent if boss_alive else Color.WHITE)
+		(_guardian_title if not _guardian_title.is_empty()
+			else tr(_guardian.kind.display_name)) if boss_alive else "",
+		_guardian.kind.boss_accent if boss_alive else Color.WHITE,
+		_guardian_detail if boss_alive else "")
 
 	# Moon blade. No button. If a spirit is nearby it fires on its own.
 	# Scans the list every frame, but with at most six spirits the cost is cheap.
@@ -2997,11 +3190,21 @@ func _process(delta: float) -> void:
 	_flush_ember_drops()
 
 
-## Terrain settings for the current cycle.
+## Terrain settings for the current zone.
 func _world_step() -> Dictionary:
-	# The starting terrain of each cycle also rotates one step. Starting every loop in the same order
-	# makes the whole route feel like one memorized still even while visiting three maps.
-	return WORLD_STEPS[((_cycle - 1) + _zone_index) % WORLD_STEPS.size()]
+	return WORLD_STEPS[_terrain_at(_zone_index)]
+
+
+## The terrain id of a zone in this cycle.
+##
+## A zone nobody chose yet (`-1`) walks the classic rotation: the three original terrains, one
+## step further each cycle. That keeps cycle 1, every test and every hand-built state exactly as
+## they always were; only a real run that reaches a fork writes its own route.
+func _terrain_at(zone: int) -> int:
+	var slot: int = clampi(zone, 0, _route.size() - 1)
+	if _route[slot] >= 0:
+		return _route[slot]
+	return ((_cycle - 1) + slot) % Expedition.CLASSIC_TERRAINS
 
 
 ## Same terrain, higher cycle — a different guardian appears.
@@ -3031,7 +3234,9 @@ func _show_cycle_story() -> void:
 	if _dialogue == null or not is_instance_valid(_dialogue):
 		return
 	if _story_lines(_cycle).is_empty():
-		# The story ends at cycle 8. After that short asides take its place.
+		# Between story beats a short aside takes the place of dialogue. The beats
+		# themselves run through cycle 9, 10 and 12 — the last two are where the
+		# endless stretch names the Moonless.
 		#
 		# This call used to live inside `_finish_cycle()`, but a few lines down
 		# `_say("guardian_down")` overwrote the balloon in the same frame — **consumed and
@@ -3042,6 +3247,10 @@ func _show_cycle_story() -> void:
 
 
 ## Open the queued story after the loot panel closes.
+##
+## On the cycle an act begins, its title card comes first and the dialogue follows
+## it. Everything the player is about to read is written into the chronicle at the
+## moment it opens, so the Chronicle page shows exactly what was seen.
 func _flush_cycle_story() -> void:
 	if _pending_story_cycle <= 0 or _over:
 		return
@@ -3049,11 +3258,32 @@ func _flush_cycle_story() -> void:
 			or _cycle_decision_queued or _pending_beacon_choice != null \
 			or _overcharge_beacon != null:
 		return
-	var lines: Array[String] = _story_lines(_pending_story_cycle)
+	var cycle: int = _pending_story_cycle
+	var lines: Array[String] = _story_lines(cycle)
+	var act: Dictionary = Acts.starting_at(cycle)
 	_pending_story_cycle = 0
-	if lines.is_empty():
+	if lines.is_empty() and act.is_empty():
 		return
-	_dialogue.play(_hero_for_run(), lines)
+
+	Chronicle.mark("story_%d" % cycle)
+	if cycle == 1:
+		Chronicle.mark("story_open")
+	if not act.is_empty():
+		# Built when an act begins and freed when it closes. A standing card is
+		# nine nodes in every run for a screen shown four times, and the late-game
+		# node budget (`test_late_game_performance`) has no room to spare.
+		var card: Control = ACT_CARD_SCENE.instantiate() as Control
+		card.name = &"ActCard"
+		$Ui.add_child(card)
+		card.call("play", act)
+		await card.finished
+		card.queue_free()
+		# The card kept the game paused, so nothing moved while it was up; only a
+		# scene change can have ended the run underneath it.
+		if _over or not is_inside_tree():
+			return
+	if not lines.is_empty():
+		_dialogue.play(_hero_for_run(), lines)
 
 
 ## Two story lines for one cycle.
@@ -3067,7 +3297,12 @@ func _flush_cycle_story() -> void:
 func _story_lines(cycle: int) -> Array[String]:
 	var lines: Array[String] = []
 	if cycle == 1:
-		for key in ["STORY_OPEN_A", "STORY_OPEN_B"]:
+		# Each hero opens the run in their own voice. The Warden, and any hero
+		# without lines of their own, keeps the shared opening.
+		var open_keys: Array[String] = HeroVoice.open_keys(_hero_id())
+		if open_keys.is_empty():
+			open_keys = ["STORY_OPEN_A", "STORY_OPEN_B"]
+		for key in open_keys:
 			var open_line: String = tr(key)
 			if open_line != key:
 				lines.append(open_line)
@@ -3091,10 +3326,110 @@ func _say(moment: String) -> void:
 		return
 	if _voice_panel == null or not is_instance_valid(_voice_panel):
 		return
-	var line: String = _voice.take(moment)
+	var line: String = _voice.take(moment, _hero_id())
 	if line.is_empty():
 		return
+	# A first-sight line is also a chronicle entry: seeing it once keeps it.
+	var lore_id: String = Chronicle.id_for_moment(moment)
+	if not lore_id.is_empty():
+		Chronicle.mark(lore_id)
 	_voice_panel.say(_hero_for_run(), line)
+	if moment.begins_with("place_"):
+		# A new discovery owns the strip for a readable interval. Fork and
+		# guardian lines that fire on the same beacon wait it out instead of
+		# replacing the discovery in the same frame.
+		_place_guard_until_msec = Time.get_ticks_msec() \
+			+ int(PLACE_GUARD_SECONDS * 1000.0)
+
+
+## Speak a line that must not cut off a fresh place discovery.
+##
+## The fork voice line, the guardian first-meet line and the moonfire line all
+## fire on the same beacon that restores a place. When the discovery guard is
+## up the line is taken now — so the run's no-repeat consumption stays exactly
+## as if it had spoken — and the strip shows it after the discovery has been
+## readable. Only the strip waits: gate labels, the guardian banner and its
+## bolts are already on screen. A first meet is recorded at once; the meeting
+## happened whether or not its line has spoken yet.
+func _say_after_discovery(moment: String) -> void:
+	if _over or _transitioning:
+		return
+	if OS.is_debug_build() and _debug_hero_direction_capture_active:
+		return
+	if not _place_guard_active():
+		_say(moment)
+		return
+	var line: String = _voice.take(moment, _hero_id())
+	if line.is_empty():
+		return
+	var lore_id: String = Chronicle.id_for_moment(moment)
+	if not lore_id.is_empty():
+		Chronicle.mark(lore_id)
+	_say_deferred_line = line
+	_schedule_strip_flush()
+
+
+func _place_guard_active() -> bool:
+	return Time.get_ticks_msec() < _place_guard_until_msec
+
+
+func _schedule_strip_flush() -> void:
+	if _strip_flush_running:
+		return
+	_strip_flush_running = true
+	_flush_strip.call_deferred(_run_generation)
+
+
+## Speak what the strip owed: suppressed discoveries first, then the deferred
+## line. Never past the run's end, never over a modal, a transition or capture.
+## Every queued entry already has its chronicle record, so giving up after a
+## long block loses a reading, never a record.
+func _flush_strip(generation: int) -> void:
+	# Let the screen settle before speaking anything owed: a modal that just
+	# closed may be handing off to another one in the same frame.
+	await get_tree().create_timer(1.0, false).timeout
+	var waits: int = 0
+	while waits < 40:
+		if generation != _run_generation or _over or not is_inside_tree():
+			break
+		if _say_deferred_line.is_empty() and _places_pending.is_empty():
+			break
+		if _capture_progress_frozen:
+			_say_deferred_line = ""
+			break
+		var remaining: float = float(_place_guard_until_msec - Time.get_ticks_msec()) / 1000.0
+		if remaining > 0.0:
+			await get_tree().create_timer(remaining, false).timeout
+			waits += 1
+			continue
+		if _strip_blocked():
+			await get_tree().create_timer(1.0, false).timeout
+			waits += 1
+			continue
+		if not _places_pending.is_empty():
+			var terrain: int = _places_pending[0]
+			var id: String = PlaceMemory.terrain_id(terrain)
+			if _places_seen_run.has(id) or _maybe_show_place_memory(terrain):
+				_places_pending.pop_front()
+			else:
+				# Quiet screen and still refused: do not spin on it.
+				_places_pending.pop_front()
+			continue
+		var line: String = _say_deferred_line
+		_say_deferred_line = ""
+		if _voice_panel != null and is_instance_valid(_voice_panel):
+			_voice_panel.say(_hero_for_run(), line)
+	# Giving up after a long block drops the readings; every record was
+	# already written, so nothing is lost silently.
+	_say_deferred_line = ""
+	_places_pending.clear()
+	_strip_flush_running = false
+
+
+## A modal, a loot panel or a wipe is up: the strip stays quiet.
+func _strip_blocked() -> bool:
+	return _transitioning or _dialogue.is_open() or _relic.visible \
+		or _result.visible or _run_choice.visible
 
 
 ## BGM playback rate for the current cycle.
@@ -3104,12 +3439,20 @@ func _arena_bgm_pitch() -> float:
 
 
 func _guardian_resource_path() -> String:
-	var step: Dictionary = _world_step()
+	return _guardian_path_for(_terrain_at(_zone_index))
+
+
+## Which of a place's guardians answers the beacons there. The classic three grow with the cycle;
+## the places that came later grow with how often you have met theirs, so a first meeting is always
+## the younger form and a later one the grown-up.
+func _guardian_path_for(terrain: int) -> String:
+	var step: Dictionary = WORLD_STEPS[terrain]
 	var roster: Variant = step.get("guardians", [])
 	if roster is Array and not (roster as Array).is_empty():
 		var paths: Array = roster as Array
-		var index: int = clampi(_cycle - 1, 0, paths.size() - 1)
-		return str(paths[index])
+		var tier: int = _cycle - 1 if terrain < Expedition.CLASSIC_TERRAINS \
+			else int(_guardian_meetings.get(terrain, 0))
+		return str(paths[clampi(tier, 0, paths.size() - 1)])
 	return str(step["guardian"])
 
 
@@ -3147,11 +3490,16 @@ func _make_room() -> Room:
 ## After a guardian fight trash has cleared and the loot panel is about to cover the screen.
 ## Swapping immediately in that gap avoids drawing two rooms stacked for long, keeping mobile cost steady.
 func _change_world(animated: bool = true, relocate_pickups: bool = true) -> void:
+	_refresh_omens()
 	var old: Room = _room
 	_room = _make_room()
 	if old != null and is_instance_valid(old):
 		old.queue_free()
 	_player.set_terrain_room(_room)
+	if _bullets != null and is_instance_valid(_bullets):
+		_bullets.set_terrain_room(_room)
+		_bullets.clear()
+		_bullets.quiet_for(BULLET_QUIET_ON_ARRIVAL)
 	_player.position = _room.nearest_clear(_player.position, 4.0)
 	_player.reset_physics_interpolation()
 	for spirit in _spirits:
@@ -3167,7 +3515,24 @@ func _change_world(animated: bool = true, relocate_pickups: bool = true) -> void
 	_apply_time_tone(animated)
 
 
+## Draw this zone's omens and apply them. Each zone of each cycle draws its own, so a route is a
+## choice of places and of the rule you take with them. Nothing before Depth 1.
+func _refresh_omens() -> void:
+	_omens = Expedition.omens_for(_run_seed, _cycle, _zone_index)
+	_omen_effects = Expedition.omen_effects(_omens)
+	var keys: Array[String] = []
+	for omen in _omens:
+		keys.append(Expedition.omen_name_key(omen))
+	_hud.set_omens(keys)
+	for beacon in _beacons:
+		beacon.set_charge_scale(float(_omen_effects["beacon"]))
+
+
 ## Open the far gate after the first two beacons. A chase pack sticks from behind while you run for it.
+##
+## In a real run from cycle 2 the gate is a **fork**: a second gate opens on another rim and each one
+## names the place it leads to. The one you run for decides the next terrain, and after the second
+## beacon that terrain is where the guardian lives, so the choice is a choice of boss.
 func _open_escape(extended_moonfire: bool = false) -> void:
 	if (OS.is_debug_build() and _debug_hero_direction_capture_active) \
 			or _escape_active or _transitioning or _lit_count >= _beacons.size():
@@ -3192,19 +3557,18 @@ func _open_escape(extended_moonfire: bool = false) -> void:
 			"direction": Vector2.DOWN,
 		},
 	]
-	var picked: Dictionary = candidates[0]
-	var farthest: float = -1.0
-	for candidate in candidates:
-		var distance: float = _player.position.distance_squared_to(candidate["at"])
-		if distance > farthest:
-			farthest = distance
-			picked = candidate
+	var picked: Dictionary = _farthest_gate(candidates, [])
+	_close_fork_gates()
 
 	_gate_direction = picked["direction"]
 	_gate.position = picked["at"]
 	_gate.reset_physics_interpolation()
 	_gate.close()
+	if _forks_enabled and Expedition.forks_open(_cycle):
+		_open_fork(picked, _farthest_gate(candidates, [picked]))
 	_gate.open()
+	if _gate_b != null and is_instance_valid(_gate_b):
+		_gate_b.open()
 	_escape_active = true
 	_escape_wave_left = 0.8
 	_escape_waves_spawned = 0
@@ -3213,6 +3577,81 @@ func _open_escape(extended_moonfire: bool = false) -> void:
 	var message: String = tr("BEACON_KINDLED_EXTENDED") % _lit_count \
 		if extended_moonfire else tr("BEACON_KINDLED") % _lit_count
 	_hud.announce(message, Color(0.46, 0.94, 1.0, 1))
+
+
+## The rim gate farthest from the player that is not one of `skip`.
+func _farthest_gate(candidates: Array[Dictionary], skip: Array) -> Dictionary:
+	var picked: Dictionary = {}
+	var farthest: float = -1.0
+	for candidate in candidates:
+		if skip.has(candidate):
+			continue
+		var distance: float = _player.position.distance_squared_to(candidate["at"])
+		if distance > farthest:
+			farthest = distance
+			picked = candidate
+	return picked
+
+
+## Turn the gate into a fork: name both destinations and put a second gate on another rim.
+func _open_fork(first: Dictionary, second: Dictionary) -> void:
+	if second.is_empty():
+		return
+	# Write down where we stand, so the options exclude it and the route stays whole.
+	_route[clampi(_zone_index, 0, _route.size() - 1)] = _terrain_at(_zone_index)
+	var options: Array[int] = Expedition.gate_options(_run_seed, _cycle, _zone_index, _route)
+	if options.size() < 2:
+		return
+	_fork_options = options
+	_fork_directions = [first["direction"] as Vector2, second["direction"] as Vector2]
+	_gate_b = MOON_GATE_SCENE.instantiate() as Node2D
+	add_child(_gate_b)
+	_gate_b.position = second["at"]
+	_gate_b.reset_physics_interpolation()
+	_gate_b.close()
+	_gate_b.entered.connect(_on_gate_entered.bind(1))
+	_name_gate(_gate, 0)
+	_name_gate(_gate_b, 1)
+	# The gates already name their places; the voice line waits out a fresh
+	# discovery instead of replacing it in the same frame.
+	_say_after_discovery("fork")
+
+
+## Say where a fork gate leads: the terrain, what waits there (the guardian on the way to
+## the third zone, the omen on the way to the second), and the memory waiting
+## in that place. The clue rides its own line, so the dodge information stays
+## exactly where it was.
+func _name_gate(gate: Node2D, index: int) -> void:
+	var terrain: int = _fork_options[index]
+	var step: Dictionary = WORLD_STEPS[terrain]
+	var next_zone: int = clampi(_zone_index + 1, 0, _beacons.size() - 1)
+	var detail: String = ""
+	if next_zone >= _beacons.size() - 1:
+		var kind: SpiritKind = load(_guardian_path_for(terrain)) as SpiritKind
+		if kind != null:
+			detail = tr(kind.display_name)
+	else:
+		var omens: Array[int] = Expedition.omens_for(_run_seed, _cycle, next_zone)
+		var names: PackedStringArray = PackedStringArray()
+		for omen in omens:
+			names.append(tr(Expedition.omen_name_key(omen)))
+		detail = " · ".join(names)
+	gate.set_destination(
+		tr(str(step["name"])), detail, step["emblem"] as Color,
+		tr(PlaceMemory.clue_key(terrain)))
+	# The caption it just named must also clear the hero reading it.
+	gate.track_player(_player)
+
+
+## Close the second gate and forget the fork. Safe to call any time.
+func _close_fork_gates() -> void:
+	_fork_options.clear()
+	_fork_directions.clear()
+	if _gate_b != null and is_instance_valid(_gate_b):
+		_gate_b.queue_free()
+	_gate_b = null
+	if _compass_b != null and is_instance_valid(_compass_b):
+		_compass_b.point_to(BeaconCompass.Mark.NONE, Vector2.ZERO, Vector2.ZERO, Rect2())
 
 
 func _tick_escape(delta: float) -> void:
@@ -3233,7 +3672,7 @@ func _spawn_escape_wave() -> void:
 	var count: int = mini(ESCAPE_WAVE_COUNT, maxi(available, 0))
 	if count <= 0:
 		return
-	var toward_gate: Vector2 = (_gate.position - _player.position).normalized()
+	var toward_gate: Vector2 = (_nearest_gate_position() - _player.position).normalized()
 	if toward_gate.length_squared() < 0.01:
 		toward_gate = _gate_direction
 	var side: Vector2 = Vector2(-toward_gate.y, toward_gate.x)
@@ -3244,11 +3683,28 @@ func _spawn_escape_wave() -> void:
 		_summon(at, "", 0.78, false)
 
 
-## Cross the moon gate into the real next terrain.
-func _on_gate_entered() -> void:
+## The open gate closest to the player. With one gate that is the gate.
+func _nearest_gate_position() -> Vector2:
+	if _gate_b == null or not is_instance_valid(_gate_b):
+		return _gate.position
+	if _player.position.distance_squared_to(_gate_b.position) \
+			< _player.position.distance_squared_to(_gate.position):
+		return _gate_b.position
+	return _gate.position
+
+
+## Cross a moon gate into the real next terrain. `which` is the gate of a fork (0 is the first).
+func _on_gate_entered(which: int = 0) -> void:
 	if (OS.is_debug_build() and _debug_hero_direction_capture_active) \
 			or not _escape_active or _transitioning or _over:
 		return
+	# The gate you ran for decides where you go and which side of the new room you arrive on.
+	var chosen_terrain: int = -1
+	if _fork_options.size() == 2:
+		var pick: int = clampi(which, 0, 1)
+		chosen_terrain = _fork_options[pick]
+		_gate_direction = _fork_directions[pick]
+	_close_fork_gates()
 	_analytics_track("gate_crossed", {
 		"cycle": _cycle,
 		"terrain": _analytics_terrain_id(),
@@ -3289,9 +3745,13 @@ func _on_gate_entered() -> void:
 		return
 
 	var old_player: Vector2 = _player.position
-	_zone_index = clampi(_lit_count, 0, WORLD_STEPS.size() - 1)
+	_zone_index = clampi(_lit_count, 0, _beacons.size() - 1)
+	if chosen_terrain >= 0:
+		_route[_zone_index] = chosen_terrain
 	# Pickups move below by entrance-relative coords, then resolve against the new terrain collision.
 	_change_world(false, false)
+	# A new region draws the next arena track; the screen is still covered.
+	_select_arena_theme()
 	_player.position = _room.nearest_clear(_zone_entry_position(), 4.0)
 	_player.velocity = Vector2.ZERO
 	_player.reset_physics_interpolation()
@@ -3302,6 +3762,11 @@ func _on_gate_entered() -> void:
 	_place_current_beacon()
 	_refresh_beacon_visibility()
 	_zone_wipe_label.text = tr("ZONE_ENTER") % tr(str(_world_step()["name"]))
+	if not _omens.is_empty():
+		var names: PackedStringArray = PackedStringArray()
+		for omen in _omens:
+			names.append(tr(Expedition.omen_name_key(omen)))
+		_zone_wipe_label.text += "\n" + " · ".join(names)
 
 	# Give a short beat to read the terrain name, then reopen the field.
 	await get_tree().create_timer(0.24, false).timeout
@@ -3350,7 +3815,7 @@ func _spawn_arrival_pursuers() -> void:
 ## Do not leave moon embers on the off-screen previous terrain. Settle them into the gauge on travel.
 func _bank_transition_embers() -> void:
 	for i in _ember_elites.size():
-		_gain_moonfire(ELITE_EMBER_CHARGE if _ember_elites[i] else EMBER_CHARGE)
+		_gain_moonfire(_ember_value(_ember_elites[i]))
 	_ember_positions.clear()
 	_ember_elites.clear()
 	_pending_embers = 0
@@ -3404,6 +3869,8 @@ func _set_transition_orbs_paused(paused: bool) -> void:
 func _announce_world_rule_if_current(serial: int) -> void:
 	if serial == _zone_serial and not _transitioning:
 		_announce_world_rule()
+		if not _omens.is_empty():
+			_say("omen")
 
 
 ## Show beacon progress as night → blue dawn → sunrise → day.
@@ -3471,6 +3938,8 @@ func _register_spirit(spirit: Node2D) -> void:
 
 
 func _clear_hostile_projectiles() -> void:
+	if _bullets != null and is_instance_valid(_bullets):
+		_bullets.clear()
 	for projectile in get_tree().get_nodes_in_group("hostile_projectiles"):
 		if is_instance_valid(projectile):
 			projectile.set_physics_process(false)
@@ -3489,18 +3958,65 @@ func _clear_friendly_projectiles() -> void:
 ## **Finding enemies is the arena's job, not the player's.** The enemy list already lives here, and
 ## this is the third place Lesson 6's "the player does not even read the stick" rule applies.
 func _nearest_spirit() -> Node2D:
+	var melee: Dictionary = HeroWeapons.melee_spec(_hero_for_run().attack_profile)
+	if bool(melee.get("orbit", false)):
+		# The scythe only bites its ring: trigger on band presence, not the hole.
+		return _nearest_in_band(_player.attack_range
+			* HeroWeapons.ORBIT_INNER_FRACTION, _player.attack_range)
 	return _nearest_in(_player.attack_range)
+
+
+## Nearest spirit between two distances. Null if the band is empty.
+func _nearest_in_band(inner: float, outer: float) -> Node2D:
+	var best: Node2D = null
+	var best_distance_sq: float = outer * outer
+	var inner_sq: float = inner * inner
+	for spirit in _spirits:
+		if not is_instance_valid(spirit) or not spirit.is_attackable():
+			continue
+		var distance_sq: float = spirit.global_position.distance_squared_to(
+			_player.global_position)
+		if distance_sq < inner_sq or distance_sq > best_distance_sq:
+			continue
+		best = spirit
+		best_distance_sq = distance_sq
+	return best
+
+
+## Full-circle test for one swing: the full moon, the orbit ring, and any arc
+## widened to 360 degrees all reach the antipodal bearing, so they skip the fan
+## check. Anything narrower keeps it.
+func _swing_full_circle(
+	full_moon: bool, orbit: bool, attack_arc_degrees: float
+) -> bool:
+	return full_moon or orbit or attack_arc_degrees >= 360.0
+
+
+## One bearing check inside a swing: full-circle swings hit every bearing.
+##
+## A computed antipodal angle lands within one float ulp of PI, and
+## single-precision PI itself sits above the double PI a `> half_arc` comparison
+## uses, so that comparison can flip one enemy by platform libm. Full-circle
+## swings skip the fan check instead of trusting the boundary; partial fans
+## keep it.
+func _swing_arc_hits(angle_diff: float, half_arc: float, full_circle: bool) -> bool:
+	if full_circle:
+		return true
+	return absf(angle_diff) <= half_arc
 
 
 ## Swing the moon blade and cut every spirit inside the fan.
 ##
 ## One swing **hits everything it reaches.** Hitting only the nearest leaves no way out when
-## three spirits stick overlapping.
+## three spirits stick overlapping. Dancer alternates twin cuts left/right; Eclipse sweeps a
+## timed ring with a safe hole at the feet.
 func _swing_at(target: Node2D) -> void:
 	var direction: Vector2 = (target.global_position - _player.global_position).normalized()
 	if direction.length() < 0.01:
 		direction = Vector2.DOWN
 
+	var profile: Hero.AttackProfile = _hero_for_run().attack_profile
+	var melee: Dictionary = HeroWeapons.melee_spec(profile)
 	var full_moon: bool = false
 	var full_moon_evolved: bool = Relic.family_evolved(
 		_taken, Relic.Family.FULL_MOON)
@@ -3512,22 +4028,36 @@ func _swing_at(target: Node2D) -> void:
 		full_moon = _full_moon_primed \
 			or (full_moon_evolved and _full_moon_swings % 3 == 0)
 		_full_moon_primed = false
+	if bool(melee.get("twin", false)) and not full_moon:
+		direction = direction.rotated(
+			deg_to_rad(HeroWeapons.TWIN_OFFSET_DEGREES) * _twin_side)
+		_twin_side *= -1.0
 	_player.attack(direction, full_moon)
+	_play_weapon_sfx(profile, HeroWeapons.primary_side(profile) != HeroWeapons.Side.MELEE)
 
 	var reach: float = _player.attack_range * (1.15 if full_moon else 1.0)
-	var half_arc: float = PI if full_moon else deg_to_rad(_player.attack_arc) * 0.5
+	var orbit: bool = bool(melee.get("orbit", false)) and not full_moon
+	var inner: float = reach * HeroWeapons.ORBIT_INNER_FRACTION if orbit else 0.0
+	var full_circle: bool = _swing_full_circle(
+		full_moon, orbit, _player.attack_arc)
+	var half_arc: float = PI if full_circle \
+		else deg_to_rad(_player.attack_arc) * 0.5
 	var damage: int = _scaled(_player.attack_damage, 1.10) \
 		if full_moon else _player.attack_damage
+	var connected: int = 0
 	for spirit in _spirits:
 		if not is_instance_valid(spirit) or not spirit.is_attackable():
 			continue
 		var to_spirit: Vector2 = spirit.global_position - _player.global_position
-		if to_spirit.length() > reach:
+		if to_spirit.length() > reach or to_spirit.length() < inner:
 			continue
 		# Outside the fan is also outside the drawn slash. Visible range and hit range stay the same.
-		if absf(direction.angle_to(to_spirit)) > half_arc:
+		if not _swing_arc_hits(direction.angle_to(to_spirit), half_arc, full_circle):
 			continue
 		spirit.take_damage(damage, _player.global_position)
+		connected += 1
+	if connected > 0:
+		combat_impact(_player.global_position, false)
 
 
 ## Raid. Appear all at once around the player.
@@ -3551,19 +4081,27 @@ func _raid() -> void:
 
 	_shake(3.0)
 
-	# RoomKind.Encounter: 0=forest encircle, 1=field crossfire, 2=camp escort.
 	# Terrain is not only a recolor — raids ask for different movement.
 	var encounter: int = _encounter_kind()
 	# A line when the pack closes in. The banner says what is coming; this says why —
 	# a balloon, so the screen does not pause.
 	_say("swarm")
 	match encounter:
-		1:
+		RoomKind.Encounter.CROSSFIRE:
 			_hud.announce(tr("RAID_CROSSFIRE"), Color(0.72, 0.88, 1.0, 1))
 			_queue_crossfire(many)
-		2:
+		RoomKind.Encounter.CARAVAN:
 			_hud.announce(tr("RAID_CARAVAN"), Color(1.0, 0.7, 0.38, 1))
 			_queue_caravan(many)
+		RoomKind.Encounter.SQUALL:
+			_hud.announce(tr("RAID_SQUALL"), Color(0.8, 0.9, 1.0, 1))
+			_queue_squall(many)
+		RoomKind.Encounter.TIDE:
+			_hud.announce(tr("RAID_TIDE"), Color(0.62, 1.0, 0.78, 1))
+			_queue_tide(many)
+		RoomKind.Encounter.VIGIL:
+			_hud.announce(tr("RAID_VIGIL"), Color(1.0, 0.92, 0.66, 1))
+			_queue_vigil(many)
 		_:
 			_hud.announce(tr("RAID_AMBUSH"), Color(0.7, 1.0, 0.72, 1))
 			_queue_ambush(many)
@@ -3623,6 +4161,87 @@ func _queue_caravan(many: int) -> void:
 		var offset: Vector2 = outward * float(row) * 24.0 + across * float(lane) * 34.0
 		var at: Vector2 = _room.clamp_to_play(carrier + offset)
 		_queue_raid_spirit(at)
+
+
+## Frost — a wall of spirits marching straight in with a two-lane gap in it. It comes from the side
+## with more room behind it, so the wall is never squashed against the edge. Slip through the gap
+## or dash through it.
+func _queue_squall(many: int) -> void:
+	var horizontal_room: float = minf(
+		_player.position.x - Room.PLAY.position.x,
+		Room.PLAY.end.x - _player.position.x)
+	var vertical_room: float = minf(
+		_player.position.y - Room.PLAY.position.y,
+		Room.PLAY.end.y - _player.position.y)
+	var axis: Vector2 = Vector2.RIGHT if horizontal_room >= vertical_room else Vector2.DOWN
+	if randf() < 0.5:
+		axis = -axis
+	var across: Vector2 = Vector2(-axis.y, axis.x)
+	var columns: int = clampi(many, 4, 9)
+	var door: int = randi_range(1, columns - 3)
+	var queued: int = 0
+	for row in 4:
+		for column in columns:
+			if queued >= many:
+				return
+			if column == door or column == door + 1:
+				continue
+			var lane: float = float(column) - float(columns - 1) * 0.5
+			var offset: Vector2 = axis * (225.0 + float(row) * 26.0) + across * lane * 34.0
+			_queue_raid_spirit(_safe_raid_point(offset.normalized(), offset.length()))
+			queued += 1
+
+
+## Marsh — three tight pods rise round you at even spacing, so there are three wide gaps to
+## slip through instead of one.
+func _queue_tide(many: int) -> void:
+	var start: float = randf() * TAU
+	var per_pod: int = ceili(float(many) / 3.0)
+	var queued: int = 0
+	for pod in 3:
+		var heading: Vector2 = Vector2.RIGHT.rotated(start + TAU * float(pod) / 3.0)
+		var across: Vector2 = Vector2(-heading.y, heading.x)
+		for index in per_pod:
+			if queued >= many:
+				return
+			var lane: float = float(index % 3) - 1.0
+			var depth: float = float(index / 3)
+			var offset: Vector2 = heading * (RAID_RING + depth * 24.0) + across * lane * 30.0
+			_queue_raid_spirit(_safe_raid_point(offset.normalized(), offset.length()))
+			queued += 1
+
+
+## Ruins — the watchers come in two beats: a group ahead of you now, and a few seconds later a
+## second one closes in from behind. Whoever plans the way out of the first has to plan for the second.
+func _queue_vigil(many: int) -> void:
+	var ahead: Vector2 = _player.velocity
+	if ahead.length() < 20.0:
+		ahead = _player.facing_vector()
+	ahead = ahead.normalized()
+	var first: int = ceili(float(many) * 0.55)
+	_queue_vigil_arc(ahead, first)
+	var zone: int = _zone_serial
+	var cycle: int = _cycle
+	get_tree().create_timer(VIGIL_SECOND_BEAT, false).timeout.connect(
+		_queue_vigil_second.bind(-ahead, many - first, zone, cycle))
+
+
+func _queue_vigil_second(heading: Vector2, count: int, zone: int, cycle: int) -> void:
+	# A raid that outlived its place is dropped, like every queued one.
+	if _over or _transitioning or _escape_active or zone != _zone_serial or cycle != _cycle \
+			or (_guardian != null and is_instance_valid(_guardian)):
+		return
+	_shake(2.5)
+	_queue_vigil_arc(heading, mini(count, spirit_cap() - _spirits.size() - _raid_queue.size()))
+
+
+func _queue_vigil_arc(heading: Vector2, count: int) -> void:
+	var half: float = deg_to_rad(52.0)
+	for index in count:
+		var t: float = 0.5 if count == 1 else float(index) / float(count - 1)
+		var angle: float = heading.angle() - half + 2.0 * half * t + randf_range(-0.05, 0.05)
+		var reach: float = RAID_RING + (24.0 if index % 2 == 1 else 0.0) + randf_range(0.0, 14.0)
+		_queue_raid_spirit(_safe_raid_point(Vector2.RIGHT.rotated(angle), reach))
 
 
 ## Nearest unlit beacon. The forest ambush exit points at the next objective.
@@ -3784,6 +4403,11 @@ func _on_relic_picked(
 				tr("CYCLE_CLEARED") % _completed_cycle,
 				Color(1, 0.88, 0.55, 1))
 
+	# Moon Burst: choosing a card bursts moonlight round you. The opening gear is not a choice made
+	# in a fight, so it does not burst.
+	if feedback and source != "opening" and _skills != null and not _over:
+		_skills.on_card_chosen()
+
 	# If more are owed, keep paused and pick next. Leaving here would resume combat; the player clears
 	# the backlog in one pause instead.
 	if _owed > 0:
@@ -3895,6 +4519,12 @@ func _announce_world_rule() -> void:
 			_hud.announce(tr("RAID_CROSSFIRE"), Color(0.72, 0.88, 1.0, 1))
 		RoomKind.Encounter.CARAVAN:
 			_hud.announce(tr("RAID_CARAVAN"), Color(1.0, 0.7, 0.38, 1))
+		RoomKind.Encounter.SQUALL:
+			_hud.announce(tr("RAID_SQUALL"), Color(0.8, 0.9, 1.0, 1))
+		RoomKind.Encounter.TIDE:
+			_hud.announce(tr("RAID_TIDE"), Color(0.62, 1.0, 0.78, 1))
+		RoomKind.Encounter.VIGIL:
+			_hud.announce(tr("RAID_VIGIL"), Color(1.0, 0.92, 0.66, 1))
 		_:
 			_hud.announce(tr("RAID_AMBUSH"), Color(0.7, 1.0, 0.72, 1))
 
@@ -3913,7 +4543,8 @@ func _feed(relic: Relic, restore_health: bool = true) -> void:
 			_apply_haste()
 		Relic.Effect.ATTACK_DAMAGE:
 			_damage_mult *= relic.amount
-			_player.attack_damage = _scaled(Player.DEFAULT_ATTACK_DAMAGE, _damage_mult)
+			_player.attack_damage = _scaled(
+				Player.DEFAULT_ATTACK_DAMAGE, _damage_mult * _melee_spec_mult)
 		Relic.Effect.ATTACK_ARC:
 			# Stops at 360°. Beyond that double-counts the same space and means nothing.
 			#
@@ -3929,7 +4560,8 @@ func _feed(relic: Relic, restore_health: bool = true) -> void:
 				# on screen. Not a crescent — a plank.
 				# Damage is an invisible axis, so it does not break the art.
 				_damage_mult *= 1.0 + (want - 360.0) / 540.0
-				_player.attack_damage = _scaled(Player.DEFAULT_ATTACK_DAMAGE, _damage_mult)
+				_player.attack_damage = _scaled(
+					Player.DEFAULT_ATTACK_DAMAGE, _damage_mult * _melee_spec_mult)
 		Relic.Effect.MOVE_SPEED:
 			_player.speed += relic.amount
 		Relic.Effect.MAX_HEALTH:
@@ -4005,6 +4637,11 @@ func _recompute() -> void:
 	_damage_mult = 1.0
 	_arrow_mult = 1.0
 	_arrow_haste = 1.0
+	_melee_base_cd = Player.DEFAULT_ATTACK_COOLDOWN
+	_melee_spec_mult = 1.0
+	_ranged_base_cd = ARROW_COOLDOWN
+	_ranged_spec_mult = 1.0
+	_twin_side = 1.0
 	_max_health = mini(
 		hero.health + int(Vault.grace(Boon.Grace.START_HEALTH)),
 		MAX_HEALTH_LIMIT)
@@ -4159,8 +4796,60 @@ func _grant_ripple() -> void:
 	_ripple.rank += 1
 
 
+## What the skill cards grant, from the held list. Builds the skills node the first time one is held.
+func _refresh_skills() -> void:
+	var wanted: bool = false
+	for item in _taken:
+		if item is Relic and (item as Relic).effect >= Relic.Effect.LANTERN_FAMILIAR:
+			wanted = true
+			break
+	if _skills == null:
+		if not wanted:
+			return
+		_skills = PlayerSkills.new()
+		_skills.host = self
+		add_child(_skills)
+	_skills.configure(_taken)
+
+
+# --- What the skills ask of the arena -----------------------------------------------
+
+func skill_player() -> Node2D:
+	return _player
+
+
+## The spirits a skill may hurt.
+func skill_targets() -> Array:
+	_prune_spirits()
+	return _spirits
+
+
+## Damage a skill deals for a base multiplier: the same growth every other weapon shares.
+func skill_damage(multiplier: float) -> int:
+	return _scaled(AUX_BASE_HIT, multiplier * _damage_mult * _frailty() * _moonfire_damage())
+
+
+func skill_flash(_tint: Color) -> void:
+	_shake(1.6)
+
+
+## Second Light: a hit that would be the last leaves you standing, once a cycle.
+func _stand_again() -> bool:
+	if _skills == null:
+		return false
+	var hearts: int = _skills.revive()
+	if hearts <= 0:
+		return false
+	_set_health(mini(hearts, _max_health))
+	_invulnerable = maxf(_invulnerable, _skills.invulnerable_after_revive())
+	_hud.announce(tr("SKILL_SECOND_LIGHT"), Color(1.0, 0.86, 0.5, 1.0), 2.2)
+	_shake(4.0)
+	return true
+
+
 ## The two node-mounted weapons also follow awakening start/end immediately.
 func _refresh_aux_weapons() -> void:
+	_refresh_skills()
 	var dance: bool = Relic.family_evolved(_taken, Relic.Family.MOON_DANCE)
 	# Raise more than the damage number — stack slash afterimages one layer at a time.
 	_player.slash_rank = Relic.family_total(_taken, Relic.Family.FULL_MOON)
@@ -4237,6 +4926,7 @@ func _on_missile_core_collected(was_ejected: bool) -> void:
 			Color(0.58, 0.88, 1.0, 1))
 	_pickup_sfx.pitch_scale = 1.0 + 0.04 * float(_missile_power)
 	_pickup_sfx.play()
+	_play_reward_sfx(SFX_CORE, 1.0 + 0.04 * float(_missile_power))
 
 
 func _on_missile_core_expired(was_ejected: bool) -> void:
@@ -4289,10 +4979,16 @@ func _on_spirit_perished(kind: SpiritKind, at: Vector2, was_elite: bool) -> void
 	_gain_missile_progress(at, was_elite, was_guardian)
 	_gain_progress(not was_guardian)
 	_heat_up()
+	_play_kill_sfx(was_elite or was_guardian)
 	# Pricier heroes get a heavier kill recoil. **Presentation only** —
 	# damage, fire rate, and pierce stay sidegrade-equal; only the weight in the hand
 	# follows the tier.
 	_shake(0.9 + 0.5 * float(_combo_tier) + 0.16 * float(_hero_vfx_tier()))
+
+
+## Moonfire one ember is worth, with the zone's omen applied.
+func _ember_value(was_elite: bool) -> float:
+	return (ELITE_EMBER_CHARGE if was_elite else EMBER_CHARGE) * float(_omen_effects["ember"])
 
 
 ## Leave a moon ember at the kill spot.
@@ -4300,7 +4996,7 @@ func _on_spirit_perished(kind: SpiritKind, at: Vector2, was_elite: bool) -> void
 ## Level progress still rises immediately as before. Embers are not XP stolen from that progress;
 ## they are separate loot for a short power burst, so missing them does not block growth.
 func _drop_moon_ember(at: Vector2, was_elite: bool) -> void:
-	var charge: float = ELITE_EMBER_CHARGE if was_elite else EMBER_CHARGE
+	var charge: float = _ember_value(was_elite)
 	if get_tree().get_node_count_in_group("moon_embers") + _pending_embers >= EMBER_LIMIT:
 		_gain_moonfire(charge)
 		return
@@ -4331,7 +5027,7 @@ func _flush_ember_drops() -> void:
 		var was_elite: bool = _ember_elites.pop_front()
 		var ember: Node2D = EMBER_SCENE.instantiate() as Node2D
 		_pending_embers = maxi(_pending_embers - 1, 0)
-		ember.charge = ELITE_EMBER_CHARGE if was_elite else EMBER_CHARGE
+		ember.charge = _ember_value(was_elite)
 		ember.elite = was_elite
 		ember.target = _player
 		ember.position = at
@@ -4363,7 +5059,7 @@ func _fire_arrows(delta: float) -> void:
 	if _arrow_timer > 0.0:
 		return
 
-	var target: Node2D = _nearest_in(ARROW_RANGE)
+	var target: Node2D = _nearest_in(_ranged_range)
 	if target == null:
 		return                                   # Save the shot if nobody is in range
 
@@ -4374,10 +5070,13 @@ func _fire_arrows(delta: float) -> void:
 		_fire_missiles(target)
 		return
 
-	# New guardians hold no weapon — both hands cradle a beacon seed. Shots must start from that
-	# seed, not body origin or feet, so cast and fire read as one motion.
-	var origin: Vector2 = _player.moonlight_origin()
-	var base: Vector2 = (target.global_position - origin).normalized()
+	# Gun heroes aim from the hand and fire from the muzzle, so cast, flash
+	# and shot read as one motion; melee heroes keep the small candle backup.
+	# The second pass re-aims through the side hand on vertical aims, or the
+	# muzzle would sit 10px off the aim line and fly parallel past its mark.
+	var base: Vector2 = (target.global_position - _player.shot_anchor()).normalized()
+	base = (target.global_position - _player.hand_for_aim(base)).normalized()
+	var profile: Hero.AttackProfile = _hero_for_run().attack_profile
 
 	# The first shot always goes to the target's exact center.
 	#
@@ -4385,14 +5084,22 @@ func _fire_arrows(delta: float) -> void:
 	# combined hit radius is only 11px, so the first multi-shot upgrade was a downgrade.
 	# Pin the center shot and fan extras left/right in turn. An even volley's leftover shot flips
 	# sides each fire so it does not bias one way.
-	const ARROW_HALF_FAN: float = 27.0
 	var invest: int = _arrow_invest()
 	var volley: int = _missile_volley()
 	var total_damage: int = MissileProgression.damage_budget(
 		_arrow_damage, _missile_power, maxi(_arrow_count - 1, 0))
-	var lane_damages: PackedInt32Array = MissileProgression.straight_lane_damages(
-		total_damage, volley)
+	# The shotgun spreads its budget evenly: every pellet matters up close, and no
+	# single center shot carries the volley. Every other hero keeps the center-heavy
+	# split so a core can never reverse-power single-target damage.
+	var lane_damages: PackedInt32Array = MissileProgression.lane_damages(
+		total_damage, volley) \
+		if profile == Hero.AttackProfile.KEEPER \
+		else MissileProgression.straight_lane_damages(total_damage, volley)
 	_player.play_moonlight_cast(base, volley)
+	_play_weapon_sfx(profile, HeroWeapons.primary_side(profile) == HeroWeapons.Side.MELEE)
+	if profile == Hero.AttackProfile.KNIGHT:
+		_player.recoil(base)
+		_shake(1.6)
 	var extra: int = maxi(volley - 1, 0)
 	var rings: int = maxi(int(ceil(float(extra) * 0.5)), 1)
 	var first_side: float = _arrow_fan_side
@@ -4403,17 +5110,21 @@ func _fire_arrows(delta: float) -> void:
 			var lane: int = i
 			var ring: int = (lane + 1) / 2
 			var side: float = first_side if lane % 2 == 1 else -first_side
-			angle = deg_to_rad(ARROW_HALF_FAN) * float(ring) / float(rings) * side
+			angle = deg_to_rad(_ranged_fan) * float(ring) / float(rings) * side
 		var arrow: Node2D = ARROW_SCENE.instantiate()
 		arrow.pierce = _arrow_pierce
 		arrow.damage = lane_damages[i]
+		arrow.speed = _ranged_speed
+		arrow.flight_time = _ranged_range / maxf(_ranged_speed, 1.0) + 0.12
+		arrow.blast_radius = _ranged_blast
 		arrow.upgrade_rank = _missile_power + invest
 		arrow.awakened = _moonfire_on
 		_configure_hero_projectile(arrow, i, volley)
 		arrow.set_candidates(_spirits, get_instance_id())
 		add_child(arrow)
-		arrow.global_position = origin
-		arrow.launch(base.rotated(angle))
+		var lane_dir: Vector2 = base.rotated(angle)
+		arrow.global_position = _player.muzzle_origin(lane_dir)
+		arrow.launch(lane_dir)
 		arrow.reset_physics_interpolation()
 
 
@@ -4423,7 +5134,8 @@ func _arrow_invest() -> int:
 
 
 func _missile_volley() -> int:
-	return MissileProgression.volley_for_power(_missile_power)
+	# A hero's base lanes never shrink under core growth; cores only widen past them.
+	return maxi(_ranged_lanes, MissileProgression.volley_for_power(_missile_power))
 
 
 func _missile_threshold_power() -> int:
@@ -4487,15 +5199,19 @@ func _starfall_evolved() -> bool:
 func _fire_missiles(first: Node2D) -> void:
 	var invest: int = _arrow_invest()
 	var volley: int = _missile_volley()
-	var origin: Vector2 = _player.moonlight_origin()
+	# Sized by the same volley that fires below, so no lane falls back to cloning.
 	var lane_damages: PackedInt32Array = MissileProgression.guided_lane_damages(
-		_arrow_damage, _missile_power, maxi(_arrow_count - 1, 0))
-	var marks: Array[Node2D] = _nearest_many(ARROW_RANGE * 1.3, volley)
+		_arrow_damage, _missile_power, maxi(_arrow_count - 1, 0), _ranged_lanes)
+	var marks: Array[Node2D] = _nearest_many(_ranged_range * 1.3, volley)
 	if marks.is_empty():
 		marks.append(first)
 
-	var cast_direction: Vector2 = (first.global_position - origin).normalized()
+	var cast_direction: Vector2 = (first.global_position - _player.shot_anchor()).normalized()
+	cast_direction = (first.global_position - _player.hand_for_aim(cast_direction)).normalized()
 	_player.play_moonlight_cast(cast_direction, volley)
+	_play_weapon_sfx(
+		_hero_for_run().attack_profile,
+		HeroWeapons.primary_side(_hero_for_run().attack_profile) == HeroWeapons.Side.MELEE)
 	_shake(0.6 + 0.14 * float(_hero_vfx_tier()))
 	var missile: Node2D = MISSILE_SCENE.instantiate()
 	missile.damage = lane_damages[0]
@@ -4506,7 +5222,7 @@ func _fire_missiles(first: Node2D) -> void:
 	# Every live volley shares one computation of spirit positions for this physics tick.
 	missile.set_candidates(_spirits, get_instance_id())
 	add_child(missile)
-	missile.global_position = origin
+	missile.global_position = _player.muzzle_origin(cast_direction)
 	missile.launch_volley(marks, volley, lane_damages)
 	missile.reset_physics_interpolation()
 
@@ -4616,6 +5332,217 @@ func _stop_shake() -> void:
 		_camera.offset = Vector2.ZERO
 
 
+## Loop the whole BGM sample. The baked loops start and end at exact zero, so the
+## boundary cannot click; without this the track stops dead after one play.
+##
+## The endpoint is decoded samples (`length × mix_rate`), never WAV bytes. The
+## baked loops import as QOA, where `data` is ~5 bytes per 20 samples — dividing
+## bytes by two loops one bar and cuts the rest of the track.
+func _loop_bgm(stream: AudioStream) -> void:
+	var wav: AudioStreamWAV = stream as AudioStreamWAV
+	if wav == null:
+		return
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	wav.loop_begin = 0
+	var total: int = int(wav.get_length() * float(wav.mix_rate))
+	if total > 0:
+		wav.loop_end = total
+
+
+## Draw one track from the arena or guardian bag. Each bag holds all three pool
+## indexes shuffled; when it empties it refills, and the refill's first draw is
+## never the track already playing — a full tour with no repeats, no restarts.
+## Typed arrays share their reference, so `bag` refills the member in place.
+func _draw_music_track(arena_pool: bool) -> int:
+	var bag: Array[int] = _arena_bag if arena_pool else _guardian_bag
+	if bag.is_empty():
+		var last: int = _arena_track if arena_pool else _guardian_track
+		var order: Array[int] = [0, 1, 2]
+		for i in range(2, 0, -1):
+			var j: int = _music_rng.randi_range(0, i)
+			var tmp: int = order[i]
+			order[i] = order[j]
+			order[j] = tmp
+		if order[2] == last:
+			var swap_i: int = _music_rng.randi_range(0, 1)
+			var tmp2: int = order[2]
+			order[2] = order[swap_i]
+			order[swap_i] = tmp2
+		bag.append_array(order)
+	var track: int = bag.pop_back()
+	if arena_pool:
+		_arena_track = track
+	else:
+		_guardian_track = track
+	return track
+
+
+## Roll the music bag at the end of a whole track. The loop wrap is read off
+## the audio clock, never a gameplay countdown, so the boundary follows
+## audible playback at any time scale: pause freezes the position, a mode
+## switch re-seeds it, and release stops the player — none of them can strand
+## a stale continuation on the wrong pool. Full phrases only; attacks and
+## hits never touch the roll.
+func _tick_music_rotation() -> void:
+	if _bgm == null or not is_instance_valid(_bgm) or not _bgm.playing:
+		_bgm_last_pos = 0.0
+		return
+	var pos: float = _bgm.get_playback_position()
+	if pos < _bgm_last_pos - BGM_WRAP_MARGIN:
+		if _music_arena_pool:
+			_select_arena_theme()
+		else:
+			_select_guardian_theme()
+		return
+	_bgm_last_pos = pos
+
+
+## Switch to a freshly drawn arena track: run start, region entry, guardian down.
+func _select_arena_theme() -> void:
+	_bgm.stop()
+	_bgm.stream = ARENA_THEMES[_draw_music_track(true)]
+	_loop_bgm(_bgm.stream)
+	_bgm.pitch_scale = _arena_bgm_pitch()
+	_music_arena_pool = true
+	_bgm_last_pos = 0.0
+	_bgm.play()
+
+
+## Switch to a freshly drawn guardian track at the encounter call.
+func _select_guardian_theme() -> void:
+	_bgm.stop()
+	_bgm.stream = GUARDIAN_THEMES[_draw_music_track(false)]
+	_music_arena_pool = false
+	_bgm_last_pos = 0.0
+	_loop_bgm(_bgm.stream)
+	_bgm.pitch_scale = minf(_arena_bgm_pitch() + GUARDIAN_PITCH_BONUS, BGM_PITCH_MAX)
+	_bgm.play()
+
+
+## One hero's attack voices. Rate-limited: twin blades at full haste must not stack.
+##
+## The primary weapon owns its voice at full gain; a sidearm attack speaks the
+## quieter backup voice. Melee heroes back up with spark shots, ranged heroes
+## with a close bash — the cue follows the backup, not the hero. Two voices
+## with two gaps, so when both real clocks fire in one tick the signature
+## primary cue can never be swallowed by the backup's gate: the two overlap
+## instead, whichever order the swing and the volley called in. Retrigger
+## policy: each voice takes its latest call; calls inside the 70 ms gap are
+## swallowed, so a primary volley and its Starfall answer share one cue.
+func _play_weapon_sfx(profile: Hero.AttackProfile, sidearm: bool = false) -> void:
+	if sidearm:
+		_play_sidearm_sfx(profile)
+		return
+	if _weapon_sfx_left > 0.0 or _weapon_sfx == null:
+		return
+	_weapon_sfx_left = WEAPON_SFX_GAP
+	match profile:
+		Hero.AttackProfile.DANCER:
+			_weapon_sfx.stream = SFX_TWIN
+		Hero.AttackProfile.SAGE:
+			_weapon_sfx.stream = SFX_RIFLE
+		Hero.AttackProfile.KEEPER:
+			_weapon_sfx.stream = SFX_SHOTGUN
+		Hero.AttackProfile.KNIGHT:
+			_weapon_sfx.stream = SFX_CANNON
+		Hero.AttackProfile.ECLIPSE:
+			_weapon_sfx.stream = SFX_SCYTHE
+		_:
+			_weapon_sfx.stream = SFX_SWORD
+	_weapon_sfx.volume_db = DUCK_DB if _ducked else WEAPON_DB
+	_weapon_sfx.pitch_scale = randf_range(0.97, 1.03)
+	_weapon_sfx.play()
+
+
+## The backup slot's own capped voice. Same gap, quieter gain, never the
+## primary's stream — a melee backup that fires first in the tick leaves the
+## ranged signature cue (and the reverse) exactly where the ear expects it.
+func _play_sidearm_sfx(profile: Hero.AttackProfile) -> void:
+	if _sidearm_sfx_left > 0.0 or _sidearm_sfx == null:
+		return
+	_sidearm_sfx_left = WEAPON_SFX_GAP
+	if HeroWeapons.primary_side(profile) == HeroWeapons.Side.RANGED:
+		_sidearm_sfx.stream = SFX_SWORD
+	else:
+		_sidearm_sfx.stream = SFX_TWIN
+	_sidearm_sfx.volume_db = DUCK_DB if _ducked else SIDEARM_DB
+	_sidearm_sfx.pitch_scale = randf_range(0.97, 1.03)
+	_sidearm_sfx.play()
+
+
+## A shot or swing connected. Projectiles in flight call this through
+## `COMBAT_SFX_GROUP` so hits make sound without audio nodes on every shot.
+func combat_impact(_at: Vector2, big: bool) -> void:
+	if _impact_sfx_left > 0.0 or _impact_sfx == null:
+		return
+	_impact_sfx_left = IMPACT_SFX_GAP
+	_impact_sfx.stream = SFX_IMPACT
+	_impact_sfx.pitch_scale = randf_range(0.72, 0.8) if big \
+		else randf_range(0.94, 1.06)
+	_impact_sfx.volume_db = DUCK_DB if _ducked else IMPACT_DB
+	_impact_sfx.play()
+
+
+## Kill tick. Rate-limited harder: a chain clear is one pop, not twelve.
+func _play_kill_sfx(big: bool) -> void:
+	if _kill_sfx_left > 0.0 or _reward_sfx == null:
+		return
+	_kill_sfx_left = KILL_SFX_GAP
+	_reward_sfx.stream = SFX_KILL
+	_reward_sfx.pitch_scale = randf_range(0.85, 0.92) if big \
+		else randf_range(1.0, 1.08)
+	_reward_sfx.volume_db = DUCK_DB if _ducked else REWARD_DB
+	_reward_sfx.play()
+
+
+## Growth moments are never rate-limited: level, core, and overcharge are rare by
+## design, and swallowing one would steal the earned surge. They get their own
+## bounded voice, so a kill pop can never cut a level surge short and a surge
+## never eats the kill tick — the two overlap instead. Retrigger policy: the
+## latest growth call wins the growth voice; kill pops keep their own gap.
+func _play_reward_sfx(stream: AudioStream, pitch: float = 1.0) -> void:
+	if _growth_sfx == null:
+		return
+	_growth_sfx.stream = stream
+	_growth_sfx.pitch_scale = pitch
+	_growth_sfx.volume_db = DUCK_DB if _ducked else REWARD_DB
+	_growth_sfx.play()
+
+
+func _tick_combat_sfx(delta: float) -> void:
+	_weapon_sfx_left = maxf(_weapon_sfx_left - delta, 0.0)
+	_sidearm_sfx_left = maxf(_sidearm_sfx_left - delta, 0.0)
+	_impact_sfx_left = maxf(_impact_sfx_left - delta, 0.0)
+	_kill_sfx_left = maxf(_kill_sfx_left - delta, 0.0)
+	_update_duck()
+
+
+## Duck busy combat voices while dialogue, a hero line, or a choice needs the ear.
+## Runs from the per-frame tick (unpaused cases) and from panel visibility, the
+## dialogue `finished` signal, and pause notifications (paused cases), so the gain
+## is right whichever froze the tree. UI confirm voices stay loud on purpose.
+func _update_duck() -> void:
+	if not is_inside_tree():
+		return
+	var voice_up: bool = _voice_panel != null and is_instance_valid(_voice_panel) \
+		and _voice_panel.visible
+	var wants_duck: bool = _relic.visible or _run_choice.visible \
+		or _result.visible or _dialogue.is_open() or voice_up or get_tree().paused
+	if wants_duck == _ducked:
+		return
+	_ducked = wants_duck
+	if _weapon_sfx != null:
+		_weapon_sfx.volume_db = DUCK_DB if wants_duck else WEAPON_DB
+	if _sidearm_sfx != null:
+		_sidearm_sfx.volume_db = DUCK_DB if wants_duck else SIDEARM_DB
+	if _impact_sfx != null:
+		_impact_sfx.volume_db = DUCK_DB if wants_duck else IMPACT_DB
+	if _reward_sfx != null:
+		_reward_sfx.volume_db = DUCK_DB if wants_duck else REWARD_DB
+	if _growth_sfx != null:
+		_growth_sfx.volume_db = DUCK_DB if wants_duck else REWARD_DB
+
+
 ## Floor the fire interval and turn overflow into damage.
 ##
 ## **Without a floor the game stalls.** When only `_arrow_cooldown *= 0.7` existed,
@@ -4632,14 +5559,14 @@ const MELEE_CD_FLOOR: float = 0.11
 
 func _settle_rates() -> void:
 	var moonfire_rate: float = MOONFIRE_HASTE if _moonfire_on else 1.0
-	var raw: float = ARROW_COOLDOWN * _arrow_haste * moonfire_rate
+	var raw: float = _ranged_base_cd * _arrow_haste * moonfire_rate
 	var over: float = 1.0
 	if raw < ARROW_CD_FLOOR:
 		over = ARROW_CD_FLOOR / raw
 		raw = ARROW_CD_FLOOR
 	_arrow_cooldown = raw
 	_arrow_damage = _scaled(ARROW_BASE_HIT,
-		_arrow_mult * over * _moonfire_damage() * _frailty())
+		_arrow_mult * _ranged_spec_mult * over * _moonfire_damage() * _frailty())
 	_apply_haste()
 	_refresh_aux_weapons()
 
@@ -4744,7 +5671,9 @@ func _gain_moonfire(amount: float) -> void:
 func _activate_moonfire(locked: bool, announce: bool = true) -> void:
 	var was_on: bool = _moonfire_on
 	if not was_on:
-		_say("moonfire")
+		# The third beacon restores a place in the same frame; this line
+		# waits out the discovery like the guardian meet does.
+		_say_after_discovery("moonfire")
 	_moonfire_on = true
 	_moonfire_locked = _moonfire_locked or locked
 	_moonfire_charge = 0.0
@@ -4790,7 +5719,7 @@ func _apply_haste() -> void:
 	var heat: float = 1.0 - COMBO_HASTE * float(_combo_tier)
 	var moonfire_rate: float = MOONFIRE_HASTE if _moonfire_on else 1.0
 	# Lower power lengthens the interval. Divide because `_frailty()` is ≤ 1.
-	var raw: float = Player.DEFAULT_ATTACK_COOLDOWN * _relic_haste * heat \
+	var raw: float = _melee_base_cd * _relic_haste * heat \
 		* moonfire_rate / _frailty()
 
 	# Melee gets a floor too. Same reason as `_settle_rates()` above — when the interval falls under a
@@ -4801,7 +5730,7 @@ func _apply_haste() -> void:
 		raw = MELEE_CD_FLOOR
 	_player.attack_cooldown_time = raw
 	_player.attack_damage = _scaled(Player.DEFAULT_ATTACK_DAMAGE,
-		_damage_mult * over * _moonfire_damage())
+		_damage_mult * _melee_spec_mult * over * _moonfire_damage())
 
 
 ## Kills raise level, and each level picks one relic.
@@ -4819,6 +5748,7 @@ func _gain_progress(offer_now: bool = true) -> void:
 	_level_progress = 0
 	_level += 1
 	_to_next = mini(int(ceil(float(_to_next) * LEVEL_GROWTH)), LEVEL_CAP)
+	_play_reward_sfx(SFX_LEVEL, 1.0 + 0.03 * float(mini(_level, 12)))
 	_hud.set_level(_level)
 	_queue_combat_hud()
 	_owed += 1
@@ -4867,6 +5797,7 @@ func _offer_relic() -> void:
 		return
 	_last_offer = _survived
 	_owed -= 1
+	_relic.cycle = _cycle
 	_relic.open()
 
 
@@ -4909,10 +5840,22 @@ func _finish_cycle() -> void:
 	_completed_cycle = _cycle
 	_completed_cycle_overcharges = clampi(_overcharge_successes, 0, _beacons.size())
 	_cycle_reward_grant_count = 2 if _overcharge_successes >= _beacons.size() else 1
+	# A Moonless Trial pays two tiers of loot whatever you did at the beacons.
+	if Expedition.is_trial(_completed_cycle):
+		_cycle_reward_grant_count = 2
 	_overcharge_successes = 0
+	var guardian_terrain: int = _terrain_at(_zone_index)
 	_cycle += 1
 	_zone_serial += 1
 	_zone_index = 0
+	# A new loop opens somewhere new (never where the guardian just fell) once forks are open;
+	# until then it walks the classic rotation.
+	_route = [-1, -1, -1]
+	if _forks_enabled and Expedition.forks_open(_cycle):
+		_route[0] = Expedition.start_terrain(_run_seed, _cycle, guardian_terrain)
+	_close_fork_gates()
+	if _skills != null:
+		_skills.new_cycle()
 	_escape_active = false
 	_transitioning = false
 	_gate.close()
@@ -4935,10 +5878,7 @@ func _finish_cycle() -> void:
 	# Unlock awakening locked during the guardian fight and return to explore music.
 	_moonfire_charge = 0.0
 	_end_moonfire()
-	_bgm.stop()
-	_bgm.stream = ARENA_THEME
-	_bgm.pitch_scale = _arena_bgm_pitch()
-	_bgm.play()
+	_select_arena_theme()
 	# Guardian cleared. One line before the next peak.
 	_say("guardian_down")
 	_show_cycle_story()
@@ -4995,7 +5935,8 @@ func _maybe_drop_dew(at: Vector2, was_elite: bool = false) -> void:
 	# rate scales with kill speed. Normal drops share one field clock and close at five per minute.
 	if not mercy and _dew_drop_cooldown > 0.0:
 		return
-	var chance: float = (DEW_CHANCE_LOW if _health <= 1 else DEW_CHANCE) * _dew_multiplier
+	var chance: float = (DEW_CHANCE_LOW if _health <= 1 else DEW_CHANCE) * _dew_multiplier \
+		* float(_omen_effects["dew"])
 	if not mercy and randf() > chance:
 		return
 	if _health >= _max_health:
@@ -5088,7 +6029,7 @@ func _spawn_interval_now() -> float:
 	var interval: float = maxf(base - _survived / 400.0, 0.34)
 	if _encounter_kind() == RoomKind.Encounter.CROSSFIRE:
 		interval *= 0.88                        # Field keeps fast lines rotating
-	return maxf(interval, 0.34)
+	return maxf(interval * float(_omen_effects["spawn"]), 0.34)
 
 
 ## How many to release together in one burst.
@@ -5151,7 +6092,9 @@ func _summon(
 	var kind_path: String = forced_kind if not forced_kind.is_empty() else _pick_kind()
 	var spirit: Node2D = SPIRIT_SCENE.instantiate()
 	spirit.kind = load(kind_path) as SpiritKind
-	spirit.toughness = toughness() * maxf(toughness_scale, 0.1)
+	spirit.toughness = toughness() * maxf(toughness_scale, 0.1) * float(_omen_effects["hp"])
+	spirit.omen_speed = float(_omen_effects["speed"])
+	spirit.mob_cycle = _cycle
 	spirit.elite = force_elite or randf() < elite_chance()
 
 	spirit.position = _room.nearest_clear(_room.clamp_to_play(at), 10.0)
@@ -5180,10 +6123,11 @@ func _announce_first_sight(kind_path: String) -> void:
 ## **The spine of endless play.** Cycles 1–3 grow 35% each to keep the old tempo; from cycle 4
 ## they grow 58% so late game is not a stroll. Guardians multiply this once more by
 ## `SpiritKind.guardian_toughness_scale()`.
+##
+## Past the official win (cycle 8) it grows more gently, so the endless stretch stays a game you can
+## keep winning and not a wall. See `Expedition.toughness()`.
 func toughness() -> float:
-	if _cycle <= 3:
-		return pow(1.35, float(_cycle - 1))
-	return pow(1.35, 2.0) * pow(1.58, float(_cycle - 3))
+	return Expedition.toughness(_cycle)
 
 
 ## Guardian HP. Starts from the same multiplier as trash; from cycle 4 the boss alone gets an
@@ -5201,10 +6145,15 @@ func guardian_toughness() -> float:
 func elite_chance() -> float:
 	if _cycle < 2:
 		return 0.0
-	var chance: float = 0.08 * float(_cycle - 1)
+	var chance: float = Expedition.elite_chance(_cycle)
+	# The shipped cap of 30% applies through the official win; the endless stretch climbs to its own.
+	var ceiling: float = 0.3 if Expedition.depth(_cycle) <= 0 else Expedition.ELITE_CEILING
+	if _cycle <= Expedition.OFFICIAL_WIN_CYCLE:
+		chance = 0.08 * float(_cycle - 1)
 	if _encounter_kind() == RoomKind.Encounter.CARAVAN:
 		chance += 0.06                           # Camp surfaces high-value targets more often
-	return minf(chance, 0.3)
+	chance += float(_omen_effects["elite"])
+	return minf(chance, ceiling)
 
 
 ## How many spirits may be on screen at once. Grows each cycle.
@@ -5215,7 +6164,9 @@ func spirit_cap() -> int:
 	# **Lowered after measuring on mobile.** Sixty spirits + twelve meteors was 1fps on the emulator.
 	# Forty already packs an 808×360 screen; past that they only overlap and cannot be counted —
 	# cost rises, what you see stays the same.
-	return mini(MAX_SPIRITS + 5 * (_cycle - 1), 40)
+	# An omen can take spirits away (Iron Night) but never push past the ceiling.
+	return clampi(
+		mini(MAX_SPIRITS + 5 * (_cycle - 1), 40) + int(_omen_effects["cap"]), 12, 40)
 
 
 ## Place one of this terrain's beacons far out; fully rest the other terrain's two.
@@ -5247,6 +6198,24 @@ func _place_current_beacon() -> void:
 			best = at
 	_beacons[index].position = _room.nearest_clear(best, 42.0, 10.0)
 	_beacons[index].reset_physics_interpolation()
+	_place_motif(_beacons[index].position)
+
+
+## Stand this zone's memory motif beside its beacon clearing, dim.
+##
+## The motif is decor, not terrain: it never blocks and never fights. A fresh
+## zone always starts dim so every run has a visible restoration to perform,
+## even when the chronicle already holds this place.
+func _place_motif(beacon_at: Vector2) -> void:
+	if _motif == null or not is_instance_valid(_motif):
+		return
+	var terrain: int = _terrain_at(_zone_index)
+	_motif.show_terrain(terrain)
+	var offset: Vector2 = MOTIF_OFFSETS[clampi(terrain, 0, MOTIF_OFFSETS.size() - 1)]
+	var at: Vector2 = _room.nearest_clear(
+		_room.clamp_to_play(beacon_at + offset), 4.0)
+	_motif.position = at
+	_motif.reset_physics_interpolation()
 
 
 func _refresh_beacon_visibility() -> void:
@@ -5281,6 +6250,9 @@ func _point_compass(delta: float) -> void:
 			_player.position, safe_rect, guardian_extent, delta)
 		return
 	if _escape_active:
+		if _fork_options.size() == 2 and _gate_b != null and is_instance_valid(_gate_b):
+			_point_fork_compasses(safe_rect, delta)
+			return
 		_compass.point_to(
 			BeaconCompass.Mark.EXIT, _gate.position, _player.position,
 			safe_rect, 0.0, delta)
@@ -5303,6 +6275,21 @@ func _point_compass(delta: float) -> void:
 	_compass.point_to(
 		BeaconCompass.Mark.BEACON, best.position, _player.position,
 		safe_rect, 0.0, delta)
+
+
+## One arrow per gate of a fork, tinted and named for the place it leads to.
+func _point_fork_compasses(safe_rect: Rect2, delta: float) -> void:
+	if _compass_b == null or not is_instance_valid(_compass_b):
+		_compass_b = BeaconCompass.new()
+		_compass.get_parent().add_child(_compass_b)
+	var first: Dictionary = WORLD_STEPS[_fork_options[0]]
+	var second: Dictionary = WORLD_STEPS[_fork_options[1]]
+	_compass.point_to(
+		BeaconCompass.Mark.EXIT, _gate.position, _player.position, safe_rect, 0.0, delta,
+		first["emblem"] as Color, tr(str(first["name"])))
+	_compass_b.point_to(
+		BeaconCompass.Mark.EXIT, _gate_b.position, _player.position, safe_rect, 0.0, delta,
+		second["emblem"] as Color, tr(str(second["name"])))
 
 
 ## Pick one of the kinds currently unlocked.
@@ -5336,6 +6323,30 @@ func _pick_kind() -> String:
 					"res://resources/weaver.tres",
 					"res://resources/ember.tres",
 					"res://resources/caster.tres",
+				]:
+					preferred.append(path)
+		RoomKind.Encounter.SQUALL:
+			for path in open:
+				if path in [
+					"res://resources/wisp.tres",
+					"res://resources/drifter.tres",
+					"res://resources/swarm.tres",
+				]:
+					preferred.append(path)
+		RoomKind.Encounter.TIDE:
+			for path in open:
+				if path in [
+					"res://resources/wisp.tres",
+					"res://resources/weaver.tres",
+					"res://resources/stalker.tres",
+				]:
+					preferred.append(path)
+		RoomKind.Encounter.VIGIL:
+			for path in open:
+				if path in [
+					"res://resources/stalker.tres",
+					"res://resources/caster.tres",
+					"res://resources/ember.tres",
 				]:
 					preferred.append(path)
 	if not preferred.is_empty() and randf() < 0.64:
@@ -5397,6 +6408,14 @@ func _summon_guardian() -> void:
 	})
 	_guardian.set_meta(GUARDIAN_KIND_SOURCE_PATH_META, guardian_path)
 	_guardian.set("guardian_cycle", _cycle)
+	var terrain: int = _terrain_at(_zone_index)
+	_guardian.mutations = Expedition.mutations_for(_run_seed, _cycle, terrain)
+	_guardian.calls_pack.connect(_on_guardian_calls_pack)
+	# A guardian met again is the same one, and it remembers: the numeral counts the meetings.
+	var meeting: int = int(_guardian_meetings.get(terrain, 0)) + 1
+	_guardian_meetings[terrain] = meeting
+	_guardian_title = tr(boss.display_name) + (" " + _numeral(meeting) if meeting > 1 else "")
+	_guardian_detail = _mutation_line(_guardian.mutations)
 	boss.score_value = boss.score_value * _cycle
 	# Tighten the burst-damage budget ratio each cycle too. Scaling only HP lets the cap grow with
 	# HP and keeps minimum kill time constant. The floor each cycle is set by
@@ -5417,6 +6436,9 @@ func _summon_guardian() -> void:
 	_register_spirit(_guardian)
 	# Listen to the guardian alone. Mixing with trash leads to messy name compares.
 	_guardian.perished.connect(func(_k: SpiritKind, _at: Vector2, _elite: bool) -> void:
+		# What it was throwing turns to sparks with it.
+		if _bullets != null and is_instance_valid(_bullets):
+			_bullets.dissolve()
 		# Projectiles already in flight behind the result screen can finish the guardian.
 		# Do not reopen cycle, heal, or loot panels on an ended run.
 		if _over:
@@ -5433,21 +6455,66 @@ func _summon_guardian() -> void:
 	# Give the name and how to dodge in one line first. It should not look like a boss that only differs
 	# in HP and color — learn this terrain's rule before taking the first pattern.
 	_hud.announce(tr("GUARDIAN_INTRO") % [
-		tr(boss.display_name), tr(boss.guardian_rule)], boss.boss_accent)
+		_guardian_title, tr(boss.guardian_rule)], boss.boss_accent)
 	_guardian_called = false
 	_announce_guardian_meet()
+	_announce_mutations.call_deferred(_guardian, boss.boss_accent)
+
+
+## Roman numeral for a guardian's meeting count. Past ten it falls back to digits.
+func _numeral(value: int) -> String:
+	const NUMERALS: PackedStringArray = [
+		"", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+	return NUMERALS[value] if value > 0 and value < NUMERALS.size() else str(value)
+
+
+## "Echo · Frenzy": the names of what a guardian gained, in the language in use.
+func _mutation_line(gained: Array[int]) -> String:
+	var names: PackedStringArray = PackedStringArray()
+	for mutation in gained:
+		names.append(tr(Expedition.mutation_name_key(mutation)))
+	return " · ".join(names)
+
+
+## A second banner after the introduction, so a mutated guardian is named before its first pattern.
+## A Moonless Trial says so.
+func _announce_mutations(guardian: Node2D, accent: Color) -> void:
+	if _guardian_detail.is_empty():
+		return
+	await get_tree().create_timer(1.7, false).timeout
+	if _over or guardian != _guardian or not is_instance_valid(guardian):
+		return
+	var line: String = tr("GUARDIAN_MUTATIONS") % _guardian_detail
+	if Expedition.is_trial(_cycle):
+		line = tr("TRIAL_NAME") + " · " + line
+	_hud.announce(line, accent.lerp(Color.WHITE, 0.3), 2.2)
+
+
+## Summoner: the guardian calls a pack around itself, as many as the cap allows.
+func _on_guardian_calls_pack(at: Vector2, count: int) -> void:
+	if _over or _transitioning or _capture_progress_frozen:
+		return
+	_prune_spirits()
+	var many: int = mini(count, maxi(spirit_cap() - _spirits.size() - _raid_queue.size(), 0))
+	var start: float = randf() * TAU
+	for i in many:
+		var angle: float = start + TAU * float(i) / float(maxi(many, 1))
+		_summon(at + Vector2.RIGHT.rotated(angle) * 58.0, "", 0.75, false)
+	_hud.announce(tr("GUARDIAN_PACK"), Color(1.0, 0.72, 0.5, 1.0))
+	_shake(2.0)
 
 
 ## First meeting per guardian per run speaks its own line; later meetings
-## fall back to the generic guardian moment. Only one `_say` per spawn —
-## the strip has no queue and the last call wins.
+## fall back to the generic guardian moment. Only one voice line per spawn —
+## the strip has no queue and the last call wins. The line waits out a fresh
+## place discovery; the banner above already named the guardian and its rule.
 func _announce_guardian_meet() -> void:
 	var moment: String = "meet_" + _guardian_resource_path().get_file().get_basename()
 	if not _seen_guardians.has(moment) and HeroVoice.LINES.has(moment):
 		_seen_guardians[moment] = true
-		_say(moment)
+		_say_after_discovery(moment)
 		return
-	_say("guardian")
+	_say_after_discovery("guardian")
 
 
 ## At half health, once per guardian, it calls two swarm escorts.
@@ -5471,11 +6538,7 @@ func _tick_guardian_call() -> void:
 	_say("call_dark")
 
 	# Music changes. The ear knows the finale first.
-	_bgm.stop()
-	_bgm.stream = GUARDIAN_THEME
-	# A guardian fight pushes one step harder than explore.
-	_bgm.pitch_scale = minf(_arena_bgm_pitch() + 0.05, BGM_PITCH_MAX)
-	_bgm.play()
+	_select_guardian_theme()
 
 
 func _materialize_or_discard_guardian(guardian: Node2D) -> void:
@@ -5509,6 +6572,8 @@ func _on_dash_pressed() -> void:
 		return
 	_analytics_tutorial_step("dash")
 	_advance_beacon_hint()
+	if _skills != null:
+		_skills.on_dash(from, from + direction.normalized() * Player.DASH_SPEED * Player.DASH_SECONDS)
 	if Relic.family_resonant(_taken, Relic.Family.STARFALL):
 		_starfall_primed = true
 	if Relic.family_resonant(_taken, Relic.Family.FULL_MOON):
@@ -5655,10 +6720,17 @@ func _on_player_hit(from_position: Vector2) -> void:
 	_player.knock_back(from_position)
 	if _shielded:
 		return
+	# Moon Ward: the bubble takes this one.
+	if _skills != null and _skills.absorb_hit():
+		_hud.announce(tr("SKILL_WARD_HOLDS"), Color(0.72, 0.92, 1.0, 1.0))
+		_shake(2.0)
+		return
 	_set_health(_health - 1)
 	_onboard("TUTORIAL_HEART")
 	_eject_missile_power()
-	if _health <= 0:
+	if _skills != null:
+		_skills.on_player_hit(_player.global_position)
+	if _health <= 0 and not _stand_again():
 		_finish(false)
 
 	if _flash != null and _flash.is_valid():
@@ -5826,6 +6898,12 @@ func _queue_overcharge_wave(second_wave: bool) -> void:
 			_queue_crossfire(many)
 		RoomKind.Encounter.CARAVAN:
 			_queue_caravan(many)
+		RoomKind.Encounter.SQUALL:
+			_queue_squall(many)
+		RoomKind.Encounter.TIDE:
+			_queue_tide(many)
+		RoomKind.Encounter.VIGIL:
+			_queue_vigil(many)
 		_:
 			_queue_ambush(many)
 	_raid_spawn_left = 0.0
@@ -5852,6 +6930,7 @@ func _finish_overcharge(success: bool, abandoned: bool = false) -> void:
 		core_granted = _grant_overcharge_core(beacon.position)
 		reward = "core" if core_granted else "growth"
 		_gain_progress(false)
+		_play_reward_sfx(SFX_OVERCHARGE)
 		_shake(4.0)
 	_analytics_track_overcharge_resolution(outcome, reward)
 	beacon.resolve_overcharge()
@@ -5972,13 +7051,17 @@ func _on_beacon_lit_changed(beacon: Node2D, is_lit: bool) -> void:
 		if _tutorial_step < 4:
 			_tutorial_step = 4
 		_try_apply_beacon_heal()
-		# The moment a zone paints one step. First and last beacon have different lines.
-		if _lit_count >= _beacons.size():
-			_say("beacon_last")
-		elif _lit_count == 1:
-			_say("beacon_first")
-		else:
-			_say("beacon_mid")
+		# The moment a zone paints one step. The first restoration of a place
+		# in this run speaks its memory instead of the routine beacon line —
+		# the strip holds one line, so the discovery wins and the beacon
+		# moment stays unspent for the next beacon.
+		if not _restore_place():
+			if _lit_count >= _beacons.size():
+				_say("beacon_last")
+			elif _lit_count == 1:
+				_say("beacon_first")
+			else:
+				_say("beacon_mid")
 
 		if _lit_count >= _beacons.size():
 			# The reward for hunting turns into combat power immediately. It stays on until the guardian
@@ -5999,3 +7082,63 @@ func _on_beacon_lit_changed(beacon: Node2D, is_lit: bool) -> void:
 	# First beacon is blue dawn, second sunrise, third day. Not just exposure — color temperature
 	# must shift too or night does not look like it actually passed.
 	_apply_time_tone()
+
+
+## Light this zone's memory motif. Returns true when the restoration also
+## spoke the place's discovery line.
+##
+## The motif always lights — a repeated terrain in this run, or a place the
+## chronicle already holds, still shows its restoration. Only the line is
+## once per run. The chronicle entry is recorded at restore time, not at
+## speak time: a suppressed line still leaves its record behind.
+func _restore_place() -> bool:
+	var terrain: int = _terrain_at(_zone_index)
+	if _motif != null and is_instance_valid(_motif):
+		_motif.set_lit(true)
+	var entry: String = PlaceMemory.chronicle_id(terrain)
+	if not entry.is_empty() and not _over and not _capture_progress_frozen:
+		Chronicle.mark(entry)
+	return _maybe_show_place_memory(terrain)
+
+
+## Speak this terrain's memory once per run. Returns true when it played.
+##
+## Never during a modal, a transition, or capture: the strip is nonblocking,
+## but a line that lands on a choice, a wipe, or a store shot is still noise.
+## A suppressed discovery is queued, never marked seen: it plays when the
+## screen is quiet again, and its chronicle entry was already recorded at
+## restore time.
+func _maybe_show_place_memory(terrain: int) -> bool:
+	var id: String = PlaceMemory.terrain_id(terrain)
+	if id.is_empty() or _places_seen_run.has(id):
+		return false
+	if _over:
+		return false
+	if _voice_panel == null or not is_instance_valid(_voice_panel):
+		return false
+	if _capture_progress_frozen or _strip_blocked():
+		if not _places_pending.has(terrain):
+			_places_pending.append(terrain)
+		_schedule_strip_flush()
+		return false
+	_places_seen_run[id] = true
+	_say(PlaceMemory.moment(terrain))
+	if not _places_pending.is_empty():
+		_schedule_strip_flush()
+	return true
+
+
+## The pause screen carries the immediate story objective, refreshed every
+## time it opens so the counts are never stale.
+func _on_pause_changed(paused: bool) -> void:
+	if paused:
+		_pause.set_objective(_objective_text())
+
+
+func _objective_text() -> String:
+	var where: String = tr("HUD_WAVE") % _cycle \
+		if _cycle <= Expedition.OFFICIAL_WIN_CYCLE \
+		else tr("HUD_DEPTH") % Expedition.depth(_cycle)
+	return "%s\n%s · %s" % [
+		tr("OBJECTIVE_ROAD"), where,
+		tr("OBJECTIVE_PLACES") % _places_seen_run.size()]

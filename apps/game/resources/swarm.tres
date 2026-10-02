@@ -6,6 +6,14 @@
 [resource]
 script = ExtResource("script")
 display_name = "작은 불티"
+barrage = 1
+barrage_share = 0.2
+barrage_interval = 6.5
+barrage_speed = 40.0
+barrage_count = 1
+barrage_spread = 0.0
+barrage_tint = 1
+barrage_source = 6
 behavior = 0
 
 sheet = ExtResource("sheet")
@@ -20,4 +28,5 @@ score_value = 45
 stagger_seconds = 0.1
 body_scale = 0.72
 tint = Color(1, 1, 1, 1)
+spark_color = Color(0.88, 0.82, 1, 1)
 anim_fps = 6.0

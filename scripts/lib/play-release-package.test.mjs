@@ -42,6 +42,18 @@ import {
   verifyPlayBundleRuntimeBoundaries,
   verifyPlayReleasePackage,
 } from './play-release-package.mjs';
+import {
+  applyPlayBinaryOnlyUpdatePlan,
+  createPlayBinaryOnlyUpdatePlan,
+  parsePlayBinaryOnlyArguments,
+  PLAY_BINARY_ONLY_GALLERY_EVIDENCE,
+  PLAY_BINARY_ONLY_IMAGE_TYPES,
+  PLAY_BINARY_ONLY_MODE,
+  readPlayBinaryOnlyReceipt,
+} from './play-binary-only-update.mjs';
+import {
+  createGooglePlayPublisherClient,
+} from './google-play-publisher-apply.mjs';
 
 const OLD_TIME = new Date('2026-01-01T00:00:00.000Z');
 const NEW_TIME = new Date('2026-01-02T00:00:00.000Z');
@@ -1717,4 +1729,842 @@ test('reads real package and version metadata from the AAB protobuf manifest', (
     })),
     /versionCode/,
   );
+});
+
+function binaryOnlyPresets(code, version = '1.0.0') {
+  return [
+    '[preset.0]',
+    'name="Android"',
+    `version/code=${code}`,
+    `version/name="${version}"`,
+    `package/unique_name="${PLAY_PACKAGE_NAME}"`,
+    '',
+    '[preset.1]',
+    'name="Android Play"',
+    `version/code=${code}`,
+    `version/name="${version}"`,
+    `package/unique_name="${PLAY_PACKAGE_NAME}"`,
+    '',
+  ].join('\n');
+}
+
+function binaryOnlyConfig() {
+  const product = (productId, basePrice, regionCode, price, taxAmount) => ({
+    basePrice,
+    expectedAnchor: { price, regionCode, taxAmount },
+    productId,
+  });
+  const krw = (units) => ({ currencyCode: 'KRW', nanos: 0, units: String(units) });
+  const usd = (units) => ({
+    currencyCode: 'USD', nanos: 990_000_000, units: String(units),
+  });
+  return {
+    changesInReviewBehavior: 'ERROR_IF_IN_REVIEW',
+    legalDeclarations: {
+      googlePlayDeveloperProgramPoliciesAccepted: true,
+      recordedFrom: 'account_owner_explicit_approval',
+      unitedStatesExportLawsAccepted: true,
+    },
+    oneTimeProducts: {
+      excludedRegions: ['CN'],
+      legacyProductId: `${PLAY_PACKAGE_NAME}.hero_bundle`,
+      newRegionsAutomaticallyAvailable: false,
+      products: [
+        product(`${PLAY_PACKAGE_NAME}.supporter`, krw(3300), 'KR', krw(3300), krw(0)),
+        product(`${PLAY_PACKAGE_NAME}.hero_dancer`, usd(4), 'US', usd(4), null),
+        product(`${PLAY_PACKAGE_NAME}.hero_keeper`, usd(9), 'US', usd(9), null),
+        product(`${PLAY_PACKAGE_NAME}.hero_knight`, usd(14), 'US', usd(14), null),
+        product(`${PLAY_PACKAGE_NAME}.hero_eclipse`, usd(19), 'US', usd(19), null),
+        product(`${PLAY_PACKAGE_NAME}.hero_sage`, usd(24), 'US', usd(24), null),
+        product(`${PLAY_PACKAGE_NAME}.lantern_colors`, krw(1100), 'KR', krw(1100), krw(0)),
+      ],
+      purchaseOptionId: 'buy',
+      regionalAvailability: 'AVAILABLE',
+    },
+    packageName: PLAY_PACKAGE_NAME,
+    releaseStatus: 'completed',
+    schemaVersion: 2,
+    sendChangesForReview: true,
+    track: 'internal',
+  };
+}
+
+function binaryOnlyRoot({ code = 2, version = '1.0.0' } = {}) {
+  const root = fixture();
+  prepare(root);
+  write(root, 'builds/android/MoonlitBeacon.aab', `signed-aab-code-${code}`, NEW_TIME);
+  write(
+    root,
+    'apps/game/export_presets.cfg',
+    binaryOnlyPresets(code, version),
+    NEW_TIME,
+  );
+  if (version !== '1.0.0') {
+    write(
+      root,
+      'apps/game/project.godot',
+      projectGodot({}).replace('config/version="1.0.0"', `config/version="${version}"`),
+      NEW_TIME,
+    );
+  }
+  write(
+    root,
+    'notes/release/google-play-remote-apply.json',
+    `${JSON.stringify(binaryOnlyConfig(), null, 2)}\n`,
+    NEW_TIME,
+  );
+  return root;
+}
+
+function newBundleInspection({
+  code = 2,
+  packageName = PLAY_PACKAGE_NAME,
+  signing = {},
+  version = '1.0.0',
+} = {}) {
+  return {
+    manifest: { packageName, versionCode: code, versionName: version },
+    signing: {
+      certificateSha256: 'b'.repeat(64),
+      pinnedToConfiguredReleaseKey: true,
+      verified: true,
+      ...signing,
+    },
+  };
+}
+
+function binaryOnlyPlan(root, {
+  inspectBundle,
+  inspection = {},
+  ...overrides
+} = {}) {
+  return createPlayBinaryOnlyUpdatePlan({
+    env: {},
+    freshnessDependencies: FRESHNESS.bundle,
+    inspectBundle: inspectBundle ?? (() => newBundleInspection(inspection)),
+    inspectServiceAccount: () => ({
+      configured: true, ready: true, reason: 'test_ready',
+    }),
+    root,
+    verifyPackage: (outputPath) => verify(root, outputPath),
+    ...overrides,
+  });
+}
+
+const BINARY_ONLY_ALLOWED_METHODS = new Set([
+  'commitEdit',
+  'discardEdit',
+  'insertEdit',
+  'listEditImages',
+  'listEditListings',
+  'listTrackReleases',
+  'updateTrack',
+  'uploadBundle',
+  'validateEdit',
+]);
+
+function binaryOnlyFake(plan) {
+  const calls = [];
+  const state = {
+    commitBehavior: {},
+    editCount: 0,
+    images: new Map(),
+    imagesForEdit: null,
+    internalReleases: [{
+      activeArtifacts: [{ versionCode: Number(plan.retained.versionCode) }],
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+      releaseName: `Moonlit Beacon ${plan.retained.versionName}`,
+      track: 'internal',
+      versionCodes: [plan.retained.versionCode],
+    }],
+    listings: plan.listings.map(({ body }) => ({ ...body })),
+    commitReviews: [],
+    onCommit: null,
+    productionReleases: [],
+    trackBodies: [],
+    uploadDigests: [],
+    validateBehavior: {},
+  };
+  for (const locale of PLAY_LOCALES) {
+    for (const imageType of PLAY_BINARY_ONLY_IMAGE_TYPES) {
+      state.images.set(
+        `${locale}/${imageType}`,
+        plan.images
+          .filter((operation) =>
+            operation.language === locale && operation.imageType === imageType)
+          .map((operation, index) => ({
+            id: `img-${locale}-${imageType}-${index + 1}`,
+            sha256: operation.sha256,
+          })),
+      );
+    }
+  }
+  const target = {
+    async insertEdit(packageName) {
+      assert.equal(packageName, plan.packageName);
+      state.editCount += 1;
+      const id = `edit-${state.editCount}`;
+      calls.push(`insertEdit ${id}`);
+      return { id };
+    },
+    async listTrackReleases(packageName, track) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`listTrackReleases ${track}`);
+      return {
+        releases: track === 'internal' ? state.internalReleases : state.productionReleases,
+      };
+    },
+    async listEditListings(packageName, editId) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`listEditListings ${editId}`);
+      return { listings: state.listings.map((listing) => ({ ...listing })) };
+    },
+    async listEditImages(packageName, editId, locale, imageType) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`listEditImages ${editId} ${locale}/${imageType}`);
+      const images = state.imagesForEdit
+        ? state.imagesForEdit(editId, locale, imageType)
+        : state.images.get(`${locale}/${imageType}`);
+      return { images: images.map((image) => ({ ...image })) };
+    },
+    async uploadBundle(packageName, editId, contents) {
+      assert.equal(packageName, plan.packageName);
+      const digest = sha256(contents);
+      state.uploadDigests.push(digest);
+      calls.push(`uploadBundle ${editId} ${digest.slice(0, 16)}`);
+      return { sha256: digest, versionCode: Number(plan.release.versionCode) };
+    },
+    async updateTrack(packageName, editId, track, body) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`updateTrack ${editId} ${track}`);
+      state.trackBodies.push(body);
+      return {
+        releases: [{
+          status: plan.release.status,
+          versionCodes: [plan.release.versionCode],
+        }],
+        track,
+      };
+    },
+    async validateEdit(packageName, editId) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`validateEdit ${editId}`);
+      return { id: state.validateBehavior.id ?? editId };
+    },
+    async commitEdit(packageName, editId, review) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`commitEdit ${editId} ${review?.changesInReviewBehavior}`);
+      state.commitReviews.push(review);
+      if (state.commitBehavior.throw) throw state.commitBehavior.throw;
+      state.onCommit?.();
+      return { id: state.commitBehavior.id ?? editId };
+    },
+    async discardEdit(packageName, editId) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`discardEdit ${editId}`);
+      return {};
+    },
+  };
+  const client = new Proxy(target, {
+    get(obj, prop) {
+      if (typeof prop === 'symbol') return obj[prop];
+      if (!BINARY_ONLY_ALLOWED_METHODS.has(prop)) {
+        throw new Error(`forbidden Publisher call: ${String(prop)}`);
+      }
+      return obj[prop];
+    },
+  });
+  return { calls, client, state };
+}
+
+async function applyError(plan, client, confirmation) {
+  try {
+    await applyPlayBinaryOnlyUpdatePlan(plan, {
+      client,
+      confirmation,
+      now: () => new Date('2026-10-02T00:00:00.000Z'),
+    });
+  } catch (error) {
+    return error;
+  }
+  assert.fail('binary-only apply unexpectedly succeeded.');
+  return null;
+}
+
+function promoteFakeToNewRelease(plan, fake) {
+  fake.state.onCommit = () => {
+    fake.state.internalReleases = [{
+      activeArtifacts: [{ versionCode: Number(plan.release.versionCode) }],
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+      releaseName: plan.release.name,
+      track: 'internal',
+      versionCodes: [plan.release.versionCode],
+    }];
+  };
+}
+
+test('binary-only plan binds the new binary and the exact retained gallery', () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    assert.equal(plan.mode, PLAY_BINARY_ONLY_MODE);
+    assert.equal(plan.release.track, 'internal');
+    assert.equal(plan.release.versionCode, '2');
+    assert.equal(plan.release.versionName, '1.0.0');
+    assert.equal(plan.retained.versionCode, '1');
+    assert.equal(plan.listings.length, 5);
+    assert.equal(plan.images.length, 100);
+    assert.equal(plan.reuse.decision, 'REUSE_COMMITTED_GALLERY');
+    assert.equal(plan.reuse.freshCaptureEvidence, false);
+    assert.equal(plan.reuse.galleryEvidence, PLAY_BINARY_ONLY_GALLERY_EVIDENCE);
+    assert.equal(plan.reuse.nativePurchaseEvidence, 'NOT_USED_PENDING');
+    assert.equal(plan.ready, true);
+    assert.match(
+      plan.confirmationToken,
+      new RegExp(`^google-play-binary-only:${PLAY_PACKAGE_NAME}:2:internal:[0-9a-f]{16}$`, 'u'),
+    );
+
+    const before = plan.confirmationToken;
+    write(root, 'builds/android/MoonlitBeacon.aab', 'signed-aab-code-2b', NEW_TIME);
+    const rebound = binaryOnlyPlan(root);
+    assert.notEqual(rebound.confirmationToken, before);
+    assert.notEqual(rebound.bundle.sha256, plan.bundle.sha256);
+
+    const screenshot = join(
+      root,
+      'builds/release/google-play-upload',
+      'publisher-api/edits.images.upload/en-US/phoneScreenshots/01-moonlight-barrage.png',
+    );
+    const contents = readFileSync(screenshot);
+    contents[contents.length - 1] ^= 0xff;
+    writeFileSync(screenshot, contents);
+    assert.throws(() => binaryOnlyPlan(root), /hash differs/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only plan rejects wrong identity, version, or signer', () => {
+  for (const [label, mutate, pattern] of [
+    ['package', { packageName: 'com.example.other' }, /differ from the Android Play preset/],
+    ['preset-code', { code: 3 }, /differ from the Android Play preset/],
+    ['signer-unverified', { signing: { verified: false } }, /signature verification evidence/],
+    ['signer-unpinned', { signing: { pinnedToConfiguredReleaseKey: false } }, /not pinned/],
+  ]) {
+    const root = binaryOnlyRoot();
+    try {
+      assert.throws(() => binaryOnlyPlan(root, { inspection: mutate }), pattern, label);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  }
+
+  const sameVersionRoot = binaryOnlyRoot({ version: '1.0.1' });
+  try {
+    assert.throws(
+      () => binaryOnlyPlan(sameVersionRoot, { inspection: { version: '1.0.1' } }),
+      /keeps version 1\.0\.0/,
+    );
+  } finally {
+    rmSync(sameVersionRoot, { force: true, recursive: true });
+  }
+
+  const duplicateRoot = binaryOnlyRoot();
+  try {
+    write(
+      duplicateRoot,
+      'apps/game/export_presets.cfg',
+      binaryOnlyPresets(1),
+      NEW_TIME,
+    );
+    assert.throws(
+      () => binaryOnlyPlan(duplicateRoot, { inspection: { code: 1 } }),
+      /not strictly newer than retained 1/,
+    );
+  } finally {
+    rmSync(duplicateRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only plan rejects a stale AAB and a changed retained gallery source', () => {
+  const staleRoot = binaryOnlyRoot();
+  try {
+    write(staleRoot, 'deps/bundle.txt', 'newer dependency', new Date('2026-03-01T00:00:00.000Z'));
+    assert.throws(() => binaryOnlyPlan(staleRoot), /AAB input is stale/);
+  } finally {
+    rmSync(staleRoot, { force: true, recursive: true });
+  }
+
+  const galleryRoot = binaryOnlyRoot();
+  try {
+    write(
+      galleryRoot,
+      'builds/release/play/en-US/screenshots/01-moonlight-barrage.png',
+      png(1920, 1080, 2, 'tampered-screenshot'),
+      NEW_TIME,
+    );
+    assert.throws(
+      () => binaryOnlyPlan(galleryRoot),
+      /differs from current input: builds\/release\/play\/en-US\/screenshots\/01-moonlight-barrage\.png/,
+    );
+  } finally {
+    rmSync(galleryRoot, { force: true, recursive: true });
+  }
+
+  const copyRoot = binaryOnlyRoot();
+  try {
+    const csvPath = join(copyRoot, 'notes/release/store-localizations.csv');
+    writeFileSync(csvPath, `${readFileSync(csvPath, 'utf8')}tampered\n`);
+    assert.throws(
+      () => binaryOnlyPlan(copyRoot),
+      /differs from current input: notes\/release\/store-localizations\.csv/,
+    );
+  } finally {
+    rmSync(copyRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only apply refuses changed, missing, or reordered remote gallery', async () => {
+  const cases = [
+    ['changed copy', (fake) => {
+      fake.state.listings[0] = { ...fake.state.listings[0], title: 'Tampered title' };
+    }, /listing copy differs/],
+    ['changed image hash', (fake) => {
+      const key = 'en-US/phoneScreenshots';
+      const images = fake.state.images.get(key).map((image) => ({ ...image }));
+      images[0] = { ...images[0], sha256: '0'.repeat(64) };
+      fake.state.images.set(key, images);
+    }, /ordered image hashes differ/],
+    ['missing image', (fake) => {
+      const key = 'ko-KR/sevenInchScreenshots';
+      fake.state.images.set(key, fake.state.images.get(key).slice(1));
+    }, /ordered image hashes differ/],
+    ['reordered images', (fake) => {
+      const key = 'ja-JP/tenInchScreenshots';
+      const images = fake.state.images.get(key).map((image) => ({ ...image }));
+      [images[0], images[1]] = [images[1], images[0]];
+      fake.state.images.set(key, images);
+    }, /ordered image hashes differ/],
+    ['extra locale', (fake) => {
+      fake.state.listings.push({
+        fullDescription: 'Extra.', language: 'fr-FR', shortDescription: 'Extra', title: 'Extra',
+      });
+    }, /locale set differs/],
+  ];
+  for (const [label, mutate, pattern] of cases) {
+    const root = binaryOnlyRoot();
+    try {
+      const plan = binaryOnlyPlan(root);
+      const fake = binaryOnlyFake(plan);
+      mutate(fake);
+      const error = await applyError(plan, fake.client, plan.confirmationToken);
+      assert.match(error.message, /^binary-only app commit succeeded=false/, label);
+      assert.match(error.message, pattern, label);
+      assert.ok(fake.calls.includes('discardEdit edit-1'), `${label} discards the edit`);
+      assert.ok(!fake.calls.some((call) => call.startsWith('uploadBundle')), label);
+      const receipt = readPlayBinaryOnlyReceipt(plan);
+      assert.equal(receipt.update.state, 'COMMITTING', label);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  }
+});
+
+test('binary-only apply refuses duplicate code and unexpected remote tracks', async () => {
+  const duplicate = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(duplicate);
+    const fake = binaryOnlyFake(plan);
+    fake.state.internalReleases.push({
+      activeArtifacts: [{ versionCode: 2 }],
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+      releaseName: plan.release.name,
+      track: 'internal',
+      versionCodes: ['2'],
+    });
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /duplicate code/);
+    assert.ok(!fake.calls.some((call) => call.startsWith('insertEdit')));
+    assert.equal(existsSync(plan.receiptPath), false);
+  } finally {
+    rmSync(duplicate, { force: true, recursive: true });
+  }
+
+  const production = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(production);
+    const fake = binaryOnlyFake(plan);
+    fake.state.productionReleases = [{
+      activeArtifacts: [{ versionCode: 2 }],
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+      releaseName: plan.release.name,
+      track: 'production',
+      versionCodes: ['2'],
+    }];
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /unexpected remote track/);
+    assert.ok(!fake.calls.some((call) => call.startsWith('insertEdit')));
+    assert.equal(existsSync(plan.receiptPath), false);
+  } finally {
+    rmSync(production, { force: true, recursive: true });
+  }
+
+  const missing = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(missing);
+    const fake = binaryOnlyFake(plan);
+    fake.state.internalReleases = [];
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /could not be re-verified/);
+    assert.ok(!fake.calls.some((call) => call.startsWith('insertEdit')));
+  } finally {
+    rmSync(missing, { force: true, recursive: true });
+  }
+});
+
+test('binary-only apply requires the exact confirmation without touching the network', async () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    const touches = [];
+    const spy = new Proxy({}, {
+      get(_target, prop) {
+        if (typeof prop === 'symbol') return undefined;
+        touches.push(prop);
+        return undefined;
+      },
+    });
+    const error = await applyError(plan, spy, 'google-play-binary-only:wrong');
+    assert.match(error.message, /confirmation token differs/);
+    assert.deepEqual(touches, []);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+
+  const blockedRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(blockedRoot, {
+      inspectServiceAccount: () => ({
+        configured: false, ready: false, reason: 'test_missing',
+      }),
+    });
+    assert.equal(plan.ready, false);
+    const touches = [];
+    const spy = new Proxy({}, {
+      get(_target, prop) {
+        if (typeof prop === 'symbol') return undefined;
+        touches.push(prop);
+        return undefined;
+      },
+    });
+    const error = await applyError(plan, spy, plan.confirmationToken);
+    assert.match(error.message, /is blocked/);
+    assert.deepEqual(touches, []);
+  } finally {
+    rmSync(blockedRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only uncertain commit is never retried or discarded', async () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    const fake = binaryOnlyFake(plan);
+    fake.state.commitBehavior.throw = new Error('connection reset');
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /^binary-only app commit succeeded=uncertain/);
+    assert.match(error.message, /Do not rerun until you confirm/);
+    assert.ok(!fake.calls.some((call) => call.startsWith('discardEdit')));
+    const receipt = readPlayBinaryOnlyReceipt(plan);
+    assert.equal(receipt.update.state, 'COMMITTING');
+    assert.equal(receipt.update.editId, 'edit-1');
+
+    const retry = binaryOnlyFake(plan);
+    const rerun = await applyError(plan, retry.client, plan.confirmationToken);
+    assert.match(rerun.message, /receipt already exists/);
+    assert.deepEqual(retry.calls, []);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only failed validation discards the edit and reports no commit', async () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    const fake = binaryOnlyFake(plan);
+    fake.state.validateBehavior.id = 'edit-999';
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /^binary-only app commit succeeded=false/);
+    assert.match(error.message, /validate response id differs/);
+    assert.ok(fake.calls.includes('discardEdit edit-1'));
+    assert.ok(!fake.calls.some((call) => call.startsWith('commitEdit')));
+    const receipt = readPlayBinaryOnlyReceipt(plan);
+    assert.equal(receipt.update.state, 'COMMITTING');
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only post-commit readback detects a changed track or changed media', async () => {
+  const trackRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(trackRoot);
+    const fake = binaryOnlyFake(plan);
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /^binary-only app commit succeeded=true/);
+    assert.match(error.message, /post-commit readback failed/);
+    assert.equal(fake.calls.filter((call) => call.startsWith('insertEdit')).length, 1);
+    const receipt = readPlayBinaryOnlyReceipt(plan);
+    assert.equal(receipt.update.state, 'COMMITTED');
+    assert.equal(receipt.update.proof, 'COMMIT_RESPONSE');
+  } finally {
+    rmSync(trackRoot, { force: true, recursive: true });
+  }
+
+  const mediaRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(mediaRoot);
+    const fake = binaryOnlyFake(plan);
+    promoteFakeToNewRelease(plan, fake);
+    fake.state.imagesForEdit = (editId, locale, imageType) => {
+      const base = fake.state.images.get(`${locale}/${imageType}`);
+      if (editId !== 'edit-2' || locale !== 'en-US' || imageType !== 'icon') return base;
+      const copy = base.map((image) => ({ ...image }));
+      copy[0] = { ...copy[0], sha256: '1'.repeat(64) };
+      return copy;
+    };
+    const error = await applyError(plan, fake.client, plan.confirmationToken);
+    assert.match(error.message, /^binary-only app commit succeeded=true/);
+    assert.match(error.message, /post-commit unchanged-media readback/);
+    assert.ok(fake.calls.includes('discardEdit edit-2'));
+    const receipt = readPlayBinaryOnlyReceipt(plan);
+    assert.equal(receipt.update.state, 'COMMITTED');
+  } finally {
+    rmSync(mediaRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only success uses exactly the binary-only mutation call set', async () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    const fake = binaryOnlyFake(plan);
+    promoteFakeToNewRelease(plan, fake);
+    const result = await applyPlayBinaryOnlyUpdatePlan(plan, {
+      client: fake.client,
+      confirmation: plan.confirmationToken,
+      now: () => new Date('2026-10-02T00:00:00.000Z'),
+    });
+    assert.deepEqual(result, {
+      applied: true,
+      committed: true,
+      editId: 'edit-1',
+      packageName: PLAY_PACKAGE_NAME,
+      retainedVersionCode: '1',
+      track: 'internal',
+      versionCode: '2',
+    });
+
+    const galleryReads = (editId) => [
+      `listEditListings ${editId}`,
+      ...PLAY_LOCALES.flatMap((locale) =>
+        PLAY_BINARY_ONLY_IMAGE_TYPES.map((imageType) =>
+          `listEditImages ${editId} ${locale}/${imageType}`)),
+    ];
+    assert.deepEqual(fake.calls, [
+      'listTrackReleases internal',
+      'listTrackReleases production',
+      'insertEdit edit-1',
+      ...galleryReads('edit-1'),
+      `uploadBundle edit-1 ${plan.bundle.sha256.slice(0, 16)}`,
+      'updateTrack edit-1 internal',
+      'validateEdit edit-1',
+      'commitEdit edit-1 ERROR_IF_IN_REVIEW',
+      'listTrackReleases internal',
+      'insertEdit edit-2',
+      ...galleryReads('edit-2'),
+      'discardEdit edit-2',
+    ]);
+    assert.equal(fake.calls.length, 62);
+    assert.deepEqual(fake.state.uploadDigests, [plan.bundle.sha256]);
+    assert.deepEqual(fake.state.trackBodies, [{
+      releases: [{
+        name: plan.release.name,
+        releaseNotes: plan.release.releaseNotes,
+        status: 'completed',
+        versionCodes: ['2'],
+      }],
+      track: 'internal',
+    }]);
+    assert.deepEqual(fake.state.commitReviews, [{
+      changesInReviewBehavior: 'ERROR_IF_IN_REVIEW',
+      changesNotSentForReview: false,
+    }]);
+    assert.throws(
+      () => fake.client.updateListing,
+      /forbidden Publisher call: updateListing/,
+    );
+
+    const receipt = readPlayBinaryOnlyReceipt(plan);
+    assert.equal(receipt.update.state, 'APPLIED');
+    assert.equal(receipt.update.proof, 'TRACK_RELEASE');
+    assert.equal(receipt.update.editId, 'edit-1');
+    assert.equal(receipt.mode, PLAY_BINARY_ONLY_MODE);
+    assert.equal((lstatSync(plan.receiptPath).mode & 0o077), 0);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only arguments default to a local check and reject mixed modes', () => {
+  const defaults = parsePlayBinaryOnlyArguments([]);
+  assert.equal(defaults.check, true);
+  assert.equal(defaults.apply, false);
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--apply']),
+    /requires --confirm-binary-only/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--check', '--apply', '--confirm-binary-only', 'x']),
+    /exactly one of --check or --apply/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--check', '--confirm-binary-only', 'x']),
+    /only be used with --apply/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--check', '--check']),
+    /Duplicate option/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--promote-production']),
+    /unsupported option/,
+  );
+});
+
+test('publisher client reads listings and images with allowlisted GET endpoints', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'moonlit-binary-only-client-'));
+  const credentialRoot = mkdtempSync(join(tmpdir(), 'moonlit-binary-only-credential-'));
+  try {
+    const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const credentialPath = join(credentialRoot, 'service-account.json');
+    writeFileSync(credentialPath, JSON.stringify({
+      client_email: 'publisher@example.iam.gserviceaccount.com',
+      private_key: privateKey.export({ format: 'pem', type: 'pkcs8' }),
+      private_key_id: 'd'.repeat(40),
+      project_id: 'moonlit-publisher-123',
+      token_uri: 'https://oauth2.googleapis.com/token',
+      type: 'service_account',
+    }));
+    chmodSync(credentialPath, 0o600);
+    const calls = [];
+    const fetchImpl = async (url, options) => {
+      calls.push({ options, url: String(url) });
+      const body = calls.length === 1
+        ? {
+          access_token: 'tokenwithatleasttwentycharacters',
+          expires_in: 3600,
+          token_type: 'Bearer',
+        }
+        : { echoed: true };
+      return {
+        headers: new Headers(),
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(body),
+      };
+    };
+    const client = await createGooglePlayPublisherClient({
+      env: { GOOGLE_APPLICATION_CREDENTIALS: credentialPath },
+      fetchImpl,
+      root,
+    });
+    assert.deepEqual(await client.listEditListings(PLAY_PACKAGE_NAME, 'edit-1'), { echoed: true });
+    assert.deepEqual(
+      await client.listEditImages(PLAY_PACKAGE_NAME, 'edit-1', 'en-US', 'phoneScreenshots'),
+      { echoed: true },
+    );
+    assert.equal(calls.length, 3);
+    assert.match(
+      calls[1].url,
+      new RegExp(`/applications/${PLAY_PACKAGE_NAME}/edits/edit-1/listings$`, 'u'),
+    );
+    assert.equal(calls[1].options.method, 'GET');
+    assert.equal(calls[1].options.body, undefined);
+    assert.match(
+      calls[2].url,
+      new RegExp(
+        `/applications/${PLAY_PACKAGE_NAME}/edits/edit-1/listings/en-US/phoneScreenshots$`,
+        'u',
+      ),
+    );
+    assert.equal(calls[2].options.method, 'GET');
+    assert.equal(calls[2].options.body, undefined);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+    rmSync(credentialRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only apply refuses a newer remote build on internal or production', async () => {
+  for (const track of ['internal', 'production']) {
+    const root = binaryOnlyRoot();
+    try {
+      const plan = binaryOnlyPlan(root);
+      const fake = binaryOnlyFake(plan);
+      const newer = {
+        activeArtifacts: [{ versionCode: 3 }],
+        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+        releaseName: 'Moonlit Beacon 1.0.0',
+        track,
+        versionCodes: ['3'],
+      };
+      if (track === 'internal') {
+        fake.state.internalReleases.push(newer);
+      } else {
+        fake.state.productionReleases.push(newer);
+      }
+      const error = await applyError(plan, fake.client, plan.confirmationToken);
+      assert.match(error.message, /newer versionCode 3 than proposed 2/, track);
+      assert.deepEqual(
+        fake.calls,
+        ['listTrackReleases internal', 'listTrackReleases production'],
+        `${track} makes no mutation calls`,
+      );
+      assert.equal(existsSync(plan.receiptPath), false, `${track} writes no intent receipt`);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  }
+});
+
+test('binary-only apply refuses malformed remote version codes', async () => {
+  const cases = [
+    ['activeArtifacts', { activeArtifacts: [{ versionCode: 'abc' }], versionCodes: ['1'] }],
+    ['versionCodes', { activeArtifacts: [{ versionCode: 1 }], versionCodes: ['1', 'two'] }],
+  ];
+  for (const [label, artifacts] of cases) {
+    const root = binaryOnlyRoot();
+    try {
+      const plan = binaryOnlyPlan(root);
+      const fake = binaryOnlyFake(plan);
+      fake.state.internalReleases.push({
+        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+        releaseName: 'Moonlit Beacon 0.9.0',
+        track: 'internal',
+        ...artifacts,
+      });
+      const error = await applyError(plan, fake.client, plan.confirmationToken);
+      assert.match(error.message, /malformed versionCode/, label);
+      assert.deepEqual(
+        fake.calls,
+        ['listTrackReleases internal', 'listTrackReleases production'],
+        `${label} makes no mutation calls`,
+      );
+      assert.equal(existsSync(plan.receiptPath), false, `${label} writes no intent receipt`);
+    } finally {
+      rmSync(root, { force: true, recursive: true });
+    }
+  }
 });

@@ -190,7 +190,7 @@ test('launcher wait output accepts only when the exact app Activity actually sta
 const HERO_PREVIEW_COPY = Object.freeze({
   ko: Object.freeze({
     name: '봉화지기',
-    description: '하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨',
+    description: '랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · 달빛 파문·질긴 목숨',
     states: Object.freeze({
       SHRINE_SELECTED: '선택 중',
       SHRINE_OWNED: '해금됨',
@@ -199,7 +199,7 @@ const HERO_PREVIEW_COPY = Object.freeze({
   }),
   en: Object.freeze({
     name: 'Beacon Keeper',
-    description: '6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life',
+    description: 'Lantern shotgun · 6 hearts · move -15% · dash CD +30% · Moonlit Ripple/Tenacious Life',
     states: Object.freeze({
       SHRINE_SELECTED: 'Selected',
       SHRINE_OWNED: 'Unlocked',
@@ -208,7 +208,7 @@ const HERO_PREVIEW_COPY = Object.freeze({
   }),
   ja: Object.freeze({
     name: '烽火の守り人',
-    description: 'ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命',
+    description: 'ランタンの散弾 · ハート6 · 移速 -15% · ダッシュCD +30% · 月光の波紋・不屈の命',
     states: Object.freeze({
       SHRINE_SELECTED: '選択中',
       SHRINE_OWNED: '解放済み',
@@ -217,7 +217,7 @@ const HERO_PREVIEW_COPY = Object.freeze({
   }),
   zh_CN: Object.freeze({
     name: '烽火守护者',
-    description: '6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命',
+    description: '灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · 月光波纹·坚韧生命',
     states: Object.freeze({
       SHRINE_SELECTED: '已选择',
       SHRINE_OWNED: '已解锁',
@@ -226,7 +226,7 @@ const HERO_PREVIEW_COPY = Object.freeze({
   }),
   zh_TW: Object.freeze({
     name: '烽火守護者',
-    description: '6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命',
+    description: '燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · 月光波紋·堅韌生命',
     states: Object.freeze({
       SHRINE_SELECTED: '已選擇',
       SHRINE_OWNED: '已解鎖',
@@ -996,6 +996,72 @@ test('combat, shrine, and hero-preview state verify every required screen-meanin
       /Hero-preview/u,
     );
   }
+});
+
+test('hero-preview Keeper proof built from moonlit.csv passes every locale pin', () => {
+  // The fixture above duplicates the Keeper copy pinned in the validator
+  // module, so the two can go stale together and still agree with each other.
+  // This proof is built from the live locale data instead: a stale
+  // HERO_PREVIEW_COPY_BY_GAME_LOCALE pin fails here even when the duplicated
+  // fixture matches it. moonlit.csv carries no quoted commas, so a plain
+  // comma split reads it exactly.
+  const csvPath = fileURLToPath(
+    new URL('../../apps/game/localization/moonlit.csv', import.meta.url),
+  );
+  const lines = readFileSync(csvPath, 'utf8').split(/\r?\n/u).filter((line) => line !== '');
+  const header = lines[0].split(',');
+  const rowByKey = new Map();
+  for (const line of lines.slice(1)) {
+    const cells = line.split(',');
+    rowByKey.set(cells[0], cells.slice(1));
+  }
+  const locales = ['ko', 'en', 'ja', 'zh_CN', 'zh_TW'];
+  for (const locale of locales) {
+    assert.ok(header.includes(locale), `moonlit.csv is missing locale ${locale}`);
+  }
+  for (const key of ['HERO_KEEPER_NAME', 'HERO_KEEPER_DESC', 'HERO_PREVIEW_IAP_LOCKED']) {
+    assert.ok(rowByKey.has(key), `moonlit.csv is missing ${key}`);
+  }
+  const copyFor = (key, locale) => rowByKey.get(key)[header.indexOf(locale) - 1];
+  for (const gameLocale of locales) {
+    const proof = assertStoreCaptureState(
+      storeCaptureState('hero_preview', {
+        game_locale: gameLocale,
+        copy_locale: gameLocale,
+        name_text: copyFor('HERO_KEEPER_NAME', gameLocale),
+        name_expected_text: copyFor('HERO_KEEPER_NAME', gameLocale),
+        state_text: copyFor('HERO_PREVIEW_IAP_LOCKED', gameLocale),
+        state_expected_text: copyFor('HERO_PREVIEW_IAP_LOCKED', gameLocale),
+        description_text: copyFor('HERO_KEEPER_DESC', gameLocale),
+        description_expected_text: copyFor('HERO_KEEPER_DESC', gameLocale),
+      }),
+      { kind: 'hero_preview', gameLocale, heroPath: KEEPER },
+    );
+    assert.equal(proof.copy_locale, gameLocale);
+    assert.equal(proof.description_text, copyFor('HERO_KEEPER_DESC', gameLocale));
+  }
+  // Pre-renewal damage-bonus wording still fails against the renewed pins.
+  assert.throws(
+    () => assertStoreCaptureState(
+      storeCaptureState('hero_preview', {
+        description_text: '하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨',
+        description_expected_text: '하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨',
+      }),
+      { kind: 'hero_preview', gameLocale: 'ko', heroPath: KEEPER },
+    ),
+    /live description/u,
+  );
+  // Another locale's current copy fails the strict locale check too.
+  assert.throws(
+    () => assertStoreCaptureState(
+      storeCaptureState('hero_preview', {
+        description_text: copyFor('HERO_KEEPER_DESC', 'en'),
+        description_expected_text: copyFor('HERO_KEEPER_DESC', 'en'),
+      }),
+      { kind: 'hero_preview', gameLocale: 'ko', heroPath: KEEPER },
+    ),
+    /live description/u,
+  );
 });
 
 test('store capture safe area recomputes coordinates independent of game booleans', () => {
@@ -2481,11 +2547,20 @@ test('runtime probe and per-screen debug state are not enabled in release', () =
   assert.ok(guardianPathStart >= 0, 'must find the Guardian path-selection helper');
   assert.match(
     guardianPath,
-    /var step: Dictionary = _world_step\(\)/u,
+    /_guardian_path_for\(_terrain_at\(_zone_index\)\)/u,
+    'Guardian selection must come from the terrain of the current zone',
+  );
+  const guardianPickStart = arena.indexOf('func _guardian_path_for(');
+  const guardianPickEnd = arena.indexOf('\nfunc ', guardianPickStart + 1);
+  const guardianPick = arena.slice(guardianPickStart, guardianPickEnd);
+  assert.ok(guardianPickStart >= 0, 'must find the per-terrain Guardian picker');
+  assert.match(
+    guardianPick,
+    /var step: Dictionary = WORLD_STEPS\[terrain\]/u,
     'Guardian selection must come from the biome world step',
   );
   assert.match(
-    guardianPath,
+    guardianPick,
     /str\(step\["guardian"\]\)/u,
     'without a promotion roster it must fall back to the biome default Guardian',
   );

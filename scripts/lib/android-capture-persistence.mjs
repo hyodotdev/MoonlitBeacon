@@ -8,6 +8,8 @@ export const ANDROID_CAPTURE_PERSISTENT_FILES = Object.freeze([
   'analytics.json',
   'analytics.json.tmp',
   'analytics_consent.revoked',
+  'chronicle.json',
+  'chronicle.json.tmp',
   'iap_entitlements.cfg',
   'iap_entitlements.cfg.bak',
   'iap_entitlements.cfg.bak.tmp',

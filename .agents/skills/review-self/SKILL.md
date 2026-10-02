@@ -22,6 +22,13 @@ evidence.**
 - If a fix needs a product call, is irreversible, or grows scope a lot,
   **stop and ask**.
 
+## When the implementer wrote the work
+
+In this repo the director does not edit the game (`AGENTS.md`, "Director and implementer"). A round then reads the
+implementer's diff (`pnpm muse diff <tag>`), runs the checks in its copy and repeats its measurements. "Fix only the
+verified set" still holds, but the fix is a correction brief (`pnpm muse run <brief> --continue <tag>`), never a hand
+edit. A clean round is one where the implementer's answer to the last correction needed no further one.
+
 ## Decide what to look at
 
 1. From the conversation and the repo, restore "what were we trying to do"

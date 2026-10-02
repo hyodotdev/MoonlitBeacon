@@ -13,8 +13,14 @@ const FONT: Font = preload(
 const FONT_BOLD: Font = preload(
 	"res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres"
 )
-const WOOD: Texture2D = preload(
-	"res://assets/custom/ui/panel_moonlit.png")
+## Cards and buttons here are built in code, so they load the same shared styles
+## the scenes point at by path. Changing the look is a change in the UI kit.
+const ROW_STYLE: StyleBoxTexture = preload("res://resources/ui/panels/chip.tres")
+const ROW_STYLE_OWNED: StyleBoxTexture = preload("res://resources/ui/panels/chip_gold.tres")
+const BUTTON_NORMAL: StyleBox = preload("res://resources/ui/buttons_gold/normal.tres")
+const BUTTON_HOVER: StyleBox = preload("res://resources/ui/buttons_gold/hover.tres")
+const BUTTON_PRESSED: StyleBox = preload("res://resources/ui/buttons_gold/pressed.tres")
+const BUTTON_DISABLED: StyleBox = preload("res://resources/ui/buttons_gold/disabled.tres")
 const SUPPORTER_ICON: Texture2D = preload(
 	"res://assets/custom/ui/app_icon_main.png")
 const BEACON_FLAME: Texture2D = preload(
@@ -207,19 +213,15 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	# Coin cards have no art, so they are that much shorter. The two-row shop
 	# still fitting Pixel 10's 337px safe area is because of that gap.
 	var coin: bool = Shop.is_consumable(product_id)
-	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(246, 98)
+	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(246, 117)
 	if coin:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# Horizontal drag on the parent ScrollContainer still works over product
 	# cards. Only portrait and buy buttons are child STOP for their own taps.
 	card.mouse_filter = Control.MOUSE_FILTER_PASS
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.04, 0.085, 0.96)
-	style.border_width_left = 2 if owned else 1
-	style.border_width_top = 2 if owned else 1
-	style.border_width_right = 2 if owned else 1
-	style.border_width_bottom = 2 if owned else 1
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.90 if owned else 0.46)
+	# A gold rim marks what the player already owns. Duplicated so this card can
+	# keep the padding it was laid out with without touching the shared style.
+	var style: StyleBoxTexture = (ROW_STYLE_OWNED if owned else ROW_STYLE).duplicate() as StyleBoxTexture
 	style.content_margin_left = 7.0
 	style.content_margin_top = 3.0 if coin else 5.0
 	style.content_margin_right = 7.0
@@ -272,12 +274,14 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	var description: Label = _label(
 		tr(str(catalog.get("description", ""))), 10 if coin else 11, TEXT)
 	description.name = &"Description"
-	# Character blurb is two lines max. A third line repeats in the detail
-	# opened by tapping the face anyway, and that line is room for the coin row.
-	description.custom_minimum_size.y = 13 if coin else 38
+	# The blurb shows whole in three lines: the longest hero stat line wraps
+	# to three in English, and so do the supporter and lantern blurbs. Nothing
+	# here ends in an ellipsis; the detail behind the portrait still carries
+	# the full body, numbers and motion.
+	description.custom_minimum_size.y = 13 if coin else 57
 	description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description.max_lines_visible = 1 if coin else 2
+	description.max_lines_visible = 1 if coin else 3
 	description.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	content.add_child(description)
 
@@ -399,17 +403,9 @@ func _make_artwork_stage(
 	stage.custom_minimum_size = minimum_size
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage.set_meta(&"artwork_kind", kind)
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(accent.r * 0.10, accent.g * 0.10, accent.b * 0.14, 0.94)
-	style.border_width_left = 1
-	style.border_width_top = 1
-	style.border_width_right = 1
-	style.border_width_bottom = 1
-	style.border_color = Color(accent.r, accent.g, accent.b, 0.52)
-	style.corner_radius_top_left = 3
-	style.corner_radius_top_right = 3
-	style.corner_radius_bottom_right = 3
-	style.corner_radius_bottom_left = 3
+	# The stage tints with the product's accent instead of drawing its own border.
+	var style: StyleBoxTexture = ROW_STYLE.duplicate() as StyleBoxTexture
+	style.modulate_color = Color.WHITE.lerp(accent, 0.22)
 	style.content_margin_left = 2.0
 	style.content_margin_top = 2.0
 	style.content_margin_right = 2.0
@@ -1115,28 +1111,12 @@ func _button(text: String, accent: Color, compact: bool = false) -> Button:
 	button.add_theme_color_override("font_color", accent)
 	button.add_theme_color_override(
 		"font_disabled_color", Color(accent.r, accent.g, accent.b, 0.42))
-	var margin: float = 3.0 if compact else 5.0
-	button.add_theme_stylebox_override(
-		"normal", _wood_style(Color(0.84, 0.88, 1.0, 0.88), margin))
-	button.add_theme_stylebox_override(
-		"hover", _wood_style(Color(1.0, 1.0, 1.0, 0.98), margin))
-	button.add_theme_stylebox_override(
-		"pressed", _wood_style(Color(0.58, 0.66, 0.84, 0.92), margin))
-	button.add_theme_stylebox_override(
-		"disabled", _wood_style(Color(0.38, 0.42, 0.52, 0.56), margin))
+	button.add_theme_stylebox_override("normal", BUTTON_NORMAL)
+	button.add_theme_stylebox_override("hover", BUTTON_HOVER)
+	button.add_theme_stylebox_override("pressed", BUTTON_PRESSED)
+	button.add_theme_stylebox_override("disabled", BUTTON_DISABLED)
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	return button
-
-
-func _wood_style(tone: Color, margin: float = 5.0) -> StyleBoxTexture:
-	var style: StyleBoxTexture = StyleBoxTexture.new()
-	style.texture = WOOD
-	style.texture_margin_left = margin
-	style.texture_margin_top = margin
-	style.texture_margin_right = margin
-	style.texture_margin_bottom = margin
-	style.modulate_color = tone
-	return style
 
 
 func _unhandled_input(event: InputEvent) -> void:

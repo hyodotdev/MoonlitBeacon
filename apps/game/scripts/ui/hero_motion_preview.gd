@@ -2,10 +2,11 @@ extends Control
 
 ## Before purchase, show **how this hero's shot flies**.
 ##
-## The six heroes are a sidegrade with the same damage and fire rate, so the
-## only reason to pick one is "how it sits in the hand." That was unknowable
-## before buying — a portrait and a blurb cannot tell a pistol-straight shot
-## from one that draws a wide circle.
+## The six heroes are sidegrades with distinct weapons (private bases, lanes
+## and cadences in `HeroWeapons`), so the only promise here is "how it sits
+## in the hand." That was unknowable before buying — a portrait and a blurb
+## cannot tell a pistol-straight shot from one that draws a wide circle, and
+## this trail never claims damage.
 ##
 ## Trajectories are **not recomputed here.** Spawn a real `moon_arrow.gd` off
 ## screen and ask its own `sample_motion_angle()`. Change the fire VFX and this

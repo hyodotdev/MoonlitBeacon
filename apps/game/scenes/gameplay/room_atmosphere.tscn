@@ -1,0 +1,45 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/room_atmosphere.gd" id="script"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_add"]
+blend_mode = 1
+
+[node name="Atmosphere" type="Node2D"]
+light_mask = 0
+script = ExtResource("script")
+
+[node name="MistFar" type="Parallax2D" parent="."]
+z_index = -1
+modulate = Color(0.62, 0.74, 1, 0.2)
+scroll_scale = Vector2(0.88, 0.88)
+repeat_size = Vector2(1024, 420)
+repeat_times = 2
+autoscroll = Vector2(-5, 0)
+
+[node name="Sprite" type="Sprite2D" parent="MistFar"]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_add")
+centered = false
+
+[node name="MistNear" type="Parallax2D" parent="."]
+z_index = 2
+modulate = Color(0.66, 0.78, 1, 0.11)
+scroll_scale = Vector2(1.25, 1.25)
+repeat_size = Vector2(1024, 420)
+repeat_times = 2
+autoscroll = Vector2(-9, 0)
+
+[node name="Sprite" type="Sprite2D" parent="MistNear"]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_add")
+centered = false
+flip_v = true
+
+[node name="Beams" type="Node2D" parent="."]
+z_index = 2
+light_mask = 0
+
+[node name="Motes" type="Node2D" parent="."]
+z_index = 2
+light_mask = 0

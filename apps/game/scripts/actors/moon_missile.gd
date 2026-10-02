@@ -760,6 +760,9 @@ func _strike(index: int, spirit: Node2D) -> void:
 	hit_list.append(spirit)
 	spirit.take_damage(_damages[index], _positions[index])
 	_splash(index, spirit)
+	if get_tree() != null:
+		get_tree().call_group(
+			&"moonlit_combat_sfx", "combat_impact", _positions[index], false)
 	# Pierce only slain enemies. Passing through a living one reads as a
 	# miss on elites and guardians — the "do not pierce before they die"
 	# feedback as-is. If it did not kill, it bursts there.

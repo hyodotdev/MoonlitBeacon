@@ -16,6 +16,18 @@ const CASES: Array[Dictionary] = [
 		"path": "res://resources/rooms/camp.tres",
 		"count": 30,
 	},
+	{
+		"path": "res://resources/rooms/frost.tres",
+		"count": 28,
+	},
+	{
+		"path": "res://resources/rooms/marsh.tres",
+		"count": 30,
+	},
+	{
+		"path": "res://resources/rooms/ruins.tres",
+		"count": 30,
+	},
 ]
 const SAFE_POINTS: Array[Vector2] = [
 	Vector2(950, 590),

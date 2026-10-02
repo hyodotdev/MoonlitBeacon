@@ -20,6 +20,9 @@ const WIN_COLOR: Color = Color(1, 0.95, 0.82, 1)
 const LOSE_COLOR: Color = Color(1, 0.78, 0.74, 1)
 ## Return before cycle eight is a safe settlement; from cycle eight it is a kept-promise win.
 const LEGEND_CYCLE: int = 8
+## The settlement window: two 32px cells, dim then lit.
+const WINDOW_SHEET: Texture2D = preload(
+	"res://assets/custom/world/places/window.png")
 
 ## Color differs per rank. S is gold, D is ash.
 const RANK_COLORS: Dictionary = {
@@ -41,6 +44,8 @@ const SUM_SECONDS: float = 0.42
 @onready var _epitaph: Label = $Epitaph
 @onready var _detail: Label = $Detail
 @onready var _stamp: Label = $Stamp
+@onready var _window: TextureRect = $Window
+@onready var _road: Label = $Road
 @onready var _hint: Label = $Hint
 @onready var _goal: Label = $Goal
 @onready var _actions: HBoxContainer = $Actions
@@ -71,7 +76,8 @@ func _ready() -> void:
 
 
 func show_result(
-	won: bool, score: Score, is_best: bool, can_record: bool = false
+	won: bool, score: Score, is_best: bool, can_record: bool = false,
+	places_restored: int = -1
 ) -> void:
 	_accepting = false
 	_reveal_finished = false
@@ -90,10 +96,20 @@ func show_result(
 		else (tr("RESULT_ESCAPE") if won else tr("RESULT_LOSE"))
 	_title.add_theme_color_override("font_color", WIN_COLOR if won else LOSE_COLOR)
 	# One closing story line under the title. Same outcome split as the title:
-	# kept-promise win, safe early return, or a debt passed to the next night.
-	_epitaph.text = tr("STORY_EPITAPH_WIN") \
-		if won and score.cycles >= LEGEND_CYCLE \
-		else (tr("STORY_EPITAPH_ESCAPE") if won else tr("STORY_EPITAPH_LOSE"))
+	# road-home win, safe early return, or a lamp still waiting.
+	var ending: String = "win" if won and score.cycles >= LEGEND_CYCLE \
+		else ("escape" if won else "lose")
+	_epitaph.text = tr("STORY_EPITAPH_" + ending.to_upper())
+	# Past the win the HUD counts Depth, so the result says it too: the same
+	# `Expedition.depth()` the HUD reads, next to the closing story line. A
+	# second line does not fit between title and score table, so it shares the
+	# epitaph's full-width line. The Waves row keeps its points; this scores nothing.
+	var deep: int = Expedition.depth(score.cycles)
+	if deep > 0:
+		_epitaph.text += " · " + tr("HUD_DEPTH") % deep
+	# The ending you reach is written into the chronicle.
+	Chronicle.mark("epitaph_" + ending)
+	_refresh_road(ending, score, places_restored)
 
 	# Every line holds its place from the start; only the numbers count from 0.
 	#
@@ -154,6 +170,33 @@ func _refresh_persistence_summary() -> void:
 	# there is no reason to start the next run.
 	var balance: String = tr("RESULT_SHARD_BALANCE") % [_score.shards, Vault.shards]
 	_hint.text = "%s   %s" % [best, balance]
+
+
+## The road-home caption and the settlement window.
+##
+## The caption states the real state: how far the run reached and how many
+## places it restored. The window answers Nari's opening message — lit only on
+## an official win, dim on an early return, hidden on defeat — so the screen
+## never claims she is home before the road is complete. A negative count
+## (callers that predate the road) hides both. The reach always reads as a
+## Wave count: past cycle 8 the epitaph above already carries Depth, and the
+## card must not say it twice.
+func _refresh_road(ending: String, score: Score, places: int) -> void:
+	if places < 0:
+		_road.visible = false
+		_window.visible = false
+		return
+	var where: String = tr("HUD_WAVE") % maxi(score.cycles, 1)
+	_road.text = tr("RESULT_ROAD") % [where, clampi(places, 0, 6)]
+	_road.visible = true
+	if ending == "lose":
+		_window.visible = false
+		return
+	var cell: AtlasTexture = AtlasTexture.new()
+	cell.atlas = WINDOW_SHEET
+	cell.region = Rect2(32 if ending == "win" else 0, 0, 32, 32)
+	_window.texture = cell
+	_window.visible = true
 
 
 func _refresh_purchase_goal() -> void:

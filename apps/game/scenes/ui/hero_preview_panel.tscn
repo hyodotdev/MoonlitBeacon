@@ -1,26 +1,15 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/hero_preview_panel.gd" id="script"]
 [ext_resource type="Script" path="res://scripts/ui/hero_motion_preview.gd" id="motion_preview"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Multilingual.tres" id="font"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font_bold"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="button_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="button_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="button_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="button_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="button_focus"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_body"]
-bg_color = Color(0.012, 0.022, 0.055, 0.94)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.52, 0.68, 0.9, 0.42)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/chip.tres" id="chip_kit"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="buttons_gold_normal"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="buttons_gold_hover"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="buttons_gold_pressed"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="buttons_gold_disabled"]
+[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="buttons_gold_focus"]
 
 [node name="HeroPreviewPanel" type="Control"]
 process_mode = 3
@@ -124,7 +113,7 @@ theme_override_constants/separation = 12
 custom_minimum_size = Vector2(112, 126)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_body")
+theme_override_styles/panel = ExtResource("chip_kit")
 
 [node name="Center" type="CenterContainer" parent="Frame/Margin/Rows/Content/BodyStage"]
 layout_mode = 2
@@ -152,7 +141,7 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_body")
+theme_override_styles/panel = ExtResource("chip_kit")
 
 [node name="MotionRows" type="VBoxContainer" parent="Frame/Margin/Rows/MotionStage"]
 layout_mode = 2
@@ -184,11 +173,11 @@ layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font_bold")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
+theme_override_styles/normal = ExtResource("buttons_gold_normal")
+theme_override_styles/hover = ExtResource("buttons_gold_hover")
+theme_override_styles/pressed = ExtResource("buttons_gold_pressed")
+theme_override_styles/disabled = ExtResource("buttons_gold_disabled")
+theme_override_styles/focus = ExtResource("buttons_gold_focus")
 text = "SETTINGS_CLOSE"
 
 [node name="AnimationTimer" type="Timer" parent="."]

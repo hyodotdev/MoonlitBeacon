@@ -128,6 +128,7 @@ const VEIL_FADE_SECONDS: float = 0.3
 @onready var _quit: Control = $Ui/Quit
 @onready var _shrine: Control = $Ui/Shrine
 @onready var _ladder: Control = $Ui/Ladder
+@onready var _chronicle: Control = $Ui/Chronicle
 @onready var _iap_shop: Control = $Ui/IapShop
 @onready var _shrine_badge: Label = $Ui/Screen/ShrineButton/PurchaseBadge
 
@@ -158,6 +159,8 @@ func _ready() -> void:
 	_shrine.closed.connect(_on_panel_closed)
 	$Ui/Screen/LadderButton.pressed.connect(_open_ladder)
 	_ladder.closed.connect(_on_panel_closed)
+	$Ui/Screen/ChronicleButton.pressed.connect(_open_chronicle)
+	_chronicle.closed.connect(_on_panel_closed)
 	var store_button: Button = $Ui/Screen/StoreButton
 	var storefront_enabled: bool = Shop.storefront_enabled()
 	store_button.visible = storefront_enabled
@@ -221,6 +224,13 @@ func _open_ladder() -> void:
 	_accepting = false
 	$Ui/Screen.visible = false
 	_ladder.view()
+
+
+## Read what has been met so far. Same rule as the shrine.
+func _open_chronicle() -> void:
+	_accepting = false
+	$Ui/Screen.visible = false
+	_chronicle.open()
 
 
 ## Real-money shop is separate from the shrine. Mix moon shards and cash
@@ -553,7 +563,7 @@ func debug_store_capture_state(request: Dictionary) -> Dictionary:
 		var panels_closed: bool = not _settings.visible \
 			and not _credits.visible and not _quit.visible \
 			and not _shrine.visible and not _ladder.visible \
-			and not _iap_shop.visible
+			and not _chronicle.visible and not _iap_shop.visible
 		var title_state: Dictionary = {
 			"scene": "title",
 			"viewport_rect": _debug_rect_values(viewport_rect),
@@ -968,6 +978,8 @@ func _notification(what: int) -> void:
 		_shrine.close()
 	elif _ladder.visible:
 		_ladder.close()
+	elif _chronicle.visible:
+		_chronicle.close()
 	elif _iap_shop.visible:
 		_iap_shop.close()
 	elif _quit.visible:

@@ -45,3 +45,6 @@ If a repository move removes the operating files, find preserved local sources,
 record their provenance and rebuild in an isolated local branch. Do not merge
 private history into a public-release branch or assume repository visibility from
 its name. Confirm the actual tracker and visibility before updating it.
+
+A growth action that has to change the repository (tooling, docs, the game) is written by the implementer through a
+brief (`/muse`, skill `muse-director`); this skill measures, decides and records, and does not implement.

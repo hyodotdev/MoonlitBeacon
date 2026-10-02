@@ -101,9 +101,13 @@ func _process(delta: float) -> void:
 ## half the body visible, so an arrow sat on the boss in front of you.
 ## delta is the caller's frame time. Used to measure the pre-show wait
 ## (SHOW_DELAY_SECONDS) in game time.
+##
+## `exit_tint` and `exit_label` let an EXIT arrow name the place it leads to. A fork has two
+## exits at once, and "EXIT" twice would say nothing about which is which.
 func point_to(
 		mark: Mark, target: Vector2, from: Vector2, safe_rect: Rect2,
-		target_extent: float = 0.0, delta: float = 0.0) -> void:
+		target_extent: float = 0.0, delta: float = 0.0,
+		exit_tint: Color = Color(0, 0, 0, 0), exit_label: String = "") -> void:
 	if mark == Mark.NONE:
 		_show_wait_seconds = -1.0
 		_fade(false)
@@ -143,8 +147,8 @@ func point_to(
 			_tint = GUARDIAN_COLOR
 			_label.text = tr("COMPASS_GUARDIAN")
 		Mark.EXIT:
-			_tint = EXIT_COLOR
-			_label.text = tr("COMPASS_EXIT")
+			_tint = exit_tint if exit_tint.a > 0.0 else EXIT_COLOR
+			_label.text = exit_label if not exit_label.is_empty() else tr("COMPASS_EXIT")
 		_:
 			_tint = BEACON_COLOR
 			_label.text = tr("COMPASS_BEACON")

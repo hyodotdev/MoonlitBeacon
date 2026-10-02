@@ -28,6 +28,18 @@ enum GuardianStyle {
 	FOREST, ## telegraph a corridor, then two charges in a row
 	FIELD,  ## orbit the player, swapping cross and radial fire
 	CAMP,   ## slow assault form, aimed fan fire, then a long opening
+	GALE,   ## glide in circles, blow two fans of feathers, then dive where you stood
+	LEAP,   ## hop onto a marked circle twice, then flop hard with a ring around it
+	GLYPH,  ## write glowing circles round you, then a ring with a gap, then rest
+}
+
+## What an ordinary spirit throws while it lives, besides touching you. A caster throws its barrage after a
+## windup you can read (its `Behavior.SHOOT`); any other kind throws it as it goes, while it is near enough to be seen.
+## Guardians do not use this: their streams are built by `GuardianStreams`.
+enum Barrage {
+	NONE,
+	AIMED, ## `barrage_count` bullets in a fan of `barrage_spread` radians, aimed at you
+	RING,  ## `barrage_count` bullets in a ring, turned a little each time
 }
 
 @export var display_name: String = "Spirit"
@@ -91,9 +103,8 @@ static func guardian_budget_floor(cycle: int) -> float:
 ## `toughness()`. Cycles 1–3 stay at 1 so the existing HP contract holds; from
 ## cycle 4 the boss toughens faster than the mobs.
 static func guardian_toughness_scale(cycle: int) -> float:
-	if cycle <= 3:
-		return 1.0
-	return pow(LATE_TOUGHNESS_GROWTH, float(cycle - 3))
+	# Past the official win the growth eases (see `Expedition`), so the rule lives in one place.
+	return Expedition.guardian_scale(cycle)
 
 ## Optional per-state sheets for the guardian.
 ##
@@ -110,6 +121,7 @@ static func guardian_toughness_scale(cycle: int) -> float:
 @export_range(1, 12, 1) var guardian_state_frames: int = 4
 @export_range(1.0, 24.0, 0.5) var guardian_state_fps: float = 6.0
 ## Extra follow-up count for the forest charge. 1 means two telegraphed charges.
+## (The barrage fields below are for the ordinary spirits; they are further down.)
 @export_range(1, 6, 1) var guardian_combo: int = 1
 ## Extra shots added to field and camp barrages.
 @export_range(0, 8, 1) var guardian_volley_extra: int = 0
@@ -132,6 +144,22 @@ static func guardian_toughness_scale(cycle: int) -> float:
 @export var keep_distance: float = 150.0
 ## SHOOT — seconds between shots.
 @export var shoot_interval: float = 2.4
+
+@export_group("Barrage")
+@export var barrage: Barrage = Barrage.NONE
+## The share of this kind that throws at all: a night of forty wisps all throwing would be a wall, so a few do.
+@export_range(0.0, 1.0, 0.01) var barrage_share: float = 1.0
+## Seconds between one barrage and the next (a caster uses `shoot_interval` and this only for its bullets).
+@export var barrage_interval: float = 2.4
+@export var barrage_speed: float = 84.0
+@export_range(1, 9, 1) var barrage_count: int = 1
+## How wide an aimed fan is, in radians.
+@export var barrage_spread: float = 0.5
+## Which colour the bullets are (`BulletField.Tint`).
+@export_range(0, 4, 1) var barrage_tint: int = 0
+## Whose the bullets are (`BulletField.Source`), so a hit can say what threw it.
+@export var barrage_source: int = BulletField.Source.WEAVER
+@export_group("")
 
 ## Sprite sheet.
 ##
@@ -179,5 +207,9 @@ static func guardian_toughness_scale(cycle: int) -> float:
 @export var body_scale: float = 1.0
 ## Color laid over the night tint. Kind is told apart by color.
 @export var tint: Color = Color(0.315, 0.35, 0.57, 1)
+
+## Colour of the sparks that burst where this spirit dies. A guardian bursts in its
+## `boss_accent` instead. Pick the colour the sprite is remembered by, not its average.
+@export var spark_color: Color = Color(0.78, 0.9, 1.0, 1)
 ## Animation playback speed (fps).
 @export var anim_fps: float = 5.0

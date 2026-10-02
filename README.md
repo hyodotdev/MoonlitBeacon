@@ -34,7 +34,7 @@ Docs site: **https://hyodotdev.github.io/MoonlitBeacon/**
 | Controls | Full-screen floating move stick, auto-attack, dash button |
 | IAP | **godot-iap 3.6.1** + IAPKit (publishable key at export time) |
 | Application id | `com.crossplatformkorea.moonlitbeacon` |
-| Version | **2.1.0** (both stores live) |
+| Version | **3.0.0** (Android code 15, iOS build 10; last recorded store release 2.1.0) |
 | License | MIT code; third-party assets keep their own ([notices](THIRD_PARTY_NOTICES.md)) |
 
 808 × 360 is exactly one third of the Pixel 10 landscape panel, so 16 px pixel
@@ -227,7 +227,7 @@ still looks like a store screenshot.
 | 15 | Settings, locales, credits | Live language switch |
 | 16 | QA and 1.0.0 | Signed APK path |
 
-The course stops at 1.0.0. The tree continues through store release 2.1.0.
+The course stops at 1.0.0. The tutorial closed with 2.1.0, and the tree now carries the 3.0.0 renewal.
 
 ## Credits
 

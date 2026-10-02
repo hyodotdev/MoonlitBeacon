@@ -20,7 +20,9 @@ const ASC_ORIGIN = 'https://api.appstoreconnect.apple.com';
 const MAX_JSON_BYTES = 2 * 1024 * 1024;
 const JWT_LIFETIME_SECONDS = 1199;
 const JWT_SAFETY_MARGIN_SECONDS = 120;
-const EXPECTED_RELEASE = Object.freeze({ buildNumber: '9', version: '2.1.0' });
+const RELEASE_VERSION_PATTERN = /^[0-9]+(?:\.[0-9]+){0,2}$/u;
+const RELEASE_BUILD_PATTERN = /^[0-9]+$/u;
+const RELEASE_APP_ID_PATTERN = /^[0-9]+$/u;
 const INTERNAL_BETA_GROUP_NAME = 'Moonlit Beacon Internal';
 const REVIEWABLE_IAP_VERSION_STATES = new Set([
   'PREPARE_FOR_SUBMISSION',
@@ -408,6 +410,26 @@ export function appStoreConfirmationToken(manifest, purpose = 'apply') {
   ].join(':');
 }
 
+function assertSensibleReleaseTarget(release) {
+  if (
+    !release
+    || release.platform !== 'IOS'
+    || typeof release.appId !== 'string'
+    || !RELEASE_APP_ID_PATTERN.test(release.appId)
+    || typeof release.bundleId !== 'string'
+    || release.bundleId.trim() === ''
+    || typeof release.version !== 'string'
+    || !RELEASE_VERSION_PATTERN.test(release.version)
+    || typeof release.buildNumber !== 'string'
+    || !RELEASE_BUILD_PATTERN.test(release.buildNumber)
+  ) {
+    throw fail(
+      'ASC_TARGET_RELEASE_MISMATCH',
+      'release target platform, app identity, version, or build is missing or malformed.',
+    );
+  }
+}
+
 export function assertAppStoreApplyAuthorization({
   confirmation,
   manifest,
@@ -416,16 +438,11 @@ export function assertAppStoreApplyAuthorization({
   submitReview = false,
 } = {}) {
   verifyAppStoreReleaseManifest(manifest, payload);
-  const release = payload.release;
-  if (
-    release.version !== EXPECTED_RELEASE.version
-    || release.buildNumber !== EXPECTED_RELEASE.buildNumber
-  ) {
-    throw fail(
-      'ASC_TARGET_RELEASE_MISMATCH',
-      `this applier only allows ${EXPECTED_RELEASE.version}(${EXPECTED_RELEASE.buildNumber}).`,
-    );
-  }
+  // The caller builds `payload` from the current local export metadata and
+  // re-verifies `manifest` against it (scripts/app-store-release.mjs), so
+  // this binds authorization to that freshly verified current pair plus the
+  // exact manifest-bound confirmation below — never to a pinned past release.
+  assertSensibleReleaseTarget(payload?.release);
   if (confirmation !== appStoreConfirmationToken(manifest, 'apply')) {
     throw fail('ASC_APPLY_CONFIRMATION_MISMATCH', 'remote-apply token bound to the manifest differs.');
   }
@@ -712,19 +729,26 @@ export async function auditVersionedIapLocalizations(payload, client, baseAudit)
     }
     const draft = currentVersions[0] ?? rejectedVersions[0] ?? null;
     if (!draft && versions.length > 0) {
-      plan.push({
-        action: 'unresolved',
-        code: 'ASC_IAP_VERSION_STATE_UNSUPPORTED',
-        identifier: product.productId,
-        reason: 'cannot safely continue the existing IAP version state, so a new version is not created automatically.',
-        remoteMutationPlanned: false,
-        remoteStates: versions.map((resource) => (
-          remoteAttributes(resource).state ?? 'UNKNOWN'
-        )),
-        target: 'inAppPurchaseVersion',
-      });
-      continue;
+      const fullyApproved = versions.every((resource) => (
+        remoteAttributes(resource).state === 'APPROVED'
+      ));
+      if (!fullyApproved) {
+        plan.push({
+          action: 'unresolved',
+          code: 'ASC_IAP_VERSION_STATE_UNSUPPORTED',
+          identifier: product.productId,
+          reason: 'cannot safely continue the existing IAP version state, so a new version is not created automatically.',
+          remoteMutationPlanned: false,
+          remoteStates: versions.map((resource) => (
+            remoteAttributes(resource).state ?? 'UNKNOWN'
+          )),
+          target: 'inAppPurchaseVersion',
+        });
+        continue;
+      }
     }
+    // An APPROVED-only history has no draft, so it falls through here to
+    // create a fresh version; the history itself is never edited.
     if (!draft) {
       plan.push({
         action: 'create',
@@ -1045,7 +1069,17 @@ export async function auditAppAvailability(payload, client) {
 }
 
 export async function auditAppStoreConnectApplyReadiness({ payload, client } = {}) {
-  const base = await auditAppStoreConnectRelease({ payload, client });
+  // The deprecated unscoped localizations endpoint returns every version at
+  // once, so a mixed APPROVED plus PREPARE history looks duplicated there.
+  // The versioned apply path audits only the chosen version scope instead.
+  // Review states stay non-editable; this only lets the exact requested
+  // version be verified read-only after add-for-review or submission.
+  const base = await auditAppStoreConnectRelease({
+    payload,
+    client,
+    skipUnscopedIapLocalizations: true,
+    allowReadOnlyReviewVersion: true,
+  });
   const build = await auditBuildAssociation(payload, client, base);
   const internalBetaGroup = await auditInternalBetaGroup(payload, client, build);
   const iap = await auditVersionedIapLocalizations(payload, client, base);
@@ -1875,6 +1909,7 @@ async function readReviewItems(getClient, submissionId) {
     `/v1/reviewSubmissions/${encodeSegment(submissionId, 'review submission')}/items`,
     [
       ['fields[reviewSubmissionItems]', 'state,appStoreVersion,inAppPurchaseVersion'],
+      ['include', 'appStoreVersion,inAppPurchaseVersion'],
       ['limit', '200'],
     ],
   ));

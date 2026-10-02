@@ -75,7 +75,10 @@ func _test_activation_and_retention() -> void:
 	var first_cohort: Dictionary = first.call("_test_cohort") as Dictionary
 	_expect_equal(int(first_cohort.get("unix", 0)), cohort_start,
 		"local cohort time is confirmed only after activation save")
-	_expect_equal(str(first_cohort.get("version", "")), "2.1.0",
+	# The running build's own version, not a literal: a hard-coded number here
+	# failed the moment the version key moved, and said nothing about analytics.
+	_expect_equal(str(first_cohort.get("version", "")),
+		str(ProjectSettings.get_setting("application/config/version", "")),
 		"cohort stores the current app version")
 	_expect_false(first.call("activate"), "blocks duplicate cold launch in one app session")
 	_expect_equal(_pending_event_names(first).size(), 2, "duplicate activate does not grow events")

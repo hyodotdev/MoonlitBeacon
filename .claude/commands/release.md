@@ -25,6 +25,10 @@ P1: cycle progress · defeat · results · restart failures
 **Upload only after user confirmation.** itch.io is a public distribution.
 Even if you take a build down, it stays with people who already downloaded it.
 
+Building and uploading are operations the director runs. The version keys below are files, so the implementer changes
+them through a brief; `apps/game/export_presets.cfg` is a protected path, so `pnpm muse accept` needs
+`--allow apps/game/export_presets.cfg` after the director has read that diff.
+
 ---
 
 ## 1. Align the version

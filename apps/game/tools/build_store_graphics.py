@@ -112,7 +112,7 @@ APP_STORE_LOCALES = {
 }
 STALE_APP_STORE_LOCALES = ("ko-KR", "ja-JP")
 SCENE_CROP_BOTTOM = {
-    "combat": 180,
+    "combat": 0,
     "title": 90,
     "shrine": 0,
     "hero-preview": 0,
@@ -204,7 +204,7 @@ IAP_REVIEW_BUY_TEXT = "구매"
 IAP_REVIEW_RESTORE_TEXT = "구매 복원"
 SCREENSHOT_CONTRACTS = {
     "01-moonlight-barrage.png": {
-        "scene": "combat", "crop_bottom": 180,
+        "scene": "combat", "crop_bottom": 0,
         "labels": {
             "en-US": "UNLEASH A STORM OF HOMING MOONLIGHT",
             "ko-KR": "추적하는 달빛 탄막을 펼치세요",
@@ -214,7 +214,7 @@ SCREENSHOT_CONTRACTS = {
         },
     },
     "02-field-guardian.png": {
-        "scene": "combat", "crop_bottom": 180,
+        "scene": "combat", "crop_bottom": 0,
         "labels": {
             "en-US": "THREE BEACONS • A DIFFERENT GUARDIAN",
             "ko-KR": "봉화 셋 뒤에는 지형별 수호자",
@@ -224,7 +224,7 @@ SCREENSHOT_CONTRACTS = {
         },
     },
     "03-missile-core-drop.png": {
-        "scene": "combat", "crop_bottom": 180,
+        "scene": "combat", "crop_bottom": 0,
         "labels": {
             "en-US": "TAKE A HIT • RECLAIM YOUR MISSILE CORE",
             "ko-KR": "피격하면 떨어진 미사일 코어를 되찾으세요",
@@ -285,7 +285,7 @@ STORE_CAPTURE_HERO_COPY = {
     "ko": {
         "name": "봉화지기",
         "description": (
-            "하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · "
+            "랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · "
             "달빛 파문·질긴 목숨"
         ),
         "states": {
@@ -297,8 +297,8 @@ STORE_CAPTURE_HERO_COPY = {
     "en": {
         "name": "Beacon Keeper",
         "description": (
-            "6 hearts · move -15% · dmg +25% · dash CD +30% · "
-            "Moonlit Ripple/Tenacious Life"
+            "Lantern shotgun · 6 hearts · move -15% · "
+            "dash CD +30% · Moonlit Ripple/Tenacious Life"
         ),
         "states": {
             "SHRINE_SELECTED": "Selected",
@@ -311,8 +311,8 @@ STORE_CAPTURE_HERO_COPY = {
     "ja": {
         "name": "烽火の守り人",
         "description": (
-            "ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · "
-            "月光の波紋・不屈の命"
+            "ランタンの散弾 · ハート6 · 移速 -15% · "
+            "ダッシュCD +30% · 月光の波紋・不屈の命"
         ),
         "states": {
             "SHRINE_SELECTED": "選択中",
@@ -323,7 +323,7 @@ STORE_CAPTURE_HERO_COPY = {
     "zh_CN": {
         "name": "烽火守护者",
         "description": (
-            "6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · "
+            "灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · "
             "月光波纹·坚韧生命"
         ),
         "states": {
@@ -335,7 +335,7 @@ STORE_CAPTURE_HERO_COPY = {
     "zh_TW": {
         "name": "烽火守護者",
         "description": (
-            "6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · "
+            "燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · "
             "月光波紋·堅韌生命"
         ),
         "states": {
@@ -518,6 +518,8 @@ ANDROID_CAPTURE_PERSISTENT_FILES = (
     "analytics.json",
     "analytics.json.tmp",
     "analytics_consent.revoked",
+    "chronicle.json",
+    "chronicle.json.tmp",
     "iap_entitlements.cfg",
     "iap_entitlements.cfg.bak",
     "iap_entitlements.cfg.bak.tmp",

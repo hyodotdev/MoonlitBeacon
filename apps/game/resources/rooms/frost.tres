@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="RoomKind" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/frost_nature.png" id="tileset"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/ground_frost.png" id="floor"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/frost_props.png" id="obstacles"]
+
+[resource]
+script = ExtResource("script")
+display_name = "서리 고개"
+encounter = 3
+tileset = ExtResource("tileset")
+floor_texture = ExtResource("floor")
+tint = Color(0.82, 0.9, 1, 1)
+floor_tint = Color(1, 1, 1.02, 1)
+border_count = 210
+decor_count = 210
+clump_count = 30
+obstacle_tileset = ExtResource("obstacles")
+obstacle_count = 28
+tree_kinds = PackedStringArray("sm0", "sm1", "sm2", "sm3", "bigA", "bigC")
+decor_kinds = PackedStringArray("bush", "rockS", "rockS2", "twig", "stump2")
+light_obstacle_variants = PackedInt32Array(2)
+light_radius = 104.0
+light_color = Color(0.62, 0.4, 0.2, 1)
+tone_count = 40
+tone_colors = PackedColorArray(0.5, 0.7, 1, 0.1, 0.85, 0.92, 1, 0.08, 0.3, 0.4, 0.8, 0.1, 0.5, 0.7, 1, 0.1)
+dapple_count = 18
+dapple_color = Color(0.3, 0.42, 0.7, 0.2)
+flora_count = 90
+flora_plants = PackedInt32Array(1, 2, 2, 2)
+flora_colors = PackedColorArray(0.75, 0.9, 1, 1, 0.6, 0.8, 1, 1, 0.95, 0.95, 1, 1)
+flora_glow = 0.4
+mist_color = Color(0.78, 0.88, 1, 0.16)
+beam_count = 5
+beam_color = Color(0.85, 0.93, 1, 0.22)
+mote_count = 72
+mote_color = Color(0.92, 0.96, 1, 1)

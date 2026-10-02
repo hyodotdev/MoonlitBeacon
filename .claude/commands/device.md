@@ -3,6 +3,8 @@
 Bake an APK, put it on a Pixel 10, and confirm the screen that actually runs.
 A commit that changes the game screen is not done until this.
 
+An operation: the director runs it. A file that has to change first goes through a brief ([`/muse`](./muse.md)).
+
 ## Usage
 
 ```text

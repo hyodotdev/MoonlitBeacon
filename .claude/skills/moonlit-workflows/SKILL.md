@@ -1,6 +1,6 @@
 ---
 name: moonlit-workflows
-description: Use when a MoonlitBeacon repo request for commit/push/PR, a full check, Android device confirmation, all-direction E2E visual review of characters/monsters/items/graphics, course-clip capture, or starting a new lesson arrives in natural language without a slash command. Holds the rules, terminology (Lesson N), capture pipeline, and device-verification procedure for this monorepo of a Godot 4.7 game plus a Docusaurus course site.
+description: Use when a MoonlitBeacon repo request for commit/push/PR, a full check, Android device confirmation, all-direction E2E visual review of characters/monsters/items/graphics, course-clip capture, or starting a new lesson arrives in natural language without a slash command. Holds the rules, terminology (Lesson N), capture pipeline, and device-verification procedure for this monorepo of a Godot 4.7 game plus a Docusaurus course site. Any request to build, change, fix or write something here goes to the director/implementer workflow (the muse-director skill) first.
 ---
 
 # Moonlit Beacon workflows
@@ -10,6 +10,7 @@ request, read the matching file and follow it.
 
 | Request | Command |
 | --- | --- |
+| Build / change / fix / write anything (code, docs, notes, store text) | `.claude/commands/muse.md` (skill: `muse-director`) |
 | Commit / push / open a PR | `.claude/commands/commit.md` |
 | Check / anything wrong / does it build | `.claude/commands/verify.md` |
 | Put it on the phone / device check / APK | `.claude/commands/device.md` |
@@ -22,6 +23,12 @@ request, read the matching file and follow it.
 
 Whole-repo rules are in [`AGENTS.md`](../../../AGENTS.md). Below is the
 summary.
+
+## Who writes the files
+
+The agent you are is the **director**. It does not write the game, the docs or the notes: it briefs the implementer,
+judges the result and accepts it ([`/muse`](../../../.claude/commands/muse.md)). Commit, verify, device, record and release are
+operations the director runs. Which model implements is set only in `scripts/muse.config.json`.
 
 ---
 
@@ -75,7 +82,9 @@ passing.
 
 ### git
 
-**Do not push without user confirmation.** Commits are fine.
+**Do not push without user confirmation.** Commits are fine. **Never open a pull request
+on your own**: only when the user asks for one in their own message (a guard in
+`scripts/guard-pull-request.mjs` blocks it).
 
 Never commit `.godot/`. It contains `export_credentials.cfg`, which holds
 the Android signing keystore password.

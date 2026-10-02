@@ -15,6 +15,9 @@ place.
 
 Tools live in [`notes/tools/capture/`](../../notes/tools/capture/).
 
+An operation: the director runs it. A lesson or a script that has to change first goes through a brief
+([`/muse`](./muse.md)).
+
 ---
 
 ## Decide where the clip goes first

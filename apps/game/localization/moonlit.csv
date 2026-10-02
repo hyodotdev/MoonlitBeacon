@@ -2,8 +2,6 @@ keys,ko,en,ja,zh_CN,zh_TW
 TITLE_NAME,달빛 봉화,MOONLIT BEACON,月明かりの烽火,月光烽火,月光烽火
 TITLE_SUBTITLE,밤을 밝히는 마지막 불빛,OUTLAST THE NIGHT,夜を照らす最後の灯,照亮长夜的最后火光,照亮長夜的最後火光
 TAP_TO_START,화면을 탭하여 시작,Tap to start,画面をタップして開始,点击屏幕开始,點擊畫面開始
-HUD_BEACONS,봉화 %d/%d,Beacons %d/%d,烽火 %d/%d,烽火 %d/%d,烽火 %d/%d
-HUD_BEACONS_INIT,봉화 0/3,Beacons 0/3,烽火 0/3,烽火 0/3,烽火 0/3
 HUD_KILLS,처치 %d,Defeated %d,撃破 %d,击败 %d,擊敗 %d
 HUD_KILLS_INIT,처치 0,Defeated 0,撃破 0,击败 0,擊敗 0
 HUD_DASH,대시,Dash,ダッシュ,冲刺,衝刺
@@ -92,7 +90,7 @@ RELIC_TOUGH_LIFE_DESC,하트 칸 +1 · 즉시 한 칸 회복,Max hearts +1 · Re
 RELIC_TWIN_ARROW_NAME,쌍월륜,Twin Moon Discs,双月輪,双月轮,雙月輪
 RELIC_TWIN_ARROW_DESC,월륜 편대 총화력 +18% · 유성우 진화 경로,Moon Disc volley power +18% · Starfall path,月輪編隊の総火力 +18% · 流星雨への進化経路,月轮齐射火力 +18% · 流星雨进化路线,月輪齊射火力 +18% · 流星雨進化路線
 RELIC_WARM_BEACON_NAME,봉화의 온기,Beacon's Warmth,烽火の温もり,烽火暖意,烽火暖意
-RELIC_WARM_BEACON_DESC,순환마다 첫 봉화를 켜면 한 칸 회복,Restore 1 heart at the first beacon of each cycle,各周回の最初の烽火でハートを1回復,每轮点燃第一座烽火时恢复1颗心,每輪點燃第一座烽火時恢復1顆心
+RELIC_WARM_BEACON_DESC,순환마다 첫 봉화를 켜면 한 칸 회복,Restore 1 heart at the first beacon of each wave,巡ごとに最初の烽火でハートを1回復,每轮点燃第一座烽火时恢复1颗心,每輪點燃第一座烽火時恢復1顆心
 RELIC_WIDE_ARC_NAME,넓은 베기,Wide Slash,広い斬撃,广域斩击,廣域斬擊
 RELIC_WIDE_ARC_DESC,베는 각도 +25% · 만월참 진화 경로,Slash arc +25% · Full Moon path,斬撃角度 +25% · 満月斬りへの進化経路,斩击角度 +25% · 满月斩进化路线,斬擊角度 +25% · 滿月斬進化路線
 GUARDIAN_REWARD,수호자의 전리품,Guardian's trove,守護者の戦利品,守护者战利品,守護者戰利品
@@ -127,7 +125,7 @@ HUD_MOONFIRE,달불씨 0/10,Embers 0/10,月の火種 0/10,月火种 0/10,月火�
 HUD_EMBERS,달불씨 %d/10,Embers %d/10,月の火種 %d/10,月火种 %d/10,月火種 %d/10
 HUD_MOONFIRE_ACTIVE,월광 각성,Moonfire,月光覚醒,月光觉醒,月光覺醒
 HUD_MOONFIRE_LOCKED,보스전 각성,Boss Awakened,ボス戦覚醒,首领战觉醒,首領戰覺醒
-HUD_BEACONS_CYCLE,봉화 %d/%d (%d순환),Beacons %d/%d (wave %d),烽火 %d/%d（第%d巡）,烽火 %d/%d（第%d轮）,烽火 %d/%d（第%d輪）
+HUD_WAVE,%d순환,Wave %d,第%d巡,第%d轮,第%d輪
 HUD_DISC_PROGRESS,월륜 %d/%d → 유성우,Moon Disc %d/%d → Starfall,月輪 %d/%d → 流星雨,月轮 %d/%d → 流星雨,月輪 %d/%d → 流星雨
 HUD_DISC_INIT,월륜 0/3 → 유성우,Moon Disc 0/3 → Starfall,月輪 0/3 → 流星雨,月轮 0/3 → 流星雨,月輪 0/3 → 流星雨
 HUD_STARFALL_LEVEL,유성우 %d단계,Starfall tier %d,流星雨 第%d段階,流星雨 %d阶,流星雨 %d階
@@ -145,6 +143,9 @@ HUD_WORLD_INIT,밤 숲 · 밤,Night Forest · Night,夜の森 · 夜,夜之森�
 WORLD_FOREST,밤 숲,Night Forest,夜の森,夜之森林,夜之森林
 WORLD_FIELD,달빛 들판,Moonlit Field,月明かりの野原,月光原野,月光原野
 WORLD_CAMP,버려진 야영지,Abandoned Camp,捨てられた野営地,废弃营地,廢棄營地
+WORLD_FROST,서리 고개,Frost Pass,霜の峠,霜之隘口,霜之隘口
+WORLD_MARSH,안개 늪숲,Mirewood Marsh,霧の沼森,迷雾沼林,迷霧沼林
+WORLD_RUINS,달빛 폐허,Moonlit Ruins,月明かりの廃墟,月光废墟,月光廢墟
 TIME_NIGHT,밤,Night,夜,夜晚,夜晚
 TIME_BLUE_DAWN,푸른 새벽,Blue Dawn,蒼い夜明け,蓝色黎明,藍色黎明
 TIME_SUNRISE,여명,Sunrise,暁,破晓,破曉
@@ -174,26 +175,38 @@ GUARDIAN_FIELD_STORM_NAME,벼락 들판의 날개,Storm Fieldwing,雷野の翼,�
 GUARDIAN_FIELD_STORM_RULE,더 촘촘한 탄막의 한 칸만 노려라,take the single gap in denser fire,より密な弾幕の隙間一つを狙え,只抢更密弹幕的那一格空隙,只搶更密彈幕的那一格空隙
 GUARDIAN_CAMP_SIEGE_NAME,공성 철갑장군,Siegeclad Warden,攻城の鉄甲将,攻城铁甲将,攻城鐵甲將
 GUARDIAN_CAMP_SIEGE_RULE,더 짧은 개방을 놓치지 마라,do not miss its shorter open window,より短い開放を逃すな,别错过更短的破绽,別錯過更短的破綻
+GUARDIAN_FROST_NAME,서리깃 부엉이,Hoarfrost Owl,霜羽のフクロウ,霜羽猫头鹰,霜羽貓頭鷹
+GUARDIAN_FROST_RULE,깃털 부채 뒤에 급강하가 온다,the dive comes right after the feather fans,羽根の扇の後に急降下が来る,羽扇之后会俯冲,羽扇之後會俯衝
+GUARDIAN_FROST_RIME_NAME,서릿발 왕관 부엉이,Rimecrown Owl,霜冠のフクロウ,霜冠猫头鹰,霜冠貓頭鷹
+GUARDIAN_FROST_RIME_RULE,깃털 부채가 한 번 더 온다,one more feather fan than before,羽根の扇がもう一度来る,多一次羽扇,多一次羽扇
+GUARDIAN_MARSH_NAME,늪숲 두꺼비,Mirewood Toad,沼森のヒキガエル,沼林蟾蜍,沼林蟾蜍
+GUARDIAN_MARSH_RULE,착지하기 전에 표시된 원을 벗어나라,leave the marked circle before it lands,着地する前に印の円から離れろ,在落地前离开标记圈,在落地前離開標記圈
+GUARDIAN_MARSH_GLOW_NAME,빛버섯 두꺼비,Glowcap Toad,光茸のヒキガエル,荧菇蟾蜍,螢菇蟾蜍
+GUARDIAN_MARSH_GLOW_RULE,세 번째 뛰기는 더 크게 덮친다,the third leap flops much wider,三度目の跳躍はずっと大きく落ちる,第三跳会扑得更大,第三跳會撲得更大
+GUARDIAN_RUINS_NAME,달석 파수꾼,Moonstone Sentinel,月石の番人,月石守卫,月石守衛
+GUARDIAN_RUINS_RULE,빛나는 원을 피해 고리의 틈에 서라,leave the glowing circles and stand in the ring's gap,光る円を離れ 輪の隙間に立て,离开发光圈 站进光环的缺口,離開發光圈 站進光環的缺口
+GUARDIAN_RUINS_HALO_NAME,후광 파수꾼,Halo Sentinel,光輪の番人,光环守卫,光環守衛
+GUARDIAN_RUINS_HALO_RULE,원은 더 많고 쉬는 틈은 더 짧다,more circles and a shorter rest,円は増え 休みは短い,光圈更多 休息更短,光圈更多 休息更短
 CYCLE_CLEARED,%d순환 시작 · 하트 1칸 회복,Wave %d · restore 1 heart,第%d巡開始 · ハート1回復,第%d轮开始 · 恢复1颗心,第%d輪開始 · 恢復1顆心
 BEACON_CHOICE_TITLE,봉화의 불꽃을 고르세요,CHOOSE THE BEACON FLAME,烽火の灯し方を選べ,选择烽火点燃方式,選擇烽火點燃方式
 BEACON_CHOICE_SUBTITLE,이번 순환 과충전 %d/3,Overcharges this wave %d/3,今回の過充電 %d/3,本轮过充能 %d/3,本輪過充能 %d/3
 BEACON_CHOICE_LEFT_TITLE,안정 점화,SAFE KINDLE,安定点火,稳定点燃,穩定點燃
-BEACON_CHOICE_LEFT_DESC,바로 지피고 다음 지형으로 간다,Kindle now and move to the next terrain,すぐ灯して次の地形へ進む,立即点燃并前往下一地形,立即點燃並前往下一地形
+BEACON_CHOICE_LEFT_DESC,바로 점화 · 탈출 카운트 +1 · 싸움 없음,Kindle now · escape counts up · no fight,すぐ点火 · 脱出カウント+1 · 戦闘なし,立即点燃 · 逃脱计数+1 · 无需战斗,立即點燃 · 逃脫計數+1 · 無需戰鬥
 BEACON_CHOICE_RIGHT_TITLE,과충전,OVERCHARGE,過充電,过充能,過充能
-BEACON_CHOICE_RIGHT_DESC,6.5초를 지키면 코어와 성장을 얻는다,Hold for 6.5 seconds to earn a core and growth,6.5秒守ればコアと成長を得る,坚守6.5秒获得核心和成长,堅守6.5秒獲得核心和成長
-BEACON_CHOICE_RIGHT_DESC_MAX,6.5초를 지키면 추가 성장을 얻는다,Hold for 6.5 seconds to gain extra growth,6.5秒守れば追加の成長を得る,坚守6.5秒获得额外成长,堅守6.5秒獲得額外成長
+BEACON_CHOICE_RIGHT_DESC,고리 안에서 6.5초 방어 · 코어와 성장 획득,Hold the ring 6.5s · earn a core and growth,輪の中で6.5秒防衛 · コアと成長を得る,在光环内坚守6.5秒 · 获得核心和成长,在光環內堅守6.5秒 · 獲得核心和成長
+BEACON_CHOICE_RIGHT_DESC_MAX,고리 안에서 6.5초 방어 · 추가 성장 획득,Hold the ring 6.5s · earn extra growth,輪の中で6.5秒防衛 · 追加の成長を得る,在光环内坚守6.5秒 · 获得额外成长,在光環內堅守6.5秒 · 獲得額外成長
 CYCLE_CHOICE_TITLE,%d순환을 지켜냈다,WAVE %d SECURED,第%d巡を守り抜いた,守住第%d轮,守住第%d輪
 CYCLE_CHOICE_SUBTITLE,지금 정산하거나 보상을 들고 더 깊이 간다,Cash out now or carry the reward deeper,今精算するか報酬を持ってさらに奥へ進む,现在结算或带着奖励继续深入,現在結算或帶著獎勵繼續深入
 CYCLE_CHOICE_LEFT_TITLE,귀환 · 정산,RETURN · CASH OUT,帰還 · 精算,返回 · 结算,返回 · 結算
 CYCLE_CHOICE_LEFT_DESC,현재 기록과 조각을 안전하게 남긴다,Secure this score and every shard,現在の記録と欠片を確定する,保存当前记录和全部碎片,保存目前記錄和全部碎片
 CYCLE_CHOICE_RIGHT_TITLE,다음 순환,NEXT WAVE,次の巡,下一轮,下一輪
 CYCLE_CHOICE_RIGHT_DESC,하트 1칸을 회복하고 보상을 이어 간다,Restore 1 heart and carry the build onward,ハートを1回復してビルドを継ぐ,恢复1颗心并延续当前构筑,恢復1顆心並延續目前構築
-CYCLE_CHOICE_MAP_BEYOND_TITLE,지도 끝을 넘어섰다,BEYOND THE MAP,地図の果てを越えた,已越过地图尽头,已越過地圖盡頭
-CYCLE_CHOICE_MAP_BEYOND_SUBTITLE,약속은 지켰다 · 여기부터는 끝없는 밤이다,The promise is kept · the endless night starts here,約束は果たした · ここからは終わりなき夜だ,承诺已兑现 · 无尽之夜从这里开始,承諾已兌現 · 無盡之夜從這裡開始
+CYCLE_CHOICE_MAP_BEYOND_TITLE,나리가 돌아왔다,NARI IS HOME,ナリが帰ってきた,娜莉回家了,娜莉回家了
+CYCLE_CHOICE_MAP_BEYOND_SUBTITLE,주전자는 따뜻하다 · 여기서 쉬거나 계속 걷는다,The kettle is warm · rest now or walk on,やかんは温かい · ここで休むか 先へ進むか,水壶是暖的 · 在此歇息或继续走,水壺是暖的 · 在此歇息或繼續走
 CYCLE_CHOICE_MAP_BEYOND_LEFT_TITLE,전설로 귀환,RETURN AS LEGEND,伝説として帰還,作为传奇归来,作為傳奇歸來
 CYCLE_CHOICE_MAP_BEYOND_LEFT_DESC,여덟 순환의 승리를 기록한다,Record victory across eight waves,八巡の勝利を記録する,记录八轮胜利,記錄八輪勝利
-CYCLE_CHOICE_MAP_BEYOND_RIGHT_TITLE,끝없는 밤,ENDLESS NIGHT,終わりなき夜,无尽之夜,無盡之夜
-CYCLE_CHOICE_MAP_BEYOND_RIGHT_DESC,지도 밖 난이도와 보상을 계속 쌓는다,Keep stacking danger and rewards off the map,地図外の難度と報酬を積み続ける,继续累积地图外的难度与奖励,繼續累積地圖外的難度與獎勵
+CYCLE_CHOICE_MAP_BEYOND_RIGHT_TITLE,다른 길,OTHER ROADS,他の道,别的路,別的路
+CYCLE_CHOICE_MAP_BEYOND_RIGHT_DESC,지도 밖 잊힌 길을 찾아 나선다,Seek forgotten roads beyond the map,地図の外の忘れられた道を探す,去地图之外寻找被遗忘的路,去地圖之外尋找被遺忘的路
 OVERCHARGE_STARTED,과충전 · 봉화 곁을 지켜라,Overcharge · defend the beacon,過充電 · 烽火のそばを守れ,过充能 · 守住烽火,過充能 · 守住烽火
 OVERCHARGE_SUCCEEDED,과충전 성공 %d/%d · 코어와 성장 획득,Overcharge %d/%d · core and growth gained,過充電成功 %d/%d · コアと成長を獲得,过充能成功 %d/%d · 获得核心和成长,過充能成功 %d/%d · 獲得核心和成長
 OVERCHARGE_SUCCEEDED_MAX,과충전 성공 %d/%d · 추가 성장 획득,Overcharge %d/%d · extra growth gained,過充電成功 %d/%d · 追加の成長を獲得,过充能成功 %d/%d · 获得额外成长,過充能成功 %d/%d · 獲得額外成長
@@ -203,6 +216,9 @@ RAID,정령들이 몰려온다,The spirits swarm,精霊が押し寄せる,精灵
 RAID_AMBUSH,숲의 매복 · 봉화 쪽이 비었다,Forest ambush · the beacon path is open,森の待ち伏せ · 烽火への道が空いた,森林伏击 · 通往烽火的路空了,森林伏擊 · 通往烽火的路空了
 RAID_CROSSFIRE,들판의 교차사격 · 한쪽 술사를 먼저 끊어라,Crossfire · break one caster line,野原の交差射撃 · 片方の術師を先に倒せ,原野交叉火力 · 先击败一侧的术师,原野交叉火力 · 先擊敗一側的術師
 RAID_CARAVAN,불씨 호송대 · 정예 운반자를 노려라,Ember caravan · strike the elite carrier,火種の輸送隊 · 精鋭運搬者を狙え,火种护送队 · 攻击精英运送者,火種護送隊 · 攻擊精英運送者
+RAID_SQUALL,눈보라의 벽 · 틈을 찾아 빠져나가라,Whiteout wall · slip through the gap,吹雪の壁 · 隙間をすり抜けろ,暴风雪之墙 · 从缺口穿过去,暴風雪之牆 · 從缺口穿過去
+RAID_TIDE,늪의 밀물 · 세 무리 사이로 빠져라,Bog tide · slip between the three pods,沼の満ち潮 · 三つの群れの間を抜けろ,沼泽涨潮 · 从三群之间穿出,沼澤漲潮 · 從三群之間穿出
+RAID_VIGIL,달빛 파수 · 첫 무리 뒤로 두 번째가 온다,Moon vigil · a second group follows behind,月明かりの番 · 二つ目の群れが背後から来る,月光守夜 · 第二批会从身后逼近,月光守夜 · 第二批會從身後逼近
 RECLAIMED,되찾았다,Reclaimed,取り戻した,已找回,已找回
 RELIC_DROPPED,유물 드롭 · %s · 9초 안에 회수,Dropped %s · reclaim within 9 seconds,遺物落下 · %s · 9秒以内に回収,遗物掉落 · %s · 9秒内找回,遺物掉落 · %s · 9秒內找回
 RELIC_RECLAIMED,%s 회수,Reclaimed %s,%s 回収,%s 已找回,%s 已找回
@@ -218,7 +234,7 @@ COMPASS_EXIT,탈출구,ESCAPE,脱出口,出口,出口
 COMPASS_GUARDIAN,수호자,GUARDIAN,守護者,守护者,守護者
 ZONE_TRAVEL,추격을 뚫고 다음 지형으로,Escaping to the next region,追跡を振り切り次の地域へ,突破追击前往下一区域,突破追擊前往下一區域
 ZONE_ENTER,%s 진입,Entering %s,%sに進入,进入%s,進入%s
-SCORE_CYCLES,순환 %d바퀴,Cycles %d,巡回数 %d,循环轮数 %d,循環輪數 %d
+SCORE_CYCLES,순환 %d,Waves %d,巡 %d,轮数 %d,輪數 %d
 SCORE_LEVEL,레벨 %d,Level %d,レベル %d,等级 %d,等級 %d
 SHRINE_TITLE,달빛 제단,Moonlit Shrine,月光の祭壇,月光祭坛,月光祭壇
 SHRINE_OPEN,제단,Shrine,祭壇,祭坛,祭壇
@@ -260,17 +276,17 @@ BOON_DEW_SENSE_DESC,이슬 확률 +%s%%,Moon Dew chance +%s%%,月露の確率 +%
 BOON_SHARD_SENSE_NAME,조각 감각,Shard Sense,欠片の気配,碎片感知,碎片感知
 BOON_SHARD_SENSE_DESC,조각 획득 +%s%%,Shard gain +%s%%,欠片獲得量 +%s%%,碎片获取 +%s%%,碎片獲取 +%s%%
 HERO_WARDEN_NAME,달빛 파수꾼,Moonlit Warden,月光の番人,月光守望者,月光守望者
-HERO_WARDEN_DESC,하트 5칸 · 고른 성능 · 손에 든 봉화 초에서 베기와 화살을 부름,5 hearts · balanced · calls slash and arrows from the beacon candle,ハート5 · バランス型 · 手にした烽火のろうそくから斬撃と矢を放つ,5颗心 · 均衡型 · 从手中的烽火蜡烛召唤斩击与箭矢,5顆心 · 均衡型 · 從手中的烽火蠟燭召喚斬擊與箭矢
+HERO_WARDEN_DESC,넓은 검 베기 · 하트 5칸 · 고른 성능,Wide sword cuts · 5 hearts · balanced,広い剣の斬撃 · ハート5 · バランス型,宽阔剑斩 · 5颗心 · 均衡型,寬闊劍斬 · 5顆心 · 均衡型
 HERO_DANCER_NAME,그림자 무희,Shadow Dancer,影の舞姫,暗影舞者,暗影舞者
-HERO_DANCER_DESC,하트 3칸 · 이속 +43.75% · 피해 -10% · 대시 쿨 -40% · 달빛 고리·잰걸음,3 hearts · move +43.75% · dmg -10% · dash CD -40% · Moon Ring/Light Step,ハート3 · 移速 +43.75% · ダメージ -10% · ダッシュCD -40% · 月光の輪・軽快な足さばき,3颗心 · 移速 +43.75% · 伤害 -10% · 冲刺冷却 -40% · 月光环·轻捷步法,3顆心 · 移速 +43.75% · 傷害 -10% · 衝刺冷卻 -40% · 月光環·輕捷步法
+HERO_DANCER_DESC,쌍검 연타 · 하트 3칸 · 이속 +41.07% · 대시 쿨 -40% · 달빛 고리·잰걸음,Twin-blade flurry · 3 hearts · move +41.07% · dash CD -40% · Moon Ring/Light Step,双剣の連撃 · ハート3 · 移速 +41.07% · ダッシュCD -40% · 月光の輪・軽快な足さばき,双刃连击 · 3颗心 · 移速 +41.07% · 冲刺冷却 -40% · 月光环·轻捷步法,雙刃連擊 · 3顆心 · 移速 +41.07% · 衝刺冷卻 -40% · 月光環·輕捷步法
 HERO_KEEPER_NAME,봉화지기,Beacon Keeper,烽火の守り人,烽火守护者,烽火守護者
-HERO_KEEPER_DESC,하트 6칸 · 이속 -15% · 피해 +25% · 대시 쿨 +30% · 달빛 파문·질긴 목숨,6 hearts · move -15% · dmg +25% · dash CD +30% · Moonlit Ripple/Tenacious Life,ハート6 · 移速 -15% · ダメージ +25% · ダッシュCD +30% · 月光の波紋・不屈の命,6颗心 · 移速 -15% · 伤害 +25% · 冲刺冷却 +30% · 月光波纹·坚韧生命,6顆心 · 移速 -15% · 傷害 +25% · 衝刺冷卻 +30% · 月光波紋·堅韌生命
+HERO_KEEPER_DESC,랜턴 산탄 · 하트 6칸 · 이속 -15% · 대시 쿨 +30% · 달빛 파문·질긴 목숨,Lantern shotgun · 6 hearts · move -15% · dash CD +30% · Moonlit Ripple/Tenacious Life,ランタンの散弾 · ハート6 · 移速 -15% · ダッシュCD +30% · 月光の波紋・不屈の命,灯笼霰弹 · 6颗心 · 移速 -15% · 冲刺冷却 +30% · 月光波纹·坚韧生命,燈籠霰彈 · 6顆心 · 移速 -15% · 衝刺冷卻 +30% · 月光波紋·堅韌生命
 HERO_KNIGHT_NAME,백월 기사,Silver Moon Knight,白月の騎士,白月骑士,白月騎士
-HERO_KNIGHT_DESC,하트 5칸 · 이속 -12% · 피해 +8% · 대시 쿨 +25% · 긴 칼날·그림자 장막,5 hearts · move -12% · dmg +8% · dash CD +25% · Long Blade/Shadow Veil,ハート5 · 移速 -12% · ダメージ +8% · ダッシュCD +25% · 長い刃・影の帳,5颗心 · 移速 -12% · 伤害 +8% · 冲刺冷却 +25% · 长刃·暗影帷幕,5顆心 · 移速 -12% · 傷害 +8% · 衝刺冷卻 +25% · 長刃·暗影帷幕
+HERO_KNIGHT_DESC,중형 캐넌 · 하트 5칸 · 이속 -12% · 대시 쿨 +25% · 긴 칼날·그림자 장막,Heavy cannon blast · 5 hearts · move -12% · dash CD +25% · Long Blade/Shadow Veil,重カノン · ハート5 · 移速 -12% · ダッシュCD +25% · 長い刃・影の帳,重型火炮 · 5颗心 · 移速 -12% · 冲刺冷却 +25% · 长刃·暗影帷幕,重型火炮 · 5顆心 · 移速 -12% · 衝刺冷卻 +25% · 長刃·暗影帷幕
 HERO_ECLIPSE_NAME,월식 마도사,Eclipse Mage,月蝕の魔導士,月蚀法师,月蝕法師
-HERO_ECLIPSE_DESC,하트 3칸 · 이속 +8% · 피해 +10% · 대시 쿨 -31.75% · 빠른 손·달빛 걸음,3 hearts · move +8% · dmg +10% · dash CD -31.75% · Swift Hand/Moonlit Step,ハート3 · 移速 +8% · ダメージ +10% · ダッシュCD -31.75% · 早業・月影の歩み,3颗心 · 移速 +8% · 伤害 +10% · 冲刺冷却 -31.75% · 快手·月影步,3顆心 · 移速 +8% · 傷害 +10% · 衝刺冷卻 -31.75% · 快手·月影步
+HERO_ECLIPSE_DESC,궤도 낫 고리 · 하트 3칸 · 이속 +8% · 대시 쿨 -31.75% · 빠른 손·달빛 걸음,Orbiting scythe ring · 3 hearts · move +8% · dash CD -31.75% · Swift Hand/Moonlit Step,周回する鎌の輪 · ハート3 · 移速 +8% · ダッシュCD -31.75% · 早業・月影の歩み,环绕镰刀 · 3颗心 · 移速 +8% · 冲刺冷却 -31.75% · 快手·月影步,環繞鐮刀 · 3顆心 · 移速 +8% · 衝刺冷卻 -31.75% · 快手·月影步
 HERO_SAGE_NAME,성좌 현자,Constellation Sage,星座の賢者,星座贤者,星座賢者
-HERO_SAGE_DESC,하트 4칸 · 이속 -8% · 피해 -16% · 대시 쿨 +15% · 쌍월륜·관통 월륜,4 hearts · move -8% · dmg -16% · dash CD +15% · Twin Moon Discs/Piercing Moon Disc,ハート4 · 移速 -8% · ダメージ -16% · ダッシュCD +15% · 双月輪・貫通月輪,4颗心 · 移速 -8% · 伤害 -16% · 冲刺冷却 +15% · 双月轮·穿透月轮,4顆心 · 移速 -8% · 傷害 -16% · 衝刺冷卻 +15% · 雙月輪·穿透月輪
+HERO_SAGE_DESC,관통 라이플 · 하트 4칸 · 이속 -8% · 대시 쿨 +15% · 쌍월륜·관통 월륜,Piercing rifle · 4 hearts · move -8% · dash CD +15% · Piercing Moon Disc/Twin Moon Discs,貫通ライフル · ハート4 · 移速 -8% · ダッシュCD +15% · 双月輪・貫通月輪,穿透步枪 · 4颗心 · 移速 -8% · 冲刺冷却 +15% · 双月轮·穿透月轮,穿透步槍 · 4顆心 · 移速 -8% · 衝刺冷卻 +15% · 雙月輪·穿透月輪
 HERO_SWIPE_HINT,‹ 밀어서 영웅 6명 보기 ›,‹ Swipe to view all 6 heroes ›,‹ スワイプして6人を見る ›,‹ 滑动查看全部6名英雄 ›,‹ 滑動查看全部6名英雄 ›
 SCORE_SHARDS,얻은 조각,Shards earned,獲得した欠片,获得碎片,獲得碎片
 LADDER_TITLE,순위표,High Scores,ハイスコア,最高分,最高分
@@ -361,45 +377,182 @@ VOICE_MOONFIRE_1,보인다. 길이 보여,I see it. The path,見える。道が�
 VOICE_MOONFIRE_2,봉화 초가 답한다,The beacon candle answers,烽火の蝋燭が応える,烽火之烛回应了,烽火之燭回應了
 VOICE_CYCLE_1,다음 봉우리로. 어둠이 더 깊다,Next ridge. The dark runs deeper,次の峰へ。闇が深い,去下一座山。黑暗更深,去下一座山。黑暗更深
 VOICE_CYCLE_2,여기는 지켰다. 더 안쪽으로 간다,This ground is held. Deeper in now,ここは守った。もっと奥へ行く,这里守住了。往更里面走,這裡守住了。往更裡面走
-STORY_CYCLE_1_A,어둠이 이 숲을 삼키고 있다,The dark is swallowing this forest,闇がこの森を飲み込んでいる,黑暗正在吞没这片森林,黑暗正在吞沒這片森林
-STORY_CYCLE_1_B,봉화 셋을 지피면 물러난다. 밝음을 되찾자,Kindle three beacons and it pulls back. Take the light back,烽火を三つ灯せば退く。明かりを取り戻そう,点燃三座烽火它就会退去。夺回光明吧,點燃三座烽火它就會退去。奪回光明吧
-STORY_CYCLE_2_A,봉화가 서니 어둠이 덩치를 내보냈다,The beacons rose and the dark sent something big,烽火が立つと闇は大物を寄こした,黑暗因烽火而派出了庞然大物,黑暗因烽火而派出了龐然大物
-STORY_CYCLE_2_B,저건 삼킨 빛으로 빚은 것이다. 되찾으면 된다,It is shaped from swallowed light. Take it back,あれは飲み込んだ光で作られている。取り返せばいい,那是用吞下的光造的。夺回来就行,那是用吞下的光造的。奪回來就行
-STORY_CYCLE_3_A,사람이 살던 자리다. 화덕이 아직 남았다,People lived here. The hearth is still standing,人が住んでいた跡だ。かまどがまだ残っている,这里住过人。灶台还留着,這裡住過人。灶臺還留著
-STORY_CYCLE_3_B,여기서도 누가 봉화를 지켰겠지. 놓쳤을 뿐이다,Someone kept the beacons here too. They just lost them,ここでも誰かが烽火を守ったはずだ。ただ失っただけだ,这里也有人守过烽火。只是没能守住,這裡也有人守過烽火。只是沒能守住
-STORY_CYCLE_4_A,정령들은 나를 노린 게 아니다,The spirits are not hunting me,精霊たちは私を狙っていない,精灵并不是冲我来的,精靈並不是衝我來的
-STORY_CYCLE_4_B,빛에 끌릴 뿐이다. 미움 없이 밀어내자,They only follow the light. Push them back without hate,光に引かれるだけだ。憎まず押し返そう,它们只是被光吸引。不带恨意地推开吧,牠們只是被光吸引。不帶恨意地推開吧
-STORY_CYCLE_5_A,이 들판은 원래 숲이었다고 했다,They said this field was once forest,この野原は元は森だったという,据说这片原野原本是森林,據說這片原野原本是森林
-STORY_CYCLE_5_B,어둠은 하룻밤에 오지 않았다. 오래 먹어 왔다,The dark did not come in one night. It has been eating for ages,闇は一晩で来たのではない。長く食ってきた,黑暗不是一夜之间来的。它吃了很久,黑暗不是一夜之間來的。它吃了很久
-STORY_CYCLE_6_A,어둠이 화가 났다. 수호자가 커지고 빨라진다,The dark is angry. Its guardians grow and quicken,闇が怒っている。守護者が大きく速くなる,黑暗动怒了。守护者变大变快,黑暗動怒了。守護者變大變快
-STORY_CYCLE_6_B,그만큼 우리가 밀고 있다는 뜻이다,That means we are pushing it back,それだけ押し返しているということだ,这说明我们正在把它逼退,這說明我們正在把它逼退
-STORY_CYCLE_7_A,알겠다. 봉화는 태우는 불이 아니었다,I see it now. The beacon was never a burning fire,わかった。烽火は燃やす火ではなかった,我明白了。烽火不是用来烧的火,我明白了。烽火不是用來燒的火
-STORY_CYCLE_7_B,어둠이 넘지 못하는 선을 긋는 불이었다,It draws a line the dark cannot cross,闇が越えられない線を引く火だった,而是画出黑暗跨不过的界线,而是畫出黑暗跨不過的界線
-STORY_CYCLE_8_A,셋으로는 모자란다. 밤마다 다시 먹힌다,Three is not enough. Every night it eats back in,三つでは足りない。夜ごとにまた食われる,三座不够。每夜都会被重新吞掉,三座不夠。每夜都會被重新吞掉
-STORY_CYCLE_8_B,봉화를 하나로 이어야 한다. 끝까지 가자,The beacons must join into one line. Go to the end,烽火をひとつに繋がねばならない。最後まで行こう,必须把烽火连成一条线。走到最后,必須把烽火連成一條線。走到最後
-STORY_CYCLE_9_A,여덟 번째 선이 이어졌다. 약속은 지켰다,The eighth line is joined. The promise is kept,八本目の線が繋がった。約束は守った,第八道界线连上了。承诺已经兑现,第八道界線連上了。承諾已經兌現
-STORY_CYCLE_9_B,여기부터는 지도에 없는 밤이다. 얼마나 깊은지 보자,Past here the night is off the map. Let us see how deep it goes,ここから先は地図にない夜だ。どこまで深いか見てやろう,再往前是地图上没有的黑夜。看看它有多深,再往前是地圖上沒有的黑夜。看看它有多深
-STORY_OPEN_A,파수단은 무너졌다. 나만 남았다,The Wardens fell. Only I remain,見張り団は倒れた。残ったのは私だけだ,守烽人倒下了。只剩下我,守烽人倒下了。只剩下我
-STORY_OPEN_B,봉화를 잇는 게 내가 밤에 진 빚이다,Joining the beacons is my debt to the night,烽火を繋ぐのが夜への借りだ,连起烽火是我欠黑夜的债,連起烽火是我欠黑夜的債
-STORY_EPITAPH_WIN,선이 이어졌다. 이 땅의 밤은 다시 지도에 있다,The line is joined. This land's night is on the map again,線は繋がった。この地の夜は再び地図にある,界线连上了。这片土地的夜重回地图,界線連上了。這片土地的夜重回地圖
-STORY_EPITAPH_ESCAPE,오늘 밤은 여기까지다. 불씨를 간직하자,Tonight ends here. Keep the ember,今宵はここまでだ。火種を守ろう,今夜到此为止。守住火种,今夜到此為止。守住火種
-STORY_EPITAPH_LOSE,빚은 다음 밤으로 넘어간다,The debt passes to the next night,借りは次の夜へ渡る,债传给了下一夜,債傳給了下一夜
-VOICE_MEET_DRIFTER_1,밤박쥐다 · 움직이는 빛을 문다,Night bats · they bite what moves and glows,夜蝠だ · 動く光に噛みつく,夜蝠 · 专咬会动的光,夜蝠 · 專咬會動的光
+STORY_CYCLE_1_A,한 순환에 봉화 셋을 밝히면 길이 스스로를 기억한다,Light three beacons a Wave and the road remembers itself,一巡に三つの灯を灯せば 道が自分を思い出す,每一轮点亮三座灯 路就会记起自己,每一輪點亮三座燈 路就會記起自己
+STORY_CYCLE_1_B,그녀가 걷던 길을 되찾자 · 이 숲부터,Take back her trail. Start with this forest,彼女の足跡を取り戻そう · この森から,找回她走过的路 · 从这片森林开始,找回她走過的路 · 從這片森林開始
+STORY_CYCLE_2_A,길이 응답하자 어둠이 커다란 것을 보냈다,The road answered. So the dark sent something big,道が応えた · だから闇は大きなものを送った,路回应了 · 黑暗便派来了庞大的东西,路回應了 · 黑暗便派來了龐大的東西
+STORY_CYCLE_2_B,몸을 입은 잃어버린 빛 · 부드럽게 되찾자,Lost light wearing a body. Take it back gently,体を得た迷子の光 · 優しく取り戻そう,穿上身体的迷失之光 · 温柔地把它带回来,穿上身體的迷失之光 · 溫柔地把它帶回來
+STORY_CYCLE_3_A,제 빛을 잃었기에 내 빛을 쫓는다,It chases my light because it lost its own,自分の光を失くしたから 私の光を追う,它追逐我的光 因为它弄丢了自己的光,它追逐我的光 因為它弄丟了自己的光
+STORY_CYCLE_3_B,여기서 나를 미워하는 것은 없다 · 그저 길을 잃었을 뿐,Nothing here hates me. It is only lost,ここに私を憎むものはない · ただ迷っているだけ,这里没有恨我的东西 · 它们只是迷路了,這裡沒有恨我的東西 · 它們只是迷路了
+STORY_CYCLE_4_A,사람들이 살던 곳 · 화덕이 아직 서 있다,People lived here. The hearth is still standing,人が暮らした場所 · かまどがまだ立っている,这里曾有人住 · 火塘还立着,這裡曾有人住 · 火塘還立著
+STORY_CYCLE_4_B,누군가 나보다 먼저 이 길을 지켰다 · 그 발자국을 걷는다,Someone kept this road before me. I walk their line,誰かが私より先にこの道を守った · その足跡を歩く,有人比我先守着这条路 · 我沿着他们的足迹走,有人比我先守著這條路 · 我沿著他們的足跡走
+STORY_CYCLE_5_A,나리가 표시한 들판 · 어둠이 그 표시를 삼켰다,Nari charted this field. The dark ate her marks,ナリが印した野原 · 闇がその印を飲んだ,娜莉标记过的田野 · 印记被黑暗吞掉了,娜莉標記過的田野 · 印記被黑暗吞掉了
+STORY_CYCLE_5_B,다시 밝히면 그녀의 지도가 돌아온다,Light it again and her map comes back,灯し直せば 彼女の地図が戻る,重新点亮它 她的地图就会回来,重新點亮它 她的地圖就會回來
+STORY_CYCLE_6_A,봉화 하나는 그저 불꽃 · 나리는 알고 있었다,One beacon is a fire. Nari knew that,一つの灯はただの火 · ナリは知っていた,一座灯只是火 · 娜莉早就知道,一座燈只是火 · 娜莉早就知道
+STORY_CYCLE_6_B,봉화는 서로를 기억해야 길이 된다,Beacons must remember each other to make a road,灯は互いを覚えてこそ 道になる,灯记住彼此 才能连成路,燈記住彼此 才能連成路
+STORY_CYCLE_7_A,이제 알겠다 · 불꽃마다 다음 불꽃의 이름을 품는다,I see it now. Each flame holds the next one's name,わかった · 炎は次の炎の名を宿す,我懂了 · 每团火都记着下一团火的名字,我懂了 · 每團火都記著下一團火的名字
+STORY_CYCLE_7_B,그것이 어둠이 넘지 못하는 선이다,That is the line the dark cannot cross,それが闇の越えられない線だ,那就是黑暗无法越过的线,那就是黑暗無法越過的線
+STORY_CYCLE_8_A,마지막 순환 · 주전자가 충분히 기다렸다,Last Wave. The kettle has waited long enough,最後の一巡 · やかんはもう十分待った,最后一轮 · 水壶已经等得够久了,最後一輪 · 水壺已經等得夠久了
+STORY_CYCLE_8_B,봉화를 이으라 · 집으로 가는 길을 밝혀라,Join the beacons. Light the road home,灯をつなげ · 家への道を灯せ,连起灯火 · 点亮回家的路,連起燈火 · 點亮回家的路
+STORY_CYCLE_9_A,집으로 가는 길이 타오른다 · 주전자는 따뜻하다,The road home burns. The kettle is warm,家への道が燃える · やかんは温かい,回家的路亮起来了 · 水壶是暖的,回家的路亮起來了 · 水壺是暖的
+STORY_CYCLE_9_B,여기 너머 다른 길들이 기다린다 · 부드럽게 걷자,Past here other roads wait. Walk gently,この先に他の道が待つ · 優しく歩こう,前面还有别的路在等 · 轻轻地走吧,前面還有別的路在等 · 輕輕地走吧
+STORY_OPEN_A,나리는 봉화길을 고치러 떠났다가 돌아오지 못했다,Nari went to mend the beacon road and never came home,ナリは灯の道を直しに出て 帰らなかった,娜莉去修灯路 一去就没有回来,娜莉去修燈路 一去就沒有回來
+STORY_OPEN_B,집으로 가는 길을 밝혀달라는 부탁 · 주전자는 올려두었으니 식지 않게,Keep the road home lit she wrote. The kettle is on — keep it warm,家への道を灯してと書き残した · やかんを火にかけたから 冷まさないで,她留下字条说 点亮回家的路 · 水壶在炉上 别让它凉了,她留下字條說 點亮回家的路 · 水壺在爐上 別讓它涼了
+STORY_EPITAPH_WIN,나리의 신호가 답했다 · 집에 돌아왔고 주전자는 따뜻하다,Her signal answers · Nari is home and the kettle is warm,ナリの信号が応えた · 家に帰って やかんは温かい,娜莉的信号回应了 · 她到家了 水壶是暖的,娜莉的信號回應了 · 她到家了 水壺是暖的
+STORY_EPITAPH_ESCAPE,오늘 밤은 여기까지 · 등불은 네 귀환을 기다리며 켜져 있다,Tonight ends here. The lamp stays lit for your return,今夜はここまで · ランプは帰りを待って灯っている,今晚就到这里 · 灯为你的归来留着,今晚就到這裡 · 燈為你的歸來留著
+STORY_EPITAPH_LOSE,어둠이 오늘 밤을 가져갔다 · 그녀의 등불은 아직 기다린다 · 다시 나서자,The dark took tonight. Her lamp still waits — try again,闇が今夜を奪った · 彼女のランプはまだ待つ · もう一度進もう,黑暗夺走了今晚 · 她的灯还在等 · 再出发吧,黑暗奪走了今晚 · 她的燈還在等 · 再出發吧
+VOICE_MEET_DRIFTER_1,밤나방이다 · 움직이는 빛에 들러붙는다,Night moths · they cling to what glows,夜蛾だ · 動く光にまとわりつく,夜蛾 · 专扑会动的光,夜蛾 · 專撲會動的光
 VOICE_MEET_EMBER_1,꺼지지 않은 불씨다 · 타는 데 동무를 구한다,A cinder unquenched · it wants company in burning,消え残った火種だ · 燃える仲間を求めている,没熄透的火种 · 想找个一起烧的伴,沒熄透的火種 · 想找個一起燒的伴
 VOICE_MEET_CASTER_1,주목을 구해 주문을 외운다 · 그 탄은 기도다,It chants to be noticed · its shots are prayers,注目を求めて呪文を唱える · その弾は祈りだ,它念咒求关注 · 那些弹是祷告,它念咒求關注 · 那些彈是禱告
 VOICE_MEET_WEAVER_1,빛 위에 어둠을 깁는다 · 꿰매는 중이라 믿는다,Stitching dark over light · it thinks it mends,光の上に闇を縫う · 繕っているつもりだ,它把黑暗缝在光上 · 以为自己在缝补,它把黑暗縫在光上 · 以為自己在縫補
 VOICE_MEET_STALKER_1,지기였던 걸 기억한다 · 잃은 불을 사냥한다,Once a keeper · it hunts the flame it lost,守り人だったことを覚えている · 失くした火を狩る,它记得自己当过守烽人 · 在猎它弄丢的火,它記得自己當過守烽人 · 在獵它弄丟的火
-VOICE_MEET_SWARM_1,날개 달린 허기다 · 생각 없이 입만 있다,Hunger with wings · mouths without minds,翼ある飢えだ · 考えはなく口だけだ,长翅膀的饥饿 · 没脑子只有嘴,長翅膀的飢餓 · 沒腦子只有嘴
-VOICE_MEET_WISP_1,호기심 많은 불씨 · 몰리면 무서워 쏜다,Curious little flame · it stings when crowded,好奇心の強い小さな火 · 群れると怖くて刺す,好奇的小火 · 被围住吓到就蜇人,好奇的小火 · 被圍住嚇到就蜇人
-VOICE_MEET_GUARDIAN_FOREST_1,숲이 빚은 추격자 · 돌진도 빛의 기억이다,Forest pursuer · even its charges remember light,森が練った追跡者 · 突進すら光の記憶だ,森林捏出的追猎者 · 连冲撞都是光的记忆,森林捏出的追獵者 · 連衝撞都是光的記憶
-VOICE_MEET_GUARDIAN_FIELD_1,들에 깔린 빛이 날개가 됐다 · 쏘는 것도 빛이다,Field light grew wings · its shots are light too,野に散った光が翼になった · 放つ弾も光だ,撒在原野的光长出了翅膀 · 射出的也是光,撒在原野的光長出了翅膀 · 射出的也是光
-VOICE_MEET_GUARDIAN_CAMP_1,화덕의 불을 삼킨 장군 · 갑옷 아래 아직 온기가 있다,Hearthswallower · warm under the armor,かまどの火を飲んだ将 · 甲の下はまだ温かい,吞了灶火的将军 · 铠甲下面还暖着,吞了灶火的將軍 · 盔甲下面還暖著
+VOICE_MEET_SWARM_1,바람 타는 허기다 · 생각 없이 입만 있다,Hunger on the wind · mouths without minds,風に乗る飢えだ · 考えはなく口だけだ,乘风的饥饿 · 没脑子只有嘴,乘風的飢餓 · 沒腦子只有嘴
+VOICE_MEET_WISP_1,호기심 많은 구름 · 몰리면 무서워 쏜다,Curious little cloud · it stings when crowded,好奇心の強い小さな雲 · 群れると怖くて刺す,好奇的小云 · 被围住吓到就蜇人,好奇的小雲 · 被圍住嚇到就蜇人
+VOICE_MEET_GUARDIAN_FOREST_1,숲 추적자 · 옛 순찰길을 아직 달린다,Forest pursuer · it still runs the old patrol paths,森の追跡者 · 昔の巡回路をまだ走る,森林追猎者 · 还在跑旧的巡逻路,森林追獵者 · 還在跑舊的巡邏路
+VOICE_MEET_GUARDIAN_FIELD_1,들판 날개 · 옛 신호 십자로 답한다,Field wings · it answers with the old signal cross,野の翼 · 古の信号十字で応える,田野之翼 · 用旧的信号十字应答,田野之翼 · 用舊的信號十字應答
+VOICE_MEET_GUARDIAN_CAMP_1,화덕삼킴이 · 훔친 화덕을 감싸고 웅크린다,Hearthswallower · it curls round a stolen hearth,かまど飲み · 奪ったかまどを抱いて丸まる,吞炉者 · 蜷缩在偷来的火塘上,吞爐者 · 蜷縮在偷來的火塘上
 VOICE_MEET_GUARDIAN_FOREST_THORN_1,가시왕 · 오래된 빛일수록 가시가 깊다,The Thorn King · older light · deeper thorns,茨王 · 古い光ほど茨は深い,荆棘王 · 光越老刺越深,荊棘王 · 光越老刺越深
 VOICE_MEET_GUARDIAN_FIELD_STORM_1,폭풍의 날개 · 화가 난 밤이 벼락을 얹었다,Storm wings · the angry night loaded lightning,嵐の翼 · 怒った夜が雷を載せた,风暴之翼 · 发怒的夜装上了雷,風暴之翼 · 發怒的夜裝上了雷
 VOICE_MEET_GUARDIAN_CAMP_SIEGE_1,공성 장군 · 문을 두드리던 게 이제 문을 부순다,Siege general · what knocked now breaks in,攻城将 · 叩いていたものが今は押し入る,攻城将军 · 从前敲门的如今破门,攻城將軍 · 從前敲門的如今破門
+VOICE_MEET_GUARDIAN_FROST_1,서리 부엉이 · 삼킨 고개를 아직 지킨다,Hoarfrost owl · it still guards the pass it swallowed,霜の梟 · 飲んだ峠をまだ守る,霜枭 · 还守着它吞掉的山口,霜梟 · 還守著它吞掉的山口
+VOICE_MEET_GUARDIAN_FROST_RIME_1,서릿발 왕관 · 얼음이 자라 뿔이 되었다,Rimecrown · the ice grew into antlers,霜冠 · 氷が伸びて角になった,霜冠 · 冰长成了角,霜冠 · 冰長成了角
+VOICE_MEET_GUARDIAN_MARSH_1,늪 두꺼비 · 옛 나루 돌을 아직 뛴다,Mirewood toad · it hops the old ferry stones,沼の蝦蟇 · 古の渡し石をまだ跳ぶ,沼泽蟾蜍 · 还在跳旧的渡口石,沼澤蟾蜍 · 還在跳舊的渡口石
+VOICE_MEET_GUARDIAN_MARSH_GLOW_1,빛버섯 두꺼비 · 머리 위에 작은 등불이 돋았다,Glowcap toad · little lamps grew on its head,光茸のヒキガエル · 頭に小さな灯りが生えた,荧菇蟾蜍 · 头上长出了小灯,螢菇蟾蜍 · 頭上長出了小燈
+VOICE_MEET_GUARDIAN_RUINS_1,달돌 파수꾼 · 아무도 명하지 않은 파수를 선다,Moonstone sentinel · it keeps a vigil no one set,月石の番人 · 誰も命じない見張りを続ける,月石哨兵 · 守着无人安排的夜,月石哨兵 · 守著無人安排的夜
+VOICE_MEET_GUARDIAN_RUINS_HALO_1,후광 파수꾼 · 돌들이 고리가 되어 돈다,Halo sentinel · the stones circle it now,光輪の番人 · 石が輪になって回る,光环守卫 · 石头围成圈转动,光環守衛 · 石頭圍成圈轉動
 VOICE_CYCLE_3,지도 밖 밤은 깊이를 모른다 · 한 선씩 긋자,No bottom out here · draw one line at a time,地図外れの夜に底はない · 一本ずつ線を引こう,地图外的夜没底 · 一条一条画线吧,地圖外的夜沒底 · 一條一條畫線吧
 VOICE_CYCLE_4,꺼진 봉화가 밤을 먹인다 · 굶겨라,Each snuffed beacon feeds the night · starve it,消える烽火が夜を肥やす · 飢えさせろ,灭一座烽火夜就饱一分 · 饿着它,滅一座烽火夜就飽一分 · 餓著它
 VOICE_CYCLE_5,수호자도 지친다 · 빛은 지치지 않는다,Even guardians tire · light does not,守護者も疲れる · 光は疲れない,守护者也会累 · 光不会,守護者也會累 · 光不會
 VOICE_CYCLE_6,몇 번째 밤인지 세지 마라 · 선이 몇 개인지 세라,Do not count the nights · count the lines,夜を数えるな · 線を数えろ,别数第几夜 · 数几条线,別數第幾夜 · 數幾條線
 VOICE_CALL_DARK_1,어둠을 부른다 · 날개들이 대답한다,It calls the dark · wings answer,闇を呼ぶ · 翼が答える,它在喊黑暗 · 翅膀应了,它在喊黑暗 · 翅膀應了
 VOICE_CALL_DARK_2,혼자 못 이기겠지 · 그래서 무리를 부른다,It cannot win alone · so it calls the pack,独りでは勝てない · だから群れを呼ぶ,单挑赢不了 · 所以喊群,單挑贏不了 · 所以喊群
+VOICE_FORK_1,문 둘 · 길마다 기억하는 것이 있다,Two gates. Each road remembers something,二つの門 · 道ごとに覚えているものがある,两道门 · 每条路都记得些什么,兩道門 · 每條路都記得些什麼
+VOICE_FORK_2,길이 갈라진다 · 필요한 기억을 따라가자,The way splits. Follow the memory you need,道が分かれる · 必要な記憶を追おう,路分岔了 · 跟着你需要的记忆走,路分岔了 · 跟著你需要的記憶走
+VOICE_OMEN_1,이 밤은 규칙이 다르다,This night keeps other rules,この夜は決まりが違う,这一夜规矩不同,這一夜規矩不同
+VOICE_OMEN_2,달이 평소와 다르게 움직인다,The moon moves strangely tonight,今夜の月は様子がおかしい,今夜的月亮有点异样,今夜的月亮有點異樣
+ACT_1_LABEL,1막,ACT I,第一幕,第一幕,第一幕
+ACT_1_TITLE,약속,The Promise,約束,约定,約定
+ACT_1_EPIGRAPH,집으로 가는 길을 밝히라,Keep the road home lit,家への道を灯せ,点亮回家的路,點亮回家的路
+ACT_2_LABEL,2막,ACT II,第二幕,第二幕,第二幕
+ACT_2_TITLE,길을 잃은 것들,The Lost,迷えるもの,迷失者,迷失者
+ACT_2_EPIGRAPH,미워하지 않는다 · 길을 잃었을 뿐,It does not hate. It is only lost,憎まない · ただ迷っている,没有恨 · 只是迷路了,沒有恨 · 只是迷路了
+ACT_3_LABEL,3막,ACT III,第三幕,第三幕,第三幕
+ACT_3_TITLE,길,The Road,道,路,路
+ACT_3_EPIGRAPH,봉화는 서로를 기억해야 한다,Beacons must remember one another,灯は互いを覚えねばならない,灯必须记住彼此,燈必須記住彼此
+ACT_4_LABEL,에필로그,EPILOGUE,エピローグ,尾声,尾聲
+ACT_4_TITLE,집으로 가는 길,The Road Home,家への道,回家的路,回家的路
+ACT_4_EPIGRAPH,지도 너머 다른 빛들이 아직 기다린다,Other lights still wait beyond the map,地図の先に他の光がまだ待つ,地图之外还有别的光在等,地圖之外還有別的光在等
+ACT_TAP,탭하여 계속,Tap to continue,タップで続ける,点击继续,點擊繼續
+STORY_CYCLE_10_A,나는 계속 어둠이라고만 불렀다. 그건 이름이 아니었다,I kept calling it the dark. That was never its name,私はずっと闇と呼んできた。それは名前ではなかった,我一直叫它黑暗。那从来不是它的名字,我一直叫它黑暗。那從來不是它的名字
+STORY_CYCLE_10_B,달이 하나도 없다. 그럼 달 없는 밤이라고 부르자,No moon in it at all. Then it is the Moonless,月がひとつもない。ならば月なき夜と呼ぼう,里面连一点月光都没有。那就叫它无月之夜,裡面連一點月光都沒有。那就叫它無月之夜
+STORY_CYCLE_12_A,달 없는 밤은 우리를 미워하지 않는다. 빛을 잊었을 뿐이다,The Moonless does not hate us. It only forgot light,月なき夜は私たちを憎んでいない。光を忘れただけだ,无月之夜并不恨我们。它只是忘了光,無月之夜並不恨我們。它只是忘了光
+STORY_CYCLE_12_B,그러니 한 길씩 기억나게 해 주자,So we remind it one road at a time,だから一本の道ずつ思い出させてやろう,那我们就一条路一条路地让它想起来,那我們就一條路一條路地讓它想起來
+VOICE_CYCLE_7,달 없는 밤이 숨을 쉰다. 우리도 숨을 고르자,The Moonless breathes. So will we,月なき夜が息をしている。私たちも息を整えよう,无月之夜在呼吸。我们也喘口气,無月之夜在呼吸。我們也喘口氣
+VOICE_CYCLE_8,어디까지 내려왔는지는 세지 않는다. 선만 센다,I do not count how deep. I count lines,どこまで降りたかは数えない。線だけ数える,不数走到多深，只数连了几条线,不數走到多深，只數連了幾條線
+CHRONICLE_OPEN,연대기,Chronicle,年代記,编年史,編年史
+CHRONICLE_TITLE,연대기,Chronicle,年代記,编年史,編年史
+CHRONICLE_PROGRESS,기록 %d/%d,Recorded %d/%d,記録 %d/%d,已记录 %d/%d,已記錄 %d/%d
+CHRONICLE_HINT,밤을 지나며 본 것이 이곳에 남는다,What you meet in the night is written here,夜を越えて出会ったものがここに残る,夜里遇到的一切都会记在这里,夜裡遇到的一切都會記在這裡
+CHRONICLE_LOCKED,아직 만나지 못했다,Not met yet,まだ出会っていない,尚未遇见,尚未遇見
+CHRONICLE_CLOSE,닫기,Close,閉じる,关闭,關閉
+CHRONICLE_SPIRITS,정령,Spirits,精霊,精灵,精靈
+CHRONICLE_GUARDIANS,수호자,Guardians,守護者,守护者,守護者
+CHRONICLE_ENDINGS,끝맺음,Endings,結末,结局,結局
+CHRONICLE_ENDING_WIN,나리가 돌아온 밤,Nari is home,ナリが帰った夜,娜莉回家的夜,娜莉回家的夜
+CHRONICLE_ENDING_ESCAPE,불씨를 안고 돌아온 밤,Home with the ember,火種を抱えて帰った夜,带着火种回来的夜,帶著火種回來的夜
+CHRONICLE_ENDING_LOSE,등불이 아직 기다리는 밤,The lamp still waits,ランプがまだ待つ夜,灯还在等的夜,燈還在等的夜
+HVOICE_DANCER_OPEN_A,등불마을은 점화제마다 춤을 추었다,Lantern Hollow danced at every lighting festival,灯の里は点火祭ごとに踊った,灯村的每次点灯节都有舞蹈,燈村的每次點燈節都有舞蹈
+HVOICE_DANCER_OPEN_B,나리의 길을 춤으로 다시 밝히겠다,I will dance Nari's road back alight,ナリの道を踊りで再び灯す,我要用舞蹈重新点亮娜莉的路,我要用舞蹈重新點亮娜莉的路
+HVOICE_DANCER_BEACON_FIRST,하나! 축제는 여기서 시작이야,One! The festival starts here,ひとつ！ 祭りはここから,一座！ 节日从这里开始,一座！ 節日從這裡開始
+HVOICE_DANCER_GUARDIAN_DOWN,너무 느려. 스텝을 못 배웠나 봐,Too slow. It never learned the steps,遅いよ。ステップを覚えなかったね,太慢了。它没学过舞步,太慢了。它沒學過舞步
+HVOICE_DANCER_LOW,조심해… 한 걸음만 틀려도 춤이 끝나,Careful now... one wrong step and the dance ends,気をつけて…一歩間違えば踊りは終わり,小心…错一步舞就结束了,小心…錯一步舞就結束了
+HVOICE_KEEPER_OPEN_A,나리는 이 길의 모든 화덕을 지켰다,Nari kept every hearth on this road,ナリはこの道のすべてのかまどを守った,娜莉守着这条路上的每一座火塘,娜莉守著這條路上的每一座火塘
+HVOICE_KEEPER_OPEN_B,그녀가 집으로 걸어올 때까지 내가 지키겠다,I will tend them till she walks home,彼女が家に歩いて帰るまで 私が守る,在她走回家之前 我来守着它们,在她走回家之前 我來守著它們
+HVOICE_KEEPER_BEACON_FIRST,화덕 하나에 불이 붙었다 · 주전자가 노래한다,One hearth lit. The kettle sings,ひとつのかまどに火がついた · やかんが歌う,一座火塘点亮了 · 水壶唱起歌来,一座火塘點亮了 · 水壺唱起歌來
+HVOICE_KEEPER_GUARDIAN_DOWN,쉬어라 오래된 빛 · 화덕은 무사하다,Rest now old light. The hearth is safe,休め古い光 · かまどは無事だ,歇吧 古老的光 · 火塘安然无恙,歇吧 古老的光 · 火塘安然無恙
+HVOICE_KEEPER_LOW,아직이야. 지기는 불이 안전할 때까지 서 있어,Not yet. A keeper stands until the fire is safe,まだだ。守り人は火が安全になるまで立つ,还不行。守护者要站到火安全为止,還不行。守護者要站到火安全為止
+HVOICE_KNIGHT_OPEN_A,수호자들이 쓰러지기 전부터 이 길을 지켰다,I guarded this road before the Wardens fell,守り手が倒れる前から この道を守った,在守望者倒下之前 我就守着这条路,在守望者倒下之前 我就守著這條路
+HVOICE_KNIGHT_OPEN_B,나리가 돌아올 길을 지키겠다,I will guard Nari's trail home,ナリの帰る道を守る,我要守住娜莉回家的路,我要守住娜莉回家的路
+HVOICE_KNIGHT_BEACON_FIRST,첫 봉화 · 길이 다시 이어진다,First beacon. The road reforms,最初の灯 · 道が結び直す,第一座灯 · 路重新连起来了,第一座燈 · 路重新連起來了
+HVOICE_KNIGHT_GUARDIAN_DOWN,빛을 내어라 · 이 길을 지키는 빛이다,Yield the light. It guards this road,光を返せ · この道を守る光だ,交出光来 · 它属于这条路,交出光來 · 它屬於這條路
+HVOICE_KNIGHT_LOW,기사는 불을 다시 지필 때만 무릎을 꿇는다,A knight kneels only to relight a flame,騎士が膝をつくのは火を灯し直すときだけ,骑士只在重燃火焰时才会下跪,騎士只在重燃火焰時才會下跪
+HVOICE_ECLIPSE_OPEN_A,처음으로 꺼진 빛을 월식에서 읽었다,I read the first missing light in the eclipse,最初に消えた光を蝕に読んだ,我在月食里读到了第一盏熄灭的灯,我在月食裡讀到了第一盞熄滅的燈
+HVOICE_ECLIPSE_OPEN_B,나리의 신호 · 어디로 갔는지 찾겠다,Nari's signal. I will find where it went,ナリの信号 · 行方を見つける,娜莉的信号 · 我要找到它的去向,娜莉的信號 · 我要找到它的去向
+HVOICE_ECLIPSE_BEACON_FIRST,빛 하나 · 별자리가 다시 이어진다,One point of light. The pattern resumes,ひとつの光 · 星図が再びつながる,一点光 · 星图重新连上了,一點光 · 星圖重新連上了
+HVOICE_ECLIPSE_GUARDIAN_DOWN,월식은 내 쪽으로 끝났다,The eclipse ended in my favor,月蝕は私の側で終わった,这场月蚀以我的胜利收场,這場月蝕以我的勝利收場
+HVOICE_ECLIPSE_LOW,흥미롭군. 승산이 줄어들고 있어,Interesting. The odds are getting short,面白い。勝ち目が細くなってきた,有意思。胜算在变小,有意思。勝算在變小
+HVOICE_SAGE_OPEN_A,나리가 밝힌 모든 신호를 지도에 그렸다,I charted every signal Nari ever lit,ナリが灯した信号をすべて図に描いた,娜莉点过的每一处信号 我都画进了星图,娜莉點過的每一處信號 我都畫進了星圖
+HVOICE_SAGE_OPEN_B,별 하나씩 그녀의 길을 다시 그리겠다,I will redraw her road star by star,星ひとつずつ彼女の道を描き直す,我要一颗星一颗星地重画她的路,我要一顆星一顆星地重畫她的路
+HVOICE_SAGE_BEACON_FIRST,첫 별이 켜졌다 · 지도가 눈을 뜬다,First star lit. The chart wakes,最初の星が灯った · 図が目覚める,第一颗星亮了 · 星图醒来了,第一顆星亮了 · 星圖醒來了
+HVOICE_SAGE_GUARDIAN_DOWN,삼켜진 빛이 제 하늘로 돌아갔다,A swallowed light returned to its sky,飲まれた光が空へ帰った,被吞下的光回到了它的天空,被吞下的光回到了它的天空
+HVOICE_SAGE_LOW,별도 더 밝게 타오르기 전엔 깜빡인다,Even a star flickers before it burns brighter,星も明るく燃える前には瞬く,星星在燃得更亮之前也会闪烁,星星在燃得更亮之前也會閃爍
+HUD_DEPTH,심층 %d,Depth %d,深層 %d,深度 %d,深度 %d
+OMEN_BLOOD_MOON,핏빛 달,Blood Moon,血の月,血月,血月
+OMEN_BLOOD_MOON_DESC,정예가 늘고 불씨가 많이 나온다,More elites and more embers,精鋭が増え 残り火も多く落ちる,精英增多 火种掉落更多,精英增多 火種掉落更多
+OMEN_SWARM_TIDE,정령 물결,Swarm Tide,精霊の潮,精灵潮,精靈潮
+OMEN_SWARM_TIDE_DESC,더 빨리 몰려오지만 더 빨리 쓰러진다,They arrive faster and fall faster,早く押し寄せるが 早く倒れる,来得更快 倒得也更快,來得更快 倒得也更快
+OMEN_IRON_NIGHT,강철 밤,Iron Night,鉄の夜,铁之夜,鐵之夜
+OMEN_IRON_NIGHT_DESC,수는 줄지만 훨씬 단단하다,Fewer spirits and much tougher,数は減るが ずっと硬い,数量变少 但更坚硬,數量變少 但更堅硬
+OMEN_LANTERN_BLOOM,등불 만개,Lantern Bloom,灯の開花,灯火绽放,燈火綻放
+OMEN_LANTERN_BLOOM_DESC,봉화가 훨씬 빨리 켜진다,Beacons kindle much faster,烽火がずっと早く灯る,烽火点燃快得多,烽火點燃快得多
+OMEN_DEW_RAIN,이슬비,Dew Rain,露の雨,露雨,露雨
+OMEN_DEW_RAIN_DESC,달이슬이 훨씬 자주 떨어진다,Moon dew falls much more often,月露がよく降る,月露更常掉落,月露更常掉落
+OMEN_GALE,질풍,Gale,疾風,疾风,疾風
+OMEN_GALE_DESC,정령이 더 빠르게 움직인다,Spirits move faster,精霊の動きが速い,精灵移动更快,精靈移動更快
+MUTATION_ECHO,메아리,Echo,こだま,回响,回響
+MUTATION_ECHO_DESC,탄막을 한 번 더 되풀이한다,Every volley repeats once,弾幕がもう一度繰り返される,弹幕会再重复一次,彈幕會再重複一次
+MUTATION_SPIRAL,소용돌이,Spiral,渦,漩涡,漩渦
+MUTATION_SPIRAL_DESC,안전한 틈이 돌면서 움직인다,The safe gap keeps turning,安全な隙間が回り続ける,安全缺口不断旋转,安全缺口不斷旋轉
+MUTATION_SUMMONER,소환사,Summoner,召喚師,召唤师,召喚師
+MUTATION_SUMMONER_DESC,체력이 줄면 무리를 부른다,Calls a pack as its health falls,体力が減ると群れを呼ぶ,血量下降时召唤援军,血量下降時召喚援軍
+MUTATION_FRENZY,광란,Frenzy,狂乱,狂乱,狂亂
+MUTATION_FRENZY_DESC,모든 동작이 더 빨라진다,Everything it does is faster,すべての動きが速くなる,一切动作都更快,一切動作都更快
+MUTATION_AEGIS,수호막,Aegis,守りの輪,护盾,護盾
+MUTATION_AEGIS_DESC,보호막이 떠 있는 동안 상처 입지 않는다,Unhurtable while its shield ring shows,盾の輪がある間は傷つかない,护盾环存在时无法受伤,護盾環存在時無法受傷
+MUTATION_METEORS,유성우,Meteors,流星雨,流星雨,流星雨
+MUTATION_METEORS_DESC,표시된 원 위로 유성이 떨어진다,Marked circles rain meteors,印の円に流星が降る,标记的圆圈会落下流星,標記的圓圈會落下流星
+TRIAL_NAME,달 없는 시련,Moonless Trial,月なき試練,无月试炼,無月試煉
+GUARDIAN_MUTATIONS,변이: %s,Mutations: %s,変異: %s,变异: %s,變異: %s
+GUARDIAN_PACK,무리를 불러냈다!,It calls its pack!,群れを呼んだ！,它召唤了援军！,它召喚了援軍！
+SKILL_WARD_HOLDS,달빛 보호막이 막아냈다!,The Moon Ward held!,月光の守りが防いだ！,月光护盾挡住了！,月光護盾擋住了！
+SKILL_SECOND_LIGHT,두 번째 빛이 일으켜 세웠다!,The Second Light lifts you up!,二つ目の光が立ち上がらせた！,第二道光让你重新站起！,第二道光讓你重新站起！
+CARD_NEW_SKILL,새 스킬,New skill,新スキル,新技能,新技能
+RELIC_LANTERN_FAMILIAR_NAME,등불 요정,Lantern Familiar,灯りの相棒,灯笼伙伴,燈籠夥伴
+RELIC_LANTERN_FAMILIAR_DESC,불꽃을 쏘는 등불 요정 +1 · 최대 3,Spark-shooting lantern spirit +1 · max 3,火花を撃つ灯りの精 +1 · 最大3,发射火花的灯笼精灵 +1 · 最多3,發射火花的燈籠精靈 +1 · 最多3
+RELIC_MOON_WARD_NAME,달빛 보호막,Moon Ward,月光の守り,月光护盾,月光護盾
+RELIC_MOON_WARD_DESC,한 번 막고 다시 충전 · 겹칠수록 빠르게,Blocks 1 hit then recharges · faster per stack,1回防いで再充填 · 重ねるほど早く,挡下1次伤害后充能 · 每层更快,擋下1次傷害後充能 · 每層更快
+RELIC_COMET_CALL_NAME,혜성 호출,Comet Call,彗星召喚,彗星召唤,彗星召喚
+RELIC_COMET_CALL_DESC,가장 빽빽한 무리에 혜성 낙하 · 겹칠수록 잦게,A comet hits the thickest pack · more often per stack,密集した群れへ彗星が落ちる · 重ねるほど頻繁に,彗星落向最密集的敌群 · 每层更频繁,彗星落向最密集的敵群 · 每層更頻繁
+RELIC_STAR_MAGNET_NAME,별 자석,Star Magnet,星の磁石,星之磁石,星之磁石
+RELIC_STAR_MAGNET_DESC,획득물이 더 멀리서 날아온다 · 범위 +1,Pickups fly to you from further · reach +1,アイテムがより遠くから飛んでくる · 範囲 +1,拾取物从更远处飞来 · 范围 +1,拾取物從更遠處飛來 · 範圍 +1
+RELIC_THORN_BLOOM_NAME,가시 꽃,Thorn Bloom,棘の花,荆棘之花,荊棘之花
+RELIC_THORN_BLOOM_DESC,맞으면 가시가 터져 적을 찌르고 밀어낸다,A hit bursts thorns that hurt and push foes back,被弾で棘が弾け 敵を刺して押し返す,受击时荆棘爆开 伤敌并击退,受擊時荊棘爆開 傷敵並擊退
+RELIC_SECOND_LIGHT_NAME,두 번째 빛,Second Light,二つ目の光,第二道光,第二道光
+RELIC_SECOND_LIGHT_DESC,순환마다 한 번 치명타에서 살아남는다,Once a wave survive a lethal hit,巡ごとに一度 致命傷から生き残る,每轮一次 在致命一击中幸存,每輪一次 在致命一擊中倖存
+RELIC_MOON_BURST_NAME,달빛 폭발,Moon Burst,月光の爆発,月光爆发,月光爆發
+RELIC_MOON_BURST_DESC,카드를 고를 때 달빛이 터져 주변을 다치게 하고 밀어낸다,Choosing a card bursts moonlight that hurts and pushes back what is near,カードを選ぶと月光が弾け 周りを傷つけて押し返す,选择卡牌时月光爆开 伤害并击退周围敌人,選擇卡牌時月光爆開 傷害並擊退周圍敵人
+RELIC_WINTER_BELL_NAME,겨울 종,Winter Bell,冬の鐘,冬之钟,冬之鐘
+RELIC_WINTER_BELL_DESC,종이 울리면 서리 고리가 번져 닿은 정령을 느리게 한다,The bell tolls and a ring of frost slows every spirit it reaches,鐘が鳴ると霜の輪が広がり 触れた精霊を遅くする,钟声响起 霜环扩散 使触及的精灵变慢,鐘聲響起 霜環擴散 使觸及的精靈變慢
+RELIC_COMET_TRAIL_NAME,혜성 자국,Comet Trail,彗星の軌跡,彗星轨迹,彗星軌跡
+RELIC_COMET_TRAIL_DESC,대시가 지나간 자리에 달빛 표식이 남았다가 터진다,A dash leaves marks of moonlight that burst behind you,ダッシュの跡に月光の印が残り 遅れて弾ける,冲刺留下月光印记 稍后爆开,衝刺留下月光印記 稍後爆開
+PLACE_NAME_FOREST,길 리본,Trail Ribbons,道のリボン,路标彩带,路標綵帶
+PLACE_CLUE_FOREST,오솔길의 리본,ribbons on the trail,小道のリボン,小径上的彩带,小徑上的綵帶
+PLACE_MEMORY_FOREST,나리가 묶은 리본 · 아직 흔들린다,Nari's trail ribbons · still fluttering,ナリの結んだリボン · まだ揺れる,娜莉系的彩带 · 还在这里飘,娜莉繫的綵帶 · 還在這裡飄
+PLACE_NAME_FIELD,바람 종,Wind Chimes,風鈴,风铃,風鈴
+PLACE_CLUE_FIELD,풀잎 속 바람 종,chimes in the grass,草むらの風鈴,草丛里的风铃,草叢裡的風鈴
+PLACE_MEMORY_FIELD,바람 종 · 그녀의 신호를 되울린다,Wind chimes · ringing her signal back,風鈴 · 彼女の信号を奏で返す,风铃 · 又奏响了她的信号,風鈴 · 又奏響了她的信號
+PLACE_NAME_CAMP,야영지 주전자,Camp Kettle,野営のやかん,营地水壶,營地水壺
+PLACE_CLUE_CAMP,화덕 옆 주전자,a kettle by the hearth,かまどの脇のやかん,火塘边的水壶,火塘邊的水壺
+PLACE_MEMORY_CAMP,그녀의 주전자 · 데우면 야영지가 숨쉰다,Her kettle · the camp breathes again,彼女のやかん · 温めれば野営が息づく,她的水壶 · 烧暖它营地就活了,她的水壺 · 燒暖它營地就活了
+PLACE_NAME_FROST,신호 종,Signal Bell,信号の鐘,信号钟,信號鐘
+PLACE_CLUE_FROST,눈 속의 종,a bell under the snow,雪の下の鐘,雪下的钟,雪下的鐘
+PLACE_MEMORY_FROST,눈 속의 종 · 바람을 가른다,A bell under the snow · cutting the wind,雪の下の鐘 · 風を切る,雪下的钟 · 划破寒风,雪下的鐘 · 劃破寒風
+PLACE_NAME_MARSH,종이배,Paper Boat,紙の舟,纸船,紙船
+PLACE_CLUE_MARSH,떠다니는 종이배,a paper boat adrift,漂う紙の舟,漂着的纸船,漂著的紙船
+PLACE_MEMORY_MARSH,종이배 · 그녀의 소원이 아직 뜬다,A paper boat · her wish still floats,紙の舟 · 彼女の願いがまだ浮かぶ,纸船 · 载着她的心愿,紙船 · 載著她的心願
+PLACE_NAME_RUINS,신호 렌즈,Signal Lens,信号のレンズ,信号透镜,信號透鏡
+PLACE_CLUE_RUINS,돌무지 속 렌즈,a lens in the stones,石積みのレンズ,石堆里的透镜,石堆裡的透鏡
+PLACE_MEMORY_RUINS,돌무지 속 렌즈 · 달빛을 붙잡는다,A lens in the stones · catching the moon,石積みのレンズ · 月を捉える,石堆里的透镜 · 接住了月光,石堆裡的透鏡 · 接住了月光
+CHRONICLE_PLACES,기억된 장소,Places Remembered,思い出された場所,被记住的地方,被記住的地方
+OBJECTIVE_ROAD,집으로 가는 길을 밝히자,Keep the road home lit,家への道を灯そう,点亮回家的路,點亮回家的路
+OBJECTIVE_PLACES,6곳 중 %d곳 기억됨,%d of 6 places remembered,6か所中%dか所思い出した,6处地方记起了%d处,6處地方記起了%d處
+RESULT_ROAD,집으로 가는 길 · %s · 6곳 중 %d곳,Road home · %s · %d of 6 places,家への道 · %s · 6か所中%dか所,回家的路 · %s · 6处中%d处,回家的路 · %s · 6處中%d處

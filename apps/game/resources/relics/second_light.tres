@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/icons/second_light.png" id="icon"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_SECOND_LIGHT_NAME"
+description = "RELIC_SECOND_LIGHT_DESC"
+effect = 21
+amount = 1.0
+accent = Color(1.0, 0.86, 0.5, 1)
+icon = ExtResource("icon")
+from_cycle = 11

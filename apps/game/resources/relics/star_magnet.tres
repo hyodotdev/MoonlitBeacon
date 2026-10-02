@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Relic" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/relic.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/icons/star_magnet.png" id="icon"]
+
+[resource]
+script = ExtResource("script")
+display_name = "RELIC_STAR_MAGNET_NAME"
+description = "RELIC_STAR_MAGNET_DESC"
+effect = 19
+amount = 1.0
+accent = Color(0.78, 0.7, 1.0, 1)
+icon = ExtResource("icon")
+from_cycle = 8

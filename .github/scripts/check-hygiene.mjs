@@ -14,9 +14,10 @@
 // repo.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { agentSkillSyncProblems } from '../../scripts/lib/agent-skill-sync.mjs';
 import { containsForbiddenPhaseTerm } from '../../scripts/lib/hygiene-terms.mjs';
+import { CONFIG_FILE, loadConfig, modelMentions } from '../../scripts/lib/muse-config.mjs';
 
 const problems = [];
 const notes = [];
@@ -33,7 +34,8 @@ const git = (...args) =>
     .split('\n')
     .filter(Boolean);
 
-const tracked = git('ls-files');
+// A tracked file deleted in the working tree (not yet committed) has nothing to read.
+const tracked = git('ls-files').filter((file) => existsSync(file));
 const isText = (p) => !/\.(png|jpg|jpeg|mp4|avi|ogg|ttf|otf|zip|apk|ico|webp|import|translation|uid)$/i.test(p);
 
 // --- 1. Do not write "Phase" ------------------------------------------------
@@ -205,6 +207,25 @@ if (tracked.includes('.env.example')) {
         `.env.example:${index + 1}: ${match[1]} has a value — this file is committed`
       );
   });
+}
+
+// --- 12. The implementer's model is named in one file ------------------------
+// AGENTS.md, the commands, the skills and the standing orders say "the implementer" and point at
+// `scripts/muse.config.json`. A file that names a model id instead goes stale the day the model changes,
+// and then the guide and the configuration disagree. Only text files under version control are read.
+{
+  const { config, problems: configProblems } = loadConfig();
+  if (config === null) {
+    for (const problem of configProblems) problems.push(problem);
+  } else {
+    const documents = tracked
+      .filter((file) => isText(file) && file !== 'pnpm-lock.yaml' && !file.startsWith('apps/game/addons/'))
+      .map((file) => ({ path: file, text: readFileSync(file, 'utf8') }));
+    // The tests name made-up ids on purpose to prove the scan; they are the one exemption.
+    const exempt = tracked.filter((file) => /^scripts\/lib\/muse-[a-z-]+\.test\.mjs$/.test(file));
+    for (const mention of modelMentions(documents, exempt)) problems.push(mention);
+    if (!tracked.includes(CONFIG_FILE)) notes.push(`${CONFIG_FILE} is not tracked yet, so its presence was not checked`);
+  }
 }
 
 // --- Result -----------------------------------------------------------------

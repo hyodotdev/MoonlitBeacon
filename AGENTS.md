@@ -3,6 +3,13 @@
 This repo holds a 2D top-down dodge game built in Godot 4.7.1 and a **16-lesson
 course** that follows its making. These rules apply in every agent tool.
 
+**Two roles, not one.** The agent that talks to the user is the **director**: it
+briefs, judges and reports, and it does not build the game. The **implementer**
+writes every deliverable (code, scenes, tests, docs, notes) and is started with
+`pnpm muse run`. Which model that is lives in exactly one file,
+[`scripts/muse.config.json`](scripts/muse.config.json). See
+[Director and implementer](#director-and-implementer).
+
 Workflows live in [`.claude/commands/`](.claude/commands/).
 If your tool has no slash commands, read the matching `.md` file and follow it.
 Natural-language requests are routed by
@@ -20,26 +27,80 @@ byte-identical with `pnpm check:skills`. Never edit `.agents/skills/` directly.
 | Start a new lesson | `.claude/commands/chapter.md` |
 | Release | `.claude/commands/release.md` |
 | Review a change | `.claude/commands/review.md` |
+| Hand work to the implementer, judge it | `.claude/commands/muse.md` |
 
 | Command | What it does |
 | --- | --- |
-| `/commit` | Branch → commit → confirm, then push → PR |
+| `/commit` | Branch → commit → confirm, then push. A PR only when you ask for one |
 | `/verify` | Full check of game, docs, clips, and terminology |
 | `/device` | Build APK → install on Pixel 10 → run → confirm |
 | `/record` | Capture course clips |
 | `/chapter` | Start a new lesson's documents |
 | `/release` | Signed APK + itch.io release |
 | `/review` | Review in-progress changes |
+| `/muse` | Brief → run → judge → accept the implementer's work |
 
 ## Short summary
 
 - This repo is a **Godot 4.7.1 game + a 16-lesson course**.
 - **Do not write "Phase."** Lessons are numbered `Lesson 1`, `Lesson 2`; files are `chapter-01`.
 - **`notes/` is not published on the docs site.** Authors only.
+- **The director does not build the game.** It writes a brief, runs `pnpm muse run`, judges the diff and accepts it;
+  the implementer writes the files. `scripts/muse.config.json` names the implementer's model, and no other file may.
 - **Do not push without user confirmation.**
+- **Never open a pull request on your own.** Not for a finished feature, not for a docs-only change, not because a workflow lists it. Only when the user asks for a PR in their own message. `scripts/guard-pull-request.mjs` blocks it; do not go around the block.
 - **Do not commit `.godot/`.** It holds the signing keystore password.
 - **The screen at the end of every lesson must be usable as a store screenshot.**
   Do not leave gray rectangles or debug text.
+
+---
+
+## Director and implementer
+
+The work is split in two roles. The user asked for it, and the rest of this guide assumes it.
+
+| | Director | Implementer |
+| --- | --- | --- |
+| Who | The agent tool the user is talking to (Claude Code, Codex, …) | The agent `pnpm muse run` starts |
+| Does | Understands the request, writes the brief, starts the run, reads the diff, runs the checks and measurements, decides accept / send back / discard, reports to the user | Writes every deliverable: game code, scenes, tests, docs, notes, asset-pipeline changes, store text |
+| Does not | Build the game, or fix the implementer's work by hand | Decide what to build, judge its own work, touch git history, the network, the stores or the user's machine |
+
+**Who implements is one setting.** `scripts/muse.config.json` holds the CLI, the model and the reasoning effort.
+Every other file says "the implementer" and points there, and `check-hygiene` fails when a document names a model
+id. To switch models: `pnpm muse models` (what the CLI offers, and what the provider says about using what it
+receives), edit `implementer.model` (and `reasoningEffort`) in that file, `pnpm muse doctor`. The runner, the
+standing orders, the commit trailer (`pnpm muse who --line`) and this guide follow from that one edit.
+
+**The director's loop** (details in [`.claude/commands/muse.md`](.claude/commands/muse.md) and the `muse-director`
+skill):
+
+1. **Brief.** One task, written to `notes/workflow/muse/briefs/NNN-slug.md` from
+   [`brief-template.md`](notes/workflow/muse/brief-template.md): the user's words, where things stand, what to do and
+   not do, and acceptance criteria that can be checked without trusting a report.
+2. **Run.** `pnpm muse run <brief>`. The implementer works in a **copy** of the repo with no secrets and no git
+   remote, under [`standing-orders.md`](notes/workflow/muse/standing-orders.md). Nothing it does reaches the real tree.
+3. **Judge.** Read its report, then `pnpm muse diff <tag>`; run the tests and measurements yourself in the copy
+   (`builds/muse/<tag>/work`); look at what a player would see. A report is a claim, not evidence.
+4. **Decide.** Send it back with a short correction brief (`pnpm muse run <brief> --continue <tag>`), discard it, or
+   `pnpm muse accept <tag>`, which refuses protected paths and applies the change to the working tree.
+5. **Verify and report.** `/verify` on the real tree, then tell the user what was built, what was measured and what is
+   left, and credit the implementer.
+
+**What the director edits itself:** briefs, `notes/workflow/muse/`, this guide, `.claude/`, `.agents/`,
+`scripts/muse*`, memory files, and git operations (branch, commit) under the rules below. Everything else, one line
+included, goes through the implementer, unless the user asks the director for a specific edit in their own message.
+Running builds, tests, captures and measurements is an operation, not authoring, and stays with the director.
+
+**The rules below bind both roles**, and the runner enforces the ones it can. The implementer's copy has no `.env`,
+signing key or credentials and no git remote (it cannot push or open a pull request), its shell has no network and no
+tokens, and `accept` refuses a change to the guard, this guide, `.claude/`, the version lock or a secret.
+
+**If starting the implementer is refused** (an agent tool asks its user for permission, or a classifier blocks it),
+stop and tell the user what you tried to run and why. Do not start it another way. It is the same rule as the
+pull-request guard: the user allows it or does not.
+
+**A brief never contains** a secret, a token, a private path or a personal detail. Some implementer models may use what
+they receive to improve the provider's products; `pnpm muse who` prints what the configured model's provider says.
 
 ---
 
@@ -53,12 +114,12 @@ apps/docs/      Docusaurus
 notes/          Author-only. Not published on the docs site
   plans/          Per-lesson plans
   scripts/        Recording scripts
-  workflow/       Capture pipeline, AI prompts
+  workflow/       Capture pipeline, AI prompts, the implementer's orders and briefs (muse/)
   release/        Release checklist
   tools/capture/  Screen-capture automation
 _downloads/     Original asset ZIPs    (not in git)
 _asset_sources/ Unpacked sources       (not in git)
-builds/         Build and footage output (not in git)
+builds/         Build and footage output, implementer runs in builds/muse/ (not in git)
 ```
 
 ## Locked values — do not change these
@@ -120,6 +181,37 @@ later. Ship feature, art, sound, and UI together in the same lesson.
 ### Do not push without user confirmation
 
 Commits are fine. A commit is local and can be undone.
+
+### Never open a pull request on your own
+
+A PR is public, notifies people, starts CI and cannot be unsent. **Open one only
+when the user asks for a PR in their own message.** Each of these is a separate
+decision that the user makes, and none of them implies the next:
+
+```text
+finish the work  →  commit  →  push  →  open a PR  →  merge
+```
+
+- A finished feature, a green `pnpm verify`, or a workflow that lists a PR step
+  (`/commit --pr`, the ship-release loop, the lesson checklist) is **not** a request.
+  Stop after the step the user asked for and say what the next one would be.
+- A change that only touches `notes/` or `.claude/` never gets a PR, even if asked
+  to "wrap up". That is the rule in `commit.md`, and it has been broken before.
+- Closing, merging, re-targeting or commenting on an existing PR is the user's call
+  as well. Read PRs freely; do not act on them unasked.
+- Do not open one through a side door either: `gh api`, `curl`, a GitHub MCP tool,
+  or the GitHub web page in a browser tool are all the same act.
+
+**The guard.** `.claude/settings.json` runs `scripts/guard-pull-request.mjs` before
+every shell command and every GitHub MCP call, and refuses the ones that would open
+a PR (`scripts/lib/pr-guard.test.mjs` says exactly what it catches). If it blocks
+you, **stop**: tell the user which PR you would open (base, head, title, files) and
+wait. They allow exactly one by running `touch .claude/allow-pr` themselves; the
+guard spends the file on the next PR, so an approval never carries over.
+
+Never create `.claude/allow-pr`, and never edit the guard, its tests or the hook
+wiring in `.claude/settings.json` to get past it. The file is the user's signal, not
+a step in a checklist.
 
 ### Do not recapture store screenshots without an explicit instruction
 
@@ -207,7 +299,7 @@ The Ninja Adventure pack alone is 89MB. **Copy only files the project
 actually uses** into `apps/game/assets/third_party/` and record them in
 `apps/docs/docs/assets/manifest.md`.
 What currently lives in `apps/game/assets/` is the third-party selection plus
-originals: 119 files, about 26.5MB (excluding `.import`). About 15MB of that
+originals: 276 files, about 30.8MB (excluding `.import`). About 15MB of that
 is one Noto Sans CJK original so Korean, Chinese, and Japanese player names
 render without depending on the device font. Current numbers are whatever
 `pnpm check:assets` and the asset manifest say.
@@ -486,6 +578,9 @@ site is ever deleted, recreate it before expecting deploys to work.
 ## Commands used often
 
 ```bash
+pnpm muse who                                             # who implements, with which model
+pnpm muse run notes/workflow/muse/briefs/001-x.md         # start the implementer on a brief
+pnpm godot:isolated --timeout 150 --script res://tests/test_x.gd   # one Godot run, throwaway HOME
 godot --path apps/game                                    # run the game
 godot --headless --path apps/game --quit                  # smoke-check (exit 0)
 pnpm docs:dev                                             # docs site (localhost:3000/MoonlitBeacon/)

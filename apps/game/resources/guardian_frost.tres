@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/spirit_kind.gd" id="script"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/frost.png" id="sheet"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/frost_windup.png" id="windup"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/frost_charge.png" id="charge"]
+[ext_resource type="Texture2D" path="res://assets/custom/actors/guardians/frost_recover.png" id="recover"]
+
+[resource]
+script = ExtResource("script")
+display_name = "GUARDIAN_FROST_NAME"
+behavior = 4
+guardian_style = 3
+boss_accent = Color(0.62, 0.86, 1, 1)
+guardian_rule = "GUARDIAN_FROST_RULE"
+guardian_burst_fraction = 0.1
+guardian_sustain_fraction = 0.12
+guardian_windup_sheet = ExtResource("windup")
+guardian_alt_windup_sheet = ExtResource("windup")
+guardian_charge_sheet = ExtResource("charge")
+guardian_recover_sheet = ExtResource("recover")
+guardian_state_frames = 4
+orbit_radius = 138.0
+charge_speed = 330.0
+sheet = ExtResource("sheet")
+cell = 64
+facings = 1
+frames = 6
+lift = -24.0
+speed = 84.0
+turn_rate = 5.2
+health = 640
+score_value = 900
+stagger_seconds = 0.05
+body_scale = 1.0
+tint = Color(1, 1, 1, 1)
+anim_fps = 5.4

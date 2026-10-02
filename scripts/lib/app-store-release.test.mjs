@@ -18,6 +18,7 @@ import { dirname, join } from 'node:path';
 import { deflateSync } from 'node:zlib';
 import test from 'node:test';
 import {
+  ADOPTABLE_APP_VERSION_STATES,
   APPLE_LOCALES,
   APP_STORE_CAPTURE_REPORT_RELATIVE_PATH,
   APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
@@ -27,6 +28,7 @@ import {
   IAP_PRODUCT_IDS,
   IAP_PRODUCT_TYPE_BY_ID,
   IAP_REVIEW_FILE_BY_PRODUCT_ID,
+  READ_ONLY_REVIEW_APP_VERSION_STATES,
   SCREENSHOT_FILE_NAMES,
   SCREENSHOT_TARGETS,
   auditAppStoreConnectRelease,
@@ -42,6 +44,7 @@ import {
   createGetOnlyAppStoreConnectClient,
   iapStateReadinessPlan,
   isAdoptableAppVersionState,
+  isReadOnlyReviewAppVersionState,
   normalizeAppVersionState,
   parseAppStoreReleaseArguments,
   readAndVerifyAppStoreReleaseManifest,
@@ -61,6 +64,7 @@ import {
   assertEditableAppStoreVersionState,
   assertAppStoreApplyAuthorization,
   auditAppAvailability,
+  auditAppStoreConnectApplyReadiness,
   auditBuildAssociation,
   auditIapPricing,
   auditInternalBetaGroup,
@@ -149,7 +153,7 @@ function fixtureCsv() {
   ].join('\n');
 }
 
-function fixtureStorePage() {
+function fixtureStorePage({ version = '1.0.0' } = {}) {
   const headings = {
     'en-US': '## English description',
     ko: '## Korean description',
@@ -169,7 +173,7 @@ function fixtureStorePage() {
     '',
     '| Item | Value |',
     '| --- | --- |',
-    '| Version | 1.0.0 |',
+    `| Version | ${version} |`,
     '',
     '- [x] App Store copyright — `2026 Hyo Jang`',
     '',
@@ -217,14 +221,14 @@ function fixtureProjectGodot({ contacts = false, version = '1.0.0' } = {}) {
   ].join('\n');
 }
 
-function fixtureExportPresets({ version = '1.0.0' } = {}) {
+function fixtureExportPresets({ version = '1.0.0', build = '1' } = {}) {
   return [
     '[preset.0]',
     'name="iOS"',
     'platform="iOS"',
     `application/bundle_identifier="com.crossplatformkorea.moonlitbeacon"`,
     `application/short_version="${version}"`,
-    'application/version="1"',
+    `application/version="${build}"`,
     'application/app_store_team_id="PRDQGB267K"',
     '',
   ].join('\n');
@@ -405,7 +409,7 @@ function writeFixtureScreenshotProvenance(root) {
   writeFileSync(provenancePath, JSON.stringify(provenance, null, 2) + '\n');
 }
 
-function writeFixture(root) {
+function writeFixture(root, { version = '1.0.0', build = '1' } = {}) {
   const releaseNotes = join(root, 'notes/release');
   const appStore = join(root, 'builds/release/app-store');
   mkdirSync(releaseNotes, { recursive: true });
@@ -416,16 +420,16 @@ function writeFixture(root) {
   );
   writeFileSync(
     join(releaseNotes, 'store-page.md'),
-    fixtureStorePage(),
+    fixtureStorePage({ version }),
   );
   mkdirSync(join(root, 'apps/game'), { recursive: true });
   writeFileSync(
     join(root, 'apps/game/project.godot'),
-    fixtureProjectGodot(),
+    fixtureProjectGodot({ version }),
   );
   writeFileSync(
     join(root, 'apps/game/export_presets.cfg'),
-    fixtureExportPresets(),
+    fixtureExportPresets({ version, build }),
   );
   let unique = 1;
   for (const locale of APPLE_LOCALES) {
@@ -452,8 +456,8 @@ function writeFixture(root) {
   writeFixtureScreenshotProvenance(root);
 }
 
-function fixturePayload(root) {
-  writeFixture(root);
+function fixturePayload(root, options) {
+  writeFixture(root, options);
   return buildAppStoreReleasePayload({ repoRoot: root });
 }
 
@@ -1507,6 +1511,283 @@ test('ASC version state normalize/reuse/create proofs are fail-closed', () => {
   );
 });
 
+function releasedIosVersion(id, versionString, stateAttributes) {
+  return {
+    type: 'appStoreVersions',
+    id,
+    attributes: {
+      copyright: '2026 Hyo Jang',
+      platform: 'IOS',
+      versionString,
+      ...stateAttributes,
+    },
+  };
+}
+
+function realReleasedHistory() {
+  return [
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appStoreState: 'READY_FOR_SALE',
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appStoreState: 'READY_FOR_SALE',
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+  ];
+}
+
+test('released-only 2.1.0/2.0.0 history with distinct iOS identity can create', () => {
+  const history = realReleasedHistory();
+  assert.equal(canCreateNewAppStoreVersion(history), true);
+  assert.equal(canCreateNewAppStoreVersion([...history].reverse()), true);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appStoreState: 'READY_FOR_SALE',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appStoreState: 'READY_FOR_SALE',
+    }),
+  ]), true);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+  ]), true);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appStoreState: 'READY_FOR_SALE',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appVersionState: 'READY_FOR_DISTRIBUTION',
+    }),
+  ]), true);
+});
+
+test('multiple-live history stays fail-closed without distinct iOS identity', () => {
+  const live = { appVersionState: 'READY_FOR_DISTRIBUTION' };
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-a', '2.1.0', live),
+    releasedIosVersion('asc-version-b', '2.1.0', live),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-same', '2.1.0', live),
+    releasedIosVersion('asc-version-same', '2.0.0', live),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      attributes: {
+        appVersionState: 'READY_FOR_DISTRIBUTION',
+        platform: 'IOS',
+        versionString: '2.0.0',
+      },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    releasedIosVersion('   ', '2.0.0', live),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-2-0-0',
+      attributes: { appVersionState: 'READY_FOR_DISTRIBUTION', platform: 'IOS' },
+    },
+  ]), false);
+  for (const versionString of ['v2.1.0', '2.1.0.0', '', '  ', '2..1']) {
+    assert.equal(canCreateNewAppStoreVersion([
+      releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+      releasedIosVersion('asc-version-2-0-0', versionString, live),
+    ]), false);
+  }
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', live),
+    resource('old', { appVersionState: 'REPLACED_WITH_NEW_VERSION' }),
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-2-0-0',
+      attributes: {
+        appVersionState: 'READY_FOR_DISTRIBUTION',
+        versionString: '2.0.0',
+      },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-2-0-0',
+      attributes: {
+        appVersionState: 'READY_FOR_DISTRIBUTION',
+        platform: 'MAC_OS',
+        versionString: '2.0.0',
+      },
+    },
+  ]), false);
+  for (const appVersionState of [
+    'WAITING_FOR_REVIEW',
+    'IN_REVIEW',
+    'PREPARE_FOR_SUBMISSION',
+    'DEVELOPER_REJECTED',
+  ]) {
+    assert.equal(canCreateNewAppStoreVersion([
+      ...realReleasedHistory(),
+      releasedIosVersion('asc-version-next', '3.0.0', { appVersionState }),
+    ]), false);
+  }
+  assert.equal(canCreateNewAppStoreVersion([
+    ...realReleasedHistory(),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-unknown',
+      attributes: { platform: 'IOS', versionString: '1.0.0' },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+    {
+      type: 'appStoreVersions',
+      id: 'asc-version-unknown',
+      attributes: { platform: 'IOS', versionString: '2.0.0' },
+    },
+  ]), false);
+  assert.equal(canCreateNewAppStoreVersion([
+    releasedIosVersion('asc-version-2-1-0', '2.1.0', {
+      appVersionState: 'REPLACED_WITH_NEW_VERSION',
+    }),
+    releasedIosVersion('asc-version-2-0-0', '2.0.0', {
+      appVersionState: 'REPLACED_WITH_NEW_VERSION',
+    }),
+  ]), false);
+});
+
+test('remote audit creates from released-only 2.1.0/2.0.0 history regardless of order', async () => {
+  const payload = minimalReleasePayload();
+  const history = realReleasedHistory();
+  for (const allVersions of [history, [...history].reverse()]) {
+    const audit = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({ allVersions }),
+    });
+    const createEntry = audit.plan.find((entry) => (
+      entry.target === 'appStoreVersion' && entry.action === 'create'
+    ));
+    assert.deepEqual(createEntry.desired, {
+      copyright: payload.release.copyright,
+      platform: 'IOS',
+      versionString: payload.release.version,
+    });
+    assert.equal(audit.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+    )), false);
+    assert.equal(audit.remote.versionId, null);
+  }
+});
+
+test('remote audit keeps competing/duplicate/unidentified released history unresolved', async () => {
+  const payload = minimalReleasePayload();
+  const live = { appVersionState: 'READY_FOR_DISTRIBUTION' };
+  const histories = {
+    'duplicate versionString': [
+      releasedIosVersion('asc-version-a', '2.1.0', live),
+      releasedIosVersion('asc-version-b', '2.1.0', live),
+    ],
+    'duplicate id': [
+      releasedIosVersion('asc-version-same', '2.1.0', live),
+      releasedIosVersion('asc-version-same', '2.0.0', live),
+    ],
+    'missing identity evidence': [
+      resource('live-a', { appVersionState: 'READY_FOR_DISTRIBUTION' }),
+      resource('live-b', { appVersionState: 'READY_FOR_DISTRIBUTION' }),
+    ],
+    'missing platform': [
+      releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+      {
+        type: 'appStoreVersions',
+        id: 'asc-version-2-0-0',
+        attributes: {
+          appVersionState: 'READY_FOR_DISTRIBUTION',
+          versionString: '2.0.0',
+        },
+      },
+    ],
+    'malformed versionString': [
+      releasedIosVersion('asc-version-2-1-0', '2.1.0', live),
+      releasedIosVersion('asc-version-2-0-0', '2.1.0-beta', live),
+    ],
+    'competing waiting version': [
+      ...realReleasedHistory(),
+      releasedIosVersion('asc-version-next', '3.0.0', {
+        appVersionState: 'WAITING_FOR_REVIEW',
+      }),
+    ],
+    'competing in-review version': [
+      ...realReleasedHistory(),
+      releasedIosVersion('asc-version-next', '3.0.0', {
+        appVersionState: 'IN_REVIEW',
+      }),
+    ],
+    'unknown state': [
+      ...realReleasedHistory(),
+      {
+        type: 'appStoreVersions',
+        id: 'asc-version-unknown',
+        attributes: { platform: 'IOS', versionString: '1.0.0' },
+      },
+    ],
+  };
+  for (const [label, allVersions] of Object.entries(histories)) {
+    const audit = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({ allVersions }),
+    });
+    assert.equal(audit.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+      && entry.action === 'unresolved'
+    )), true, label);
+    assert.equal(audit.plan.some((entry) => (
+      entry.target === 'appStoreVersion' && entry.action === 'create'
+    )), false, label);
+  }
+});
+
+test('remote audit still adopts the single pre-release beside released history', async () => {
+  const payload = minimalReleasePayload();
+  const audit = await auditAppStoreConnectRelease({
+    payload,
+    client: versionAuditClient({
+      allVersions: [
+        ...realReleasedHistory(),
+        releasedIosVersion('asc-version-draft', '3.0.0', {
+          appVersionState: 'PREPARE_FOR_SUBMISSION',
+        }),
+      ],
+    }),
+  });
+  assert.equal(audit.remote.versionId, 'asc-version-draft');
+  assert.equal(audit.remote.versionState, 'PREPARE_FOR_SUBMISSION');
+  assert.equal(audit.plan.some((entry) => (
+    entry.target === 'appStoreVersion' && entry.action === 'update'
+  )), true);
+  assert.equal(audit.plan.some((entry) => (
+    entry.target === 'appStoreVersion' && entry.action === 'create'
+  )), false);
+  assert.equal(audit.plan.some((entry) => (
+    entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+    || entry.code === 'ASC_APP_STORE_VERSION_ADOPTION_AMBIGUOUS'
+  )), false);
+});
+
 test('DEVELOPER_REJECTED iOS version updates versionString/copyright on the same ID', async () => {
   const payload = minimalReleasePayload();
   const client = versionAuditClient({
@@ -2179,6 +2460,131 @@ test('remote apply confirmation token is bound to the current 2.1.0(9) manifest 
       reviewConfirmation: confirmation,
       submitReview: true,
     }), /review-submission-only/u);
+  }));
+
+test('remote apply authorizes the current 3.0.0(10) manifest and a regenerated 3.0.0(11) payload', () =>
+  withTempRoot((root) => {
+    const payload10 = fixturePayload(root, { version: '3.0.0', build: '10' });
+    assert.equal(payload10.release.version, '3.0.0');
+    assert.equal(payload10.release.buildNumber, '10');
+    const manifest10 = createAppStoreReleaseManifest(payload10);
+    const confirmation10 = appStoreConfirmationToken(manifest10, 'apply');
+    assert.equal(assertAppStoreApplyAuthorization({
+      confirmation: confirmation10,
+      manifest: manifest10,
+      payload: payload10,
+      reviewConfirmation: appStoreConfirmationToken(manifest10, 'review'),
+      submitReview: true,
+    }), true);
+
+    // A new upload regenerates the payload from the edited export presets.
+    writeFileSync(
+      join(root, 'apps/game/export_presets.cfg'),
+      fixtureExportPresets({ version: '3.0.0', build: '11' }),
+    );
+    const payload11 = buildAppStoreReleasePayload({ repoRoot: root });
+    assert.equal(payload11.release.version, '3.0.0');
+    assert.equal(payload11.release.buildNumber, '11');
+    const manifest11 = createAppStoreReleaseManifest(payload11);
+    const confirmation11 = appStoreConfirmationToken(manifest11, 'apply');
+    assert.notEqual(confirmation11, confirmation10);
+    assert.equal(assertAppStoreApplyAuthorization({
+      confirmation: confirmation11,
+      manifest: manifest11,
+      payload: payload11,
+      reviewConfirmation: appStoreConfirmationToken(manifest11, 'review'),
+      submitReview: true,
+    }), true);
+
+    // The old build's token cannot authorize the new build, and a stale
+    // payload no longer matches its manifest.
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: confirmation10,
+      manifest: manifest11,
+      payload: payload11,
+    }), /remote-apply token/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: confirmation11,
+      manifest: manifest11,
+      payload: payload10,
+    }), /differs from current metadata/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: confirmation10,
+      manifest: manifest10,
+      payload: payload11,
+    }), /differs from current metadata/u);
+  }));
+
+test('remote apply still rejects tampered, malformed, and mis-purposed current-release confirmations', () =>
+  withTempRoot((root) => {
+    const payload = fixturePayload(root, { version: '3.0.0', build: '11' });
+    const manifest = createAppStoreReleaseManifest(payload);
+    const confirmation = appStoreConfirmationToken(manifest, 'apply');
+    const reviewConfirmation = appStoreConfirmationToken(manifest, 'review');
+
+    const retargeted = structuredClone(manifest);
+    retargeted.payload.release.buildNumber = '10';
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest: retargeted,
+      payload,
+    }), /sha256 verification/u);
+
+    const editedCopy = structuredClone(manifest);
+    editedCopy.payload.inAppPurchases.products[0]
+      .localizations[0].description += ' tampered';
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest: editedCopy,
+      payload,
+    }), /sha256 verification/u);
+
+    for (const mutate of [
+      (release) => { release.buildNumber = ''; },
+      (release) => { release.buildNumber = '11a'; },
+      (release) => { release.version = '3.0.0.0.0'; },
+      (release) => { release.appId = ''; },
+      (release) => { release.bundleId = '   '; },
+      (release) => { release.platform = 'ANDROID'; },
+    ]) {
+      const malformedPayload = structuredClone(payload);
+      mutate(malformedPayload.release);
+      const malformedManifest = createAppStoreReleaseManifest(malformedPayload);
+      assert.throws(() => assertAppStoreApplyAuthorization({
+        confirmation: appStoreConfirmationToken(malformedManifest, 'apply'),
+        manifest: malformedManifest,
+        payload: malformedPayload,
+      }), /ASC_TARGET_RELEASE_MISMATCH/u);
+    }
+    // A missing release never reaches the target check: manifest
+    // verification already rejects it at the availability gate.
+    const missingPayload = structuredClone(payload);
+    delete missingPayload.release;
+    const missingManifest = createAppStoreReleaseManifest(missingPayload);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: 'app-store:apply:missing',
+      manifest: missingManifest,
+      payload: missingPayload,
+    }), /availability-country gate/u);
+
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest,
+      payload,
+      reviewConfirmation: confirmation,
+      submitReview: true,
+    }), /review-submission-only/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: reviewConfirmation,
+      manifest,
+      payload,
+    }), /remote-apply token/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation,
+      manifest,
+      payload,
+      reviewConfirmation,
+    }), /without submitting for review/u);
   }));
 
 test('IAP prices read the 10 sale products manual base prices exactly and do not change them', async () => {
@@ -3107,6 +3513,256 @@ test('review submission completion readback rejects attached build ID mismatches
   );
 });
 
+test('review submission items require the linkage include and keep the exact eleven-target guards', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root);
+    payload.release.version = '1.0.1';
+    payload.release.buildNumber = '3';
+    const manifest = createAppStoreReleaseManifest(payload);
+    assert.equal(IAP_PRODUCT_IDS.length, 10);
+    const iapVersionIds = Object.fromEntries(IAP_PRODUCT_IDS.map((productId, index) => (
+      [productId, `iap-version-${index}`]
+    )));
+    const iapVersionStates = Object.fromEntries(IAP_PRODUCT_IDS.map((productId) => (
+      [productId, 'PREPARE_FOR_SUBMISSION']
+    )));
+    const audit = {
+      appId: payload.release.appId,
+      mode: 'GET_ONLY_REMOTE_APPLY_PREFLIGHT',
+      plan: [
+        ...IAP_PRODUCT_IDS.map((productId) => ({
+          action: 'none',
+          identifier: productId,
+          remoteState: 'READY_TO_SUBMIT',
+          target: 'inAppPurchase',
+        })),
+        {
+          action: 'none',
+          buildId: 'build-3',
+          identifier: 'IOS/1.0.1(3)',
+          target: 'buildAssociation',
+        },
+      ],
+      remote: {
+        iapVersionIds,
+        iapVersionStates,
+        versionId: 'version-101',
+      },
+    };
+    const reviewConfirmation = appStoreConfirmationToken(manifest, 'review');
+    const expectedTargets = new Set([
+      'appStoreVersions:version-101',
+      ...IAP_PRODUCT_IDS.map((productId) => `inAppPurchaseVersions:${iapVersionIds[productId]}`),
+    ]);
+    assert.equal(expectedTargets.size, IAP_PRODUCT_IDS.length + 1);
+
+    // Authoritative eleven-item target set, as returned with the linkage include.
+    const linkedItems = [
+      {
+        attributes: { state: 'READY_FOR_REVIEW' },
+        id: 'item-app',
+        relationships: {
+          appStoreVersion: { data: { id: 'version-101', type: 'appStoreVersions' } },
+        },
+        type: 'reviewSubmissionItems',
+      },
+      ...IAP_PRODUCT_IDS.map((productId, index) => ({
+        attributes: { state: 'READY_FOR_REVIEW' },
+        id: `item-iap-${index}`,
+        relationships: {
+          inAppPurchaseVersion: {
+            data: { id: iapVersionIds[productId], type: 'inAppPurchaseVersions' },
+          },
+        },
+        type: 'reviewSubmissionItems',
+      })),
+    ];
+    // Real sparse-fields response shape without the include: ids/state only,
+    // with no relationships at all.
+    const sparseItems = linkedItems.map(({ attributes, id, type }) => ({
+      attributes,
+      id,
+      type,
+    }));
+
+    const itemReads = [];
+    function readItems(path, linked) {
+      const url = new URL(path, 'https://example.invalid');
+      itemReads.push(path);
+      assert.equal(
+        url.searchParams.get('fields[reviewSubmissionItems]'),
+        'state,appStoreVersion,inAppPurchaseVersion',
+      );
+      assert.equal(url.searchParams.get('limit'), '200');
+      if (url.searchParams.get('include') !== 'appStoreVersion,inAppPurchaseVersion') {
+        return sparseItems.slice(0, linked.length);
+      }
+      return linked;
+    }
+
+    function statusGet(state) {
+      return async (path) => {
+        if (path.includes('/reviewSubmissions/submission-1?')) {
+          return { data: resource('submission-1', { state }) };
+        }
+        if (path.includes('/appStoreVersions/version-101/build?')) {
+          return { data: resource('build-3', { version: '3' }) };
+        }
+        assert.fail(`unexpected GET: ${path}`);
+      };
+    }
+
+    // Normal submit: items start empty and each POSTed target re-reads linked.
+    const posted = [];
+    const submitGetClient = {
+      get: statusGet('WAITING_FOR_REVIEW'),
+      async getAll(path) {
+        if (path.includes('/reviewSubmissions?')) return [];
+        if (path.includes('/items?')) {
+          return readItems(path, posted.map((entry, index) => ({
+            attributes: { state: 'READY_FOR_REVIEW' },
+            id: `item-${index}`,
+            relationships: Object.fromEntries(Object.entries(entry.relationships)
+              .filter(([name]) => name !== 'reviewSubmission')),
+            type: 'reviewSubmissionItems',
+          })));
+        }
+        assert.fail(`unexpected GET: ${path}`);
+      },
+    };
+    const submitClient = {
+      async post(path, body) {
+        if (path === '/v1/reviewSubmissions') {
+          return { data: resource('submission-1', { state: 'READY_FOR_REVIEW' }) };
+        }
+        posted.push(body.data);
+        return { data: resource(`item-${posted.length}`, {}) };
+      },
+      async patch() {
+        return { data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }) };
+      },
+    };
+    const submitted = await submitAppStoreConnectReview({
+      audit,
+      client: submitClient,
+      getClient: submitGetClient,
+      manifest,
+      reviewConfirmation,
+    });
+    assert.equal(submitted.submitted, true);
+    assert.equal(submitted.idempotent, false);
+    assert.equal(submitted.buildId, 'build-3');
+    assert.equal(submitted.reviewItemCount, IAP_PRODUCT_IDS.length + 1);
+    assert.equal(posted.length, IAP_PRODUCT_IDS.length + 1);
+    assert.ok(itemReads.length >= 3);
+    assert.ok(itemReads.every((path) => (
+      new URL(path, 'https://example.invalid').searchParams.get('include')
+        === 'appStoreVersion,inAppPurchaseVersion'
+    )));
+
+    // Submitted readback: an already-submitted eleven-item submission is idempotent.
+    const idempotentGetClient = {
+      get: statusGet('WAITING_FOR_REVIEW'),
+      async getAll(path) {
+        if (path.includes('/reviewSubmissions?')) {
+          return [resource('submission-1', { platform: 'IOS', state: 'WAITING_FOR_REVIEW' })];
+        }
+        if (path.includes('/items?')) return readItems(path, linkedItems);
+        assert.fail(`unexpected GET: ${path}`);
+      },
+    };
+    const idempotent = await submitAppStoreConnectReview({
+      audit,
+      client: { async post() { assert.fail('idempotent readback must not mutate'); } },
+      getClient: idempotentGetClient,
+      manifest,
+      reviewConfirmation,
+    });
+    assert.deepEqual(
+      { id: idempotent.id, idempotent: idempotent.idempotent, submitted: idempotent.submitted },
+      { id: 'submission-1', idempotent: true, submitted: true },
+    );
+
+    // The sparse-fields shape without linkage still fails closed at the unchanged guard.
+    const sparseGetClient = {
+      get: statusGet('READY_FOR_REVIEW'),
+      async getAll(path) {
+        if (path.includes('/reviewSubmissions?')) {
+          return [resource('submission-1', { platform: 'IOS', state: 'READY_FOR_REVIEW' })];
+        }
+        if (path.includes('/items?')) return sparseItems;
+        assert.fail(`unexpected GET: ${path}`);
+      },
+    };
+    await assert.rejects(
+      submitAppStoreConnectReview({
+        audit,
+        client: submitClient,
+        getClient: sparseGetClient,
+        manifest,
+        reviewConfirmation,
+      }),
+      /ASC_REVIEW_SUBMISSION_ITEM_UNSUPPORTED/u,
+    );
+
+    // Unexpected, duplicated, and missing targets still fail closed.
+    async function rejectsForItems(linked, code, { exact }) {
+      const itemsGetClient = {
+        get: statusGet('READY_FOR_REVIEW'),
+        async getAll(path) {
+          if (path.includes('/reviewSubmissions?')) {
+            return [resource('submission-1', { platform: 'IOS', state: 'READY_FOR_REVIEW' })];
+          }
+          if (path.includes('/items?')) return readItems(path, linked);
+          assert.fail(`unexpected GET: ${path}`);
+        },
+      };
+      if (exact) {
+        await assert.rejects(
+          verifySubmittedRelease({
+            audit,
+            expectedTargets,
+            getClient: itemsGetClient,
+            submissionId: 'submission-1',
+            versionId: 'version-101',
+          }),
+          code,
+        );
+        return;
+      }
+      await assert.rejects(
+        submitAppStoreConnectReview({
+          audit,
+          client: submitClient,
+          getClient: itemsGetClient,
+          manifest,
+          reviewConfirmation,
+        }),
+        code,
+      );
+    }
+    await rejectsForItems([...linkedItems, {
+      attributes: { state: 'READY_FOR_REVIEW' },
+      id: 'item-extra',
+      relationships: {
+        inAppPurchaseVersion: {
+          data: { id: 'iap-version-unknown', type: 'inAppPurchaseVersions' },
+        },
+      },
+      type: 'reviewSubmissionItems',
+    }], /ASC_REVIEW_SUBMISSION_HAS_UNEXPECTED_ITEMS/u, { exact: false });
+    await rejectsForItems(
+      [...linkedItems, linkedItems[0]],
+      /ASC_REVIEW_SUBMISSION_ITEMS_DUPLICATE/u,
+      { exact: false },
+    );
+    await rejectsForItems(
+      linkedItems.slice(1),
+      /ASC_REVIEW_ITEMS_NOT_VERIFIED/u,
+      { exact: true },
+    );
+  }));
+
 test('screenshot replacement deletes existing assets only after the new asset is COMPLETE', () =>
   withTempRoot(async (root) => {
     const contents = Buffer.from('verified screenshot bytes');
@@ -3278,3 +3934,1222 @@ test('IAP review images still count as converged when Apple rewrites fileName to
   processing.attributes.assetDeliveryState = { state: 'PROCESSING' };
   assert.equal(iapReviewImageMatches(local, processing), false);
 });
+
+test('versioned apply preflight skips deprecated unscoped IAP audit for mixed APPROVED plus PREPARE history', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '3.0.0', build: '11' });
+    assert.equal(payload.release.version, '3.0.0');
+    assert.equal(payload.release.buildNumber, '11');
+    assert.equal(payload.inAppPurchases.products.length, 10);
+    payload.contact = { status: 'resolved', gates: [] };
+
+    const remoteIdByProduct = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId, index) => [productId, `iap-remote-${index}`],
+    ));
+    const v1IdByProduct = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId, index) => [productId, `iap-v1-${index}`],
+    ));
+    const v2IdByProduct = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId, index) => [productId, `iap-v2-${index}`],
+    ));
+    const productById = Object.fromEntries(
+      payload.inAppPurchases.products.map((product) => [product.productId, product]),
+    );
+    const productByRemoteId = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId) => [remoteIdByProduct[productId], productId],
+    ));
+    const productByV1Id = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId) => [v1IdByProduct[productId], productId],
+    ));
+    const productByV2Id = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId) => [v2IdByProduct[productId], productId],
+    ));
+    const v1Ids = new Set(Object.values(v1IdByProduct));
+    const v2Ids = new Set(Object.values(v2IdByProduct));
+
+    function createMixedHistoryClient() {
+      const requests = [];
+      const unscopedPaths = [];
+      const scopedV1Paths = [];
+      const scopedV2Paths = [];
+      const territoryIds = ['CHN', 'KOR', 'USA', 'JPN', 'TWN'];
+      const buildId = 'build-300-11';
+      const versionId = 'version-300';
+      const exactBuild = {
+        ...resource(buildId, {
+          buildAudienceType: 'APP_STORE_ELIGIBLE',
+          expired: false,
+          processingState: 'VALID',
+          version: '11',
+        }, 'builds'),
+        relationships: {
+          preReleaseVersion: {
+            data: { id: 'pre-300-ios', type: 'preReleaseVersions' },
+          },
+        },
+      };
+
+      function remoteIndex(remoteId) {
+        const match = String(remoteId).match(/^iap-remote-(\d+)$/u);
+        assert.ok(match);
+        return Number(match[1]);
+      }
+
+      const client = {
+        requests,
+        async get(path) {
+          requests.push({ method: 'GET', path });
+          const pathname = new URL(path, 'https://example.invalid').pathname;
+          if (pathname === '/v1/apps/6796293839') {
+            return {
+              data: resource('6796293839', {
+                bundleId: payload.release.bundleId,
+              }),
+            };
+          }
+          if (pathname.endsWith('/appStoreReviewDetail')) {
+            return {
+              data: resource('review-detail-1', {
+                notes: payload.appStoreReview.notes,
+              }),
+            };
+          }
+          if (pathname.includes('/appStoreReviewScreenshot')) {
+            const match = path.match(/inAppPurchases\/([^/]+)\/appStoreReviewScreenshot/u);
+            const productId = productByRemoteId[decodeURIComponent(match[1])];
+            const image = productById[productId].reviewImage;
+            return {
+              data: resource(`review-${remoteIndex(match[1])}`, {
+                assetDeliveryState: { state: 'COMPLETE' },
+                fileName: image.fileName,
+                fileSize: image.size,
+                sourceFileChecksum: image.md5,
+              }),
+            };
+          }
+          if (pathname === '/v1/builds') {
+            return {
+              data: [exactBuild],
+              included: [resource('pre-300-ios', {
+                platform: 'IOS',
+                version: '3.0.0',
+              }, 'preReleaseVersions')],
+              links: {},
+            };
+          }
+          if (pathname === `/v1/appStoreVersions/${versionId}/build`) {
+            return { data: exactBuild };
+          }
+          if (pathname.includes('/baseTerritory')) {
+            const match = path.match(/inAppPurchasePriceSchedules\/([^/]+)\/baseTerritory/u);
+            const productId = productByRemoteId[decodeURIComponent(match[1])];
+            const expected = productById[productId].pricing;
+            return {
+              data: resource(expected.territory, {
+                currency: expected.currency,
+              }, 'territories'),
+            };
+          }
+          if (pathname.includes('/manualPrices')) {
+            const match = path.match(/inAppPurchasePriceSchedules\/([^/]+)\/manualPrices/u);
+            const remoteId = decodeURIComponent(match[1]);
+            const productId = productByRemoteId[remoteId];
+            const expected = productById[productId].pricing;
+            const pricePointId = `point-${remoteId}`;
+            return {
+              data: [{
+                id: `price-${remoteId}`,
+                type: 'inAppPurchasePrices',
+                attributes: { endDate: null, manual: true, startDate: null },
+                relationships: {
+                  inAppPurchasePricePoint: {
+                    data: { id: pricePointId, type: 'inAppPurchasePricePoints' },
+                  },
+                  territory: {
+                    data: { id: expected.territory, type: 'territories' },
+                  },
+                },
+              }],
+              included: [
+                {
+                  id: pricePointId,
+                  type: 'inAppPurchasePricePoints',
+                  attributes: { customerPrice: expected.customerPrice },
+                },
+                {
+                  id: expected.territory,
+                  type: 'territories',
+                  attributes: { currency: expected.currency },
+                },
+              ],
+              links: {},
+            };
+          }
+          if (pathname === '/v1/territories') {
+            return {
+              data: territoryIds.map((territory) => resource(territory, {
+                currency: territory === 'KOR' ? 'KRW' : 'USD',
+              }, 'territories')),
+              links: {},
+              meta: { paging: { total: territoryIds.length } },
+            };
+          }
+          if (pathname.includes('/appAvailabilityV2')) {
+            return {
+              data: resource('avail-1', { availableInNewTerritories: true }),
+            };
+          }
+          if (pathname.includes('/territoryAvailabilities')) {
+            return {
+              data: territoryIds.map((territory) => ({
+                ...resource(`availability-${territory}`, {
+                  available: territory !== 'CHN',
+                }),
+                relationships: {
+                  territory: { data: { id: territory, type: 'territories' } },
+                },
+              })),
+              links: {},
+              meta: { paging: { total: territoryIds.length } },
+            };
+          }
+          throw new Error(`unexpected GET ${path}`);
+        },
+        async getAll(path) {
+          requests.push({ method: 'GET', path });
+          if (path.includes('/appStoreVersions?')) {
+            return [resource(versionId, {
+              appStoreState: 'PREPARE_FOR_SUBMISSION',
+              copyright: payload.release.copyright,
+              platform: 'IOS',
+              versionString: '3.0.0',
+            })];
+          }
+          if (path.includes('/appInfos?')) {
+            return [resource('app-info-1', {})];
+          }
+          if (
+            path.includes('/appInfoLocalizations?')
+            || path.includes('/appStoreVersionLocalizations?')
+          ) {
+            return [];
+          }
+          if (path.includes('/inAppPurchasesV2?')) {
+            return IAP_PRODUCT_IDS.map((productId) => {
+              const product = productById[productId];
+              return resource(remoteIdByProduct[productId], {
+                inAppPurchaseType: product.type,
+                name: product.referenceName,
+                productId,
+                reviewNote: product.reviewNote,
+                state: 'APPROVED',
+              });
+            });
+          }
+          if (
+            path.includes('/inAppPurchases/')
+            && path.includes('/inAppPurchaseLocalizations?')
+          ) {
+            unscopedPaths.push(path);
+            const match = path.match(
+              /inAppPurchases\/([^/]+)\/inAppPurchaseLocalizations/u,
+            );
+            const productId = productByRemoteId[decodeURIComponent(match[1])];
+            const desired = productById[productId].localizations;
+            return desired.flatMap((localization, localeIndex) => ([
+              resource(`unscoped-${remoteIndex(match[1])}-${localeIndex}-approved`, {
+                description: localization.description,
+                locale: localization.locale,
+                name: localization.name,
+                state: 'APPROVED',
+              }),
+              resource(`unscoped-${remoteIndex(match[1])}-${localeIndex}-prepare`, {
+                description: localization.description,
+                locale: localization.locale,
+                name: localization.name,
+                state: 'PREPARE_FOR_SUBMISSION',
+              }),
+            ]));
+          }
+          if (
+            path.includes('/inAppPurchases/')
+            && path.includes('/versions?')
+          ) {
+            const match = path.match(/inAppPurchases\/([^/]+)\/versions/u);
+            const productId = productByRemoteId[decodeURIComponent(match[1])];
+            return [
+              resource(v1IdByProduct[productId], {
+                state: 'APPROVED',
+                version: 1,
+              }),
+              resource(v2IdByProduct[productId], {
+                state: 'PREPARE_FOR_SUBMISSION',
+                version: 2,
+              }),
+            ];
+          }
+          if (
+            path.includes('/inAppPurchaseVersions/')
+            && path.includes('/localizations?')
+          ) {
+            const match = path.match(
+              /inAppPurchaseVersions\/([^/]+)\/localizations/u,
+            );
+            const versionIdParam = decodeURIComponent(match[1]);
+            if (productByV1Id[versionIdParam]) {
+              scopedV1Paths.push(path);
+              const desired = productById[productByV1Id[versionIdParam]].localizations;
+              return desired.map((localization, localeIndex) => resource(
+                `v1loc-${versionIdParam}-${localeIndex}`,
+                { ...localization },
+              ));
+            }
+            const productId = productByV2Id[versionIdParam];
+            assert.ok(productId);
+            scopedV2Paths.push(path);
+            const desired = productById[productId].localizations;
+            return desired.map((localization, localeIndex) => resource(
+              `v2loc-${versionIdParam}-${localeIndex}`,
+              {
+                description: localization.description,
+                locale: localization.locale,
+                name: localization.name,
+              },
+            ));
+          }
+          if (path.includes('/apps/') && path.includes('/betaGroups?')) {
+            return [
+              resource('internal-group', {
+                isInternalGroup: true,
+                name: 'Moonlit Beacon Internal',
+              }),
+              resource('external-group', {
+                isInternalGroup: false,
+                name: 'External',
+              }),
+            ];
+          }
+          if (path.includes('/betaGroups/') && path.includes('/builds?')) {
+            return path.includes('/internal-group/')
+              ? [resource(buildId, { version: '11' })]
+              : [];
+          }
+          throw new Error(`unexpected GET ALL ${path}`);
+        },
+      };
+      return {
+        client, requests, scopedV1Paths, scopedV2Paths, unscopedPaths,
+      };
+    }
+
+    const mixed = createMixedHistoryClient();
+    const audit = await auditAppStoreConnectApplyReadiness({
+      client: mixed.client,
+      payload,
+    });
+    assert.equal(audit.mode, 'GET_ONLY_REMOTE_APPLY_PREFLIGHT');
+    assert.equal(audit.remote.versionId, 'version-300');
+    assert.deepEqual(
+      Object.keys(audit.remote.iapVersionIds).sort(),
+      [...IAP_PRODUCT_IDS].sort(),
+    );
+    assert.deepEqual(audit.remote.iapVersionIds, v2IdByProduct);
+    assert.ok(Object.values(audit.remote.iapVersionStates).every(
+      (state) => state === 'PREPARE_FOR_SUBMISSION',
+    ));
+    assert.equal(new Set(Object.values(audit.remote.iapVersionIds)).size, 10);
+    assert.equal(mixed.unscopedPaths.length, 0);
+    assert.equal(
+      mixed.requests.some((request) => request.path.includes('/inAppPurchaseLocalizations?')
+        && request.path.includes('/v2/inAppPurchases/')),
+      false,
+    );
+    assert.equal(mixed.scopedV1Paths.length, 0);
+    assert.equal(mixed.scopedV2Paths.length, 10);
+    assert.equal(
+      audit.plan.some((entry) => entry.target === 'inAppPurchaseLocalization'),
+      false,
+    );
+    const versionLocalizations = audit.plan.filter(
+      (entry) => entry.target === 'inAppPurchaseVersionLocalization',
+    );
+    assert.equal(versionLocalizations.length, 50);
+    assert.ok(versionLocalizations.every((entry) => entry.action === 'none'));
+    assert.ok(versionLocalizations.every((entry) => v2Ids.has(entry.parentId)));
+    assert.ok(versionLocalizations.every((entry) => !v1Ids.has(entry.parentId)));
+    assert.ok(audit.plan.every((entry) => (
+      !v1Ids.has(entry.parentId)
+      && !v1Ids.has(entry.remoteId)
+      && !v1Ids.has(entry.rejectedVersionId)
+    )));
+    assert.ok(Object.values(audit.remote.iapVersionIds).every(
+      (id) => !v1Ids.has(id),
+    ));
+    const pricing = audit.plan.filter(
+      (entry) => entry.target === 'inAppPurchasePricing',
+    );
+    assert.equal(pricing.length, 10);
+    assert.ok(pricing.every((entry) => entry.action === 'none'));
+    assert.equal(
+      audit.plan.find((entry) => entry.target === 'appAvailability').action,
+      'none',
+    );
+    assert.equal(
+      audit.plan.find((entry) => entry.target === 'buildAssociation').action,
+      'none',
+    );
+    assert.equal(
+      audit.plan.find((entry) => entry.target === 'internalBetaGroupAssignment').action,
+      'none',
+    );
+
+    const standalone = createMixedHistoryClient();
+    await assert.rejects(
+      auditAppStoreConnectRelease({ payload, client: standalone.client }),
+      /localization is duplicated: en-US/u,
+    );
+    assert.ok(standalone.unscopedPaths.length > 0);
+
+    const skipped = createMixedHistoryClient();
+    const skippedAudit = await auditAppStoreConnectRelease({
+      client: skipped.client,
+      payload,
+      skipUnscopedIapLocalizations: true,
+    });
+    assert.equal(skipped.unscopedPaths.length, 0);
+    assert.equal(
+      skippedAudit.plan.some((entry) => entry.target === 'inAppPurchaseLocalization'),
+      false,
+    );
+  }));
+
+test('chosen-draft duplicate locale still rejects in the version-scoped audit', async () => {
+  const productId = 'com.crossplatformkorea.moonlitbeacon.continue_coin';
+  const payload = {
+    inAppPurchases: {
+      products: [{
+        localizations: [{
+          description: 'Continue Coin description',
+          locale: 'en-US',
+          name: 'Continue Coin',
+        }],
+        productId,
+      }],
+    },
+  };
+  const baseAudit = {
+    plan: [{
+      action: 'none',
+      identifier: productId,
+      remoteId: 'iap-coin',
+      remoteState: 'APPROVED',
+      target: 'inAppPurchase',
+    }],
+  };
+  await assert.rejects(
+    auditVersionedIapLocalizations(payload, {
+      async getAll(path) {
+        if (path.includes('/versions?')) {
+          return [
+            resource('coin-v1', { state: 'APPROVED', version: 1 }),
+            resource('coin-v2', { state: 'PREPARE_FOR_SUBMISSION', version: 2 }),
+          ];
+        }
+        assert.match(path, /inAppPurchaseVersions\/coin-v2\/localizations/u);
+        return [
+          resource('coin-v2-en-a', {
+            description: 'Continue Coin description',
+            locale: 'en-US',
+            name: 'Continue Coin',
+          }),
+          resource('coin-v2-en-b', {
+            description: 'Continue Coin description',
+            locale: 'en-US',
+            name: 'Continue Coin',
+          }),
+        ];
+      },
+    }, baseAudit),
+    /ASC_REMOTE_DUPLICATE/u,
+  );
+});
+
+test('differing draft text still corrects when the approved text matches', async () => {
+  const productId = 'com.crossplatformkorea.moonlitbeacon.continue_coin';
+  const desired = {
+    description: 'New Continue Coin description',
+    locale: 'en-US',
+    name: 'Continue Coin',
+  };
+  const payload = {
+    inAppPurchases: {
+      products: [{ localizations: [desired], productId }],
+    },
+  };
+  const baseAudit = {
+    plan: [{
+      action: 'none',
+      identifier: productId,
+      remoteId: 'iap-coin',
+      remoteState: 'APPROVED',
+      target: 'inAppPurchase',
+    }],
+  };
+  let approvedScopeFetches = 0;
+  const result = await auditVersionedIapLocalizations(payload, {
+    async getAll(path) {
+      if (path.includes('/versions?')) {
+        return [
+          resource('coin-v1-approved', { state: 'APPROVED', version: 1 }),
+          resource('coin-v2-draft', { state: 'PREPARE_FOR_SUBMISSION', version: 2 }),
+        ];
+      }
+      if (path.includes('/inAppPurchaseVersions/coin-v1-approved/localizations')) {
+        approvedScopeFetches += 1;
+        return [resource('coin-v1-en', { ...desired })];
+      }
+      assert.match(path, /inAppPurchaseVersions\/coin-v2-draft\/localizations/u);
+      return [resource('coin-v2-en', {
+        description: 'Old approved-era description',
+        locale: 'en-US',
+        name: desired.name,
+      })];
+    },
+  }, baseAudit);
+  assert.equal(approvedScopeFetches, 0);
+  assert.equal(result.versionIds[productId], 'coin-v2-draft');
+  assert.equal(result.versionStates[productId], 'PREPARE_FOR_SUBMISSION');
+  const entry = result.plan.find(
+    (candidate) => candidate.identifier === `${productId}/en-US`,
+  );
+  assert.equal(entry.target, 'inAppPurchaseVersionLocalization');
+  assert.equal(entry.action, 'update');
+  assert.equal(entry.parentId, 'coin-v2-draft');
+  assert.equal(entry.changes.description.desired, desired.description);
+  assert.equal(entry.changes.description.current, 'Old approved-era description');
+});
+
+function reviewTransitionMaps(payload) {
+  const appByLocale = Object.fromEntries(
+    payload.appLocalizations.map((entry) => [entry.locale, entry]),
+  );
+  const productById = Object.fromEntries(
+    payload.inAppPurchases.products.map((product) => [product.productId, product]),
+  );
+  const remoteIdByProduct = Object.fromEntries(IAP_PRODUCT_IDS.map(
+    (productId, index) => [productId, `iap-remote-${index}`],
+  ));
+  const v1IdByProduct = Object.fromEntries(IAP_PRODUCT_IDS.map(
+    (productId, index) => [productId, `iap-v1-${index}`],
+  ));
+  const v2IdByProduct = Object.fromEntries(IAP_PRODUCT_IDS.map(
+    (productId, index) => [productId, `iap-v2-${index}`],
+  ));
+  const productByRemoteId = Object.fromEntries(IAP_PRODUCT_IDS.map(
+    (productId) => [remoteIdByProduct[productId], productId],
+  ));
+  const productByV2Id = Object.fromEntries(IAP_PRODUCT_IDS.map(
+    (productId) => [v2IdByProduct[productId], productId],
+  ));
+  return {
+    appByLocale,
+    productById,
+    productByRemoteId,
+    productByV2Id,
+    remoteIdByProduct,
+    v1IdByProduct,
+    v2IdByProduct,
+  };
+}
+
+function createReviewTransitionClient(payload, {
+  versionState = 'PREPARE_FOR_SUBMISSION',
+  appInfoState = null,
+  iapDraftState = 'PREPARE_FOR_SUBMISSION',
+  mismatchVersionLocale = null,
+  mismatchScreenshot = false,
+  mismatchBuild = false,
+  appInfosOverride = null,
+  exactVersionsOverride = null,
+  allVersionsOverride = null,
+} = {}) {
+  const maps = reviewTransitionMaps(payload);
+  const versionId = 'version-300';
+  const appInfoCurrentId = 'app-info-current';
+  const appInfoLiveId = 'app-info-live';
+  const currentAppInfoState = appInfoState ?? versionState;
+  const buildId = 'build-300-10';
+  const requests = [];
+  const appInfoFetches = [];
+  const versionLocalizationFetches = [];
+
+  function versionResource(id, state) {
+    return resource(id, {
+      appStoreState: state,
+      appVersionState: state,
+      copyright: payload.release.copyright,
+      platform: 'IOS',
+      versionString: payload.release.version,
+    }, 'appStoreVersions');
+  }
+
+  const client = {
+    appInfoFetches,
+    requests,
+    versionLocalizationFetches,
+    async get(path) {
+      requests.push({ method: 'GET', path });
+      const pathname = new URL(path, 'https://example.invalid').pathname;
+      if (pathname === `/v1/apps/${payload.release.appId}`) {
+        return {
+          data: resource(payload.release.appId, {
+            bundleId: payload.release.bundleId,
+          }),
+        };
+      }
+      if (pathname.endsWith('/appStoreReviewDetail')) {
+        return {
+          data: resource('review-detail-1', {
+            notes: payload.appStoreReview.notes,
+          }),
+        };
+      }
+      if (pathname.includes('/appStoreReviewScreenshot')) {
+        const match = path.match(/inAppPurchases\/([^/]+)\/appStoreReviewScreenshot/u);
+        const productId = maps.productByRemoteId[decodeURIComponent(match[1])];
+        const image = maps.productById[productId].reviewImage;
+        return {
+          data: resource(`review-${match[1]}`, {
+            assetDeliveryState: { state: 'COMPLETE' },
+            fileName: image.fileName,
+            fileSize: image.size,
+            sourceFileChecksum: image.md5,
+          }),
+        };
+      }
+      if (pathname === '/v1/builds') {
+        const exactBuild = {
+          ...resource(buildId, {
+            buildAudienceType: 'APP_STORE_ELIGIBLE',
+            expired: false,
+            processingState: 'VALID',
+            version: payload.release.buildNumber,
+          }, 'builds'),
+          relationships: {
+            preReleaseVersion: {
+              data: { id: 'pre-300-ios', type: 'preReleaseVersions' },
+            },
+          },
+        };
+        return {
+          data: [exactBuild],
+          included: [resource('pre-300-ios', {
+            platform: 'IOS',
+            version: payload.release.version,
+          }, 'preReleaseVersions')],
+          links: {},
+        };
+      }
+      if (pathname === `/v1/appStoreVersions/${versionId}/build`) {
+        if (mismatchBuild) {
+          return { data: resource('build-old', { version: '9' }) };
+        }
+        return { data: resource(buildId, { version: payload.release.buildNumber }) };
+      }
+      if (pathname.includes('/baseTerritory')) {
+        const match = path.match(/inAppPurchasePriceSchedules\/([^/]+)\/baseTerritory/u);
+        const productId = maps.productByRemoteId[decodeURIComponent(match[1])];
+        const expected = maps.productById[productId].pricing;
+        return {
+          data: resource(expected.territory, {
+            currency: expected.currency,
+          }, 'territories'),
+        };
+      }
+      if (pathname.includes('/manualPrices')) {
+        const match = path.match(/inAppPurchasePriceSchedules\/([^/]+)\/manualPrices/u);
+        const remoteId = decodeURIComponent(match[1]);
+        const productId = maps.productByRemoteId[remoteId];
+        const expected = maps.productById[productId].pricing;
+        const pricePointId = `point-${remoteId}`;
+        return {
+          data: [{
+            id: `price-${remoteId}`,
+            type: 'inAppPurchasePrices',
+            attributes: { endDate: null, manual: true, startDate: null },
+            relationships: {
+              inAppPurchasePricePoint: {
+                data: { id: pricePointId, type: 'inAppPurchasePricePoints' },
+              },
+              territory: {
+                data: { id: expected.territory, type: 'territories' },
+              },
+            },
+          }],
+          included: [
+            {
+              id: pricePointId,
+              type: 'inAppPurchasePricePoints',
+              attributes: { customerPrice: expected.customerPrice },
+            },
+            {
+              id: expected.territory,
+              type: 'territories',
+              attributes: { currency: expected.currency },
+            },
+          ],
+          links: {},
+        };
+      }
+      if (pathname === '/v1/territories') {
+        const territoryIds = ['CHN', 'KOR', 'USA', 'JPN', 'TWN'];
+        return {
+          data: territoryIds.map((territory) => resource(territory, {
+            currency: territory === 'KOR' ? 'KRW' : 'USD',
+          }, 'territories')),
+          links: {},
+          meta: { paging: { total: territoryIds.length } },
+        };
+      }
+      if (pathname.includes('/appAvailabilityV2')) {
+        return {
+          data: resource('avail-1', { availableInNewTerritories: true }),
+        };
+      }
+      if (pathname.includes('/territoryAvailabilities')) {
+        const territoryIds = ['CHN', 'KOR', 'USA', 'JPN', 'TWN'];
+        return {
+          data: territoryIds.map((territory) => ({
+            ...resource(`availability-${territory}`, {
+              available: territory !== 'CHN',
+            }),
+            relationships: {
+              territory: { data: { id: territory, type: 'territories' } },
+            },
+          })),
+          links: {},
+          meta: { paging: { total: territoryIds.length } },
+        };
+      }
+      throw new Error(`unexpected GET ${path}`);
+    },
+    async getAll(path) {
+      requests.push({ method: 'GET', path });
+      const url = new URL(path, 'https://example.invalid');
+      if (url.pathname.endsWith('/appStoreVersions')) {
+        if (url.searchParams.has('filter[versionString]')) {
+          if (exactVersionsOverride !== null) return exactVersionsOverride;
+          return [versionResource(versionId, versionState)];
+        }
+        if (allVersionsOverride !== null) return allVersionsOverride;
+        return [versionResource(versionId, versionState)];
+      }
+      if (url.pathname.endsWith('/appInfos')) {
+        if (appInfosOverride !== null) return appInfosOverride;
+        return [
+          resource(appInfoLiveId, { appStoreState: 'READY_FOR_SALE' }),
+          resource(appInfoCurrentId, { appStoreState: currentAppInfoState }),
+        ];
+      }
+      if (url.pathname.includes('/appInfoLocalizations')) {
+        const match = path.match(/appInfos\/([^/]+)\/appInfoLocalizations/u);
+        const appInfoId = decodeURIComponent(match[1]);
+        appInfoFetches.push(appInfoId);
+        return payload.appLocalizations.map((entry, index) => resource(
+          `appinfo-loc-${index}`,
+          {
+            locale: entry.locale,
+            name: entry.appInfo.name,
+            subtitle: entry.appInfo.subtitle,
+          },
+        ));
+      }
+      if (
+        url.pathname.includes('/appStoreVersions/')
+        && url.pathname.endsWith('/appStoreVersionLocalizations')
+      ) {
+        versionLocalizationFetches.push(path);
+        return payload.appLocalizations.map((entry, index) => {
+          const desired = maps.appByLocale[entry.locale].version;
+          return resource(`version-loc-${index}`, {
+            locale: entry.locale,
+            description: mismatchVersionLocale === entry.locale
+              ? 'old description'
+              : desired.description,
+            keywords: desired.keywords,
+            promotionalText: desired.promotionalText,
+            whatsNew: desired.whatsNew,
+          });
+        });
+      }
+      if (url.pathname.includes('/appScreenshotSets')
+        && url.pathname.endsWith('/appScreenshotSets')) {
+        const match = path.match(/appStoreVersionLocalizations\/([^/]+)\/appScreenshotSets/u);
+        const localizationIndex = Number(
+          decodeURIComponent(match[1]).replace('version-loc-', ''),
+        );
+        const locale = payload.appLocalizations[localizationIndex].locale;
+        return maps.appByLocale[locale].screenshots.map((set, setIndex) => resource(
+          `set-${localizationIndex}-${setIndex}`,
+          { screenshotDisplayType: set.displayType },
+        ));
+      }
+      if (url.pathname.includes('/appScreenshots')) {
+        const match = path.match(/appScreenshotSets\/([^/]+)\/appScreenshots/u);
+        const [localizationIndex, setIndex] = decodeURIComponent(match[1])
+          .replace('set-', '').split('-').map(Number);
+        const locale = payload.appLocalizations[localizationIndex].locale;
+        const files = maps.appByLocale[locale].screenshots[setIndex].files;
+        return files.map((file, fileIndex) => resource(
+          `shot-${localizationIndex}-${setIndex}-${fileIndex}`,
+          {
+            assetDeliveryState: { state: 'COMPLETE' },
+            fileName: file.fileName,
+            fileSize: file.size,
+            sourceFileChecksum: mismatchScreenshot && fileIndex === 0
+              ? '00000000000000000000000000000000'
+              : file.md5,
+          },
+        ));
+      }
+      if (url.pathname.endsWith('/inAppPurchasesV2')) {
+        return IAP_PRODUCT_IDS.map((productId) => {
+          const product = maps.productById[productId];
+          return resource(maps.remoteIdByProduct[productId], {
+            inAppPurchaseType: product.type,
+            name: product.referenceName,
+            productId,
+            reviewNote: product.reviewNote,
+            state: 'APPROVED',
+          });
+        });
+      }
+      if (url.pathname.includes('/inAppPurchases/')
+        && url.pathname.endsWith('/versions')) {
+        const match = path.match(/inAppPurchases\/([^/]+)\/versions/u);
+        const productId = maps.productByRemoteId[decodeURIComponent(match[1])];
+        return [
+          resource(maps.v1IdByProduct[productId], {
+            state: 'APPROVED',
+            version: 1,
+          }),
+          resource(maps.v2IdByProduct[productId], {
+            state: iapDraftState,
+            version: 2,
+          }),
+        ];
+      }
+      if (url.pathname.includes('/inAppPurchaseVersions/')
+        && url.pathname.includes('/localizations')) {
+        const match = path.match(/inAppPurchaseVersions\/([^/]+)\/localizations/u);
+        const productId = maps.productByV2Id[decodeURIComponent(match[1])];
+        assert.ok(productId);
+        return maps.productById[productId].localizations.map(
+          (localization, localeIndex) => resource(
+            `v2loc-${match[1]}-${localeIndex}`,
+            {
+              description: localization.description,
+              locale: localization.locale,
+              name: localization.name,
+            },
+          ),
+        );
+      }
+      if (url.pathname.endsWith('/betaGroups')) {
+        return [
+          resource('internal-group', {
+            isInternalGroup: true,
+            name: 'Moonlit Beacon Internal',
+          }),
+          resource('external-group', {
+            isInternalGroup: false,
+            name: 'External',
+          }),
+        ];
+      }
+      if (url.pathname.includes('/betaGroups/') && url.pathname.endsWith('/builds')) {
+        return url.pathname.includes('/internal-group/')
+          ? [resource(buildId, { version: payload.release.buildNumber })]
+          : [];
+      }
+      throw new Error(`unexpected GET ALL ${path}`);
+    },
+  };
+  return client;
+}
+
+test('review-ready read-only preflight verifies exact 3.0.0 after add-for-review and submitted readback', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '3.0.0', build: '10' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const maps = reviewTransitionMaps(payload);
+    assert.deepEqual(
+      READ_ONLY_REVIEW_APP_VERSION_STATES,
+      ['READY_FOR_REVIEW', 'WAITING_FOR_REVIEW', 'IN_REVIEW', 'COMPLETING'],
+    );
+    for (const state of READ_ONLY_REVIEW_APP_VERSION_STATES) {
+      assert.equal(ADOPTABLE_APP_VERSION_STATES.includes(state), false);
+      assert.equal(isAdoptableAppVersionState(state), false);
+      assert.equal(isReadOnlyReviewAppVersionState(state), true);
+      assert.throws(
+        () => assertEditableAppStoreVersionState(state),
+        /ASC_VERSION_NOT_EDITABLE/u,
+      );
+    }
+
+    const prepareClient = createReviewTransitionClient(payload, {
+      appInfoState: 'PREPARE_FOR_SUBMISSION',
+      iapDraftState: 'PREPARE_FOR_SUBMISSION',
+      versionState: 'PREPARE_FOR_SUBMISSION',
+    });
+    const prepare = await auditAppStoreConnectApplyReadiness({
+      client: prepareClient,
+      payload,
+    });
+    assert.equal(prepare.mode, 'GET_ONLY_REMOTE_APPLY_PREFLIGHT');
+    assert.equal(prepare.remote.versionId, 'version-300');
+    assert.equal(prepare.remote.versionState, 'PREPARE_FOR_SUBMISSION');
+    assert.equal(prepare.remote.appInfoId, 'app-info-current');
+    assert.deepEqual(prepare.remote.iapVersionIds, maps.v2IdByProduct);
+    assert.ok(prepare.plan.every((entry) => entry.action === 'none'));
+    assert.equal(prepare.summary.unresolved, 0);
+
+    const standaloneReady = await auditAppStoreConnectRelease({
+      client: createReviewTransitionClient(payload, {
+        appInfoState: 'READY_FOR_REVIEW',
+        iapDraftState: 'READY_FOR_REVIEW',
+        versionState: 'READY_FOR_REVIEW',
+      }),
+      payload,
+      skipUnscopedIapLocalizations: true,
+    });
+    assert.ok(standaloneReady.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE'
+      && entry.action === 'unresolved'
+    )));
+    assert.equal(standaloneReady.remote.appInfoId, null);
+    assert.equal(
+      standaloneReady.plan.filter((entry) => entry.action === 'create').length,
+      20,
+    );
+
+    const readyClient = createReviewTransitionClient(payload, {
+      appInfoState: 'READY_FOR_REVIEW',
+      iapDraftState: 'READY_FOR_REVIEW',
+      versionState: 'READY_FOR_REVIEW',
+    });
+    const ready = await auditAppStoreConnectApplyReadiness({
+      client: readyClient,
+      payload,
+    });
+    assert.equal(ready.mode, 'GET_ONLY_REMOTE_APPLY_PREFLIGHT');
+    assert.equal(ready.remote.versionId, 'version-300');
+    assert.equal(ready.remote.versionState, 'READY_FOR_REVIEW');
+    assert.equal(ready.remote.appInfoId, 'app-info-current');
+    assert.deepEqual(ready.remote.iapVersionIds, maps.v2IdByProduct);
+    assert.ok(Object.values(ready.remote.iapVersionStates).every(
+      (state) => state === 'READY_FOR_REVIEW',
+    ));
+    assert.ok(ready.plan.every((entry) => entry.action === 'none'));
+    assert.equal(ready.summary.unresolved, 0);
+    assert.deepEqual(readyClient.appInfoFetches, ['app-info-current']);
+    assert.equal(readyClient.versionLocalizationFetches.length, 1);
+    assert.ok(ready.requests.some((request) => (
+      request.path.includes('/appStoreReviewDetail?')
+    )));
+    assert.ok(ready.requests.some((request) => (
+      request.path.includes('/appScreenshotSets/')
+      && request.path.includes('/appScreenshots?')
+    )));
+
+    const manifest = createAppStoreReleaseManifest(payload);
+    const reviewConfirmation = appStoreConfirmationToken(manifest, 'review');
+    const posted = [];
+    const submitGetClient = {
+      async get(path) {
+        if (path.includes('/reviewSubmissions/submission-1?')) {
+          return { data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }) };
+        }
+        if (path.includes('/appStoreVersions/version-300/build?')) {
+          return { data: resource('build-300-10', { version: '10' }) };
+        }
+        assert.fail(`unexpected GET: ${path}`);
+      },
+      async getAll(path) {
+        if (path.includes('/reviewSubmissions?') && !path.includes('/items?')) return [];
+        if (path.includes('/items?')) {
+          return posted.map((entry, index) => ({
+            id: `item-${index}`,
+            relationships: Object.fromEntries(Object.entries(entry.relationships)
+              .filter(([name]) => name !== 'reviewSubmission')),
+            type: 'reviewSubmissionItems',
+          }));
+        }
+        assert.fail(`unexpected GET: ${path}`);
+      },
+    };
+    const submitted = await submitAppStoreConnectReview({
+      audit: ready,
+      client: {
+        async patch(path, body) {
+          assert.equal(path, '/v1/reviewSubmissions/submission-1');
+          assert.deepEqual(body.data.attributes, { submitted: true });
+          return { data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }) };
+        },
+        async post(path, body) {
+          if (path === '/v1/reviewSubmissions') {
+            return { data: resource('submission-1', { state: 'READY_FOR_REVIEW' }) };
+          }
+          posted.push(body.data);
+          return { data: resource(`item-${posted.length}`, {}) };
+        },
+      },
+      getClient: submitGetClient,
+      manifest,
+      reviewConfirmation,
+    });
+    assert.equal(submitted.submitted, true);
+    assert.equal(submitted.idempotent, false);
+    assert.equal(submitted.reviewItemCount, IAP_PRODUCT_IDS.length + 1);
+    assert.equal(posted.length, IAP_PRODUCT_IDS.length + 1);
+
+    for (const submittedState of ['WAITING_FOR_REVIEW', 'IN_REVIEW', 'COMPLETING']) {
+      const submittedClient = createReviewTransitionClient(payload, {
+        appInfoState: submittedState,
+        iapDraftState: 'READY_FOR_REVIEW',
+        versionState: submittedState,
+      });
+      const submittedAudit = await auditAppStoreConnectApplyReadiness({
+        client: submittedClient,
+        payload,
+      });
+      assert.equal(submittedAudit.remote.versionState, submittedState);
+      assert.equal(submittedAudit.remote.appInfoId, 'app-info-current');
+      assert.ok(submittedAudit.plan.every((entry) => entry.action === 'none'));
+    }
+
+    const waitingClient = createReviewTransitionClient(payload, {
+      appInfoState: 'WAITING_FOR_REVIEW',
+      iapDraftState: 'READY_FOR_REVIEW',
+      versionState: 'WAITING_FOR_REVIEW',
+    });
+    const waiting = await auditAppStoreConnectApplyReadiness({
+      client: waitingClient,
+      payload,
+    });
+    const linkedItems = [
+      {
+        id: 'item-app',
+        relationships: {
+          appStoreVersion: { data: { id: 'version-300', type: 'appStoreVersions' } },
+        },
+        type: 'reviewSubmissionItems',
+      },
+      ...IAP_PRODUCT_IDS.map((productId, index) => ({
+        id: `item-iap-${index}`,
+        relationships: {
+          inAppPurchaseVersion: {
+            data: { id: maps.v2IdByProduct[productId], type: 'inAppPurchaseVersions' },
+          },
+        },
+        type: 'reviewSubmissionItems',
+      })),
+    ];
+    const idempotent = await submitAppStoreConnectReview({
+      audit: waiting,
+      client: {
+        async patch() { assert.fail('submitted readback must not PATCH'); },
+        async post() { assert.fail('submitted readback must not POST'); },
+      },
+      getClient: {
+        async get(path) {
+          if (path.includes('/appStoreVersions/version-300/build?')) {
+            return { data: resource('build-300-10', { version: '10' }) };
+          }
+          assert.fail(`unexpected GET: ${path}`);
+        },
+        async getAll(path) {
+          if (path.includes('/reviewSubmissions?') && !path.includes('/items?')) {
+            return [resource('submission-1', { platform: 'IOS', state: 'WAITING_FOR_REVIEW' })];
+          }
+          if (path.includes('/items?')) return linkedItems;
+          assert.fail(`unexpected GET: ${path}`);
+        },
+      },
+      manifest,
+      reviewConfirmation,
+    });
+    assert.deepEqual(
+      { id: idempotent.id, idempotent: idempotent.idempotent, submitted: idempotent.submitted },
+      { id: 'submission-1', idempotent: true, submitted: true },
+    );
+  }));
+
+test('review-state mismatch cannot mutate and unsupported/duplicate review states stay blocked', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '3.0.0', build: '10' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const manifest = createAppStoreReleaseManifest(payload);
+    const confirmation = appStoreConfirmationToken(manifest, 'apply');
+
+    const mismatchAudit = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        appInfoState: 'READY_FOR_REVIEW',
+        iapDraftState: 'READY_FOR_REVIEW',
+        mismatchVersionLocale: 'ko',
+        versionState: 'READY_FOR_REVIEW',
+      }),
+      payload,
+    });
+    const mismatchEntry = mismatchAudit.plan.find((entry) => (
+      entry.target === 'appStoreVersionLocalization'
+      && entry.identifier === '3.0.0/ko'
+    ));
+    assert.equal(mismatchEntry.action, 'update');
+    assert.equal(mismatchEntry.changes.description.current, 'old description');
+    assert.equal(
+      mismatchAudit.plan.some((entry) => (
+        entry.code === 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE'
+      )),
+      false,
+    );
+    let mutations = 0;
+    const failOnMutation = async () => {
+      mutations += 1;
+      assert.fail('review-state mismatch must not reach a network write');
+    };
+    await assert.rejects(
+      applyAppStoreConnectRelease({
+        client: {
+          delete: failOnMutation,
+          patch: failOnMutation,
+          post: failOnMutation,
+        },
+        confirmation,
+        getClient: createReviewTransitionClient(payload, {
+          appInfoState: 'READY_FOR_REVIEW',
+          iapDraftState: 'READY_FOR_REVIEW',
+          mismatchVersionLocale: 'ko',
+          versionState: 'READY_FOR_REVIEW',
+        }),
+        manifest,
+        payload,
+        repoRoot: root,
+      }),
+      /ASC_VERSION_NOT_EDITABLE/u,
+    );
+    assert.equal(mutations, 0);
+
+    const buildMismatch = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        appInfoState: 'READY_FOR_REVIEW',
+        iapDraftState: 'READY_FOR_REVIEW',
+        mismatchBuild: true,
+        versionState: 'READY_FOR_REVIEW',
+      }),
+      payload,
+    });
+    assert.equal(
+      buildMismatch.plan.find((entry) => entry.target === 'buildAssociation').action,
+      'update',
+    );
+    await assert.rejects(
+      applyAppStoreConnectRelease({
+        client: {
+          delete: failOnMutation,
+          patch: failOnMutation,
+          post: failOnMutation,
+        },
+        confirmation,
+        getClient: createReviewTransitionClient(payload, {
+          appInfoState: 'READY_FOR_REVIEW',
+          iapDraftState: 'READY_FOR_REVIEW',
+          mismatchBuild: true,
+          versionState: 'READY_FOR_REVIEW',
+        }),
+        manifest,
+        payload,
+        repoRoot: root,
+      }),
+      /ASC_VERSION_NOT_EDITABLE/u,
+    );
+    assert.equal(mutations, 0);
+
+    for (const unsupported of ['SOMETHING_NEW', null, 'REJECTED']) {
+      const blocked = await auditAppStoreConnectApplyReadiness({
+        client: createReviewTransitionClient(payload, {
+          appInfoState: 'READY_FOR_REVIEW',
+          iapDraftState: 'READY_FOR_REVIEW',
+          versionState: unsupported,
+        }),
+        payload,
+      });
+      assert.ok(blocked.plan.some((entry) => (
+        entry.code === 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE'
+        && entry.action === 'unresolved'
+      )));
+    }
+
+    await assert.rejects(
+      auditAppStoreConnectApplyReadiness({
+        client: createReviewTransitionClient(payload, {
+          exactVersionsOverride: [
+            resource('version-a', {
+              appVersionState: 'READY_FOR_REVIEW',
+              platform: 'IOS',
+              versionString: '3.0.0',
+            }),
+            resource('version-b', {
+              appVersionState: 'READY_FOR_REVIEW',
+              platform: 'IOS',
+              versionString: '3.0.0',
+            }),
+          ],
+        }),
+        payload,
+      }),
+      /remote iOS 3\.0\.0 version is duplicated/u,
+    );
+
+    await assert.rejects(
+      auditAppStoreConnectApplyReadiness({
+        client: createReviewTransitionClient(payload, {
+          appInfoState: 'READY_FOR_REVIEW',
+          appInfosOverride: [
+            resource('app-info-live', { appStoreState: 'READY_FOR_SALE' }),
+            resource('app-info-a', { appStoreState: 'READY_FOR_REVIEW' }),
+            resource('app-info-b', { appStoreState: 'READY_FOR_REVIEW' }),
+          ],
+          iapDraftState: 'READY_FOR_REVIEW',
+          versionState: 'READY_FOR_REVIEW',
+        }),
+        payload,
+      }),
+      /exactly one remote App Info/u,
+    );
+
+    const differentReview = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        allVersionsOverride: [
+          resource('version-other', {
+            appVersionState: 'READY_FOR_REVIEW',
+            copyright: payload.release.copyright,
+            platform: 'IOS',
+            versionString: '3.0.1',
+          }),
+          resource('asc-version-2-1-0', {
+            appVersionState: 'READY_FOR_DISTRIBUTION',
+            platform: 'IOS',
+            versionString: '2.1.0',
+          }),
+        ],
+        exactVersionsOverride: [],
+      }),
+      payload,
+    });
+    assert.equal(differentReview.remote.versionId, null);
+    assert.ok(differentReview.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
+      && entry.action === 'unresolved'
+    )));
+  }));

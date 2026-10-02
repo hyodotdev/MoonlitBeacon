@@ -50,6 +50,9 @@ func _ready() -> void:
 			"%s safe return shows the ember-keeping epitaph" % locale)
 		_expect_fits(
 			win_panel.get_node("Epitaph") as Label, "%s safe-return epitaph" % locale)
+		_expect_true(
+			(win_panel.get_node("Epitaph") as Label).get_line_count() == 1,
+			"%s pre-cycle-8 settlement keeps one epitaph line" % locale)
 		win_panel.queue_free()
 		await get_tree().process_frame
 
@@ -66,6 +69,9 @@ func _ready() -> void:
 			"%s cycle-8 settlement shows the line-joined epitaph" % locale)
 		_expect_fits(
 			legend_panel.get_node("Epitaph") as Label, "%s victory epitaph" % locale)
+		_expect_true(
+			(legend_panel.get_node("Epitaph") as Label).get_line_count() == 1,
+			"%s cycle-8 settlement keeps one epitaph line" % locale)
 		legend_panel.queue_free()
 		await get_tree().process_frame
 
@@ -91,10 +97,10 @@ func _check_locale(panel: Control, locale: String) -> void:
 	var shrine: Button = panel.get_node("Actions/Shrine") as Button
 
 	_expect_fits(title, "%s title" % locale)
-	_expect_fits(epitaph, "%s closing story line" % locale)
+	_expect_fits(epitaph, "%s closing story line with depth" % locale)
 	_expect_true(
-		epitaph.text == tr("STORY_EPITAPH_LOSE"),
-		"%s defeat shows the debt-passing epitaph" % locale)
+		epitaph.text == tr("STORY_EPITAPH_LOSE") + " · " + tr("HUD_DEPTH") % 115,
+		"%s deep defeat shows Depth 115 next to the debt-passing epitaph" % locale)
 	_expect_fits(detail, "%s score table" % locale)
 	_expect_fits(hint, "%s record and shards" % locale)
 	_expect_fits(goal, "%s purchase goal" % locale)

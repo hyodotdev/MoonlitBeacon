@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=36 format=3]
 
 [ext_resource type="Script" path="res://scripts/actors/player.gd" id="script"]
 [ext_resource type="Script" path="res://scripts/actors/moonlight_cast.gd" id="cast"]
@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/charge_ring.tscn" id="ring"]
 [ext_resource type="Texture2D" path="res://assets/custom/items/fx/moon_slash.png" id="slash"]
 [ext_resource type="Script" path="res://scripts/items/moonfire_aura.gd" id="moonfire"]
+[ext_resource type="Material" path="res://resources/fx/actor_polish.tres" id="polish"]
 
 [sub_resource type="AtlasTexture" id="Atlas_idle_down"]
 atlas = ExtResource("idle")
@@ -214,6 +215,21 @@ _data = {
 &"breathe": SubResource("Animation_breathe")
 }
 
+[sub_resource type="Gradient" id="Gradient_pool"]
+offsets = PackedFloat32Array(0, 0.42, 1)
+colors = PackedColorArray(1, 1, 1, 0.6, 1, 1, 1, 0.2, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_pool"]
+gradient = SubResource("Gradient_pool")
+width = 64
+height = 64
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_pool"]
+blend_mode = 1
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 radius = 4.0
 
@@ -223,13 +239,23 @@ collision_layer = 2
 collision_mask = 0
 script = ExtResource("script")
 
+[node name="MoonPool" type="Sprite2D" parent="."]
+light_mask = 0
+material = SubResource("CanvasItemMaterial_pool")
+self_modulate = Color(2.4, 2.6, 3.2, 0.26)
+position = Vector2(0, -4)
+scale = Vector2(1.05, 0.62)
+texture = SubResource("GradientTexture2D_pool")
+
 [node name="Shadow" type="Sprite2D" parent="."]
 light_mask = 0
 modulate = Color(0.05, 0.06, 0.12, 0.85)
-position = Vector2(0, -1)
+position = Vector2(1.5, -4)
+scale = Vector2(1.2, 1)
 texture = ExtResource("shadow")
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
+material = ExtResource("polish")
 self_modulate = Color(3.175, 2.857, 1.754, 1)
 position = Vector2(0, -8)
 scale = Vector2(0.765, 0.765)

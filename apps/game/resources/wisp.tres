@@ -6,6 +6,12 @@
 [resource]
 script = ExtResource("script")
 display_name = "떠도는 정령"
+barrage = 2
+barrage_share = 0.35
+barrage_interval = 3.4
+barrage_speed = 34.0
+barrage_count = 6
+barrage_tint = 3
 sheet = ExtResource("sheet")
 cell = 48
 facings = 4
@@ -18,4 +24,5 @@ score_value = 60
 stagger_seconds = 0.12
 body_scale = 1.0
 tint = Color(1, 1, 1, 1)
+spark_color = Color(0.75, 0.96, 1, 1)
 anim_fps = 5.0
