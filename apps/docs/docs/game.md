@@ -19,7 +19,7 @@ title: The game we are making
 | Controls | full-screen floating move stick / bottom-right dash button / auto-attack |
 | Engine | Godot 4.7.1 Standard, GDScript |
 | Run length | you can cash out after each guardian — keep going after an 8-cycle official win |
-| Project version | 3.0.0 (iOS build 10 / Android versionCode 15) |
+| Project version | 3.0.0 (iOS build 11 / Android versionCode 16) |
 
 ### One-line pitch
 
@@ -615,8 +615,7 @@ signals; Eclipse recognizes the first missing light. Their line is offered
 first; the shared pool fills in after, and no line is ever said twice in a
 run.
 
-Store screenshots taken before 3.0.0 no longer match the game and were **not**
-recaptured; recapturing is a separate, explicit decision.
+Store screenshots were renewed for 3.0.0 and match the current screens.
 
 
 ## 4. What this game will not include
@@ -641,9 +640,7 @@ relics and visuals, not a power ladder by price. Continue coins are an
 optional convenience that resumes a run where you fell; you can start a
 new run immediately without them. Past Hero Bundle buyers still restore
 Shadow Dancer and Beacon Keeper after that SKU left the new-sale list.
-All 10 sale products are registered on both stores, and purchase,
-verification, grant counts, restart persistence, and consume paths were
-checked on a physical Pixel and iPad. Product and verification
+All 10 sale products are registered on both stores. Product and verification
 boundaries are in [Monetization design](./monetize.md).
 
 ## 5. Game states
@@ -741,7 +738,7 @@ pre-final-evolution relic resonance, return-or-continue after a
 guardian, and anonymous event instrumentation, consent, and reporting
 tools. 2.1.0's submission build ships collection disabled; the real
 baseline starts from a later version with a protected ingest path on.
-2.1.0 is the last recorded store release.
+2.1.0 is the final tutorial release.
 
 A lesson's start point is the previous lesson's complete point, so we
 only keep complete tags.
@@ -767,4 +764,7 @@ keep describing the `release-2.1.0` screens on purpose. The premise is a
 road home: Nari, the signal keeper of Lantern Hollow, went to repair the
 beacon road and never came back, and each run keeps the road home lit.
 Each restored place speaks one discovery line — trail ribbons, wind
-chimes, her kettle, a signal bell, a paper boat, a signal lens.
+chimes, her kettle, a signal bell, a paper boat, a signal lens. As of
+2026-10-02, 3.0.0 (iOS build 11 / Android versionCode 16) is published
+on Google Play and submitted for App Store review, with manual release
+after approval.
