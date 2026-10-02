@@ -49,6 +49,13 @@ export const ADOPTABLE_APP_VERSION_STATES = Object.freeze([
   'DEVELOPER_REJECTED',
 ]);
 
+export const READ_ONLY_REVIEW_APP_VERSION_STATES = Object.freeze([
+  'READY_FOR_REVIEW',
+  'WAITING_FOR_REVIEW',
+  'IN_REVIEW',
+  'COMPLETING',
+]);
+
 const RELEASED_APP_VERSION_STATES = new Set([
   'READY_FOR_DISTRIBUTION',
   'REPLACED_WITH_NEW_VERSION',
@@ -102,6 +109,12 @@ export function appVersionState(resource) {
 
 export function isAdoptableAppVersionState(state) {
   return ADOPTABLE_APP_VERSION_STATES.includes(
+    normalizeAppVersionState(state),
+  );
+}
+
+export function isReadOnlyReviewAppVersionState(state) {
+  return READ_ONLY_REVIEW_APP_VERSION_STATES.includes(
     normalizeAppVersionState(state),
   );
 }
@@ -2325,6 +2338,8 @@ export function summarizeRemotePlan(plan) {
 export async function auditAppStoreConnectRelease({
   payload,
   client,
+  skipUnscopedIapLocalizations = false,
+  allowReadOnlyReviewVersion = false,
 } = {}) {
   if (!payload?.release || !client?.get || !client?.getAll) {
     throw new TypeError('local release payload and a GET-only ASC client are required.');
@@ -2348,6 +2363,13 @@ export async function auditAppStoreConnectRelease({
     payload.appStoreReview?.notes,
     'App Store version review notes',
   );
+  const isExactReadOnlyReviewVersion = (resource) => {
+    if (!allowReadOnlyReviewVersion || !resource) return false;
+    const resourceAttributes = attributes(resource);
+    return resourceAttributes.platform === 'IOS'
+      && resourceAttributes.versionString === version
+      && isReadOnlyReviewAppVersionState(appVersionState(resource));
+  };
 
   const exactVersionResources = await client.getAll(queryPath(
     `/v1/apps/${appId}/appStoreVersions`,
@@ -2368,6 +2390,7 @@ export async function auditAppStoreConnectRelease({
   if (
     versionResource
     && !isAdoptableAppVersionState(appVersionState(versionResource))
+    && !isExactReadOnlyReviewVersion(versionResource)
   ) {
     versionSelectionBlocker = {
       action: 'unresolved',
@@ -2406,16 +2429,18 @@ export async function auditAppStoreConnectRelease({
     if (desiredVersions.length === 1) {
       [versionResource] = desiredVersions;
       if (!isAdoptableAppVersionState(appVersionState(versionResource))) {
-        versionSelectionBlocker = {
-          action: 'unresolved',
-          target: 'appStoreVersion',
-          identifier: `IOS/${version}`,
-          code: 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE',
-          reason:
-            `remote iOS ${version} version state `
-            + `${appVersionState(versionResource) ?? 'UNKNOWN'} cannot be changed automatically.`,
-          remoteMutationPlanned: false,
-        };
+        if (!isExactReadOnlyReviewVersion(versionResource)) {
+          versionSelectionBlocker = {
+            action: 'unresolved',
+            target: 'appStoreVersion',
+            identifier: `IOS/${version}`,
+            code: 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE',
+            reason:
+              `remote iOS ${version} version state `
+              + `${appVersionState(versionResource) ?? 'UNKNOWN'} cannot be changed automatically.`,
+            remoteMutationPlanned: false,
+          };
+        }
       } else if (competingAdoptableVersions.length > 0) {
         versionSelectionBlocker = {
           action: 'unresolved',
@@ -2717,18 +2742,20 @@ export async function auditAppStoreConnectRelease({
         },
         prerequisites: [],
       });
-      for (const localization of product.localizations) {
-        plan.push({
-          action: 'create',
-          target: 'inAppPurchaseLocalization',
-          identifier: `${product.productId}/${localization.locale}`,
-          desired: {
-            locale: localization.locale,
-            name: localization.name,
-            description: localization.description,
-          },
-          prerequisites: [`inAppPurchase:${product.productId}`],
-        });
+      if (!skipUnscopedIapLocalizations) {
+        for (const localization of product.localizations) {
+          plan.push({
+            action: 'create',
+            target: 'inAppPurchaseLocalization',
+            identifier: `${product.productId}/${localization.locale}`,
+            desired: {
+              locale: localization.locale,
+              name: localization.name,
+              description: localization.description,
+            },
+            prerequisites: [`inAppPurchase:${product.productId}`],
+          });
+        }
       }
       plan.push({
         action: 'create',
@@ -2786,33 +2813,35 @@ export async function auditAppStoreConnectRelease({
       prerequisites: [],
     });
 
-    const remoteLocalizations = await client.getAll(queryPath(
-      `/v2/inAppPurchases/${remoteProduct.id}/inAppPurchaseLocalizations`,
-      [
-        ['fields[inAppPurchaseLocalizations]',
-          'name,locale,description,state'],
-        ['limit', '200'],
-      ],
-    ));
-    for (const localization of product.localizations) {
-      const remoteLocalization = uniqueByAttribute(
-        remoteLocalizations,
-        'locale',
-        localization.locale,
-        `IAP ${product.productId} localization`,
-      );
-      addMetadataPlan(
-        plan,
-        'inAppPurchaseLocalization',
-        `${product.productId}/${localization.locale}`,
-        {
-          name: localization.name,
-          description: localization.description,
-        },
-        remoteLocalization,
-        [`inAppPurchase:${product.productId}`],
-      );
-      plan.at(-1).parentId = remoteProduct.id;
+    if (!skipUnscopedIapLocalizations) {
+      const remoteLocalizations = await client.getAll(queryPath(
+        `/v2/inAppPurchases/${remoteProduct.id}/inAppPurchaseLocalizations`,
+        [
+          ['fields[inAppPurchaseLocalizations]',
+            'name,locale,description,state'],
+          ['limit', '200'],
+        ],
+      ));
+      for (const localization of product.localizations) {
+        const remoteLocalization = uniqueByAttribute(
+          remoteLocalizations,
+          'locale',
+          localization.locale,
+          `IAP ${product.productId} localization`,
+        );
+        addMetadataPlan(
+          plan,
+          'inAppPurchaseLocalization',
+          `${product.productId}/${localization.locale}`,
+          {
+            name: localization.name,
+            description: localization.description,
+          },
+          remoteLocalization,
+          [`inAppPurchase:${product.productId}`],
+        );
+        plan.at(-1).parentId = remoteProduct.id;
+      }
     }
 
     const remoteReviewImage = await client.get(

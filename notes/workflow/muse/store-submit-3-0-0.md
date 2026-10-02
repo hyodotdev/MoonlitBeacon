@@ -260,3 +260,57 @@ plus locale/store metadata, assets/graphics, hygiene, docs and anchors.
 The separate screenshot check remains red at the existing capture-source
 fingerprint; no recapture or re-upload occurs. Public release status is
 unchanged by these passing code checks.
+
+## Final store outcome, 2026-10-02
+
+The human explicitly instructs this release to proceed without unfinished
+native purchase verification and to capture new iPad screenshots. The native
+purchase gate remains NOT_DONE / USER_AUTHORIZED_SKIP, never PASS. The physical
+Pixel 10 final-APK direction matrix is not established; the App Store iPhone
+source is explicitly Android Pixel AVD fallback.
+
+Final signed artifacts are Android 3.0.0 (16) and iOS 3.0.0 (11), both built
+from the reviewed circle-corrected runtime. All 667 runtime witness files stay
+unchanged during subsequent release-tool corrections. The signed artifact
+hashes and immutable copies live in builds/release/final-3.0.0-build16-11/.
+
+Google Play: production versionCode 16 is PUBLICLY PUBLISHED, confirmed by
+fresh official Publisher GET at 2026-10-02T04:20:18.041Z. Existing renewed 3.0.0
+five-language listings, ninety screenshots and ten app graphics are preserved
+byte-identically by the binary-only final update. No new gallery rewrite is
+performed for the nonvisual circle correction.
+
+App Store: 3.0.0 (11) is ACTUALLY SUBMITTED / WAITING_FOR_REVIEW. Submission
+579a511b-5a96-464e-afcd-40e012077caa has submittedDate
+2026-10-02T05:09:11.361Z. Independent GET at 05:10:56.706Z verifies exact
+version 743c9128-6202-4f6f-8721-e0974a399e5e, exact VALID build
+d98bd3f9-41b2-4b68-a7a7-9ea90983cdb4 and eleven distinct correct review items
+(app plus ten current v2 IAP versions). Release type remains MANUAL. Apple
+approval and live availability are not claimed.
+
+All seventy final App Store RGB images are newly prepared and uploaded: sixty
+marketing images across five locales and two device slots, plus ten IAP review
+images. All thirty iPad originals come from physical iPad mini A17 Pro, with
+exact persistence restoration and disposable capture-app removal; this is not
+a physical 13-inch device claim. The iPhone source is Pixel AVD fallback.
+All raw iPad images and eleven final boards are inspected by the director;
+unchanged strict deterministic/semantic/provenance checks pass. Only three
+Apple eligibility-stalled image resources are retransmitted with identical
+bytes; other 67 resources remain intact. Tracked copies match all seventy
+strict-verified files exactly.
+
+The final real-tree pnpm verify exits 0: 500 Node tests across sixteen groups,
+67 App Store tests with zero failures/skips, 52 game steps, 122 scripts and
+404 primary-weapon assertions, plus locale/metadata, assets/graphics, hygiene,
+skills, docs and anchors. Briefs 036–039 fix four confirmed Apple-tool defects;
+the director independently reads each diff, runs complete suites and observes
+negative controls fail before exact restoration. Full GET preflight reaches
+106 none entries and no mutations/blockers before the real submission.
+
+Evidence: director-final-play-production-readback.json,
+director-final-asc-submitted-original-guard.json,
+director-final-asc-independent-submitted-readback.json,
+director-final-canonical70-store-copy-receipt.json and
+director-muse039-final-root-verification-receipt.json under builds/verify/.
+PR 10 remains open and unmerged for human approval; final CI is checked on its
+latest published head separately.

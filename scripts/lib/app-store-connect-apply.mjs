@@ -729,19 +729,26 @@ export async function auditVersionedIapLocalizations(payload, client, baseAudit)
     }
     const draft = currentVersions[0] ?? rejectedVersions[0] ?? null;
     if (!draft && versions.length > 0) {
-      plan.push({
-        action: 'unresolved',
-        code: 'ASC_IAP_VERSION_STATE_UNSUPPORTED',
-        identifier: product.productId,
-        reason: 'cannot safely continue the existing IAP version state, so a new version is not created automatically.',
-        remoteMutationPlanned: false,
-        remoteStates: versions.map((resource) => (
-          remoteAttributes(resource).state ?? 'UNKNOWN'
-        )),
-        target: 'inAppPurchaseVersion',
-      });
-      continue;
+      const fullyApproved = versions.every((resource) => (
+        remoteAttributes(resource).state === 'APPROVED'
+      ));
+      if (!fullyApproved) {
+        plan.push({
+          action: 'unresolved',
+          code: 'ASC_IAP_VERSION_STATE_UNSUPPORTED',
+          identifier: product.productId,
+          reason: 'cannot safely continue the existing IAP version state, so a new version is not created automatically.',
+          remoteMutationPlanned: false,
+          remoteStates: versions.map((resource) => (
+            remoteAttributes(resource).state ?? 'UNKNOWN'
+          )),
+          target: 'inAppPurchaseVersion',
+        });
+        continue;
+      }
     }
+    // An APPROVED-only history has no draft, so it falls through here to
+    // create a fresh version; the history itself is never edited.
     if (!draft) {
       plan.push({
         action: 'create',
@@ -1062,7 +1069,17 @@ export async function auditAppAvailability(payload, client) {
 }
 
 export async function auditAppStoreConnectApplyReadiness({ payload, client } = {}) {
-  const base = await auditAppStoreConnectRelease({ payload, client });
+  // The deprecated unscoped localizations endpoint returns every version at
+  // once, so a mixed APPROVED plus PREPARE history looks duplicated there.
+  // The versioned apply path audits only the chosen version scope instead.
+  // Review states stay non-editable; this only lets the exact requested
+  // version be verified read-only after add-for-review or submission.
+  const base = await auditAppStoreConnectRelease({
+    payload,
+    client,
+    skipUnscopedIapLocalizations: true,
+    allowReadOnlyReviewVersion: true,
+  });
   const build = await auditBuildAssociation(payload, client, base);
   const internalBetaGroup = await auditInternalBetaGroup(payload, client, build);
   const iap = await auditVersionedIapLocalizations(payload, client, base);
@@ -1892,6 +1909,7 @@ async function readReviewItems(getClient, submissionId) {
     `/v1/reviewSubmissions/${encodeSegment(submissionId, 'review submission')}/items`,
     [
       ['fields[reviewSubmissionItems]', 'state,appStoreVersion,inAppPurchaseVersion'],
+      ['include', 'appStoreVersion,inAppPurchaseVersion'],
       ['limit', '200'],
     ],
   ));

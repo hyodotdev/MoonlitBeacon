@@ -239,3 +239,177 @@ purchase verification unfinished, and confirms the iPad will remain
 connected, landscape and unlocked for fresh captures. This overrides the
 skill purchase gate only for this release; native evidence remains
 NOT_DONE, never PASS. Both-store review submission authorization persists.
+
+## Final public submission operations (2026-10-02)
+
+- Real-tree verification after accepted tooling completes exit 0: 491 Node
+  cases across sixteen groups, 52 game steps and 122 script parses; all
+  required locale, assets, repository, docs and anchor checks pass. Head
+  aaf25624e2ff955cea1414d4fd8a6e787c64184b has four successful GitHub checks
+  and a CLEAN mergeability readback. PR 10 remains unmerged for human review.
+- Immediately before public Play promotion, all 667 reviewed runtime files
+  remain byte-identical and the retained release AAB hash is
+  46c6e65220a3cad736b07d3249585989c609ff6a4c5598e6e3ab0d66396ae781.
+  The authorized Console operation promotes internal code 16 to production,
+  saves the draft and sends that one change for review. Fresh official API
+  readback observes production 3.0.0, activeVersionCodes [16], lifecycle
+  RELEASE_LIFECYCLE_STATE_IN_REVIEW at 2026-10-02T02:03:29.975Z. Existing
+  five listings, ninety screenshots and ten app graphics stay byte-identical.
+  Evidence: director-play16-public-preflight.json,
+  director-play16-production-submission-readback.json and
+  director-google-play-3.0.0-submitted.png under builds/verify/.
+- Fresh phone capture completes forty images with byte-exact persistence
+  restoration, installed APK equality and atomic canonical publication.
+  The dedicated ADB server uses localhost:5038 and no physical USB device.
+  Fresh iPad capture uses the physical iPad mini A17 Pro via nonce-bound
+  Xcode Devices screenshots, not a simulator or a physical 13-inch claim.
+  The App Store iPhone source remains explicitly Android Pixel AVD fallback.
+  Native purchase verification stays NOT_DONE / USER_AUTHORIZED_SKIP.
+- Fresh iPad capture finishes all thirty images and publishes canonical
+  proof with unchanged source bytes, byte-exact persistence, disarmed
+  control files and removal of the isolated capture bundle. Production
+  container access is false and the existing production app identity is
+  unchanged. The signing wrapper restores the original login-only keychain
+  search list at 2026-10-02T02:49:30.924Z. Evidence:
+  director-final11-ipad-capture-completion.json and
+  director-final11-ipad-keychain-restoration.json under builds/verify/.
+- The authorized App Store compositor generates seventy RGB images and
+  independently rerenders them with the unchanged strict verifier. The
+  director views all ten locale/device six-screen boards and the final
+  ten-product review board, after viewing every native iPad original.
+  Local release preparation reruns --check-app-store-screenshots and exits
+  0; its manifest targets exactly 3.0.0 (11), five app localizations,
+  sixty screenshots, ten IAP products, fifty IAP localizations and ten
+  review images. Source modes remain native physical iPad and explicit
+  Android Pixel AVD fallback for iPhone. These are locally verified
+  candidates at this checkpoint, not evidence of an App Store upload.
+  Generation, local manifest and seventy hashes are recorded under
+  builds/verify/director-final-app-store*.
+- Fresh GET-only preflight reveals numeric approved version 1 histories for
+  all ten IAPs, which the original tool incorrectly treats as unresolved.
+  Brief 036 narrowly adds creation of a fresh, validated version 2 after an
+  APPROVED-only history. The director reads both changed files, independently
+  passes all 61 registered App Store tests, disables only this support and
+  observes the real ten-product positive regression fail, restores the
+  candidate byte-exactly, and passes the complete suite again. Only the apply
+  module and its registered test file are accepted through Muse. Final real-
+  tree pnpm verify exits 0 with 494 Node cases across sixteen groups, 52 game
+  steps, 122 compiled scripts and all assets, locale, docs and hygiene gates.
+  The 667 runtime hashes, seventy image hashes and every manifest source
+  still match. Fresh remote preflight has zero unresolved entries and plans
+  version 2 for exactly the ten approved products. The manifest digest is
+  7cef0e295909a548d3fa52a30e4cf7aa3a728c6543ec00f8678ee49cd3663592.
+  Evidence: director-muse036-* and director-final-app-store-remote-audit-
+  approved-history.json under builds/verify/. Actual apply is then started
+  with both previously authorized, manifest-bound confirmation tokens.
+- The first actual App Store apply successfully sends fourteen new images,
+  then stops on Apple's HTTP 500 deleting an obsolete screenshot. Independent
+  GET readback confirms the exact obsolete resource still exists and current
+  preflight has zero unresolved entries. The resumed existing apply API first
+  reconstructs and verifies the exact authorized manifest and every unchanged
+  strictly validated image/source hash; it repeats GET before every mutation
+  and reuses matching uploaded images. The same deletion subsequently returns
+  204. No uncertain POST is retried or validation requirement relaxed. The
+  native capture, final binaries and prior canonical proofs remain unchanged.
+  Evidence: director-final-app-store-after500-readback.json and the method,
+  route and status-only HTTP progress ledger under builds/verify/.
+- After creating the first new IAP version, the deprecated product-level
+  localization endpoint returns ten rows: five locales from APPROVED v1 and
+  five from PREPARE_FOR_SUBMISSION v2. The old base audit throws before its
+  obsolete localization plan is discarded. Independent GET confirms five
+  unique localizations inside each actual version scope. Brief 037 adds an
+  explicit base-audit option used only by versioned apply; standalone legacy
+  defaults and duplicate rejection remain unchanged. The director reads all
+  three changed files and independently passes 64 registered tests with no
+  skips. Restoring the old apply scope reproduces the exact duplicate error
+  in the ten-product regression; exact restoration passes all 64 again.
+  The new tests also reject within-draft duplicates and expose a changed
+  draft description even when approved text matches. Three files are accepted
+  through Muse. Real GET-only readiness now has zero blockers, no image
+  replacements, nine draft creations, one draft text correction and exact
+  build 11 association remaining. No public review is sent before the final
+  real-tree verification completes.
+- Independent remote image GET at 2026-10-02T04:01:13.722Z verifies all sixty
+  marketing images in correct order and ten IAP review images against their
+  final size/MD5 and COMPLETE processing state: no mismatch. Evidence:
+  director-final-asc70-remote-integrity-readback.json and the scoped discovery,
+  audit and negative-control records under builds/verify/.
+- Brief 037 final real-tree verification finishes at 2026-10-02T04:16:38.999Z:
+  pnpm verify exits 0 with 497 Node cases across sixteen groups, all 64 App
+  Store tests, 52 game steps and 122 compiled scripts. Actual apply then
+  converges to 106 none entries with zero create/update/replace/unresolved:
+  ten current v2 IAP IDs, fifty version-scoped localizations and exact build
+  11. Only current draft metadata changes; approved history, prices and
+  availability remain unchanged. Evidence: director-muse037-final-root-
+  verification-receipt.json and director-final-app-store-metadata-converged.json.
+- Fresh official Play production GET at 2026-10-02T04:20:18.041Z confirms
+  versionCode 16 in RELEASE_LIFECYCLE_STATE_PUBLISHED. Evidence:
+  director-final-play-production-readback.json. This is actual publication,
+  beyond the earlier IN_REVIEW checkpoint; no new gallery operation occurs.
+- Apple rejects adding the app review item while three first iPad images
+  remain stuck in its review eligibility cache although asset GET says
+  COMPLETE. Only the en-US, ko and zh-Hans first barrage images are replaced
+  with byte-identical final source files. The other 67 resources stay intact;
+  no recapture or regenerated bytes. Fresh ordered MD5/size/state readback
+  passes and all eleven review items are then successfully added at
+  2026-10-02T04:33 UTC. Evidence: director-final-asc-stalled3-replacement-
+  receipt.json and the method/route/status-only ledger under builds/verify/.
+- Brief 038 corrects an actual sparse review-items response: fields alone
+  return ids/state without relationships; explicit supported include returns
+  authoritative linkage to the desired eleven targets. The unchanged target
+  guard correctly refuses the sparse shape. The director reads the one-line
+  request change and registered regression, independently passes 65 tests,
+  removes only the include and observes ASC_REVIEW_SUBMISSION_ITEM_UNSUPPORTED,
+  restores byte-exactly, then passes all 65 again. Both files are accepted
+  through Muse. No target/build/confirmation guard is relaxed. Evidence:
+  director-muse038-negative-control-receipt.json and restored-tests.log.
+- Adding the app review item legitimately transitions the app version and
+  its exact App Info to READY_FOR_REVIEW. A fresh full GET audit incorrectly
+  rejects that state as non-adoptable and omits its actual localizations.
+  Brief 039 requests verification of exact review-state resources without
+  expanding metadata editing permission. At this checkpoint no submitted:true
+  PATCH has occurred. Fresh integrity at 2026-10-02T04:47:59Z confirms all
+  667 game source files and seventy image hashes unchanged. Evidence:
+  director-final-asc-fresh-audit.json, director-final-asc-appinfo-readonly.json
+  and director-final-review-tool-only-integrity.json under builds/verify/.
+- Brief 039 separates exact review-state verification from edit permission.
+  The default standalone audit and two-state adoption allowlist remain
+  unchanged. Versioned GET preflight may read only the exact IOS/version in
+  READY_FOR_REVIEW or the explicitly supported submitted app states; actual
+  metadata, notes, localizations, image checks and build/IAP comparisons
+  remain intact. Metadata/build mismatches still refuse before any write.
+  The director reads all three changed files and registered regressions,
+  independently passes all 67 tests, removes only read-only wiring and sees
+  the transition test fail, restores byte-exactly and passes all 67 again.
+  A real official GET-only candidate audit at 2026-10-02T04:54:41.562Z now
+  converges to 106 none entries with zero blockers/actions. Three files are
+  accepted through Muse; final real-tree verification then starts. Unsupported
+  IAP version states remain blocked, and submitted app-state fixtures retain
+  review-ready IAP drafts; future real state changes must be read separately.
+  Evidence: director-muse039-real-readonly-candidate-summary.json,
+  director-muse039-negative-control-receipt.json and restored-tests.log.
+- Final real-tree pnpm verify after brief 039 exits 0 at
+  2026-10-02T05:08:31.381Z: 500 Node tests in sixteen groups, 67 registered
+  App Store tests with no skips, 52 game steps, 122 compiled scripts and 404
+  primary-weapon assertions. Locale/store metadata, assets/graphics, skills,
+  repository hygiene, docs build and anchors all pass. Native purchase stays
+  NOT_DONE / USER_AUTHORIZED_SKIP. Evidence: director-muse039-final-root-
+  verification-receipt.json and full verify log under builds/verify/.
+- Actual App Store submission PATCH returns 200 at 2026-10-02T05:09:12.981Z
+  after a fresh accepted-tool GET audit converges to 106 none entries. The
+  unchanged exact target guard verifies all eleven items before sending.
+  Submission poll and build/item readback confirm WAITING_FOR_REVIEW, exact
+  build d98bd3f9-41b2-4b68-a7a7-9ea90983cdb4 (3.0.0 / 11) and eleven items.
+  Independent official GETs at 2026-10-02T05:10:56.706Z confirm version 3.0.0,
+  build 11 VALID/non-expired/APP_STORE_ELIGIBLE, exact eleven target set,
+  submittedDate 2026-10-02T05:09:11.361Z and WAITING_FOR_REVIEW. Release type
+  remains MANUAL; approval and subsequent release are not claimed. Evidence:
+  director-final-asc-submitted-original-guard.json and
+  director-final-asc-independent-submitted-readback.json under builds/verify/.
+- Final canonical store copy check confirms all seventy tracked PNGs equal
+  the strict-verified final files. The owned capture-only ADB server on port
+  5038 is stopped; the default device service is untouched. Existing iPad
+  production app/save identity, capture persistence restoration and keychain
+  restoration remain established by the earlier independent receipts.
+  PR 10 stays open for the human's approval and is not merged. Latest-head
+  CI is assessed separately after this verified store-operation commit.

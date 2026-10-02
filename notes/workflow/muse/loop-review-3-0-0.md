@@ -161,3 +161,24 @@ or proof rewrite occurs. Evidence is
 `builds/verify/director-pr10-final-portable-verify.log` and
 `director-pr10-final-store-screenshots.log`. Latest published-head GitHub
 CI is the remaining code-publication check; native/release gates are separate.
+
+## Final store operation review, 2026-10-02
+
+Four confirmed release-tool defects are found against actual Apple data:
+approved-only numeric IAP histories, duplicate locales from the deprecated
+unscoped history endpoint, missing review-item relationships without the
+explicit include, and legitimate READY_FOR_REVIEW versions rejected during
+read-only verification. Briefs 036 through 039 produce narrow tool fixes and
+registered regressions through Muse. The director reads each candidate diff,
+runs every App Store test independently, breaks the corresponding corrected
+boundary to observe its regression fail, restores exact bytes and passes the
+full suite again. Final App Store count is 67 with zero failures or skips.
+
+The exact eleven-target, build, manifest/source/provenance and editing guards
+remain active. The real read-only candidate preflight reaches 106 none entries
+with no create/update/replace/unresolved. All 667 reviewed runtime files and
+seventy new App Store image hashes remain unchanged. This review changes no
+gameplay or capture output; final real-tree verify and latest-head CI remain
+separate required measurements before the PR is reported ready. Native purchase
+verification remains NOT_DONE / USER_AUTHORIZED_SKIP under the human's explicit
+instruction for this release.
