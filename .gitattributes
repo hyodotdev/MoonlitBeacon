@@ -46,3 +46,6 @@ vendor/godot-iap-ios/bin/ios/GodotIap.framework/GodotIap binary
 vendor/godot-iap-ios/bin/ios/SwiftGodotRuntime.framework/SwiftGodotRuntime binary
 *.zip       binary
 *.keystore  binary
+# Pinned upstream license bytes: donor-sha256.json records the vendor's exact
+# CRLF file, so this one path must never be line-ending normalized.
+notes/workflow/muse/donors/official-signin-110/OFL.txt binary
