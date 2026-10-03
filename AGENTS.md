@@ -135,7 +135,7 @@ builds/         Build and footage output, implementer runs in builds/muse/ (not 
 | Controls | One floating joystick (full screen) — move. Attack is automatic; dash is a bottom-right button |
 | Package name | `com.crossplatformkorea.moonlitbeacon` — **do not change** even after the repo moved to `hyodotdev` (see below) |
 | Release | Direct-distribution Android APK + itch.io; Google Play and App Store after store review |
-| Docs | Docusaurus 3.10.2, `hyodotdev.github.io/MoonlitBeacon/` |
+| Docs | Docusaurus 3.10.2, `moonlitbeacon.hyo.dev/MoonlitBeacon/` (Pages mirror retained) |
 | Credits | Author credited as `Hyo Dev` |
 
 ---
@@ -564,6 +564,14 @@ checks, so they drifted — lowercase `phase` passed locally and died only in
 CI.
 
 :::info Pages is live — keep it that way
+The primary public site is now Firebase Hosting at
+`https://moonlitbeacon.hyo.dev`: five-language privacy, Terms and support
+at the root, and the course/reference under `/MoonlitBeacon/`. Sources
+live in `apps/player-care/` and `apps/docs/`; `pnpm hosting:build` and
+`pnpm hosting:check` compose and verify the hosting-only deployment.
+See `apps/player-care/README.md` for the exact deploy command. The existing
+GitHub Pages deployment remains a mirror.
+
 The repo is public and the Pages site exists with Source = **GitHub Actions**,
 so `deploy-docs.yml` auto-deploys on docs changes. Do not revert it to
 manual-only without a reason.
