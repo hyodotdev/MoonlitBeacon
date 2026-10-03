@@ -66,10 +66,14 @@ This host is ready for it and needs nothing changed on receipt:
   `title_menu.tscn` still exists for its suites and capture boards.
 - `TestLauncher` is instanced in the production entry, so debug boosts
   and store-capture boot launches keep working. Its title-ready proof
-  (`Ui/Screen` + version) does not fire here by design; automation
-  should read `debug_store_capture_state({"kind": "title"})` on the
-  production entry instead, which reports the honest gate state plus
-  `debug_production_state()` timings.
+  resolves the original title under the entry's Title child: the old
+  root `Ui/Screen` lookup never matched here, so no marker was written
+  and the phone producer's boot step timed out after 90s. The rich
+  `debug_store_capture_state({"kind": "title"})` proof is unchanged and
+  still reports the honest gate state plus `debug_production_state()`
+  timings. Marker limits: it fires four frames after boot only while
+  the title Screen is visible with the current version and the gate is
+  at rest with no card, panel, loader or confirm up.
 - `debug_prepare_store_capture` / `debug_open_iap_store` keep their
   signatures; `shrine` / `hero_preview` / `iap_review` kinds forward to
   the same panels.

@@ -98,6 +98,7 @@ const checks = [
   ['Title transition veil and worker load', ['res://tests/test_title_transition.tscn'], true, false],
   ['Title tap opens the login chooser over the original title', ['res://tests/test_title_tap.tscn'], true, false],
   ['Production title capture forwards real title proof', ['res://tests/test_production_title_capture.tscn'], true, false],
+  ['Store capture title-ready boot marker', ['res://tests/test_store_capture_title_ready.tscn'], true, false],
   ['Store capture hides debug UI', ['--script', 'res://tests/test_store_capture_clean_ui.gd'], true, false],
   ['Pixel 10 hero-direction capture board', ['res://tests/test_hero_direction_capture.tscn'], true, false],
   ['Result screen five-language layout', ['res://tests/test_result_layout.tscn'], true, false],

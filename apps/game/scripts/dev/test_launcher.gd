@@ -43,6 +43,15 @@ const PRESETS: Array = [
 ## value can be passed without a new autoload.
 const BOOST_META: String = "moonlit_test_boost"
 const STORE_CAPTURE_TITLE_READY: String = "user://store_capture_title_runtime.ready"
+## Standalone title scene path. The production entry nests that same title
+## under its Title child instead of carrying Ui/Screen itself.
+const STANDALONE_TITLE_PATH: String = "res://scenes/menus/title_menu.tscn"
+## Gate panels that occlude the title when visible. Same set
+## ProductionEntry checks before claiming a clean title.
+const GATE_OCCLUDING_PANELS: Array[String] = [
+	"GateAccountPanel", "GateConflictPanel", "GateHallPanel",
+	"GateExitPanel", "GateTermsPanel",
+]
 const STORE_CAPTURE_CLEAN_UI: Script = preload(
 	"res://scripts/dev/store_capture_clean_ui.gd")
 const STORE_CAPTURE_PROBE: Script = preload(
@@ -154,6 +163,64 @@ func _launch_store_capture_boot() -> void:
 			_launch(20, 3)
 
 
+## Resolve the node carrying the original title's Ui/Screen: the Title
+## child under the production entry, the scene root itself for the
+## standalone title, null for any other scene.
+static func resolve_title_root(scene: Node) -> Node:
+	if scene == null:
+		return null
+	if scene is ProductionEntry:
+		return scene.get_node_or_null("Title")
+	if scene.scene_file_path == STANDALONE_TITLE_PATH:
+		return scene
+	return null
+
+
+## True while a gate card, panel, loader or confirm covers the production
+## title. Mirrors the rejection ProductionEntry applies before claiming a
+## clean title capture. Fails closed: a missing gate is not a clean boot.
+static func is_production_title_occluded(entry: Node) -> bool:
+	var gate: GateEntry = entry.get_node_or_null("Gate") as GateEntry
+	if gate == null or not gate.is_title_rest():
+		return true
+	var loader: GateLoadingOverlay = gate.get_loader()
+	var loader_visible: bool = loader != null and loader.visible \
+		and loader.is_visible_in_tree()
+	if loader != null and (loader.is_loading()
+			or loader.is_showing_error()
+			or loader.is_showing_cancelled() or loader_visible):
+		return true
+	for panel_name in GATE_OCCLUDING_PANELS:
+		var panel: Control = gate.get_node_or_null(panel_name) as Control
+		if panel != null and panel.visible:
+			return true
+	var confirm: Control = entry.get_node_or_null(
+		"FreshConfirm") as Control
+	return confirm != null and confirm.visible \
+		and confirm.is_visible_in_tree()
+
+
+## True when the scene is a real title at a clean boot: the original
+## title's screen chrome is visible with the current version, and no
+## gate card, panel, loader or confirm covers it. Debug builds only.
+static func is_clean_title_boot(scene: Node) -> bool:
+	if scene == null or not OS.is_debug_build():
+		return false
+	var title_root: Node = resolve_title_root(scene)
+	if title_root == null:
+		return false
+	if scene is ProductionEntry and is_production_title_occluded(scene):
+		return false
+	var screen: CanvasItem = title_root.get_node_or_null(
+		"Ui/Screen") as CanvasItem
+	var version: Label = title_root.get_node_or_null(
+		"Ui/Screen/Version") as Label
+	var expected_version: String = "v" + str(ProjectSettings.get_setting(
+		"application/config/version", "0.0.0"))
+	return screen != null and screen.is_visible_in_tree() \
+		and version != null and version.text == expected_version
+
+
 func _signal_store_capture_title_ready() -> void:
 	# After several Android relaunches, RenderingServer.frame_post_draw
 	# sometimes never fires, so the real title is up and automation still
@@ -169,15 +236,7 @@ func _signal_store_capture_title_ready() -> void:
 		await tree.process_frame
 	if not is_inside_tree():
 		return
-	var scene: Node = get_tree().current_scene
-	var screen: CanvasItem = scene.get_node_or_null("Ui/Screen") as CanvasItem \
-		if scene != null else null
-	var version: Label = scene.get_node_or_null("Ui/Screen/Version") as Label \
-		if scene != null else null
-	var expected_version: String = "v" + str(ProjectSettings.get_setting(
-		"application/config/version", "0.0.0"))
-	if screen == null or not screen.is_visible_in_tree() \
-			or version == null or version.text != expected_version:
+	if not is_clean_title_boot(get_tree().current_scene):
 		return
 	var ready: FileAccess = FileAccess.open(STORE_CAPTURE_TITLE_READY, FileAccess.WRITE)
 	if ready != null:
