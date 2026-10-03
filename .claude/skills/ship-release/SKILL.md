@@ -130,7 +130,7 @@ committed versionCode.
 export MOONLIT_ASC_KEY_ID=<10 characters>
 export MOONLIT_ASC_ISSUER_ID=<UUID>
 export MOONLIT_ASC_PRIVATE_KEY="$HOME/Library/Application Support/MoonlitBeacon/signing/AuthKey_<KEYID>.p8"
-export MOONLIT_PUBLIC_SITE_URL=https://moonlit-beacon-support.hyodev.chatgpt.site
+export MOONLIT_PUBLIC_SITE_URL=https://moonlitbeacon.hyo.dev
 export MOONLIT_SUPPORT_EMAIL=<public support email>
 
 pnpm ios:archive             # must be newer than project.godot
