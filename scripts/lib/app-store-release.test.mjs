@@ -551,7 +551,18 @@ test('5-locale · 60-shot · 50-IAP fixture manifest is deterministic', () =>
       first.appStoreReview.notes.includes(productId)
     )));
     assert.match(first.appStoreReview.notes, /Restore purchases/u);
+    assert.match(first.appStoreReview.notes, /Tap to start/u);
+    assert.match(first.appStoreReview.notes, /Continue as guest/u);
+    assert.match(first.appStoreReview.notes, /permanent player ID/u);
+    assert.match(first.appStoreReview.notes, /New expedition/u);
+    assert.match(first.appStoreReview.notes, /Resume the gate/u);
+    assert.match(first.appStoreReview.notes, /Sign in with Google/u);
+    assert.match(first.appStoreReview.notes, /Sign in with Apple/u);
     assert.match(
+      first.appStoreReview.notes,
+      /No developer demo account or password/u,
+    );
+    assert.doesNotMatch(
       first.appStoreReview.notes,
       /No app account or demo login is required/u,
     );

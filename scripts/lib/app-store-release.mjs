@@ -744,9 +744,20 @@ export function buildAppStoreReviewNotes(products) {
   const notes = [
     'App Review test instructions — 7 non-consumables and 3 consumables',
     '',
-    'No app account or demo login is required. Launch the app and tap Store '
-      + 'on the title screen. This submission contains exactly these ten '
-      + 'optional in-app purchases:',
+    'Entry: Launch the app and tap the title screen (Tap to start) to open '
+      + 'the entry card, then choose Continue as guest: the game issues a '
+      + 'permanent player ID shown on the identity card. From that card, '
+      + 'tap New expedition to play, or Resume the gate when a saved '
+      + 'checkpoint is listed. No developer demo account or password is '
+      + 'needed: reviewers reach the game, Store, Restore purchases, and '
+      + 'resume fully as guest.',
+    '',
+    'Sign in with Google and Sign in with Apple are optional ways to link '
+      + 'or recover the same account; neither is required for core play or '
+      + 'purchases.',
+    '',
+    'The Store door sits on the title screen. This submission contains '
+      + 'exactly these ten optional in-app purchases:',
     ...productList,
     '',
     'Heroes: In Store, swipe to a paid hero and tap its portrait to preview '
