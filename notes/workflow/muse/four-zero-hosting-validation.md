@@ -190,3 +190,35 @@ feature/cache/ledger checks correctly, but the remaining Ui lookup still
 expected Title to be current_scene rather than ProductionEntry.Title.
 Brief 156 repairs this confirmed embedding error; no canonical phone
 screenshots were published by this failed attempt.
+
+## Distribution probe accepted; final integrated pass in progress
+
+Briefs 156/159 were independently judged and accepted through the normal
+path. All new source and the 447-line real-scene test were read. The
+copy's overlapping marker-source assertion edit was returned because
+brief 155 had already supplied the independently verified stronger
+assertion in the real tree; the corrected task omits that file.
+
+The director performed a real import, then changed only the title
+resolver to the old root lookup in the finished copy. The new behavior
+suite exited 1; the probe bytes restored exactly to SHA-256
+`91730bdd66f92428ef6fb20a271ce4992e3695efe67e8fdb0f1ce4f672c74fb7`.
+Independent positive suites then passed: direct-distribution title 108,
+boot marker 45, rich title forwarding 218 and clean UI 64. No engine
+errors were present. Standard quick-check judging passed (12 seconds,
+zero failure-looking lines). Code/registration committed as `2bd5d9d`,
+its implementer-authored log as `850133b`.
+
+The root whole-tree verification is now running in
+`release4-final-integrated-verify-retry.log`. The first seventeen TAP
+groups finished 645 tests with zero failures; game regressions remain
+in progress at this entry. The separate store-capture check still rejects
+missing current canonical proof (`release4-post156-store-capture-check.log`).
+No successful final capture or native store submission is inferred from
+these intermediate results.
+
+The verified Hosting record was accepted after correcting the initial
+report's operation chronology and limiting its native-release statement
+to version 4.0.0 (`1945442`). `AGENTS.md` now identifies the requested
+Firebase origin as primary and the unchanged Pages workflow as its mirror.
+The remaining owned Desktop test screenshot was moved to recoverable Trash.
