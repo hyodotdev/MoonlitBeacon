@@ -11,12 +11,20 @@ import {
   realpathSync,
   statSync,
 } from 'node:fs';
-import { isAbsolute, relative, resolve, sep } from 'node:path';
+import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { assertAppleSignInProfileSupport } from './identity-export.mjs';
 
 export const APP_STORE_CREDENTIAL_ENV = Object.freeze({
   keyId: 'MOONLIT_ASC_KEY_ID',
   issuerId: 'MOONLIT_ASC_ISSUER_ID',
   privateKeyPath: 'MOONLIT_ASC_PRIVATE_KEY',
+});
+// Optional manual App Store export pinning. When both are unset the export
+// uses automatic signing; when both are set it validates the installed
+// profile before invoking xcodebuild. Setting only one is an error.
+export const IOS_MANUAL_EXPORT_ENV = Object.freeze({
+  profile: 'MOONLIT_IOS_APP_STORE_PROFILE',
+  signingIdentity: 'MOONLIT_IOS_APP_STORE_SIGNING_IDENTITY',
 });
 // The team that publishes Moonlit Beacon; a copy of the project sets
 // MOONLIT_APPLE_TEAM_ID to sign with its own team.
@@ -566,6 +574,385 @@ export function appStoreExportOptionsPlist({ bundleId, teamId }) {
 </dict>
 </plist>
 `;
+}
+
+export function isProvisioningProfileUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    .test(typeof value === 'string' ? value.trim() : '');
+}
+
+function isManualSigningIdentityValue(value) {
+  if (value === 'Apple Distribution') return true;
+  if (/^[0-9a-f]{40}$/i.test(value)) return true;
+  return value.startsWith('Apple Distribution:')
+    && value.slice('Apple Distribution:'.length).trim() !== '';
+}
+
+function isSha1FingerprintValue(value) {
+  return /^[0-9a-f]{40}$/i.test(value);
+}
+
+// Installed provisioning profile locations, modern Xcode first. The legacy
+// MobileDevice directory stays as a fallback; resolution never moves or
+// deletes user profiles.
+export function installedProvisioningProfileDirectories(homeDir) {
+  if (typeof homeDir !== 'string' || homeDir === '') {
+    throw new Error('Home directory for provisioning profile lookup is invalid.');
+  }
+  return [
+    join(homeDir, 'Library', 'Developer', 'Xcode', 'UserData', 'Provisioning Profiles'),
+    join(homeDir, 'Library', 'MobileDevice', 'Provisioning Profiles'),
+  ];
+}
+
+// Deterministic candidate list: modern directory files first (sorted by
+// name), then legacy files. Missing or unreadable directories contribute
+// nothing instead of failing, so legacy still resolves when modern is absent.
+export function listInstalledProvisioningProfileFiles({
+  homeDir,
+  directories = installedProvisioningProfileDirectories(homeDir),
+  readdir = readdirSync,
+} = {}) {
+  const files = [];
+  for (const directory of directories) {
+    let entries;
+    try {
+      entries = readdir(directory);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(entries)) continue;
+    for (const entry of [...entries].sort()) {
+      if (typeof entry !== 'string' || !entry.endsWith('.mobileprovision')) {
+        continue;
+      }
+      files.push(join(directory, entry));
+    }
+  }
+  return files;
+}
+
+// Resolve a UUID to its installed profile file, modern directory first.
+// Filenames always scan case-insensitively so the returned path keeps the
+// on-disk spelling. Errors name the variable, never the value.
+export function resolveInstalledProvisioningProfileUuidPath(
+  uuid,
+  {
+    homeDir,
+    directories = installedProvisioningProfileDirectories(homeDir),
+    readdir = readdirSync,
+  } = {},
+) {
+  const wanted = typeof uuid === 'string' ? uuid.trim().toLowerCase() : '';
+  if (!isProvisioningProfileUuid(wanted)) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} format is invalid.`,
+    );
+  }
+  const fileName = `${wanted}.mobileprovision`;
+  for (const file of listInstalledProvisioningProfileFiles({ directories, readdir })) {
+    if (basename(file).toLowerCase() === fileName) return file;
+  }
+  throw new Error(
+    `${IOS_MANUAL_EXPORT_ENV.profile} does not match an installed provisioning profile.`,
+  );
+}
+
+// Resolve an installed profile name to its file. `readIdentity` maps a file
+// to `{ name, uuid }` and may throw for unreadable files (skipped). Files
+// sharing one name but different profile UUIDs are ambiguous and rejected
+// instead of picking an arbitrary first match; the same profile duplicated
+// across directories resolves to the first candidate (modern first).
+export function findInstalledProvisioningProfileByName(
+  name,
+  { files = [], readIdentity },
+) {
+  if (typeof readIdentity !== 'function') {
+    throw new Error('Provisioning profile name lookup needs a profile reader.');
+  }
+  const matches = [];
+  for (const file of files) {
+    let identity;
+    try {
+      identity = readIdentity(file);
+    } catch {
+      continue;
+    }
+    if (identity?.name !== name) continue;
+    matches.push({
+      file,
+      uuid: typeof identity.uuid === 'string' && identity.uuid !== ''
+        ? identity.uuid.toLowerCase()
+        : file,
+    });
+  }
+  if (matches.length === 0) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} does not match an installed provisioning profile.`,
+    );
+  }
+  if (new Set(matches.map((match) => match.uuid)).size > 1) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} matches more than one installed `
+      + 'provisioning profile; use the profile UUID.',
+    );
+  }
+  return matches[0].file;
+}
+
+function assertManualProfileIdentifierFormat(profile) {
+  if (profile.length === 0 || profile.length > 256) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} format is invalid.`,
+    );
+  }
+  if (
+    profile.includes('/')
+    || profile.includes('\\')
+    || profile.includes('\0')
+    || profile.includes('\n')
+    || profile.includes('\r')
+  ) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} must be an installed profile name or UUID, not a path.`,
+    );
+  }
+  if (
+    /^[0-9a-fA-F-]{36,}$/.test(profile)
+    && !isProvisioningProfileUuid(profile)
+  ) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} format is invalid.`,
+    );
+  }
+}
+
+// Null means automatic signing. Errors name the variable, never the value.
+export function resolveManualAppStoreExportConfig({ env = process.env } = {}) {
+  const profile = typeof env[IOS_MANUAL_EXPORT_ENV.profile] === 'string'
+    ? env[IOS_MANUAL_EXPORT_ENV.profile].trim()
+    : '';
+  const signingIdentity = typeof env[IOS_MANUAL_EXPORT_ENV.signingIdentity] === 'string'
+    ? env[IOS_MANUAL_EXPORT_ENV.signingIdentity].trim()
+    : '';
+  if (profile === '' && signingIdentity === '') return null;
+  const missing = [];
+  if (profile === '') missing.push(IOS_MANUAL_EXPORT_ENV.profile);
+  if (signingIdentity === '') missing.push(IOS_MANUAL_EXPORT_ENV.signingIdentity);
+  if (missing.length > 0) {
+    throw new Error(
+      `Manual App Store export needs both ${IOS_MANUAL_EXPORT_ENV.profile} and `
+      + `${IOS_MANUAL_EXPORT_ENV.signingIdentity}: missing ${missing.join(', ')}. `
+      + 'Unset both for automatic signing.',
+    );
+  }
+  assertManualProfileIdentifierFormat(profile);
+  if (
+    signingIdentity.length === 0
+    || signingIdentity.length > 256
+    || signingIdentity.includes('\0')
+    || signingIdentity.includes('\n')
+    || signingIdentity.includes('\r')
+    || !isManualSigningIdentityValue(signingIdentity)
+  ) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.signingIdentity} must be an Apple Distribution `
+      + 'signing identity or a 40-character SHA-1 fingerprint.',
+    );
+  }
+  return Object.freeze({ profile, signingIdentity });
+}
+
+export function manualAppStoreExportOptionsPlist({
+  bundleId,
+  teamId,
+  profileUuid,
+  signingCertificate,
+}) {
+  for (const [label, value] of [
+    ['bundle ID', bundleId],
+    ['Team ID', teamId],
+    ['provisioning profile UUID', profileUuid],
+    ['signing certificate', signingCertificate],
+  ]) {
+    if (typeof value !== 'string' || value.trim() === '') {
+      throw new Error(`Manual App Store export ${label} is invalid.`);
+    }
+    if (value.includes('\0') || value.includes('\n') || value.includes('\r')) {
+      throw new Error(`Manual App Store export ${label} is invalid.`);
+    }
+  }
+  // The bundle mapping pins the verified profile UUID, never a display name,
+  // so a name collision cannot redirect the export.
+  if (!isProvisioningProfileUuid(profileUuid)) {
+    throw new Error('Manual App Store export provisioning profile UUID is invalid.');
+  }
+  if (!isManualSigningIdentityValue(signingCertificate.trim())) {
+    throw new Error('Manual App Store export signing certificate is invalid.');
+  }
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+\t<key>destination</key>
+\t<string>export</string>
+\t<key>distributionBundleIdentifier</key>
+\t<string>${xmlEscape(bundleId)}</string>
+\t<key>manageAppVersionAndBuildNumber</key>
+\t<false/>
+\t<key>method</key>
+\t<string>app-store-connect</string>
+\t<key>provisioningProfiles</key>
+\t<dict>
+\t\t<key>${xmlEscape(bundleId)}</key>
+\t\t<string>${xmlEscape(profileUuid)}</string>
+\t</dict>
+\t<key>signingCertificate</key>
+\t<string>${xmlEscape(signingCertificate)}</string>
+\t<key>signingStyle</key>
+\t<string>manual</string>
+\t<key>stripSwiftSymbols</key>
+\t<true/>
+\t<key>teamID</key>
+\t<string>${xmlEscape(teamId)}</string>
+\t<key>uploadSymbols</key>
+\t<true/>
+</dict>
+</plist>
+`;
+}
+
+function extractCertificateCommonName(certificate) {
+  const subject = certificate?.subject;
+  if (typeof subject !== 'string') return '';
+  return subject.match(/CN=([^,\n\r]+)/)?.[1].trim() ?? '';
+}
+
+function isDistributionCommonName(commonName) {
+  return commonName === 'Apple Distribution'
+    || commonName.startsWith('Apple Distribution:');
+}
+
+// Validate an installed App Store profile before xcodebuild. Reuses the
+// distribution profile/entitlement checks plus the Apple sign-in profile
+// assertion. `profileIdentifier` is the caller-supplied name or UUID,
+// `signingIdentity` the caller-supplied distribution name or SHA-1 fingerprint.
+export function assertManualAppStoreProfile(
+  profile,
+  { bundleId, teamId },
+  {
+    now = new Date(),
+    profileIdentifier = '',
+    signingIdentity = '',
+    requiredAppleSignIn = false,
+    parseCertificate = (value) => new X509Certificate(value),
+  } = {},
+) {
+  if (!profile || typeof profile !== 'object') {
+    throw new Error('Failed to read the manual App Store provisioning profile.');
+  }
+  const wantedProfile = typeof profileIdentifier === 'string'
+    ? profileIdentifier.trim()
+    : '';
+  if (wantedProfile !== '') {
+    if (isProvisioningProfileUuid(wantedProfile)) {
+      if (
+        typeof profile.UUID !== 'string'
+        || profile.UUID.toLowerCase() !== wantedProfile.toLowerCase()
+      ) {
+        throw new Error(
+          `${IOS_MANUAL_EXPORT_ENV.profile} does not match the installed profile.`,
+        );
+      }
+    } else if (profile.Name !== wantedProfile) {
+      throw new Error(
+        `${IOS_MANUAL_EXPORT_ENV.profile} does not match the installed profile.`,
+      );
+    }
+  }
+  assertDistributionProfile(profile, { bundleId, teamId, now });
+  const wantedIdentity = typeof signingIdentity === 'string'
+    ? signingIdentity.trim()
+    : '';
+  if (!isManualSigningIdentityValue(wantedIdentity)) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.signingIdentity} must be an Apple Distribution `
+      + 'signing identity or a 40-character SHA-1 fingerprint.',
+    );
+  }
+  // A fingerprint pins one exact certificate when several share a common
+  // name (for example a revoked older one). Matching still requires a
+  // currently valid distribution certificate inside the validated profile.
+  const wantedFingerprint = isSha1FingerprintValue(wantedIdentity)
+    ? wantedIdentity.toLowerCase()
+    : null;
+  const certificates = profile.DeveloperCertificates;
+  if (!Array.isArray(certificates) || certificates.length === 0) {
+    throw new Error('Manual App Store export profile has no signing certificates.');
+  }
+  let hasValidDistribution = false;
+  let hasMatchingValid = false;
+  for (const entry of certificates) {
+    if (typeof entry !== 'string' || entry.length === 0) continue;
+    let der;
+    try {
+      der = Buffer.from(entry, 'base64');
+      if (der.length === 0 || der.toString('base64') !== entry) continue;
+    } catch {
+      continue;
+    }
+    let certificate;
+    try {
+      certificate = parseCertificate(der);
+    } catch {
+      continue;
+    }
+    const validFrom = new Date(certificate.validFrom);
+    const validTo = new Date(certificate.validTo);
+    if (
+      !Number.isFinite(validFrom.getTime())
+      || !Number.isFinite(validTo.getTime())
+      || validFrom > now
+      || validTo <= now
+    ) {
+      continue;
+    }
+    const commonName = extractCertificateCommonName(certificate);
+    if (!isDistributionCommonName(commonName)) continue;
+    hasValidDistribution = true;
+    if (wantedFingerprint !== null) {
+      // Normal X509 SHA-1 fingerprint over the raw certificate bytes, the
+      // same value `security find-identity` prints.
+      const fingerprint = createHash('sha1').update(der).digest('hex');
+      if (fingerprint === wantedFingerprint) {
+        hasMatchingValid = true;
+        break;
+      }
+      continue;
+    }
+    if (
+      wantedIdentity === 'Apple Distribution'
+      || commonName === wantedIdentity
+    ) {
+      hasMatchingValid = true;
+      break;
+    }
+  }
+  if (!hasValidDistribution) {
+    throw new Error(
+      'Manual App Store export profile has no valid Apple Distribution certificate.',
+    );
+  }
+  if (!hasMatchingValid) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.signingIdentity} is not included in the manual `
+      + 'App Store export profile.',
+    );
+  }
+  assertAppleSignInProfileSupport(profile.Entitlements, {
+    required: requiredAppleSignIn,
+  });
+  return true;
 }
 
 export function assertDistributionSignatureDetails(

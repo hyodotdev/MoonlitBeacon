@@ -36,7 +36,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -92,6 +92,7 @@ import {
   assertDistributionEntitlements,
   assertDistributionProfile,
   assertDistributionSignatureDetails,
+  assertManualAppStoreProfile,
   assertProfileContainsSigningCertificate,
   assertSigningCertificateValid,
   codeSigningCertificateArguments,
@@ -100,13 +101,20 @@ import {
   assertIpaMetadata,
   assertMatchingReleasePayload,
   assertSafeIpaEntries,
+  findInstalledProvisioningProfileByName,
+  IOS_MANUAL_EXPORT_ENV,
   IOS_RELEASE_BUILD_CHAIN_INPUTS,
   iosReleaseExcludedPaths,
+  isProvisioningProfileUuid,
+  listInstalledProvisioningProfileFiles,
+  manualAppStoreExportOptionsPlist,
   parseIosCommandArguments,
   redactSensitiveValues,
   readAppStoreCredentials,
   readIosReleaseMetadata,
   resolveAppleTeamId,
+  resolveInstalledProvisioningProfileUuidPath,
+  resolveManualAppStoreExportConfig,
   runExclusiveIosWorkflow,
   runWithStableReleaseSources,
   xcodebuildAuthenticationArguments,
@@ -1128,20 +1136,16 @@ function readPlistDataArray(plist, keyPath, label) {
   return extractPlistDataValues(result.stdout, label);
 }
 
-function readProvisioningProfile(app, scratch) {
-  const profile = join(app, 'embedded.mobileprovision');
-  if (!existsSync(profile)) {
-    throw new Error('IPA has no embedded.mobileprovision.');
-  }
+function readDecodedProvisioningProfile(profileFile, scratch, fileName) {
   const result = run(
     'security',
-    ['cms', '-D', '-i', profile],
+    ['cms', '-D', '-i', profileFile],
     {
       captureOutput: true,
       printCapturedOutput: false,
     },
   );
-  const plist = join(scratch, 'distribution-profile.plist');
+  const plist = join(scratch, fileName);
   writeFileSync(plist, result.stdout, { mode: 0o600 });
   const expirationDate = readOptionalPlistValue(
     plist,
@@ -1157,6 +1161,8 @@ function readProvisioningProfile(app, scratch) {
     throw new Error('could not read required distribution provisioning profile values.');
   }
   return {
+    Name: readOptionalPlistValue(plist, 'Name', 'raw'),
+    UUID: readOptionalPlistValue(plist, 'UUID', 'raw'),
     DeveloperCertificates: readPlistDataArray(
       plist,
       'DeveloperCertificates',
@@ -1175,6 +1181,60 @@ function readProvisioningProfile(app, scratch) {
       'json',
     ),
   };
+}
+
+function readProvisioningProfile(app, scratch) {
+  const profile = join(app, 'embedded.mobileprovision');
+  if (!existsSync(profile)) {
+    throw new Error('IPA has no embedded.mobileprovision.');
+  }
+  return readDecodedProvisioningProfile(profile, scratch, 'distribution-profile.plist');
+}
+
+function readInstalledProvisioningProfile(profileFile, scratch) {
+  if (!existsSync(profileFile)) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} does not match an installed provisioning profile.`,
+    );
+  }
+  return readDecodedProvisioningProfile(
+    profileFile,
+    scratch,
+    'manual-distribution-profile.plist',
+  );
+}
+
+function readInstalledProvisioningProfileIdentity(profileFile, scratch) {
+  const result = run(
+    'security',
+    ['cms', '-D', '-i', profileFile],
+    {
+      captureOutput: true,
+      printCapturedOutput: false,
+    },
+  );
+  const plist = join(scratch, 'manual-profile-scan.plist');
+  writeFileSync(plist, result.stdout, { mode: 0o600 });
+  return {
+    name: readOptionalPlistValue(plist, 'Name', 'raw'),
+    uuid: readOptionalPlistValue(plist, 'UUID', 'raw'),
+  };
+}
+
+// Resolve a caller-supplied installed profile name or UUID to its file,
+// searching the modern Xcode directory first with legacy fallback.
+// Errors name the variable, never the value.
+function findInstalledProvisioningProfilePath(profileIdentifier, scratch) {
+  const homeDir = homedir();
+  if (isProvisioningProfileUuid(profileIdentifier)) {
+    return resolveInstalledProvisioningProfileUuidPath(profileIdentifier, {
+      homeDir,
+    });
+  }
+  return findInstalledProvisioningProfileByName(profileIdentifier, {
+    files: listInstalledProvisioningProfileFiles({ homeDir }),
+    readIdentity: (file) => readInstalledProvisioningProfileIdentity(file, scratch),
+  });
 }
 
 function readCodeSigningCertificate(app, scratch) {
@@ -1268,21 +1328,35 @@ function verifyAppStoreIpa() {
   return expected;
 }
 
-function doExportAppStore() {
-  // After taking the workflow lock, discard any previous IPA first. Even if
-  // archive or credential checks fail, an old success must not look like this export.
-  rmSync(APP_STORE_EXPORT_DIR, { recursive: true, force: true });
-  let exportComplete = false;
+function exportAppStoreIpaWithManualProfile(expected, manualConfig) {
+  const scratch = mkdtempSync(join(tmpdir(), 'moonlit-manual-export-'));
   try {
-    const expected = verifyDistributionArchive();
-    const credentials = readAppStoreCredentials({
-      env: process.env,
-      root: ROOT,
+    const profilePath = findInstalledProvisioningProfilePath(
+      manualConfig.profile,
+      scratch,
+    );
+    const profile = readInstalledProvisioningProfile(profilePath, scratch);
+    const archivedEntitlements = readCodeSigningEntitlements(
+      archivedAppPath(),
+      scratch,
+    );
+    assertManualAppStoreProfile(profile, expected, {
+      profileIdentifier: manualConfig.profile,
+      signingIdentity: manualConfig.signingIdentity,
+      requiredAppleSignIn: appleSignInGranted(archivedEntitlements),
     });
+    if (!isProvisioningProfileUuid(profile.UUID ?? '')) {
+      throw new Error('Manual App Store export profile has no UUID.');
+    }
     mkdirSync(APP_STORE_EXPORT_DIR, { recursive: true });
     writeFileSync(
       APP_STORE_EXPORT_OPTIONS,
-      appStoreExportOptionsPlist(expected),
+      manualAppStoreExportOptionsPlist({
+        bundleId: expected.bundleId,
+        teamId: expected.teamId,
+        profileUuid: profile.UUID,
+        signingCertificate: manualConfig.signingIdentity,
+      }),
       { encoding: 'utf8', mode: 0o600 },
     );
     run('xcodebuild', [
@@ -1290,15 +1364,61 @@ function doExportAppStore() {
       '-archivePath', ARCHIVE,
       '-exportPath', APP_STORE_EXPORT_DIR,
       '-exportOptionsPlist', APP_STORE_EXPORT_OPTIONS,
-      '-allowProvisioningUpdates',
-      ...xcodebuildAuthenticationArguments(credentials),
+      // Manual mode pins the validated installed profile, so it never asks
+      // Xcode to refresh provisioning from App Store Connect.
     ], {
       captureOutput: true,
       isolatedProcessGroup: true,
-      sensitiveValues: Object.values(credentials),
+      sensitiveValues: [],
       timeout: APP_STORE_EXPORT_TIMEOUT_MS,
       killSignal: 'SIGTERM',
     });
+    console.log(
+      'Manual App Store export used the validated installed distribution profile.',
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+function doExportAppStore() {
+  // After taking the workflow lock, discard any previous IPA first. Even if
+  // archive or credential checks fail, an old success must not look like this export.
+  rmSync(APP_STORE_EXPORT_DIR, { recursive: true, force: true });
+  let exportComplete = false;
+  try {
+    const expected = verifyDistributionArchive();
+    const manualConfig = resolveManualAppStoreExportConfig({
+      env: process.env,
+    });
+    if (manualConfig) {
+      exportAppStoreIpaWithManualProfile(expected, manualConfig);
+    } else {
+      const credentials = readAppStoreCredentials({
+        env: process.env,
+        root: ROOT,
+      });
+      mkdirSync(APP_STORE_EXPORT_DIR, { recursive: true });
+      writeFileSync(
+        APP_STORE_EXPORT_OPTIONS,
+        appStoreExportOptionsPlist(expected),
+        { encoding: 'utf8', mode: 0o600 },
+      );
+      run('xcodebuild', [
+        '-exportArchive',
+        '-archivePath', ARCHIVE,
+        '-exportPath', APP_STORE_EXPORT_DIR,
+        '-exportOptionsPlist', APP_STORE_EXPORT_OPTIONS,
+        '-allowProvisioningUpdates',
+        ...xcodebuildAuthenticationArguments(credentials),
+      ], {
+        captureOutput: true,
+        isolatedProcessGroup: true,
+        sensitiveValues: Object.values(credentials),
+        timeout: APP_STORE_EXPORT_TIMEOUT_MS,
+        killSignal: 'SIGTERM',
+      });
+    }
     if (!existsSync(APP_STORE_IPA)) {
       const ipaNames = readdirSync(APP_STORE_EXPORT_DIR)
         .filter((name) => name.endsWith('.ipa'));
