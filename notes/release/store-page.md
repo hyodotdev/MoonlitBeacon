@@ -72,9 +72,9 @@ analytics stays disabled in the submit configuration.
 ### Values the actual seller fills before submit
 
 - [x] Privacy-policy URL —
-      `https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/privacy`
+      `https://moonlitbeacon.hyo.dev/{locale}/privacy`
 - [x] Customer-support URL —
-      `https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/support`
+      `https://moonlitbeacon.hyo.dev/{locale}/support`
 - [x] Customer-support email — `hyo@hyo.dev`
 - [x] After public URLs are locked, run `configure-store-contact.mjs`
       dry-run and an explicit apply so Korean, English, Japanese, Simplified

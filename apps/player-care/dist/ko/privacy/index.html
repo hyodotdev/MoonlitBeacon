@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>개인정보처리방침 — 달빛 봉화</title>
+<meta name="description" content="이 방침은 Hyo Dev의 달빛 봉화가 수집하는 정보와 처리 방식을 설명합니다.">
+<link rel="canonical" href="https://moonlitbeacon.hyo.dev/ko/privacy">
+<link rel="alternate" hreflang="en" href="https://moonlitbeacon.hyo.dev/en/privacy">
+<link rel="alternate" hreflang="ko" href="https://moonlitbeacon.hyo.dev/ko/privacy">
+<link rel="alternate" hreflang="ja" href="https://moonlitbeacon.hyo.dev/ja/privacy">
+<link rel="alternate" hreflang="zh-Hans" href="https://moonlitbeacon.hyo.dev/zh-Hans/privacy">
+<link rel="alternate" hreflang="zh-Hant" href="https://moonlitbeacon.hyo.dev/zh-Hant/privacy">
+<link rel="alternate" hreflang="x-default" href="https://moonlitbeacon.hyo.dev/privacy">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<div class="wrap">
+<header class="site-head">
+<a class="brand" href="/ko/"><span class="brand-mark" aria-hidden="true"></span><span><span class="brand-name">달빛 봉화</span><span class="brand-sub">플레이어 안내</span></span></a>
+<nav aria-label="페이지"><ul>
+<li><a href="/ko/">처음</a></li>
+<li><a href="/ko/privacy" aria-current="page">개인정보처리방침</a></li>
+<li><a href="/ko/support">고객지원</a></li>
+</ul></nav>
+<nav class="lang-nav" aria-label="언어"><p>언어</p><ul>
+<li><a href="/en/privacy" hreflang="en">English</a></li>
+<li><a href="/ko/privacy" aria-current="page" hreflang="ko">한국어</a></li>
+<li><a href="/ja/privacy" hreflang="ja">日本語</a></li>
+<li><a href="/zh-Hans/privacy" hreflang="zh-Hans">简体中文</a></li>
+<li><a href="/zh-Hant/privacy" hreflang="zh-Hant">繁體中文</a></li>
+</ul></nav>
+</header>
+<main id="main">
+<h1>개인정보처리방침 — 달빛 봉화</h1>
+<p class="lede">이 방침은 Hyo Dev의 달빛 봉화가 수집하는 정보와 처리 방식을 설명합니다.</p>
+<p class="updated">버전 4.0.0 기준입니다.</p>
+<section aria-labelledby="sign-in"><h2 id="sign-in"><span class="num" aria-hidden="true">1</span>로그인 방법</h2>
+<ul class="tight">
+<li>게스트 입장에 더해, 준비된 빌드에서는 Google·Apple 로그인을 제공합니다.</li>
+<li>게스트 입장은 기기가 지원하면 익명 인증 신원을 만듭니다.</li>
+<li>Google과 Apple은 별개의 로그인 신원이며, Play 게임 프로필은 별도의 Android 전용 선택지로 이번 빌드에서 제공하지 않습니다.</li>
+</ul></section>
+<section aria-labelledby="sign-in-data"><h2 id="sign-in-data"><span class="num" aria-hidden="true">2</span>로그인이 처리하는 범위</h2>
+<ul class="tight">
+<li>Firebase와 선택한 Google·Apple 제공자는 계정 인증과 복구를 위해 식별자, 로그인·세션 정보, 동의·제공자 설정에 따라 제공되는 프로필 정보를 처리합니다.</li>
+<li>게임은 공개 플레이어 ID, 로그인 계정과 ID의 비공개 연결, 체크포인트 저장을 따로 보관합니다.</li>
+<li>서버 계정 참조를 해시 형태로 두는 것은 기기 안의 게임 계정 목록뿐이며, 백엔드의 계정·저장 기록은 원본 참조를 담고 계정에 비공개로 남습니다.</li>
+<li>게임 자체는 내 기록에 닿는 동안 로그인 토큰을 메모리에 둡니다. 게임플레이 저장 파일에 로그인 토큰은 들어가지 않으며, 토큰이 공개 순위에 오르지도 않습니다. 실행을 넘겨 로그인이 유지되는 것은 Firebase·제공자 SDK가 따로 맡으며, SDK와 OS 저장소에 세션 정보를 따로 둡니다.</li>
+<li>이메일과 프로필 정보는 공개 전당 기록에 표시되지 않습니다. 제공자 측 프로필 처리는 각 제공자의 방침을 따릅니다: <a href="https://firebase.google.com/support/privacy">Firebase</a>, <a href="https://policies.google.com/privacy">Google</a>, <a href="https://www.apple.com/legal/privacy/">Apple</a>.</li>
+</ul></section>
+<section aria-labelledby="player-id"><h2 id="player-id"><span class="num" aria-hidden="true">3</span>플레이어 ID</h2>
+<ul class="tight">
+<li>첫 플레이 전에 <code>MB-</code> + 16진수 32자의 바뀌지 않는 공개 ID를 발급합니다.</li>
+<li>저장된 관문과 전당 기록의 이름이 되며, 연결해도 유지됩니다. 기존 게스트에 Google을 연결하면 같은 ID와 같은 체크포인트 소유권이 그대로 이어집니다.</li>
+<li>로그아웃하면 기기에 새 게스트 ID가 시작되고 이전 ID와 저장은 보관되며, 같은 제공자로 다시 로그인하면 그 계정의 ID와 보관된 저장으로 돌아갑니다. 따라서 한 기기에는 시간이 지나며 둘 이상의 ID가 남을 수 있습니다.</li>
+<li>고객지원에 연락할 때는 게임 계정 화면에 표시되는 플레이어 ID를 함께 보내 주세요.</li>
+</ul></section>
+<section aria-labelledby="cloud-saves"><h2 id="cloud-saves"><span class="num" aria-hidden="true">4</span>클라우드 저장</h2>
+<ul class="tight">
+<li>로그인한 계정은 진행 상황(순환, 영웅, 유물, 성장, 점수)을 담은 버전이 붙은 비공개 저장 하나를 가집니다.</li>
+<li>저장은 기기에 먼저 되고 업로드는 뒤따릅니다.</li>
+<li>저장에 구매·잔액 기록은 들어가지 않습니다.</li>
+<li>다운로드는 완전히 검사한 뒤 설치되고, 다른 클라우드 사본은 어느 쪽을 쓸지 선택을 기다립니다.</li>
+</ul></section>
+<section aria-labelledby="hall"><h2 id="hall"><span class="num" aria-hidden="true">5</span>전당</h2>
+<ul class="tight">
+<li>전당은 플레이어 ID마다 최고 기록 하나(플레이어 ID, 영웅, 점수, 진행도, 앱 버전, 갱신 시각)를 보관합니다.</li>
+<li>읽기는 공개이며 쓰기는 소유 계정만 가능하고, 점수는 올라가기만 하며 순위는 점수에서 계산되어 동점은 같은 순위를 공유합니다.</li>
+<li>전당 기록에 이름, 이메일, 계정 참조, 토큰, 저장은 들어가지 않습니다.</li>
+</ul></section>
+<section aria-labelledby="deletion"><h2 id="deletion"><span class="num" aria-hidden="true">6</span>삭제</h2>
+<ul class="tight">
+<li>클라우드 계정은 게임의 계정 설정에서 삭제합니다. 삭제는 전당 기록, 클라우드 저장, 예약, 프로필을 하나의 검증된 단계로 먼저 함께 지우고, 그 확인 뒤에 로그인 자체를 삭제합니다.</li>
+<li>iOS에서 Apple 연결 계정을 삭제할 때는 Apple 로그인 화면으로 다시 확인할 수 있습니다.</li>
+<li>로그아웃하면 로그인 세션이 끝나고 새 게스트 ID로 바뀝니다. 기기와 클라우드 어디에서도 아무것도 지우지 않습니다.</li>
+<li>클라우드 계정을 삭제하면 클라우드 기록과 로그인이 지워지지만, 이미 기기에 있는 파일 — 로컬 저장과 기기 안의 계정 목록 — 은 게임을 지우거나 저장소를 비우기 전까지 남습니다.</li>
+<li>계정·체크포인트·전당 기록에는 자동으로 지워지는 기한이 없습니다. 계정을 삭제하기 전까지 남습니다.</li>
+<li><a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a>로 이메일하면 내 정보의 열람·정정·삭제를 요청할 수 있습니다. 플레이어 ID를 함께 보내 주세요.</li>
+<li>고객지원 요청은 플레이어 ID로 기록과 대조합니다. 구매 기록에 관한 삭제 요청은 구매 검증 처리 업체에 전달됩니다.</li>
+</ul></section>
+<section aria-labelledby="guests"><h2 id="guests"><span class="num" aria-hidden="true">7</span>게스트와 오프라인</h2>
+<ul class="tight">
+<li>게스트 플레이는 기기 전용 게스트로 오프라인에서도 되며 클라우드 등록 계정으로 표시되지 않습니다.</li>
+<li>백그라운드 가입이 실패하거나 로그인 설정이 없는 빌드에서도 플레이는 계속됩니다. 로그인 설정이 없는 빌드는 등록을 시도하지 않고 오류도 내지 않습니다.</li>
+<li>로그인, 클라우드 저장, 전당, 상점, 구매 검증에는 인터넷 연결이 필요합니다.</li>
+</ul></section>
+<section aria-labelledby="analytics"><h2 id="analytics"><span class="num" aria-hidden="true">8</span>분석</h2>
+<p>선택형 게임플레이 분석은 출시 빌드의 내보내기 설정과 기본 꺼짐인 설정 명시 동의가 모두 맞아야 동작하며, 그 전까지는 꺼져 있습니다.</p></section>
+<section aria-labelledby="purchases"><h2 id="purchases"><span class="num" aria-hidden="true">9</span>구매</h2>
+<ul class="tight">
+<li>스토어 영수증은 <a href="https://kit.openiap.dev/docs/api">IAPKit 구매 검증 서비스</a>로 확인합니다. 검증을 위해 스토어·상품 정보와 영수증 또는 토큰(Apple 서명 JWS 또는 Google 구매 토큰)을 보냅니다.</li>
+<li>검증 기록에는 거래·주문 식별자, 스토어 응답, 요청 IP, 검증 결과, 처리 시간이 남을 수 있습니다. 처리는 권한 부여·복원·회수, 환불, 부정·증복 방지, 진단, 서비스 통계에 쓰입니다.</li>
+<li>서비스 통계를 위해 IAPKit이 프로젝트 첫 유효 영수증 사건과 스토어 종류를 Mixpanel에 보낼 수 있습니다. 그 사건에는 구매 토큰, 거래 ID, IP가 들어가지 않습니다. IAPKit의 기반 시설은 Convex가 맡습니다. 각 방침: <a href="https://kit.openiap.dev/privacy-policy">IAPKit</a>, <a href="https://www.convex.dev/legal/privacy">Convex</a>, <a href="https://mixpanel.com/legal/privacy-policy/">Mixpanel</a>. 이 제3자 서비스 통계는 게임의 선택형 게임플레이 분석과 별개이며, 분석은 설정에서 켜야 동작합니다.</li>
+<li>앱과 개발자는 카드 정보나 스토어 계정 비밀번호를 받지 않습니다. 키·서명·구매 토큰은 로그나 오류 메시지에 남지 않습니다.</li>
+<li>스토어 측 구매 처리는 각 스토어 방침을 따릅니다: <a href="https://www.apple.com/legal/privacy/">Apple</a>, <a href="https://policies.google.com/privacy">Google</a>.</li>
+</ul></section>
+<section aria-labelledby="support-requests"><h2 id="support-requests"><span class="num" aria-hidden="true">10</span>고객지원 요청</h2>
+<ul class="tight">
+<li>고객지원에 이메일하면 요청 해결을 위해 이메일 주소, 메시지, 직접 고른 첨부파일을 이메일 서비스 제공자와 함께 처리합니다.</li>
+<li>지원 요청은 해결과 법적 의무에 필요한 동안만 둡니다.</li>
+<li>구매와 관련되면 기록을 찾는 데 필요한 최소한의 주문 정보만 묻습니다. 영수증 전체, 비밀번호, 인증 코드는 묻지 않습니다.</li>
+<li>제공자는 복원·환불·부정 방지·통계·회계·법적 의무에 필요한 만큼 검증 기록을 둡니다. 일률적인 파기 기한은 없습니다.</li>
+<li>법이 두게 한 기록은 남을 수 있고, 처리 업체가 가진 기록에 대한 요청은 업체에 전달할 수 있습니다.</li>
+<li>지원 요청과 위의 검증 처리는 거주 국가 밖에서 처리될 수 있습니다.</li>
+</ul></section>
+<section aria-labelledby="changes"><h2 id="changes"><span class="num" aria-hidden="true">11</span>방침 변경</h2>
+<p>데이터 처리 방식이 바뀌면 이 페이지를 새 버전과 함께 고칩니다. 이 판은 버전 4.0.0을 다룹니다.</p></section>
+</main>
+<footer><p>문의: <a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a></p><p>© 2026 Hyo Jang. Hyo Dev의 달빛 봉화.</p></footer>
+</div>
+</body>
+</html>

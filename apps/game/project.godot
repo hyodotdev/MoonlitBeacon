@@ -28,8 +28,8 @@ boot_splash/stretch_mode=4
 boot_splash/image="res://assets/custom/ui/boot_splash.png"
 config/icon="res://assets/custom/ui/app_icon_master.png"
 boot_splash/minimum_display_time=550
-config/privacy_policy_url="https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/privacy"
-config/support_contact="https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/support"
+config/privacy_policy_url="https://moonlitbeacon.hyo.dev/{locale}/privacy"
+config/support_contact="https://moonlitbeacon.hyo.dev/{locale}/support"
 
 [autoload]
 
