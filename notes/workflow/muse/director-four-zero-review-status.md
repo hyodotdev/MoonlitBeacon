@@ -206,3 +206,72 @@ Complete unmodified root `pnpm verify` passed both before and after packet138. T
 Local cleanup separates game/integration (`02e5980`), public docs (`90949c1`), source-provenance attributes (`229d26b`) and the author-record commit. All source artwork and acceptance briefs stay with the author record. The69 browser captures were preserved byte-exact in ignored restricted backups, not committed or destroyed. Final clean-tree and local-main observations are recorded in `builds/verify/loop4-final-git-proof.json`.
 
 Remote main remains the3.0.0 baseline until separately authorized push/PR/merge. No4.0 store archive, upload, review submission or marketing screenshot recapture/upload is claimed. Packet131 device installs establish those original development composites; the later Hall/audio semantic runtime has not yet been reinstalled. Android Apple Service ID/key, actual iPad guest/provider completion, release-signed Google readiness, final purchase verification and store screenshot/privacy/metadata/build work remain release boundaries, not fabricated passes.
+## Release provisioning and final integrated checks — 2026-10-04
+
+This entry supersedes earlier pending Apple Services ID/key statements. The
+user approved a dedicated Moonlit Beacon Sign in with Apple key and its
+Firebase server OAuth connection. The director created only that app's key,
+kept the private file outside Git at mode600, registered the approved Service
+ID/team/key configuration in Firebase, and verified the readback. Google
+provider configuration was preserved. All four offered native platform/provider
+configuration checks are ready. Optional Play Games remains unconfigured;
+ordinary Firebase Google authentication does not imply Play Games integration.
+
+Official Play App Signing certificate download and Firebase Management
+readback confirm six current certificate fingerprints were added while all
+existing fingerprints were retained. Current deployed combined Firestore
+rules match the repository-generated rules byte-for-byte. Public Hall reads
+succeed; unauthenticated private profile/checkpoint reads are denied.
+
+Muse139/140/143/144 release-copy packet accepted after full diff review and
+five-locale data-processing/copy checks. The localization CSV changes only
+five keyword rows; all100 product-localization rows remain unchanged. Privacy
+text correctly describes provider credentials/profile scopes, private raw
+Firebase UID ownership, public Hall fields, sign-out preservation, and
+conditional analytics configuration. This is a draft; the existing public
+privacy site still requires its owner workspace connection before publication.
+
+Muse141 review-entry packet accepted after independent57-test pass and a
+developer-password negative control that failed as expected. The exact source
+was restored. Review notes explain optional Google/Apple entry, permanent
+guest ID, New expedition/Resume gate and restore-purchase navigation.
+
+Muse142/145 iOS export packet accepted after independent25-test pass and a
+missing-Apple-entitlement negative control that failed as expected, followed
+by exact restoration. It resolves modern and legacy Xcode profile locations,
+validates bundle/team/expiry/distribution certificate and Apple entitlement,
+and permits an exact certificate SHA-1 pin. Unconfigured exports retain the
+automatic path. The director separately decoded the actual installed new
+distribution profile and verified its real certificate DER, Apple entitlement
+and generated manual ExportOptions. No signing secret is in the change.
+
+Stock real-tree `pnpm verify` completed with exit0 after all accepted packets
+in `builds/verify/release4-post-provisioning-integrated-verify.log`. Game,
+Node, assets, localization, repository hygiene, mirrored skills, store graphics,
+docs build and internal anchors pass. Fresh normal iOS archive/export/dry-run
+then passed sequentially. The4.0.0(12) IPA has normal Assets.car/AppIcon,
+arm64, the correct bundle/version, verified distribution signature/profile,
+Apple entitlement and IAPKit publishable-only configuration. The owned
+keychain search list was restored exactly. App Store Connect remote Validate
+also completed successfully with no errors in
+`builds/verify/release4-ios-remote-validation.log`. This remote package
+validation is not a TestFlight build upload or review submission.
+
+Final Apple-enabled Android4.0.0(17) APK and Play AAB built through normal
+wrappers. Install-r preserved Galaxy and Pixel_10 emulator userdata. Current
+Galaxy Firebase SDK listener restores the original Google-linked UID with
+zero native fatal/script errors. Actual device title pixels were inspected.
+AAB signature verification passes; packaged public identity configuration
+enables Android Apple and Google, includes the IAPKit publishable key, excludes
+Apple private-key files/material, and has no optional game analytics config.
+
+Remaining release boundaries: iPad actual guest/Google/Apple completion and
+Android Apple consent are unverified; final-store real purchases for10 active
+products are unverified. Representative native art evidence does not cover
+the complete physical-device hero/direction matrix. Marketing replacement
+approval is still pending for the six visibly changed screens across the
+listed locales/device classes; no recapture or image upload was performed.
+The earlier separate screenshot-contract failure is not a recapture permit.
+The connected Sites workspace does not own the existing public privacy site.
+No4.0 push, PR, remote-main merge, binary upload or review submission has been
+performed at this checkpoint. Local feature commits do not imply store release.
