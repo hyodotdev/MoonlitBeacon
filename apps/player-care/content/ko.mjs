@@ -11,6 +11,7 @@ export const CONTENT = {
   navHome: '처음',
   navPrivacy: '개인정보처리방침',
   navSupport: '고객지원',
+  navDocs: '강좌·문서',
   mainNavLabel: '페이지',
   navLanguageLabel: '언어',
   languageNames: {
@@ -122,7 +123,7 @@ export const CONTENT = {
       h: '구매',
       html: `<ul class="tight">
 <li>스토어 영수증은 <a href="${LINKS.iapkitDocs}">IAPKit 구매 검증 서비스</a>로 확인합니다. 검증을 위해 스토어·상품 정보와 영수증 또는 토큰(Apple 서명 JWS 또는 Google 구매 토큰)을 보냅니다.</li>
-<li>검증 기록에는 거래·주문 식별자, 스토어 응답, 요청 IP, 검증 결과, 처리 시간이 남을 수 있습니다. 처리는 권한 부여·복원·회수, 환불, 부정·증복 방지, 진단, 서비스 통계에 쓰입니다.</li>
+<li>검증 기록에는 거래·주문 식별자, 스토어 응답, 요청 IP, 검증 결과, 처리 시간이 남을 수 있습니다. 처리는 권한 부여·복원·회수, 환불, 부정·중복 방지, 진단, 서비스 통계에 쓰입니다.</li>
 <li>서비스 통계를 위해 IAPKit이 프로젝트 첫 유효 영수증 사건과 스토어 종류를 Mixpanel에 보낼 수 있습니다. 그 사건에는 구매 토큰, 거래 ID, IP가 들어가지 않습니다. IAPKit의 기반 시설은 Convex가 맡습니다. 각 방침: <a href="${LINKS.iapkitPrivacy}">IAPKit</a>, <a href="${LINKS.convexPrivacy}">Convex</a>, <a href="${LINKS.mixpanelPrivacy}">Mixpanel</a>. 이 제3자 서비스 통계는 게임의 선택형 게임플레이 분석과 별개이며, 분석은 설정에서 켜야 동작합니다.</li>
 <li>앱과 개발자는 카드 정보나 스토어 계정 비밀번호를 받지 않습니다. 키·서명·구매 토큰은 로그나 오류 메시지에 남지 않습니다.</li>
 <li>스토어 측 구매 처리는 각 스토어 방침을 따릅니다: <a href="${LINKS.applePrivacy}">Apple</a>, <a href="${LINKS.googlePrivacy}">Google</a>.</li>

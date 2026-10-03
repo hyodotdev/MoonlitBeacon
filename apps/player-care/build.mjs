@@ -13,6 +13,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   COIN_GRANTS,
   CSV_LOCALES,
+  DOCS_MOUNT,
+  DOCS_PREFIX,
   HREFLANG,
   LINKS,
   LOCALES,
@@ -177,10 +179,14 @@ function navBlock(content, locale, current) {
     const currentAttr = key === current ? ' aria-current="page"' : '';
     return `<li><a href="${base}${path}"${currentAttr}>${escapeHtml(label)}</a></li>`;
   };
+  // The course/reference link stays origin-absolute: the docs mount lives at
+  // the combined site root, outside every locale subtree.
+  const docsItem = `<li><a href="${DOCS_MOUNT}">${escapeHtml(content.navDocs)}</a></li>`;
   return `<nav aria-label="${escapeHtml(content.mainNavLabel)}"><ul>
 ${item('home', content.navHome, '/')}
 ${item('privacy', content.navPrivacy, '/privacy')}
 ${item('support', content.navSupport, '/support')}
+${docsItem}
 </ul></nav>`;
 }
 
@@ -560,6 +566,14 @@ function resolveLocalLink(fromFile, href) {
   return `${normalized}.html`;
 }
 
+export function isDocsMountTarget(target) {
+  // The docs mount ships only in the combined hosting output, where the
+  // hosting checker resolves it against the real docs build. Narrow to this
+  // one prefix: nothing else skips local resolution here.
+  const mountRoot = `${DOCS_PREFIX.slice(0, -1)}.html`;
+  return target === mountRoot || target.startsWith(DOCS_PREFIX);
+}
+
 export async function checkBuilt(outDir) {
   const problems = [];
   const { pages, products, content } = await renderPages();
@@ -685,6 +699,7 @@ export async function checkBuilt(outDir) {
       }
       if (href.startsWith(SITE_BASE)) {
         const target = resolveLocalLink(file, href.slice(SITE_BASE.length) || '/');
+        if (target !== null && isDocsMountTarget(target)) continue;
         if (target === null || !existsSync(join(outDir, target))) {
           problems.push(`${where}: same-origin link target missing: ${href}`);
         }
@@ -697,6 +712,7 @@ export async function checkBuilt(outDir) {
         continue;
       }
       const target = resolveLocalLink(file, href);
+      if (target !== null && isDocsMountTarget(target)) continue;
       if (target === null) {
         problems.push(`${where}: link escapes output: ${href}`);
       } else if (!existsSync(join(outDir, target))) {

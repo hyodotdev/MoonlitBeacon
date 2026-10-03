@@ -1,20 +1,29 @@
 # Player-care publication note (4.0.0)
 
-Short deploy handoff for the new privacy/support site. Nothing here is
-published; the director deploys only after inspection. Publication is not
-verified; do not treat these URLs as live until the director confirms TLS.
+Short deploy handoff for the combined public site: the privacy/support pages
+plus the course/reference under `/MoonlitBeacon/` from one Hosting deploy.
+Nothing here is published; the director deploys only after inspection.
+Publication is not verified; do not treat these URLs as live until the
+director confirms TLS. No deploy was performed from this repo.
 
 ## Target
 
 - Public origin `https://moonlitbeacon.hyo.dev` (custom domain registered
   in Firebase Hosting with server-specified DNS; DNS done outside this repo).
 - Deploy target stays the existing default site `moonlitbeacon-778ee`
-  (`firebase.json` `site` + `.firebaserc` default project). Zero existing
-  hosting releases, so the first deploy overwrites nothing.
+  (`firebase.hosting.json` `site`, `--project moonlitbeacon-778ee`). Zero
+  existing hosting releases, so the first deploy overwrites nothing.
 - Default site URL and native auth callback remain as configured; they are
   not public site URLs and are never printed in player copy.
-- Hosting-only: `public: dist`, `cleanUrls`, nothing else. No rewrites,
-  functions, or other services.
+- Hosting-only: `public: ../../builds/hosting` (generated combined output:
+  37 inspected care files at the root, the 142-file docs build with 26 pages
+  under `MoonlitBeacon/`), `cleanUrls`, nothing else. No rewrites,
+  functions, or other services; the real care `404.html` serves missing
+  pages. The root `firebase.json` stays Firestore-only.
+- Docusaurus canonical `url` is the custom origin with `baseUrl`
+  `/MoonlitBeacon/` unchanged, so the GitHub Pages mirror keeps working.
+  Care nav links `/MoonlitBeacon/` with five localized labels; the docs
+  navbar/footer link back to `/en/privacy` and `/en/support`.
 - Game contact settings point at the custom origin via the contact contract
   (`configure-store-contact.mjs` dry-run then apply):
   `https://moonlitbeacon.hyo.dev/{locale}/privacy|support` in `project.godot`.
@@ -28,6 +37,9 @@ verified; do not treat these URLs as live until the director confirms TLS.
   `/…/support` (10 pages)
 - `…/privacy` and `…/support` (English x-default, full bodies)
 - `…/`, `…/{locale}/` (choosers), `…/404.html`
+- `…/MoonlitBeacon/` (docs home), `…/MoonlitBeacon/course` (course guide),
+  `…/MoonlitBeacon/course/chapter-01` (Lesson 1),
+  `…/MoonlitBeacon/docs/intro` (reference entry)
 
 ## Copy sources (section by section)
 
@@ -103,23 +115,32 @@ support requests §10):
 - Processing may occur outside the player's country (no country list or
   legal basis invented).
 
-## Deploy (director only, from `apps/player-care/`)
+## Deploy (director only, from the repo root)
 
 ```bash
-pnpm player-care:check
-firebase use moonlitbeacon-778ee
-firebase deploy --only hosting
+pnpm hosting:build
+pnpm hosting:check
+cd apps/player-care && firebase deploy --only hosting --config firebase.hosting.json --project moonlitbeacon-778ee
 ```
 
-Then open all 10 localized URLs plus `/privacy` and `/support` over the
-custom origin, confirm live TLS/HTTP, and confirm Settings ›
-Privacy/Support in the game open them per locale before store metadata
-relies on them.
+The build step renders a fresh care `dist/`, a fresh docs build, and the
+combined `builds/hosting/`; the check step verifies exact parity (37 care +
+142 docs files), all local links, no NUL/notes/secrets/symlinks, the real
+`404.html`, and the narrow hosting-only config. To confirm a boundary by
+hand, delete or flip one byte under `builds/hosting/`, watch `hosting:check`
+fail, then re-run `pnpm hosting:build` to restore (composition is
+deterministic: same inputs, same bytes).
+
+Then open all 10 localized URLs plus `/privacy` and `/support`, the docs
+home, course guide, and Lesson 1 over the custom origin, confirm live
+TLS/HTTP, and confirm Settings › Privacy/Support in the game open them per
+locale before store metadata relies on them.
 
 ## Deliberately not done
 
 - No deploy, no network calls, no DNS writes, no credentials.
 - Historical evidence URLs, fixture URLs, native callback URLs, and
   Firebase project identifiers are unchanged.
-- No Terms, auth, IAP, save, gameplay, asset, course-hosting, or version
-  change.
+- No Terms, auth, IAP, save, gameplay, asset, course-content, or version
+  change. Only `docusaurus.config.ts` origin/navbar/footer changed on the
+  docs side; lesson and reference prose are untouched.

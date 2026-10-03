@@ -3,6 +3,11 @@
 
 export const SITE_BASE = 'https://moonlitbeacon.hyo.dev';
 
+// Course/reference mount inside the combined hosting output. Care pages link
+// here; the hosting checker verifies those targets against the real docs build.
+export const DOCS_MOUNT = '/MoonlitBeacon/';
+export const DOCS_PREFIX = 'MoonlitBeacon/';
+
 export const SUPPORT_EMAIL = 'hyo@hyo.dev';
 
 export const LOCALES = ['en', 'ko', 'ja', 'zh-Hans', 'zh-Hant'];

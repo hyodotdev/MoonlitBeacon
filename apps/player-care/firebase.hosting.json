@@ -1,0 +1,9 @@
+{
+  "hosting": {
+    "site": "moonlitbeacon-778ee",
+    "public": "../../builds/hosting",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "cleanUrls": true,
+    "trailingSlash": false
+  }
+}

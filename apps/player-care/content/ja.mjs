@@ -11,6 +11,7 @@ export const CONTENT = {
   navHome: '最初',
   navPrivacy: 'プライバシーポリシー',
   navSupport: 'サポート',
+  navDocs: '講座・ドキュメント',
   mainNavLabel: '頁',
   navLanguageLabel: '言語',
   languageNames: {

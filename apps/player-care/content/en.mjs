@@ -12,6 +12,7 @@ export const CONTENT = {
   navHome: 'Home',
   navPrivacy: 'Privacy Policy',
   navSupport: 'Support',
+  navDocs: 'Course & Docs',
   mainNavLabel: 'Pages',
   navLanguageLabel: 'Language',
   languageNames: {

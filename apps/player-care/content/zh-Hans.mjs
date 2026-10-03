@@ -11,6 +11,7 @@ export const CONTENT = {
   navHome: '首页',
   navPrivacy: '隐私政策',
   navSupport: '支持',
+  navDocs: '课程与文档',
   mainNavLabel: '页面',
   navLanguageLabel: '语言',
   languageNames: {

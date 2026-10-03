@@ -11,6 +11,7 @@ export const CONTENT = {
   navHome: '首頁',
   navPrivacy: '隱私權政策',
   navSupport: '支援',
+  navDocs: '課程與文件',
   mainNavLabel: '頁面',
   navLanguageLabel: '語言',
   languageNames: {
