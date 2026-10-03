@@ -1,10 +1,10 @@
 // Combined hosting composition/check regressions. Uses the real care render
 // plus a small fixture docs tree shaped like the real Docusaurus routes, all
-// under temp dirs; never touches the committed dist/ or builds/hosting.
+// under temp dirs; never touches the committed dist/ or hosting-dist/.
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import test from 'node:test';
 import { build as buildCare } from './build.mjs';
 import { composeHosting } from './hosting-build.mjs';
@@ -293,6 +293,23 @@ test('checker rejects a hosting config pointed at another directory', async () =
     await assert.rejects(
       () => checkHosting({ ...fixture.options, hostingConfigPath: configPath }),
       /must resolve to the generated output/,
+    );
+  } finally {
+    cleanup(fixture.root);
+  }
+});
+
+test('checker rejects public outside its Firebase project directory even when it matches outDir', async () => {
+  const fixture = await freshFixture();
+  try {
+    composeHosting(fixture);
+    const projectDir = join(fixture.root, 'project');
+    mkdirSync(projectDir, { recursive: true });
+    const outsidePublic = relative(projectDir, fixture.outDir);
+    const configPath = writeHostingConfig(projectDir, outsidePublic);
+    await assert.rejects(
+      () => checkHosting({ ...fixture.options, hostingConfigPath: configPath }),
+      /must stay inside the Firebase project directory/,
     );
   } finally {
     cleanup(fixture.root);

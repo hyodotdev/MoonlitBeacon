@@ -1,7 +1,7 @@
 // Combined Firebase Hosting composer: player-care files at the root, the
 // Docusaurus build under MoonlitBeacon/. No dependencies.
 //
-//   node apps/player-care/hosting-build.mjs             # compose builds/hosting
+//   node apps/player-care/hosting-build.mjs             # compose hosting-dist/
 //   node apps/player-care/hosting-build.mjs --out DIR   # compose DIR instead
 //
 // The supported entrypoint is `pnpm hosting:build` from the repo root, which
@@ -21,7 +21,7 @@ const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(APP_DIR, '..', '..');
 export const CARE_DIST_DIR = join(APP_DIR, 'dist');
 export const DOCS_BUILD_DIR = join(REPO_ROOT, 'apps', 'docs', 'build');
-export const HOSTING_OUT_DIR = join(REPO_ROOT, 'builds', 'hosting');
+export const HOSTING_OUT_DIR = join(APP_DIR, 'hosting-dist');
 
 function byName(a, b) {
   if (a.name < b.name) return -1;

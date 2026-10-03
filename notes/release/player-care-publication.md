@@ -20,11 +20,14 @@ deploy was performed from this repo copy.
   and Terms without touching Firestore.
 - Default site URL and native auth callback remain as configured; they are
   not public site URLs and are never printed in player copy.
-- Hosting-only: `public: ../../builds/hosting` (generated combined output:
-  49 inspected care files at the root, the 142-file docs build with 26 pages
-  under `MoonlitBeacon/`), `cleanUrls`, nothing else. No rewrites,
-  functions, or other services; the real care `404.html` serves missing
-  pages. The root `firebase.json` stays Firestore-only.
+- Hosting-only: `public: hosting-dist` (generated combined output at
+  `apps/player-care/hosting-dist/`: 49 inspected care files at the root,
+  the 142-file docs build with 26 pages under `MoonlitBeacon/`),
+  `cleanUrls`, nothing else. No rewrites, functions, or other services;
+  the real care `404.html` serves missing pages. The root `firebase.json`
+  stays Firestore-only. `public` stays inside the Firebase project
+  directory (the folder holding `firebase.hosting.json`); the CLI refuses
+  anything outside it before upload.
 - Docusaurus canonical `url` is the custom origin with `baseUrl`
   `/MoonlitBeacon/` unchanged, so the GitHub Pages mirror keeps working.
   Care nav links `/MoonlitBeacon/` with five localized labels; the docs
@@ -134,12 +137,21 @@ cd apps/player-care && firebase deploy --only hosting --config firebase.hosting.
 ```
 
 The build step renders a fresh care `dist/`, a fresh docs build, and the
-combined `builds/hosting/`; the check step verifies exact parity (49 care +
-142 docs files), all local links, no NUL/notes/secrets/symlinks, the real
-`404.html`, and the narrow hosting-only config. To confirm a boundary by
-hand, delete or flip one byte under `builds/hosting/`, watch `hosting:check`
-fail, then re-run `pnpm hosting:build` to restore (composition is
-deterministic: same inputs, same bytes).
+combined `apps/player-care/hosting-dist/`; the check step verifies exact
+parity (49 care + 142 docs files), all local links, no
+NUL/notes/secrets/symlinks, the real `404.html`, and the narrow
+hosting-only config, including the in-project `public` boundary. To
+confirm a boundary by hand, delete or flip one byte under
+`apps/player-care/hosting-dist/`, watch `hosting:check` fail, then re-run
+`pnpm hosting:build` to restore (composition is deterministic: same
+inputs, same bytes).
+
+An earlier combined attempt with `public: ../../builds/hosting` was
+refused by the Firebase CLI before upload ("outside of project
+directory"); that refusal left the verified care-only site live and
+uploaded nothing. The final combined docs/Terms release remains
+director-operated and pending; nothing in this repo deploys or claims
+final live success.
 
 Then open all 15 localized URLs plus `/privacy`, `/support`, and `/terms`,
 the docs home, course guide, and Lesson 1 over the custom origin, confirm

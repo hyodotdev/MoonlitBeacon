@@ -53,19 +53,22 @@ and reference under `/MoonlitBeacon/` from one Firebase Hosting site:
 - `/MoonlitBeacon/docs/intro` — reference entry
 
 ```bash
-pnpm hosting:build   # fresh care dist + fresh docs build, then compose builds/hosting
+pnpm hosting:build   # fresh care dist + fresh docs build, then compose apps/player-care/hosting-dist
 pnpm hosting:check   # exact parity, link health, NUL/notes/secrets/symlink scan, config scope
 pnpm test:hosting    # node --test composition/checker regressions (temp dirs only)
 ```
 
-`builds/hosting/` is generated and gitignored via `builds/`; composition
-copies bytes only, with no rewriting and no timestamps. `hosting:build`
-refuses a stale care `dist/` and a missing docs build. `hosting:check`
-verifies all 49 care files and all 26 docs pages plus assets, resolves every
-local href/src (extensionless docs routes included), requires the real care
-`404.html` with no catch-all rewrite, and pins the hosting config to site
+`apps/player-care/hosting-dist/` is generated and gitignored via the
+app-local `.gitignore` (alongside `.firebase/`); composition copies bytes
+only, with no rewriting and no timestamps. `hosting:build` refuses a stale
+care `dist/` and a missing docs build. `hosting:check` verifies all 49 care
+files and all 26 docs pages plus assets, resolves every local href/src
+(extensionless docs routes included), requires the real care `404.html`
+with no catch-all rewrite, and pins the hosting config to site
 `moonlitbeacon-778ee` and the generated directory while the root
-`firebase.json` stays Firestore-only.
+`firebase.json` stays Firestore-only. The config check also requires
+`public` to stay inside the Firebase project directory (the folder holding
+`firebase.hosting.json`); the CLI refuses anything outside it before upload.
 
 ## Content sources
 
@@ -94,18 +97,23 @@ cd apps/player-care && firebase deploy --only hosting --config firebase.hosting.
 ```
 
 `firebase.hosting.json` sets `site: moonlitbeacon-778ee` (the existing
-default site), `public: ../../builds/hosting`, `cleanUrls`, and no rewrites,
+default site), `public: hosting-dist`, `cleanUrls`, and no rewrites,
 functions, or other services. The command deploys hosting only; Firestore
 rules and the native auth callback stay untouched. One prior hosting
 release exists: the director's inspected privacy/support care-only deploy,
-verified over ordinary HTTPS on all 18 routes. The final combined
-docs/Terms release remains director-operated and pending; nothing in this
-repo deploys. No tokens or credentials live here; the director runs the
-existing authenticated CLI. The care-only `firebase.json` (`public: dist`)
-plus `.firebaserc` remain for inspection and for the exact-dist check; they
-are not the deploy config. The public origin is the custom domain
-`https://moonlitbeacon.hyo.dev`, connected to Hosting with
+verified over ordinary HTTPS on all 18 routes, and that care-only site
+remains live. An earlier combined attempt with
+`public: ../../builds/hosting` was refused by the Firebase CLI before
+upload ("outside of project directory"); the combined output now lives
+inside `apps/player-care/` so the deploy config accepts it. The final
+combined docs/Terms release remains director-operated and pending; nothing
+in this repo deploys. No tokens or credentials live here; the director runs
+the existing authenticated CLI. The care-only `firebase.json`
+(`public: dist`) plus `.firebaserc` remain for inspection and for the
+exact-dist check; they are not the deploy config. The public origin is the
+custom domain `https://moonlitbeacon.hyo.dev`, connected to Hosting with
 server-specified DNS outside this repo; the default site URL and native
 auth callback stay as configured. Deploys write a generated hash cache
-under `apps/player-care/.firebase/`; the app `.gitignore` keeps it out of
-Git so repeat deploys never dirty the tree.
+under `apps/player-care/.firebase/`; the app `.gitignore` keeps it and
+`hosting-dist/` out of Git so generated output and repeat deploys never
+dirty the tree.

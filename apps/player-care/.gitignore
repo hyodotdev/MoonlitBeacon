@@ -1,2 +1,4 @@
 # Generated Firebase Hosting deploy cache (file hashes). Never commit.
 .firebase/
+# Generated combined hosting output (care at root + docs under MoonlitBeacon/). Never commit.
+hosting-dist/

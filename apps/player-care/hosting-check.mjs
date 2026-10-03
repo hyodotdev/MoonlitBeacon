@@ -1,7 +1,7 @@
 // Combined hosting checker: exact composition, link health, and config scope.
 // No dependencies.
 //
-//   node apps/player-care/hosting-check.mjs             # check builds/hosting
+//   node apps/player-care/hosting-check.mjs             # check hosting-dist/
 //   node apps/player-care/hosting-check.mjs --out DIR   # check DIR instead
 //
 // Verifies the composed output against both inputs: every care file at the
@@ -24,7 +24,7 @@ const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(APP_DIR, '..', '..');
 export const CARE_DIST_DIR = join(APP_DIR, 'dist');
 export const DOCS_BUILD_DIR = join(REPO_ROOT, 'apps', 'docs', 'build');
-export const HOSTING_OUT_DIR = join(REPO_ROOT, 'builds', 'hosting');
+export const HOSTING_OUT_DIR = join(APP_DIR, 'hosting-dist');
 export const HOSTING_CONFIG_PATH = join(APP_DIR, 'firebase.hosting.json');
 export const ROOT_CONFIG_PATH = join(REPO_ROOT, 'firebase.json');
 
@@ -119,6 +119,10 @@ export function checkHostingConfig(hostingConfigPath, outDir) {
     : null;
   if (publicDir !== resolve(outDir)) {
     problems.push(`hosting config public must resolve to the generated output (${relative(REPO_ROOT, resolve(outDir))}), found: ${config.public}`);
+  }
+  const projectDir = dirname(resolve(hostingConfigPath));
+  if (publicDir !== null && publicDir !== projectDir && !publicDir.startsWith(`${projectDir}${sep}`)) {
+    problems.push(`hosting config public must stay inside the Firebase project directory (${relative(REPO_ROOT, projectDir) || '.'}), found: ${config.public}`);
   }
   if (config.cleanUrls !== true) {
     problems.push('hosting config cleanUrls must be true');
