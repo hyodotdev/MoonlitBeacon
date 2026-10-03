@@ -98,6 +98,12 @@ transit Yes (`notes/release/iap-store-setup.md:42-66`). Verification flow is
 unchanged since (`privacy-four-zero-draft.md` S8), so rows 6-7 below carry
 that baseline forward; rows 1-5 are new for 4.0.0 accounts/saves/Hall.
 
+Director-observed Play draft (not this file's proposal): name, email, and
+User IDs saved with App functionality + Account Management; Other Actions
+saved with App functionality; saved for review. The Proposed columns below
+are independent recommendations; per-row notes say where they match that
+observed draft.
+
 Account question first: the app **does** create accounts in configured
 builds. Guest entry automatically starts anonymous Firebase registration
 (`production_host.gd:371-380` → native `signInAnonymously`, `MoonlitIdentityPlugin.kt:268`
@@ -109,11 +115,11 @@ the GDScript gate and the native manifest check refuse it (cited in §0).
 
 | # | Data type (Play) | Proposed collected? | Required / optional | Purposes (proposed) | Shared? | Source fact |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Personal info > User IDs (Firebase UID; `MB-` player ID) | Yes | Required | App functionality | No (service providers only, §6) | Fact: UID minted by anonymous/provider sign-in (natives, §0); `MB-` + 32 hex minted pre-play (`player_account.gd:433-436`); UID sent in profile/reservation/checkpoint documents (`cloud_identity.gd:67-89`, `cloud_checkpoint.gd:73-83`); public ID sent in profile/reservation/Hall (`cloud_schema.gd:32-44`). Registration runs automatically on guest entry with no opt-out toggle (§4). |
-| 2 | Personal info > Email address | Yes, Google path; Apple path Open | Optional | App functionality | No (service providers only) | Fact: game code adds no Google scopes and never reads/stores/logs email (`MoonlitIdentityPlugin.kt:69-77`, `MoonlitIdentityIos.mm:30-37`, `identity_adapter.gd:30-31`); Google SDK authenticates under its own default `openid/email/profile` scopes (same headers). Provider sign-in is optional: guest play, store, restore, and resume all work without it (`app-store-release.mjs:748-757`, `production_host.gd:355-381`). Open: which fields the shipped consent sheet actually grants; Apple provider-default scope behavior on both platforms (game requests none: `MoonlitIdentityIos.mm:783`, `MoonlitIdentityPlugin.kt:459-462`). |
-| 3 | Personal info > Name | Same as row 2 | Optional | App functionality | No (service providers only) | Fact: same scope evidence as row 2; game-side display-name handling is zero: grep over `scripts/net|cloud|iap|analytics` finds only never-log/never-store comments plus the unrelated hero `display_name` in `production_host.gd:283-284`; natives never read profile fields (`MoonlitIdentityIos.mm:647-648,829,840`). Open: same sheet/scope verification as row 2. |
+| 1 | Personal info > User IDs (Firebase UID; `MB-` player ID) | Yes | Required | App functionality, Account Management | No (service providers only, §6) | Fact: UID minted by anonymous/provider sign-in (natives, §0); `MB-` + 32 hex minted pre-play (`player_account.gd:433-436`); UID sent in profile/reservation/checkpoint documents (`cloud_identity.gd:67-89`, `cloud_checkpoint.gd:73-83`); public ID sent in profile/reservation/Hall (`cloud_schema.gd:32-44`). Registration runs automatically on guest entry with no opt-out toggle (§4). Proposed Account Management follows the account use in source: UID authenticates and owns the private records, linking keeps the same UID with no second registration (`cloud_identity.gd:208-216`), and sign-out/sign-back-in rotates then restores the same ID and saves (`player_account.gd:304-313` rotation, `adopt_canonical_id` restore per `privacy-four-zero-draft.md` S3), consistent with the director's reading of official Firebase disclosure purposes. Matches the director-observed Play draft purposes for User IDs. |
+| 2 | Personal info > Email address | Yes, Google path; Apple path Open | Optional | App functionality, Account Management | No (service providers only) | Fact: game code adds no Google scopes and never reads/stores/logs email (`MoonlitIdentityPlugin.kt:69-77`, `MoonlitIdentityIos.mm:30-37`, `identity_adapter.gd:30-31`); Google SDK authenticates under its own default `openid/email/profile` scopes (same headers). Provider sign-in is optional: guest play, store, restore, and resume all work without it (`app-store-release.mjs:748-757`, `production_host.gd:355-381`). Proposed Account Management covers the account-authentication/recovery use where the sheet grants email (`privacy-four-zero-draft.md` S2: Firebase and the chosen provider process identifiers and consent-gated profile fields to authenticate and recover the account), consistent with the director's reading of official Firebase disclosure purposes. Matches the director-observed Play draft purposes for email. Open: which fields the shipped consent sheet actually grants; Apple provider-default scope behavior on both platforms (game requests none: `MoonlitIdentityIos.mm:783`, `MoonlitIdentityPlugin.kt:459-462`). |
+| 3 | Personal info > Name | Same as row 2 | Optional | App functionality, Account Management | No (service providers only) | Fact: same scope evidence as row 2; game-side display-name handling is zero: grep over `scripts/net|cloud|iap|analytics` finds only never-log/never-store comments plus the unrelated hero `display_name` in `production_host.gd:283-284`; natives never read profile fields (`MoonlitIdentityIos.mm:647-648,829,840`). Proposed Account Management same basis as row 2 (authentication/recovery use where granted, per `privacy-four-zero-draft.md` S2 and the director's reading of official Firebase disclosure purposes). Matches the director-observed Play draft purposes for name. Open: same sheet/scope verification as row 2. |
 | 4 | Photos and videos | Not collected (game); provider-side Open | n/a | n/a | n/a | Fact: no photo-URL or photo-byte handling exists in game or bridge code — no `getPhotoUrl`/`photoUrl`/photo reference in GDScript or either native file (verified by grep; only comment at `MoonlitIdentityIos.mm:829` saying the fields are never touched, and the GDScript scrub list at `moonlit_identity.gd:633-634`). Distinguish: the game neither downloads a profile URL nor uploads photo bytes. Open: whether provider/Firebase server-side profile storage counts — official provider docs decide. |
-| 5 | App activity > Other actions (checkpoint progress; Hall hero/score/cycles/version) | Yes | Required | App functionality | No; Hall rows are user-visible by design (see note) | Fact: sealed checkpoints queue and upload automatically (`cloud_coordinator.gd:854-878`, catch-up `823-852`); payload is pure gameplay state validated by `journey.gd:388-457` with purchase/ledger keys rejected (`cloud_schema.gd:182-195`); Hall row carries only ID/hero/score/cycles/release/stamp (`cloud_hall.gd:85-99`), reads are public by rule while writes are owner-only and monotonic (`firestore.cloud.addition.rules`, `mb_hall_v1` block). Note: public Hall display is in-app public content, not third-party sharing; declare per the official sharing definition (§6). |
+| 5 | App activity > Other actions (checkpoint progress; Hall hero/score/cycles/version) | Yes | Required | App functionality | No; Hall rows are user-visible by design (see note) | Fact: sealed checkpoints queue and upload automatically (`cloud_coordinator.gd:854-878`, catch-up `823-852`); payload is pure gameplay state validated by `journey.gd:388-457` with purchase/ledger keys rejected (`cloud_schema.gd:182-195`); Hall row carries only ID/hero/score/cycles/release/stamp (`cloud_hall.gd:85-99`), reads are public by rule while writes are owner-only and monotonic (`firestore.cloud.addition.rules`, `mb_hall_v1` block). Matches the director-observed Play draft purpose for Other Actions (App functionality). Note: public Hall display is in-app public content, not third-party sharing; declare per the official sharing definition (§6). |
 | 6 | Financial info > Purchase history | Yes (carry forward) | Optional | App functionality, Analytics, Fraud prevention/security/compliance (carry forward) | No | Fact: only purchasers/restorers send anything: store + expected product + JWS/token per verification (`godot_iap_backend.gd:192-222`); keys/tokens never in logs/errors (`iapkit_http_transport.gd:3-7`, `iap_store.gd:260`). Prior purposes at `iap-store-setup.md:55-58`. |
 | 7 | App info and performance > Diagnostics (validation record: txn/order ids, store responses, result, processing duration, request IP) | Yes (carry forward) | Optional | Same as row 6 (carry forward) | No | Fact: what the app sends is row 6; what the server retains is documented secondhand in `iap-store-setup.md:44-50` and `en.mjs:129-131` (verify against IAPKit docs at submit, Open). Game's own analytics stays disabled (§5) and ships no crash reporter (§0 SDK list), so no other diagnostics row is proposed. |
 | 8 | Device or other IDs | Not collected (game) | n/a | n/a | n/a | Fact: analytics header forbids advertising/device IDs and the event allow-list cannot carry them (`analytics.gd:3-8,44-68`); no ad-ID/device-ID API in either native file; no Installations dep (§0). Open: Firebase-internal identifiers per official Firebase disclosure docs. |
@@ -137,16 +143,26 @@ No Play data type maps to tokens directly; mention only if the form asks.
 
 ## 2. Apple App Privacy (proposed labels)
 
+Director-observed Apple state (not a proposal): types are being prepared,
+not yet published. Nothing below claims a saved Apple draft selection.
+
+Official-definition basis (director-read at
+https://developer.apple.com/app-store/app-privacy-details/): Product
+Interaction explicitly includes saved place in a game; Gameplay Content
+explicitly includes saved games. Rows 3 and 8 therefore label the same
+retained functional saves under the two matching Apple types; neither row
+is an analytics toggle.
+
 | # | Data type (Apple) | Proposed collected? | Linked? | Tracking? | Purposes (proposed) | Source fact |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Contact Info > Email Address | Yes, Google path; Apple path Open | Yes | No | App Functionality | Same scope facts as Play row 2. Linked because the address authenticates the Firebase account that owns the private records. Open: shipped-sheet grant + Apple defaults. |
 | 2 | Contact Info > Name | Same as row 1 | Yes | No | App Functionality | Same facts as Play row 3. |
-| 3 | User Content > Gameplay Content (checkpoint saves; Hall rows) | Yes | Yes | No | App Functionality | Same upload facts as Play row 5. Linked: checkpoint documents are keyed by UID and readable only by the owning account (`firestore.cloud.addition.rules`, `mb_checkpoints_v1` block); Hall rows are keyed by the public ID bound to that account. |
+| 3 | User Content > Gameplay Content (checkpoint saves; Hall rows) | Yes | Yes | No | App Functionality | Same upload facts as Play row 5. Retained per the director-read official definition (Gameplay Content explicitly includes saved games). Linked: checkpoint documents are keyed by UID and readable only by the owning account (`firestore.cloud.addition.rules`, `mb_checkpoints_v1` block); Hall rows are keyed by the public ID bound to that account. |
 | 4 | Identifiers > User ID (Firebase UID; `MB-` player ID) | Yes | Yes | No | App Functionality | Same identity facts as Play row 1. On-device bindings store only the UID hash (`player_account.gd:124-132`); backend rows carry the raw UID privately (`cloud_schema.gd:32-44` + owner-only rules). |
 | 5 | Identifiers > Device ID | Not collected | n/a | n/a | n/a | Same facts as Play row 8. |
 | 6 | Purchases > Purchase History | Yes (carry forward) | Yes | No | App Functionality, Analytics (carry forward) | Same send facts as Play row 6; prior purposes at `iap-store-setup.md:52-54`. |
 | 7 | Diagnostics > Performance Data + Other Diagnostic Data (IAPKit validation record) | Yes (carry forward) | Yes | No | App Functionality, Analytics (carry forward) | Same retention facts as Play row 7 (secondhand; verify against IAPKit docs). No game crash reporter (Play row 10 facts). |
-| 8 | Usage Data > Product Interaction (gameplay analytics events) | **No in this submit** | n/a | n/a | n/a | Fact: export-disabled — `firebase.cfg` absent, `configured()` false, consent UI never shown, `enabled()` false, send path closed (§5). Proposed: no label. A later analytics-enabled build re-opens this row. |
+| 8 | Usage Data > Product Interaction (retained cloud checkpoint/place/progress; NOT optional analytics events) | Yes | Yes | No | App Functionality | Fact (functional, collected): sealed checkpoints queue and upload automatically (`cloud_coordinator.gd:854-878`, catch-up `823-852`); stored document carries `uid, revision, payload, schema, updated_at` (`cloud_schema.gd:38-40`, `cloud_checkpoint.gd:73-83`); payload is validated gameplay place/progress state (`journey.gd:388-457`: cycle, zone_index, route, run_seed, hero_path, relic_stacks, level, kills, kill_score, survived, lit_count, guardian_meetings, places_seen, settled_score, gate_direction, saved_at_unix, journey/checkpoint ids) with purchase/ledger keys rejected (`cloud_schema.gd:182-195`); rows are keyed by UID and readable only by the owning account (`firestore.cloud.addition.rules`, `mb_checkpoints_v1` block). Official mapping (director-read at https://developer.apple.com/app-store/app-privacy-details/): Product Interaction explicitly includes saved place in a game, so this retained checkpoint/place/progress data is proposed Yes/linked/not tracking/App Functionality. Separate fact (analytics, NOT collected): optional gameplay analytics stays export-disabled in this submit — `firebase.cfg` absent, `configured()` false, consent UI never shown, `enabled()` false, send path closed (§5 item 1). That disabled toggle does not suppress this functional label; a later analytics-enabled build would add analytics events alongside it, not replace it. |
 | 9 | Photos or Videos; Precise/Coarse Location | Not collected | n/a | n/a | n/a | Photos: Play row 4 facts (zero photo handling). Location: Play row 9 facts. |
 
 Tracking (Apple definition): propose **No** for every row. Fact: no
@@ -208,11 +224,21 @@ In-app deletion (facts):
   starts (`player_account.gd:304-313`).
 - Residuals that stay on device: other accounts' slots and bindings,
   Vault/IAP/local-ladder/settings/analytics files (separate files the
-  deletion path never touches). Cross-check for the director: the policy
-  line "local saves … stay until you reinstall" (`en.mjs:102`) reads
-  absolute while code removes the deleted account's own journey slot
-  (`production_host.gd:1806-1817`); confirm the intended wording covers
-  the deleted slot before submit. No file is changed here.
+  deletion path never touches).
+- Deleted-slot wording concern (resolved by Brief 161; historical evidence
+  preserved): the pre-161 policy line "local saves … stay until you
+  reinstall" (old `en.mjs:102`) read absolute while code removes the
+  deleted account's own journey slot files
+  (`production_host.gd:1806-1817`, called after cloud/native deletion at
+  `production_host.gd:814-845`). Brief 161 replaced it with the current
+  `en.mjs:102` in this copy: deleting the cloud account removes its cloud
+  records and sign-in, its local journey save files, and its on-device
+  account binding, while other accounts' local saves and separate files
+  (purchases, Vault, settings) remain. The director built, deployed, and
+  verified every hosted file per the Brief 162 standing. This audit claims
+  no further deletion edge and no native end-to-end proof: iOS Apple
+  re-confirm device proof and real-purchase testing stay Open (see §7).
+  No file is changed here.
 - iOS Apple-linked deletion re-runs the Apple sheet for a fresh
   revocation code by design (`player_account.gd:384-407`,
   `MoonlitIdentityIos.mm:1109-1146`) — device proof pending, see §7.
@@ -254,7 +280,11 @@ Reviewer access (facts):
    or device ids by construction (`analytics.gd:3-8`). The legacy global
    ladder (which would submit player-entered names,
    `global_ladder.gd:117-120`) is gated on the same absent file and stays
-   quietly off (`global_ladder.gd:60-67`).
+   quietly off (`global_ladder.gd:60-67`). This disabled-analytics finding
+   does not suppress the functional Apple Product Interaction label: Apple
+   row 8 now reports retained cloud checkpoint/place/progress data as
+   collected, with analytics events as a separate, currently absent
+   category (see §2).
 2. **IAPKit verification/service statistics — active for purchasers.**
    Fact: per purchase the app sends store + expected product + JWS/token
    (§0 table). Server retention (transaction/order ids, store responses,
@@ -314,11 +344,20 @@ Reviewer access (facts):
    transitive components), IP-inferred location treatment, and
    service-provider sharing exemptions: decided from the official
    references listed at the top, not from this repo.
-9. The 4.0.0 store upload and review submission themselves: remote stores
-   hold 3.0.0 only; nothing uploaded or merged
-   (`four-zero-copy-review.md` remaining gates).
-10. Policy/site wording cross-checks noted in §4 (deleted-slot sentence)
-    stay with the site owner; no wording is changed here.
+9. The 4.0.0 store upload and review submission themselves (limited
+   observed progress; internal testing and public production/review kept
+   separate): the director committed Play internal track 4.0.0 versionCode
+   17 with five listings and 90 new screenshots, and a read-only live
+   audit observed internal artifact 17 published. Play production remains
+   3.0.0 versionCode 16. App Store review still has 3.0.0 build 11; no
+   final App Store 4.0.0 assets or build are claimed here. 4.0.0 native
+   IAP testing, PR/main merge, and both-store final review remain
+   unfinished (`four-zero-copy-review.md` remaining gates).
+10. Deleted-slot policy wording (was §4 cross-check): resolved by the
+    Brief 161 source change (see §4); historical concern preserved there.
+    No wording is changed here. All other deletion edges and native
+    end-to-end proof stay Open via items 3-4 above; nothing here claims
+    they passed.
 
 ## 8. What the director verifies at submit
 
@@ -328,6 +367,13 @@ Reviewer access (facts):
 - IAPKit docs against rows 6-7 retention/statistic claims.
 - Official Play/Apple definitions against every Required/optional,
   linked/unlinked, sharing, and tracking proposal above.
+- Apple rows 3 + 8 dual label (Gameplay Content retained, Product
+  Interaction functional) against the official Apple definitions and the
+  checkpoint field/upload citations; analytics-off (§5) stays a separate
+  category.
+- Play rows 1-3 Account Management + App functionality against source
+  account use and official Firebase disclosure purposes, kept distinct
+  from the director-observed saved draft noted in §1.
 - Deployed Firestore rules against `firestore.cloud.addition.rules`.
 - iPad Apple delete/re-confirm and a real purchase on the final build
   before any claim about them.

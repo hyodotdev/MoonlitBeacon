@@ -302,3 +302,31 @@ before commit; the normal client attempts to discard an uncommitted edit.
 A fresh local ready check preceded the normal retry. Its result is still
 pending at this entry. Native purchase verification, final iPad capture,
 App Store upload, PR, CI, merge and final review remain separate gates.
+
+## Follow-up classification and live internal-track proof
+
+Briefs 162/163 corrected only the source audit: Apple Product Interaction
+includes the functional saved game place as well as any analytics; the
+analytics-disabled finding cannot remove the cloud-checkpoint label.
+Gameplay Content stays declared. Account Management complements App
+functionality for Play's account identifiers/profile fields. Independent
+source reads and Apple primary definitions confirmed this classification;
+the existing hygiene check passed in the copy and real tree. The corrected
+audit keeps unfinished native testing and final review explicit.
+
+Play's normal apply retry committed internal 4.0.0 (17), five listings and
+90 screenshots. The read-only API audit and visible Console both confirmed
+artifact 17 available to internal testers. Production is still 3.0.0 (16).
+The first apply hit HTTP 503 before commit and was discarded; no duplicate
+version was published. The device still uses a sideloaded debug package,
+so installer and real purchases remain unverified.
+
+Play Data safety and privacy URL edits are saved for review. Apple privacy
+URLs were saved in five locales; new account/cloud-save types are still
+being prepared. No final review or main merge is claimed.
+
+The first full iPad attempt completed 21 shots, then timed out on the
+22nd handoff during context recovery. Mandatory cleanup restored the
+keychain search list and removed the isolated capture app; production
+app data remained untouched. Its failure/evidence is preserved. A normal
+fresh full retry is running; partial shots are not labelled canonical.
