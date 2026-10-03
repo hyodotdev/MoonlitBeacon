@@ -99,7 +99,7 @@ export const CONTENT = {
 <li>Delete your cloud account from the game's account settings. Deletion first removes its Hall entry, cloud save, reservation, and profile together in one verified step; only after that confirmation is the sign-in itself deleted.</li>
 <li>On iOS, deleting an Apple-linked account may ask you to confirm again through the Apple sign-in sheet.</li>
 <li>Signing out ends the sign-in session and switches to a fresh guest ID; it deletes nothing on the device or in the cloud.</li>
-<li>Deleting your cloud account removes your cloud records and sign-in, but files already on this device — local saves and the on-device account list — stay until you reinstall the game or clear its storage.</li>
+<li>Deleting your cloud account removes its cloud records and sign-in, its local journey save files, and its on-device account binding; other accounts' local saves and separate on-device files such as purchases, Vault, and settings remain.</li>
 <li>Account, checkpoint, and Hall records have no configured automatic expiry: they remain until the account is deleted.</li>
 <li>You can also request access, correction, or deletion of your data by email at <a href="${mailto}">${SUPPORT_EMAIL}</a>. Include your player ID.</li>
 <li>Support requests are matched to your records through your player ID; deletion requests that concern purchase records are forwarded to the purchase-verification processor.</li>

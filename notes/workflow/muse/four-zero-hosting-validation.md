@@ -252,3 +252,53 @@ The final Android 4.0.0 (17) signed AAB and direct-distribution APK build
 commands have succeeded. iPad capture and Play artwork generation are now
 running; their completion, store uploads, final native purchase checks,
 remote merge and review submission are not claimed at this entry.
+
+## Final public policy and Play declaration pass (2026-10-04)
+
+Firebase custom-domain readback reached HOST_ACTIVE, OWNERSHIP_ACTIVE and
+CERT_ACTIVE. All 90 Play marketing images were generated, checked,
+synchronized and committed; the director viewed all 15 final locale/device
+contact boards. The final AAB was rebuilt after the iPad capture's initial
+export restored the preset file and advanced its timestamp; the normal
+package check now passes for 4.0.0 (17), five listings and 90 images.
+
+Brief 160 added a source-backed privacy inventory. The director read the
+entire document, checked the auth dependencies, automatic guest/cloud/Hall
+paths and deletion sequence, and ran hygiene in the copy and real tree.
+Its proposals are audit inputs, not proof of a store submission. The
+director's actual Play choices add Account management to the three personal
+information purposes; the official Firebase disclosure explicitly includes
+authentication and account management. Already-held Apple service-key and
+deployed-rule evidence is separate from the copy's unresolved inventory.
+
+The audit found a real mismatch: the published policy said every local save
+remained, but successful deletion removes that account's journey slot and
+UID binding. Brief 161 corrected exactly one privacy bullet per locale.
+The director inspected all five changes against production source and ran
+15 player-care tests, 21 hosting tests, custom-origin build/check and
+hygiene. Tests temporarily changed generated files in the copy; the
+director restored only those operation-generated files to its baseline
+before the normal five-file accept. The initial parallel content check
+observed test fixture output; a sequential rebuild/check passed. The real
+build regenerated the 12 committed privacy HTML variants normally.
+
+Firebase redeployment succeeded. Independent live proof found all 191
+files byte-identical to the build, 15 clean legal/support routes with the
+custom canonical origin and no NULs, and a true 404 for an absent route.
+Terms and game/runtime source were unchanged by this correction.
+
+Play Data safety changes were saved and show Ready to send for review:
+OAuth and anonymous guest account creation; name/email optional, user IDs
+and checkpoint/Hall actions required; no third-party sharing under the
+service-provider exception; purchase history and purchase diagnostics kept
+at their prior optional purposes. Both deletion links use the custom
+privacy route. The newly issued domain initially triggered Play's URL
+finder warning, but the next check advanced after ordinary HTTPS and DNS
+were independently verified. The old privacy-policy URL is being replaced
+separately. No production review submission is claimed.
+
+The first internal-track apply failed with HTTP 503 during the image reset,
+before commit; the normal client attempts to discard an uncommitted edit.
+A fresh local ready check preceded the normal retry. Its result is still
+pending at this entry. Native purchase verification, final iPad capture,
+App Store upload, PR, CI, merge and final review remain separate gates.
