@@ -99,16 +99,31 @@ cd apps/player-care && firebase deploy --only hosting --config firebase.hosting.
 `firebase.hosting.json` sets `site: moonlitbeacon-778ee` (the existing
 default site), `public: hosting-dist`, `cleanUrls`, and no rewrites,
 functions, or other services. The command deploys hosting only; Firestore
-rules and the native auth callback stay untouched. One prior hosting
-release exists: the director's inspected privacy/support care-only deploy,
-verified over ordinary HTTPS on all 18 routes, and that care-only site
-remains live. An earlier combined attempt with
-`public: ../../builds/hosting` was refused by the Firebase CLI before
-upload ("outside of project directory"); the combined output now lives
-inside `apps/player-care/` so the deploy config accepts it. The final
-combined docs/Terms release remains director-operated and pending; nothing
-in this repo deploys. No tokens or credentials live here; the director runs
-the existing authenticated CLI. The care-only `firebase.json`
+rules and the native auth callback stay untouched. Release history, short
+form: the director's inspected privacy/support care-only release went
+live first and was verified over ordinary HTTPS on all 18 routes; a
+later combined attempt with `public: ../../builds/hosting` was refused
+by the Firebase CLI before upload ("outside of project directory"),
+uploaded nothing, and left that care-only release live, so the combined
+output now lives inside `apps/player-care/` where the deploy config
+accepts it; then the director ran the exact command above and the
+combined docs/Terms release completed
+(Firebase CLI: 191 files, upload complete, version finalized, release
+complete, Deploy complete, exit 0). The director then fetched every one
+of the 191 files over ordinary HTTPS at the custom origin and compared
+its bytes with the reviewed generated output: all HTTP 200 and
+identical. The director also checked 28 clean routes (root, x-default
+and five-language care pages, docs home/course/Lesson 1/reference):
+HTTP 200, exact bytes, canonical custom origin, no NUL; missing route
+HTTP 404; a browser followed the live course link to the docs home.
+Local proof, director-supplied under `builds/verify/`:
+`release4-final-combined-hosting-deploy-retry.log`,
+`release4-final-combined-hosting-live-proof.json`,
+`release4-final-firebase-site.jpg`. Nothing in this repo deploys. No
+tokens or credentials live here; the director runs the existing
+authenticated CLI. Website publication only: this record makes no claim
+about the native 4.0.0 store submissions; native version 4.0.0 is not
+claimed submitted, approved, or live. The care-only `firebase.json`
 (`public: dist`) plus `.firebaserc` remain for inspection and for the
 exact-dist check; they are not the deploy config. The public origin is the
 custom domain `https://moonlitbeacon.hyo.dev`, connected to Hosting with

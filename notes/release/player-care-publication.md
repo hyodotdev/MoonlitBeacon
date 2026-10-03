@@ -3,21 +3,31 @@
 Short deploy handoff for the combined public site: the privacy/support/terms
 pages plus the course/reference under `/MoonlitBeacon/` from one Hosting
 deploy. Nothing here is published by the implementer; the director deploys
-only after inspection. The director has deployed the inspected
-privacy/support care-only release and verified all 18 routes over ordinary
-HTTPS. The final combined docs/Terms release remains director-operated and
-pending; do not treat its URLs as live until the director confirms. No
-deploy was performed from this repo copy.
+only after inspection. Release history, short form: the director's
+inspected privacy/support care-only release went live first with all 18
+routes verified over ordinary HTTPS; a later combined attempt with
+`public` outside the project directory was refused by the Firebase CLI
+before upload, uploaded nothing, and left that care-only release live;
+the director then ran the exact hosting-only
+deploy command below and the combined 191-file docs/Terms release
+completed (upload complete, version finalized, release complete, Deploy
+complete, exit 0), with every one of the 191 files re-fetched over
+ordinary HTTPS at the custom origin and byte-compared with the reviewed
+generated output: all HTTP 200 and identical. Website publication only:
+this record makes no claim about the native 4.0.0 store submissions;
+native version 4.0.0 is not claimed submitted, approved, or live. No
+deploy was performed from
+this repo copy.
 
 ## Target
 
 - Public origin `https://moonlitbeacon.hyo.dev` (custom domain registered
   in Firebase Hosting with server-specified DNS; DNS done outside this repo).
 - Deploy target stays the existing default site `moonlitbeacon-778ee`
-  (`firebase.hosting.json` `site`, `--project moonlitbeacon-778ee`). One
-  prior hosting release exists (the director's verified care-only
-  privacy/support deploy); the combined deploy adds the course/reference
-  and Terms without touching Firestore.
+  (`firebase.hosting.json` `site`, `--project moonlitbeacon-778ee`). Two
+  hosting releases so far: the director's verified care-only
+  privacy/support deploy, then the verified combined 191-file docs/Terms
+  deploy; neither touched Firestore.
 - Default site URL and native auth callback remain as configured; they are
   not public site URLs and are never printed in player copy.
 - Hosting-only: `public: hosting-dist` (generated combined output at
@@ -49,6 +59,15 @@ deploy was performed from this repo copy.
 - `…/MoonlitBeacon/` (docs home), `…/MoonlitBeacon/course` (course guide),
   `…/MoonlitBeacon/course/chapter-01` (Lesson 1),
   `…/MoonlitBeacon/docs/intro` (reference entry)
+
+On the combined 191-file release the director verified 28 clean routes
+over ordinary HTTPS (root, x-default and five-language care pages, docs
+home/course/Lesson 1/reference): HTTP 200, exact bytes, canonical custom
+origin, no NUL; missing route HTTP 404; a browser followed the live
+course link to the docs home. Local proof, director-supplied under
+`builds/verify/`: `release4-final-combined-hosting-deploy-retry.log`,
+`release4-final-combined-hosting-live-proof.json`,
+`release4-final-firebase-site.jpg`.
 
 ## Copy sources (section by section)
 
@@ -149,14 +168,16 @@ inputs, same bytes).
 An earlier combined attempt with `public: ../../builds/hosting` was
 refused by the Firebase CLI before upload ("outside of project
 directory"); that refusal left the verified care-only site live and
-uploaded nothing. The final combined docs/Terms release remains
-director-operated and pending; nothing in this repo deploys or claims
-final live success.
+uploaded nothing. The director then ran the exact command above for the
+combined 191-file docs/Terms release (Deploy complete, exit 0) and
+verified it over ordinary HTTPS as recorded above; local proof filenames
+are listed above. Nothing in this repo deploys.
 
-Then open all 15 localized URLs plus `/privacy`, `/support`, and `/terms`,
-the docs home, course guide, and Lesson 1 over the custom origin, confirm
-live TLS/HTTP, and confirm Settings › Privacy/Support in the game open them
-per locale before store metadata relies on them.
+After any future deploy, open all 15 localized URLs plus `/privacy`,
+`/support`, and `/terms`, the docs home, course guide, and Lesson 1 over
+the custom origin, confirm live TLS/HTTP, and confirm Settings ›
+Privacy/Support in the game open them per locale before store metadata
+relies on them.
 
 ## Deliberately not done
 
