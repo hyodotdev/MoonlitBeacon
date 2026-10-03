@@ -1,0 +1,17 @@
+{
+  "LOGIN_CONSENT": [
+    "계속하면 %s·%s에 동의한 것으로 간주합니다.",
+    "By continuing, you agree to %s & %s.",
+    "%s・%sに同意して続行。"
+  ],
+  "LOGIN_TOS": [
+    "약관",
+    "Terms",
+    "利用規約"
+  ],
+  "LOGIN_PRIVACY": [
+    "개인정보 처리방침",
+    "Privacy Policy",
+    "プライバシーポリシー"
+  ]
+}

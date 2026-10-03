@@ -1,0 +1,26 @@
+# Brief 042: Native player identity for the 4.0.0 journey
+
+## The ask
+The user requested Google game login, Apple login and guest login for 4.0.0, with a unique player ID issued before guest play. IDs, progress and character/score rankings must survive linking an account. Their reference title shows Google, Apple and guest choices; its Google flow opens the real Play Games profile sheet. Apple means Sign in with Apple, not a replacement Game Center label.
+
+## Where things stand
+There is no account implementation. Existing Firebase REST config/global scores use a project ID in `scripts/net/firebase_config.gd`; this round must not change those existing modules. The director confirmed Firebase Authentication had no enabled providers. Production provider configuration and native SDK downloads/builds remain director operations. An independent journey implementation is underway, so do not touch arena/title/result/story/locale/regression-runner files in this round.
+
+## Do
+- Build a standalone native identity bridge: Android Godot plugin using the official Play Games v2 server auth-code flow and Firebase Auth; iOS native Godot bridge using AuthenticationServices Sign in with Apple with cryptographic nonce and Firebase Auth. Support genuine anonymous Firebase authentication and account linking. Prefer official SDK-managed persistence; no credential entry in GDScript, plaintext refresh-token saves, fake success, public email or name logging. On unsupported/unconfigured platforms return explicit capability/error states.
+- Expose a documented, bounded async API for guest authentication, provider sign-in/link, session state/ID-token retrieval, sign-out and account deletion/revocation. Cancelled or failed linking retains guest identity and data. A provider already linked elsewhere returns a conflict requiring UI choice; never silently overwrite either account. Sign in with Apple deletion must support fresh auth-code revocation. Methods/signals must marshal callbacks to Godot safely and reject stale/double callbacks.
+- Add an independent GDScript player-account service and adapter interface with injectable test doubles. Generate and durably save a cryptographically random stable public player ID before local guest play; distinguish an offline local guest from an authenticated cloud account. The public ID is not an email, nickname or access credential. Never claim a cloud registration is confirmed before a server identity exists. Keep session/account identity separate from Vault/IAP purchase state.
+- Provide reproducible Android/iOS bridge source/build tooling and native export integration guidance. Build scripts have dry-run preflight/config validation and must never print secret values. Public client identifiers/config are injected at build time from ignored configuration; private OAuth/Apple secrets stay on provider/server settings. No SDK or generated native binary downloaded by the implementer. The director will fetch official pinned dependencies and run builds.
+- Add focused GDScript and Node tests for ID durability/collision format, corrupt/failed identity writes, async cancellation, offline guest, link conflict, token expiry/revocation and no token/PII leakage. Keep tests callable directly; integration/registration follows after the journey round. Add the exact official documentation links used and a concise setup/readiness checklist in an author-only release note.
+
+## Do not
+Do not modify `project.godot`, export presets, `package.json`, existing scripts/UI/gameplay, Firestore rules, stores, credentials, guards, or any `notes/workflow/muse` file. New modules/build/test files only. Do not represent a mock provider flow as working native login or publish/deploy anything. Do not add billing requirements or a new paid service. Cloud saves, ranking and title integration are a subsequent brief.
+
+## Acceptance
+Standalone tests pass independently in the copy. Public ID survives restart and failed/cancelled linking. Valid native interfaces are implemented in source with official SDK calls, not unresolved TODOs. All unavailable/provider errors are explicit and guest play remains possible. Native build preflight can explain missing public SDK config without leaking it. Review report separates source/mock tests from real native build/device/provider checks, which the director runs after configuration.
+
+## Deliverables
+New `apps/game/addons/moonlit-identity/` native source and export support, independent `apps/game/scripts/net/player_account.gd` plus adapters, focused tests under `apps/game/tests/` and `scripts/lib/`, a `scripts/build-player-identity.mjs` entry point, and `notes/release/player-identity-setup.md`. Name each file in the report and describe the exact build command and callback contract.
+
+## Constraints and judgment
+Godot 4.7.1 Standard, Compatibility, package identity and paid entitlement behavior are locked. No network/secrets/git/device access in the copy. The director reads all native/session/persistence paths, runs tests and negative controls, compiles both native bridges from official dependencies, then judges actual sign-in/cancel/link behavior separately. Do not spend the round making unusable UI; the subsequent integration uses these capability signals.

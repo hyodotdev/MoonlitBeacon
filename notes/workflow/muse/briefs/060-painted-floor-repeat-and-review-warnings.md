@@ -1,0 +1,11 @@
+# Brief 060: Remove visible floor repeat seams
+
+## Director evidence
+The director reproduced 1108 painted-resource assertions and byte verification of all 89 outputs, and rendered every staged hero, ordinary species, guardian variant/state and all six rooms on a real display. Bodies/facing/state silhouettes read correctly. At the game camera, however, `director_stage_frost.png` and `director_stage_marsh.png` have a straight vertical tile line near logical x=377–379; forest/field/camp also show the crossfade's repeated symmetric bands. Frost shows square tonal patches at repeats. Matching only the first and last source columns is insufficient to prove a smooth rendered repeat.
+
+A numerical sample on frost y=90..149 shows mean RGB neighbor steps x=377:8.52, x=378:0.99, x=379:8.51, while x=373..376 average 2.18–3.23 and x=380..382 average 1.73–2.38. Marsh has the same paired 8.78/8.85 spike. The source atlas is correctly 1536×1024; every current floor is 512 square. Inspect the production sampler and the `_tileable` mirrored edge-pair construction. Correct the confirmed repeat stripe and obvious tonal square pattern while retaining the source's painted detail. Do not generate new artwork with code; packing/blending the provided source is allowed. If a new source is essential, tell the director the exact request.
+
+New test/harness also print `Camera2D overridden to physics process mode due to use of physics interpolation` from `_test_global_filter` and `_capture_room`. Use the appropriate camera process mode in the fixture before it enters the tree; keep production camera behavior and the locked interpolation settings unchanged.
+
+## Do and scope
+Continue this copy with a narrow correction: floor packing/sampling and meaningful repeat-quality checks, plus warning-free review fixtures. Do not change gameplay, actor dimensions, weapons, account/save/UI or other unfinished tasks. Retain every verified facing and geometry contract. Measure rendered repeat behavior at the game camera as well as source edges; do not silence warnings or replace the check with an arbitrary loose bound. Report exact fixes and rerunnable room captures. Director re-renders six rooms and confirms the stripe is gone, repeats asset bytes/related tests and a negative control, then accepts.

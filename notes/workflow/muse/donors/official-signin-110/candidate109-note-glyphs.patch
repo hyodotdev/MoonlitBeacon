@@ -1,0 +1,335 @@
+diff --git a/apps/game/scripts/ui/gate_entry.gd b/apps/game/scripts/ui/gate_entry.gd
+index a615751..912e317 100644
+--- a/apps/game/scripts/ui/gate_entry.gd
++++ b/apps/game/scripts/ui/gate_entry.gd
+@@ -962,11 +962,15 @@ func _relayout() -> void:
+ 	var content: float = maxf(card_width - GateEntryStyle.CARD_MARGIN_H, 64.0)
+ 	for label in _wrapped_labels:
+ 		label.custom_minimum_size.x = content
++	_reserve_clipped_note_heights()
+ 	var want_height: float = _status_fitted_height(content)
+ 	var max_height: float = maxf(view.y - CARD_MARGIN * 2.0, 60.0)
+ 	var card_size := Vector2(card_width, minf(want_height, max_height))
+-	_status_card.position = (view - card_size) * 0.5
++	# Size first, then center from the read-back rect: assigning below a
++	# child's minimum clamps the size up, and centering from the request
++	# would leave a clamped card off-center with its footer off-screen.
+ 	_status_card.size = card_size
++	_status_card.position = (view - _status_card.size) * 0.5
+ 	_offline_badge.position = Vector2(EDGE_MARGIN, EDGE_MARGIN)
+ 	_offline_badge.size = Vector2(280.0, 18.0)
+ 	_gate_glow.position = Vector2(view.x - 140.0 - 140.0, view.y * 0.42 - 140.0)
+@@ -1011,6 +1015,33 @@ func _relayout_terms() -> void:
+ 	_terms_card.position = ((view - _terms_card.size) * 0.5).floor()
+ 
+ 
++## Clipped wrapped labels report a 1px minimum and paint nothing until
++## a real height is reserved: `clip_text` collapses the minimum no matter
++## how many lines the text wraps to (measured on both notes here and on
++## the loader's stage line). Reserve the rendered line block at the real
++## content width before card layout, capped at the label's own max-lines
++## budget. Recomputed every layout from live shaped lines, so clearing,
++## shortening, locale and resize all shrink honestly with no stale gaps.
++func _reserve_clipped_note_heights() -> void:
++	for label in _wrapped_labels:
++		if not label.clip_text \
++				or label.autowrap_mode == TextServer.AUTOWRAP_OFF:
++			continue
++		var font: Font = label.get_theme_font("font")
++		var font_size: int = label.get_theme_font_size("font_size")
++		var line: float = float(font.get_height(font_size))
++		var spacing: float = float(
++			label.get_theme_constant("line_spacing"))
++		var lines: int = maxi(label.get_line_count(), 1)
++		var need: float = float(lines) * line \
++			+ float(lines - 1) * spacing
++		if label.max_lines_visible > 0:
++			var budget: int = label.max_lines_visible
++			need = minf(need, float(budget) * line \
++				+ float(budget - 1) * spacing)
++		label.custom_minimum_size.y = need
++
++
+ ## Fitted height of whichever auth box is visible, measured wrapped at
+ ## the real content width like every other gate card.
+ func _status_fitted_height(content_width: float) -> float:
+diff --git a/apps/game/tests/test_gate_entry_state.gd b/apps/game/tests/test_gate_entry_state.gd
+index 78492f4..3d344f9 100644
+--- a/apps/game/tests/test_gate_entry_state.gd
++++ b/apps/game/tests/test_gate_entry_state.gd
+@@ -22,6 +22,20 @@ const FORECOURT_HEROES: Array[String] = [
+ const TEST_ID: String = "TEST-ID-STATE-7F3A"
+ const TEST_ERROR: String = "TEST sign-in failed: offline"
+ const MOTION_FRAMES: int = 10
++const NOTE_LOCALES: Array[String] = ["ko", "en", "ja", "zh_CN", "zh_TW"]
++const NOTE_FRAMINGS: Array[Vector2i] = [
++	Vector2i(808, 360), Vector2i(840, 360), Vector2i(808, 606)]
++const NOTE_PROVIDERS_UNREADY: Array = [
++	{"id": "google", "label": "Google", "ready": true},
++	{"id": "apple", "label": "Apple", "ready": false},
++	{"id": "passkey", "label": "Passkey", "ready": true, "draining": true},
++]
++const NOTE_PROVIDERS_READY: Array = [
++	{"id": "google", "label": "Google", "ready": true},
++	{"id": "apple", "label": "Apple", "ready": true},
++]
++const NOTE_SHORT_DETAIL: String = "TEST sign-in failed: network unreachable"
++const NOTE_LONG_DETAIL: String = "TEST sign-in failed: network unreachable while shaking the gateway hand. TEST sign-in failed: network unreachable while shaking the gateway hand. TEST sign-in failed: network unreachable while shaking the gateway hand."
+ 
+ var _failed: int = 0
+ var _checked: int = 0
+@@ -78,6 +92,7 @@ func _ready() -> void:
+ 	await _test_forecourt_motion()
+ 	await _test_production_launcher()
+ 	await _test_production_title_first()
++	await _test_note_glyphs()
+ 	TranslationServer.set_locale(original_locale)
+ 	if _failed > 0:
+ 		printerr("gate-entry-state test failed — ",
+@@ -1107,6 +1122,246 @@ func _test_production_title_first() -> void:
+ 	await _frames(2)
+ 
+ 
++## Clipped entry notes paint their real glyphs: the provider note and
++## the error detail keep a true wrapped line block (never the 1px
++## collapse), capped at the 3-line budget, inside the centered card on
++## every locale and framing. Clearing and re-showing shrink and grow
++## honestly, with no stale gaps and no shortened text.
++func _test_note_glyphs() -> void:
++	var original_locale: String = TranslationServer.get_locale()
++	var original_size: Vector2i = get_tree().root.size
++	for framing in NOTE_FRAMINGS:
++		for locale in NOTE_LOCALES:
++			TranslationServer.set_locale(locale)
++			get_tree().root.size = framing
++			await _check_note_combo(framing, locale)
++	TranslationServer.set_locale(original_locale)
++	get_tree().root.size = original_size
++
++
++func _check_note_combo(framing: Vector2i, locale: String) -> void:
++	var tag: String = "note/%s/%dx%d" % [locale, framing.x, framing.y]
++	var entry: GateEntry = _make_entry()
++	await _frames(3)
++	entry.set_providers([])
++	entry.show_logged_out()
++	await _frames(2)
++	var note: Label = entry.get_node(
++		"Content/StatusCard/LoggedOut/ProviderNote") as Label
++	_expect_true(note.text.contains("Google") \
++		and note.text.contains("Apple"),
++		tag + ": empty note names both placeholders")
++	_check_note_label(entry, tag + "/empty",
++		"Content/StatusCard/LoggedOut/ProviderNote", true)
++	_check_note_card(entry, tag + "/empty")
++	entry.set_providers(NOTE_PROVIDERS_UNREADY)
++	await _frames(2)
++	_expect_true(note.text.contains("Apple") \
++		and note.text.contains("Passkey") \
++		and not note.text.contains("Google"),
++		tag + ": unready note names only the down doors")
++	_check_note_label(entry, tag + "/unready",
++		"Content/StatusCard/LoggedOut/ProviderNote", true)
++	_check_note_card(entry, tag + "/unready")
++	entry.set_providers(NOTE_PROVIDERS_READY)
++	await _frames(2)
++	_check_note_label(entry, tag + "/ready",
++		"Content/StatusCard/LoggedOut/ProviderNote", false)
++	_check_note_card(entry, tag + "/ready")
++	entry.show_busy("google", "Google")
++	entry.show_error(NOTE_SHORT_DETAIL)
++	await _frames(2)
++	var detail: Label = entry.get_node(
++		"Content/StatusCard/Error/ErrorDetail") as Label
++	_expect_true(detail.text == NOTE_SHORT_DETAIL,
++		tag + ": short detail kept whole")
++	_check_note_label(entry, tag + "/err-short",
++		"Content/StatusCard/Error/ErrorDetail", true)
++	_check_note_card(entry, tag + "/err-short")
++	var short_height: float = _note_card_height(entry)
++	entry.show_error(NOTE_LONG_DETAIL)
++	await _frames(2)
++	_expect_true(detail.text == NOTE_LONG_DETAIL,
++		tag + ": long detail kept whole")
++	_check_note_capped(entry, tag + "/err-long",
++		"Content/StatusCard/Error/ErrorDetail")
++	_check_note_card(entry, tag + "/err-long")
++	var long_height: float = _note_card_height(entry)
++	_expect_true(long_height > short_height,
++		tag + ": long detail grows the card")
++	entry.show_error("")
++	await _frames(2)
++	_check_note_label(entry, tag + "/err-clear",
++		"Content/StatusCard/Error/ErrorDetail", false)
++	_check_note_card(entry, tag + "/err-clear")
++	_expect_true(_note_card_height(entry) < long_height,
++		tag + ": clearing shrinks the card")
++	_check_error_compact(entry, tag + "/err-clear")
++	entry.show_error(NOTE_SHORT_DETAIL)
++	await _frames(2)
++	_check_note_label(entry, tag + "/err-again",
++		"Content/StatusCard/Error/ErrorDetail", true)
++	_check_note_card(entry, tag + "/err-again")
++	_expect_true(absf(_note_card_height(entry) - short_height) <= 0.5,
++		tag + ": re-showing restores the short height")
++	entry.queue_free()
++	await _frames(2)
++
++
++## One clipped note: config locked, rect fits its live shaped lines, all
++## lines visible, inside the card and clear of its siblings.
++func _check_note_label(entry: GateEntry, tag: String, path: String,
++		expect_visible: bool) -> void:
++	var label: Label = entry.get_node(path) as Label
++	_expect_true(label.max_lines_visible == 3,
++		tag + ": %s keeps the 3-line budget" % label.name)
++	_expect_true(label.clip_text,
++		tag + ": %s stays clipped" % label.name)
++	_expect_true(label.autowrap_mode == TextServer.AUTOWRAP_WORD_SMART,
++		tag + ": %s keeps word wrap" % label.name)
++	_expect_true(label.visible == expect_visible,
++		tag + ": %s visibility reads %s" % [label.name, expect_visible])
++	if not expect_visible:
++		return
++	var need: float = _note_need(label)
++	_expect_true(absf(label.get_global_rect().size.y - need) <= 0.5,
++		tag + ": %s rect %s fits its lines" % [label.name,
++			label.get_global_rect().size])
++	_expect_true(label.get_visible_line_count() == label.get_line_count(),
++		tag + ": %s shows every shaped line" % label.name)
++	_check_note_inside(entry, label, tag)
++	_check_note_siblings(label, tag)
++
++
++## An over-budget detail: full text kept, rect pinned at the 3-line
++## budget, three lines painted.
++func _check_note_capped(entry: GateEntry, tag: String, path: String) -> void:
++	var label: Label = entry.get_node(path) as Label
++	_expect_true(label.visible, tag + ": %s shows" % label.name)
++	var font: Font = label.get_theme_font("font")
++	var font_size: int = label.get_theme_font_size("font_size")
++	var ink: float = font.get_string_size(label.text,
++		HORIZONTAL_ALIGNMENT_LEFT, -1.0, float(font_size)).x
++	_expect_true(ink > 3.0 * label.custom_minimum_size.x,
++		tag + ": fixture truly exceeds three lines")
++	var need: float = _note_need(label)
++	_expect_true(absf(label.get_global_rect().size.y - need) <= 0.5,
++		tag + ": %s rect holds the budget" % label.name)
++	_expect_true(label.get_visible_line_count() == 3,
++		tag + ": %s paints three lines" % label.name)
++	_check_note_inside(entry, label, tag)
++	_check_note_siblings(label, tag)
++
++
++## Rendered block height for a label's live shaped lines, capped at its
++## own max-lines budget: one font line per line plus the theme spacing
++## between them.
++func _note_need(label: Label) -> float:
++	var font: Font = label.get_theme_font("font")
++	var font_size: int = label.get_theme_font_size("font_size")
++	var line: float = float(font.get_height(font_size))
++	var spacing: float = float(label.get_theme_constant("line_spacing"))
++	var lines: int = maxi(label.get_line_count(), 1)
++	if label.max_lines_visible > 0:
++		lines = mini(lines, label.max_lines_visible)
++	return float(lines) * line + float(lines - 1) * spacing
++
++
++func _check_note_inside(entry: GateEntry, label: Label, tag: String) -> void:
++	var card: PanelContainer = entry.get_node(
++		"Content/StatusCard") as PanelContainer
++	_expect_true(card.get_global_rect().grow(-1.0).encloses(
++		label.get_global_rect().grow(-0.5)),
++		tag + ": %s inside its card" % label.name)
++
++
++func _check_note_siblings(label: Label, tag: String) -> void:
++	var leaves: Array[Control] = []
++	_collect_note_leaves(label.get_parent(), leaves)
++	for leaf in leaves:
++		if leaf == label:
++			continue
++		_expect_true(not label.get_global_rect().grow(-1.0).intersects(
++			leaf.get_global_rect().grow(-1.0)),
++			tag + ": %s clears %s" % [label.name, leaf.name])
++
++
++## After clearing, the error row sits directly under the title: no stale
++## gap where the detail was, and the hold keeps its doors.
++func _check_error_compact(entry: GateEntry, tag: String) -> void:
++	var title: Label = entry.get_node(
++		"Content/StatusCard/Error/ErrorTitle") as Label
++	var row: Control = entry.get_node(
++		"Content/StatusCard/Error/ErrorRow") as Control
++	var gap: float = row.position.y - (title.position.y + title.size.y)
++	_expect_true(absf(gap - 6.0) <= 0.5,
++		tag + ": error row closes the cleared gap")
++	_expect_true((entry.get_node("Content/StatusCard/Error") as Control) \
++		.visible, tag + ": error hold persists")
++	_expect_true((entry.get_node(
++		"Content/StatusCard/Error/ErrorRow/ErrorGuest") as Button).visible,
++		tag + ": guest escape stays after clearing")
++
++
++## The card keeps its fixed width, stays centered, and holds every
++## visible button inside the viewport without overlaps.
++func _check_note_card(entry: GateEntry, tag: String) -> void:
++	var viewport: Rect2 = Rect2(Vector2.ZERO, get_tree().root.size)
++	var card: PanelContainer = entry.get_node(
++		"Content/StatusCard") as PanelContainer
++	var rect: Rect2 = card.get_global_rect()
++	_expect_true(absf(rect.size.x - GateEntry.CARD_WIDTH) <= 0.5,
++		tag + ": card keeps its width")
++	_expect_true(absf(viewport.get_center().x - rect.get_center().x) <= 1.0 \
++		and absf(viewport.get_center().y - rect.get_center().y) <= 1.0,
++		tag + ": card centered")
++	var buttons: Array = []
++	_collect_note_buttons(entry, buttons)
++	for raw in buttons:
++		var button: Button = raw as Button
++		if not button.is_visible_in_tree():
++			continue
++		var brect: Rect2 = button.get_global_rect()
++		_expect_true(viewport.encloses(brect.grow(-0.5)),
++			tag + ": %s inside" % button.name)
++		_expect_true(rect.grow(-1.0).encloses(brect.grow(-0.5)),
++			tag + ": %s inside its card" % button.name)
++	for index in buttons.size():
++		var first: Button = buttons[index] as Button
++		if not first.is_visible_in_tree():
++			continue
++		for other in range(index + 1, buttons.size()):
++			var second: Button = buttons[other] as Button
++			if not second.is_visible_in_tree():
++				continue
++			_expect_true(not first.get_global_rect().grow(-1.0) \
++				.intersects(second.get_global_rect().grow(-1.0)),
++				tag + ": %s and %s do not overlap" % [
++					first.name, second.name])
++
++
++func _note_card_height(entry: GateEntry) -> float:
++	return (entry.get_node("Content/StatusCard") as PanelContainer).size.y
++
++
++func _collect_note_leaves(node: Node, out: Array[Control]) -> void:
++	for child in node.get_children():
++		var control: Control = child as Control
++		if control == null or not control.is_visible_in_tree():
++			continue
++		if child is Container:
++			_collect_note_leaves(child, out)
++		else:
++			out.append(control)
++
++
++func _collect_note_buttons(node: Node, out: Array) -> void:
++	if node.get_class() == "Button":
++		out.append(node)
++	for child in node.get_children():
++		_collect_note_buttons(child, out)
++
++
+ ## Every hero paint rect stays inside the viewport and clear of the tap
+ ## prompt glyphs (measured rendered text, not the full-width label), the
+ ## visible title doors and the version tag.
