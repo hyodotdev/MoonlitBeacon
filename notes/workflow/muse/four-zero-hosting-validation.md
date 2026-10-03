@@ -222,3 +222,33 @@ report's operation chronology and limiting its native-release statement
 to version 4.0.0 (`1945442`). `AGENTS.md` now identifies the requested
 Firebase origin as primary and the unchanged Pages workflow as its mirror.
 The remaining owned Desktop test screenshot was moved to recoverable Trash.
+
+## Final stock verification and Android captures passed
+
+The unmodified root `pnpm verify` completed successfully after the accepted
+production-title probe correction: 652 Node tests in 19 groups, all 76
+registered Godot checks, 165 compiled GDScripts, five locales, ten product
+rows, deterministic graphics/assets, hygiene/skills, and the 26-page docs
+build with clean anchors. No engine failure lines remained. The measured
+headless peak of 1196 nodes is a headless budget result, not native FPS.
+Local proof is `builds/verify/release4-final-integrated-summary.json`.
+
+Changed 4.0.0 art/layout justified the previously requested recapture. The
+final phone producer published 30 marketing and ten product-review native
+PNGs; separate fresh builds published 30 seven-inch and 30 ten-inch native
+PNGs. The director decoded every PNG, checked dimensions and report hashes,
+viewed every five-locale six-screen board and all product images, and ran
+the unchanged strict validators against all three canonical reports. The
+combined result is phone 40, seven-inch 30 and ten-inch 30, all current at
+runtime SHA-256 `ae1865d0031d1b89892991cf1153cd940ca396bd0df567c50ef110ea22031683`.
+Each producer proved byte-exact static and dynamic-account save restoration;
+APK/build/signature/source evidence was independently validated. A first
+phone validation raced an active Gradle directory cleanup; rerunning only
+after the build ended passed without changing the validator. Android
+screenshots do not establish purchases, physical Pixel coverage, or iPad
+rendering. Owned emulator processes were closed after capture.
+
+The final Android 4.0.0 (17) signed AAB and direct-distribution APK build
+commands have succeeded. iPad capture and Play artwork generation are now
+running; their completion, store uploads, final native purchase checks,
+remote merge and review submission are not claimed at this entry.
