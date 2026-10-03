@@ -265,9 +265,9 @@ SCREENSHOT_CONTRACTS = {
     },
 }
 STORE_CAPTURE_HERO_PATH = "res://resources/heroes/keeper.tres"
-# Detail screen places both images at integer multiples of their native size. Header icon slot
-# (48x48) uses a 2x scale of the idle sheet's 24x24 crop; large slot (96x96) uses the 96x96 portrait
-# 1:1. Previously this was inverted, so the large image was 4x upscaled and the small one 0.5x downscaled.
+# Detail screen header icon scales the idle sheet's 72x72 painted head crop
+# (`hero.preview_crop`, Rect2i(36, 96, 72, 72)) smooth into the 48 cell; the
+# large slot (96x96) hangs the 96x96 portrait 1:1, so every source pixel shows.
 STORE_CAPTURE_HERO_PORTRAIT_PATH = (
     "res://assets/custom/actors/heroes/keeper/idle.png"
 )
@@ -524,8 +524,20 @@ ANDROID_CAPTURE_PERSISTENT_FILES = (
     "iap_entitlements.cfg.bak",
     "iap_entitlements.cfg.bak.tmp",
     "iap_entitlements.cfg.tmp",
+    "journey.json",
+    "journey.json.bak",
+    "journey.json.bak.tmp",
+    "journey.json.tmp",
     "ladder.json",
     "ladder.json.tmp",
+    "onboarding.json",
+    "onboarding.json.tmp",
+    "player_bindings.cfg",
+    "player_bindings.cfg.bak",
+    "player_bindings.cfg.tmp",
+    "player_identity.cfg",
+    "player_identity.cfg.bak",
+    "player_identity.cfg.tmp",
     "records.cfg",
     "records.cfg.tmp",
     "settings.cfg",
@@ -537,6 +549,20 @@ ANDROID_CAPTURE_PERSISTENT_FILES = (
     "vault.cfg.tmp",
 )
 IOS_CAPTURE_PERSISTENT_FILES = ANDROID_CAPTURE_PERSISTENT_FILES
+# Account-partitioned persistent files (`journey.<token>.*`,
+# `cloud_journey.<token>.json`): every enumerated name must full-match.
+# Character-identical to the Node producer
+# (`ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN`); the store-graphics
+# boundary test pins both. Native SDK preferences and Keychain entries are
+# never captured: container backups do not protect Keychain items.
+ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN = (
+    r"^(?:journey\.[A-Za-z0-9_-]{1,64}\.(?:json(?:\.bak)?(?:\.tmp)?"
+    r"|rev\.json(?:\.tmp)?|rejected-(?:local|remote)\.json(?:\.tmp)?)"
+    r"|cloud_journey\.[A-Za-z0-9_-]{1,64}\.json(?:\.tmp)?)$"
+)
+IOS_CAPTURE_PERSISTENT_DYNAMIC_PATTERN = (
+    ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN
+)
 IOS_PRODUCTION_BUNDLE_ID = "com.crossplatformkorea.moonlitbeacon"
 IOS_ISOLATED_CAPTURE_BUNDLE_ID = (
     "com.crossplatformkorea.moonlitbeacon.storecapture"
@@ -2885,11 +2911,68 @@ def _validate_android_capture_persistence(
     restored = hash_maps["persistent_data_sha256_restored"]
     if before != restored:
         raise RuntimeError(f"{source} permanent file before/restored hashes differ")
+    dynamic_files = report.get("persistent_data_dynamic_files")
+    if not isinstance(dynamic_files, list) \
+            or dynamic_files != sorted(dynamic_files) \
+            or len(dynamic_files) != len(set(dynamic_files)) \
+            or any(
+                not isinstance(name, str)
+                or name in ANDROID_CAPTURE_PERSISTENT_FILES
+                or re.fullmatch(
+                    ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN, name) is None
+                for name in dynamic_files
+            ):
+        raise RuntimeError(f"{source} dynamic file list differs from the pattern contract")
+    dynamic_maps: dict[str, dict[str, object]] = {}
+    for field, allow_extras in (
+        ("persistent_data_dynamic_sha256_before", False),
+        ("persistent_data_dynamic_sha256_observed", True),
+        ("persistent_data_dynamic_sha256_restored", False),
+    ):
+        value = report.get(field)
+        if not isinstance(value, dict):
+            raise RuntimeError(f"{source} {field} is not a map")
+        if allow_extras:
+            # Observed keeps capture-created extras beside the original
+            # universe (deleted partitions report as explicit nulls).
+            if any(name not in value for name in dynamic_files) \
+                    or any(
+                        name not in dynamic_files
+                        and (
+                            name in ANDROID_CAPTURE_PERSISTENT_FILES
+                            or re.fullmatch(
+                                ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN,
+                                name,
+                            ) is None
+                        )
+                        for name in value
+                    ):
+                raise RuntimeError(f"{source} {field} file list differs")
+        elif set(value) != set(dynamic_files):
+            raise RuntimeError(f"{source} {field} file list differs")
+        if any(
+            digest is not None and not _is_sha256(digest)
+            for digest in value.values()
+        ):
+            raise RuntimeError(f"{source} {field} SHA-256 is invalid")
+        dynamic_maps[field] = value
+    dynamic_before = dynamic_maps["persistent_data_dynamic_sha256_before"]
+    dynamic_observed = dynamic_maps["persistent_data_dynamic_sha256_observed"]
+    dynamic_restored = dynamic_maps["persistent_data_dynamic_sha256_restored"]
+    if dynamic_before != dynamic_restored:
+        raise RuntimeError(f"{source} dynamic before/restored hashes differ")
+    fixed_mutated = before != observed
+    dynamic_mutated = dynamic_before != dynamic_observed
     if report.get("persistent_data_mutated_during_capture") \
-            is not (before != observed) \
+            is not (fixed_mutated or dynamic_mutated) \
             or report.get("persistent_data_restored_byte_exact") is not True \
             or report.get("persistent_data_unchanged") is not True:
         raise RuntimeError(f"{source} permanent file byte-exact restore flag is missing")
+    if report.get("persistent_data_dynamic_mutated_during_capture") \
+            is not dynamic_mutated \
+            or report.get("persistent_data_dynamic_restored_byte_exact") \
+            is not True:
+        raise RuntimeError(f"{source} dynamic byte-exact restore flag is missing")
     settings = report.get("settings_restore")
     expected_setting_keys = {
         "original_present",

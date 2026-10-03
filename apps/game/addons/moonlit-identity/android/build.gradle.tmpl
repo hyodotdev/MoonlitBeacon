@@ -1,0 +1,66 @@
+// Rendered to MoonlitIdentity/build.gradle by
+// scripts/build-player-identity.mjs --build-android (template copied
+// verbatim). Pins live in MoonlitIdentity.gdap next to the sources and in
+// scripts/lib/player-identity-build.mjs (IDENTITY_PINS); keep all three in
+// agreement.
+//
+// The AAR outputs are copied back to
+// apps/game/addons/moonlit-identity/android/MoonlitIdentity.<debug|release>.aar
+// (next to the .gdap, mirroring godot-iap). Those outputs are director-built
+// artifacts and are never committed by the implementer.
+//
+// Firebase Auth runs against FirebaseOptions built at runtime from the
+// staged public client config (see moonlit_identity.cfg); this module never
+// holds an API key, a secret, or a google-services bundle.
+
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'dev.moonlitbeacon.identity'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 23
+        consumerProguardFiles 'consumer-rules.pro'
+    }
+
+    buildTypes {
+        release {
+            // The plugin ships unminified; the host app minifies with the
+            // consumer rules above keeping the Godot entry points.
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    // Provided by the Godot Android export template at app build time; the
+    // standalone AAR build resolves the published artifact for compilation.
+    compileOnly 'org.godotengine:godot:4.7.1.stable'
+    // Pinned centrally in MoonlitIdentity.gdap; repeated here so the
+    // standalone AAR build resolves the same artifacts.
+    implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
+    implementation 'com.google.firebase:firebase-auth:24.0.0'
+    // Ordinary Google sign-in: Credential Manager plus Google ID, per the
+    // Firebase Android Google-sign-in documentation (pinned versions from
+    // its dependency example; the play-services-auth artifact carries the
+    // pre-Android-14 backport path).
+    implementation 'androidx.credentials:credentials:1.3.0'
+    implementation 'androidx.credentials:credentials-play-services-auth:1.3.0'
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+    // The pinned Credential Manager API is suspend-only (the compiler's
+    // overload list proves no callback form exists at 1.3.0), so the
+    // picker runs in a coroutine on the main dispatcher from this artifact.
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1'
+}

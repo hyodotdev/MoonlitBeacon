@@ -1,14 +1,33 @@
 class_name WeaponRig
 extends Node2D
 
-## Bounded drawn weapon layer for the chosen hero.
+## Bounded painted weapon layer for the chosen hero.
 ##
-## One node, a dozen short strokes: the little guardian's held weapon plus a brief
-## muzzle/cut flash on each shot. Carried-weapon readability without six new sprite
-## sheets, and nothing to pose — the arena's real attacks trigger every flash.
+## One node, one supersampled sheet: the little guardian's held weapon plus a
+## brief muzzle/cut flash on each shot. The six sheets are the original painted
+## equipment packed by `tools/pack_painted_weapons.py` — sword, twin daggers,
+## lantern pistol, ring cannon, crescent reaper, needle rifle — each holding
+## four texels per logical pixel and drawn at 0.25 world scale through
+## per-item Linear filtering, so the paint stays smooth at real 2x/3x output
+## where a 1:1 nearest bitmap would collapse into blocks.
+##
+## Two spaces, one transform. Logical space is the round-1 geometry the game
+## plays in: tips, grips, axis rows, muzzle seats. Texture space is exactly
+## four times logical. Guns align by barrel axis: the painted tip lands
+## exactly on the muzzle seat (`muzzle_length`), so the tip and the real
+## projectile spawn coincide. Melee weapons align by grip: the hand holds the
+## handle 2px behind the rig origin and the blade follows the aim. Aims
+## pointing left mirror the sheet about its axis so lamp, sight and guard
+## details never hang upside down.
+##
+## The sheets are lit art like the hero sheets, so they wear the hero's own
+## readability tint and show their paint as-is under the Player night tint.
+## Flash strokes keep the legacy boost explicitly, with anti-aliased edges.
 ##
 ## Flashes die on their own in ≤0.2s, freeze with the tree under pause/result, and
 ## leave with the player on scene change. `clear()` drops them immediately.
+## The pose itself never moves: no idle motion can imply a shot that did not
+## happen.
 
 ## Flash kinds. Cut ticks ride melee swings; muzzle kinds ride ranged volleys.
 const CUT: StringName = &"cut"
@@ -30,6 +49,54 @@ const MUZZLE_SCATTER_SEAT: float = 9.0
 const MUZZLE_CANNON_SEAT: float = 9.0
 const MUZZLE_SPARK_SEAT: float = 9.0
 
+## Texture texels per logical pixel. Sheets are exactly this many times the
+## logical size; the draw below compensates with DRAW_SCALE.
+const TEXTURE_SCALE: float = 4.0
+const DRAW_SCALE: float = 1.0 / TEXTURE_SCALE
+
+## Painted sheets, one per hero, packed from the painted-weapons master.
+const SHEET_WARDEN: Texture2D = preload("res://assets/custom/items/weapons/warden.png")
+const SHEET_DANCER: Texture2D = preload("res://assets/custom/items/weapons/dancer.png")
+const SHEET_KEEPER: Texture2D = preload("res://assets/custom/items/weapons/keeper.png")
+const SHEET_KNIGHT: Texture2D = preload("res://assets/custom/items/weapons/knight.png")
+const SHEET_ECLIPSE: Texture2D = preload("res://assets/custom/items/weapons/eclipse.png")
+const SHEET_SAGE: Texture2D = preload("res://assets/custom/items/weapons/sage.png")
+
+## Calibrated tips in logical pixels: the painted muzzle for guns (which the
+## pivot seats exactly on the muzzle length), the blade end for melee.
+## Frozen from the round-1 source calibration; texture tips are exactly four
+## times these, and the weapon test guards both against the committed sheets.
+const LOGICAL_TIP_WARDEN: Vector2i = Vector2i(15, 2)
+const LOGICAL_TIP_DANCER: Vector2i = Vector2i(13, 4)
+const LOGICAL_TIP_KEEPER: Vector2i = Vector2i(13, 2)
+const LOGICAL_TIP_KNIGHT: Vector2i = Vector2i(13, 3)
+const LOGICAL_TIP_ECLIPSE: Vector2i = Vector2i(15, 4)
+const LOGICAL_TIP_SAGE: Vector2i = Vector2i(20, 3)
+## Calibrated grips in logical pixels: the hand point for melee heroes. Gun
+## heroes seat the barrel axis instead (see `logical_pivot`).
+const LOGICAL_GRIP_WARDEN: Vector2i = Vector2i(1, 2)
+const LOGICAL_GRIP_DANCER: Vector2i = Vector2i(1, 4)
+const LOGICAL_GRIP_ECLIPSE: Vector2i = Vector2i(1, 4)
+## Barrel-axis rows in logical pixels for the three guns. Symmetric bell lips
+## and ring aperture center on them; the needle ends on its own.
+const LOGICAL_AXIS_KEEPER: int = 2
+const LOGICAL_AXIS_KNIGHT: int = 3
+const LOGICAL_AXIS_SAGE: int = 3
+## Twin-dagger handle rows in logical pixels. The pair straddles the grip row
+## the way the twin tips straddle the tip row.
+const LOGICAL_DANCER_UPPER_ROW: int = 2
+const LOGICAL_DANCER_LOWER_ROW: int = 6
+## Legacy hand point, px behind the rig origin along the aim. Melee grips sit
+## here; gun pivots sit on the origin with the muzzle ahead on the seat.
+const GRIP_BACK: float = 2.0
+## Sheet tint. Must equal `Player.HERO_READABILITY_TINT`: the node itself no
+## longer boosts, so the paint shows exactly as the file holds it.
+const PAINT_TINT: Color = Color(3.175, 2.857, 1.754, 1.0)
+## Legacy flash boost, now explicit per stroke. The node carries no boost, so
+## each flame color is scaled by the old self_modulate (2.4, 2.4, 2.5) and
+## reads on screen exactly as before.
+const FLASH_BOOST: Vector3 = Vector3(2.4, 2.4, 2.5)
+
 var _profile: Hero.AttackProfile = Hero.AttackProfile.WARDEN
 var _primary: Color = Color(0.3, 0.68, 1.0, 1.0)
 var _secondary: Color = Color(0.82, 0.95, 1.0, 1.0)
@@ -42,8 +109,12 @@ var _kind_sidearm: bool = false
 
 func _ready() -> void:
 	z_index = 2
-	# Parent Player carries the night tint; multiply back so moon-metal reads.
-	self_modulate = Color(2.4, 2.4, 2.5, 1.0)
+	# The node carries no boost: sheets wear PAINT_TINT and flames FLASH_BOOST,
+	# so neither washes out nor sinks under the Player night tint.
+	self_modulate = Color.WHITE
+	# The 4x sheets filter per item. Global Nearest stays locked for the pixel
+	# world; the painted metal resolves through Linear instead of blocking up.
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 
 
 func configure(
@@ -58,6 +129,106 @@ func configure(
 ## Last aim direction, so the held weapon points where the last shot went.
 func aim() -> Vector2:
 	return _aim
+
+
+## Sheet id for one profile, for tests and harnesses that only know the hero.
+static func painted_name(profile: Hero.AttackProfile) -> String:
+	match profile:
+		Hero.AttackProfile.DANCER:
+			return "dancer"
+		Hero.AttackProfile.KEEPER:
+			return "keeper"
+		Hero.AttackProfile.KNIGHT:
+			return "knight"
+		Hero.AttackProfile.ECLIPSE:
+			return "eclipse"
+		Hero.AttackProfile.SAGE:
+			return "sage"
+	return "warden"
+
+
+## Painted sheet for one profile.
+static func painted_sheet(profile: Hero.AttackProfile) -> Texture2D:
+	match profile:
+		Hero.AttackProfile.DANCER:
+			return SHEET_DANCER
+		Hero.AttackProfile.KEEPER:
+			return SHEET_KEEPER
+		Hero.AttackProfile.KNIGHT:
+			return SHEET_KNIGHT
+		Hero.AttackProfile.ECLIPSE:
+			return SHEET_ECLIPSE
+		Hero.AttackProfile.SAGE:
+			return SHEET_SAGE
+	return SHEET_WARDEN
+
+
+## Calibrated tip for one profile, in logical pixels.
+static func logical_tip(profile: Hero.AttackProfile) -> Vector2i:
+	match profile:
+		Hero.AttackProfile.DANCER:
+			return LOGICAL_TIP_DANCER
+		Hero.AttackProfile.KEEPER:
+			return LOGICAL_TIP_KEEPER
+		Hero.AttackProfile.KNIGHT:
+			return LOGICAL_TIP_KNIGHT
+		Hero.AttackProfile.ECLIPSE:
+			return LOGICAL_TIP_ECLIPSE
+		Hero.AttackProfile.SAGE:
+			return LOGICAL_TIP_SAGE
+	return LOGICAL_TIP_WARDEN
+
+
+## Sheet point placed at the rig anchor, in logical pixels. Gun pivots sit one
+## muzzle seat behind the painted tip on the barrel axis, so the tip always
+## lands on the seat even if a seat constant moves; melee pivots are the
+## grips themselves.
+static func logical_pivot(profile: Hero.AttackProfile) -> Vector2:
+	match profile:
+		Hero.AttackProfile.KEEPER:
+			return Vector2(
+				float(LOGICAL_TIP_KEEPER.x) - muzzle_length(MUZZLE_SCATTER),
+				float(LOGICAL_AXIS_KEEPER))
+		Hero.AttackProfile.KNIGHT:
+			return Vector2(
+				float(LOGICAL_TIP_KNIGHT.x) - muzzle_length(MUZZLE_CANNON),
+				float(LOGICAL_AXIS_KNIGHT))
+		Hero.AttackProfile.SAGE:
+			return Vector2(
+				float(LOGICAL_TIP_SAGE.x) - muzzle_length(MUZZLE_RIFLE),
+				float(LOGICAL_AXIS_SAGE))
+		Hero.AttackProfile.DANCER:
+			return Vector2(LOGICAL_GRIP_DANCER)
+		Hero.AttackProfile.ECLIPSE:
+			return Vector2(LOGICAL_GRIP_ECLIPSE)
+	return Vector2(LOGICAL_GRIP_WARDEN)
+
+
+## The same pivot in texture texels. Exactly TEXTURE_SCALE times logical, so
+## the drawn sheet and the logical math cannot drift apart.
+static func texture_pivot(profile: Hero.AttackProfile) -> Vector2:
+	return logical_pivot(profile) * TEXTURE_SCALE
+
+
+## Rig-local anchor the pivot sits on for one aim. Guns pivot on the origin
+## with the muzzle ahead; melee grips hang 2px toward the body.
+static func painted_anchor(profile: Hero.AttackProfile, aim: Vector2) -> Vector2:
+	if HeroWeapons.primary_side(profile) == HeroWeapons.Side.RANGED:
+		return Vector2.ZERO
+	var flat: Vector2 = aim.normalized() if aim.length() > 0.01 else Vector2.RIGHT
+	return -flat * GRIP_BACK
+
+
+## World position of one logical sheet point for one aim: the single
+## world-space transform the draw below and the tests share. Left aims mirror
+## about the sheet axis row.
+static func drawn_logical_point(
+	profile: Hero.AttackProfile, aim: Vector2, logical_point: Vector2
+) -> Vector2:
+	var rel: Vector2 = logical_point - logical_pivot(profile)
+	if aim.x < 0.0:
+		rel.y = -rel.y
+	return painted_anchor(profile, aim) + rel.rotated(aim.angle())
 
 
 ## Muzzle seat for one flash kind: the shared number the drawing and the
@@ -119,108 +290,83 @@ func _draw() -> void:
 			_draw_muzzle_flash(fade)
 
 
-## The weapon in hand, ~14px, aimed at the last shot. Six silhouettes that share
-## no stripe: blade, twin fangs, needle rifle, bell-mouth lantern gun with its
-## lamp orb, stubby ring-muzzled cannon, reaper crescent. Each gun wears one
-## band of the hero's own color so length is not the only tell.
+## The weapon in hand, aimed at the last shot. Six painted sheets that share
+## no silhouette: curved sword, twin fangs, lantern pistol with its lamp,
+## ring-muzzled cannon, crescent reaper, needle rifle with its sight bead.
+## Left aims mirror about the sheet axis so the details stay upright.
+##
+## The transform is `drawn_logical_point` in texture space: texel t lands at
+## anchor + R·(mirror·((t − pivot·4)·0.25)), which equals the logical mapping
+## for t = 4·L exactly.
 func _draw_held() -> void:
+	var sheet: Texture2D = painted_sheet(_profile)
+	if sheet == null:
+		return
 	var angle: float = _aim.angle()
-	var along: Vector2 = Vector2.RIGHT.rotated(angle)
-	var side: Vector2 = along.orthogonal()
-	var grip: Vector2 = -along * 2.0
-	var metal := Color(0.82, 0.90, 1.0, 0.95)
-	var dark := Color(0.35, 0.48, 0.72, 0.95)
-	var glow := Color(_primary.r, _primary.g, _primary.b, 0.9)
-	match _profile:
-		Hero.AttackProfile.DANCER:
-			for offset in [-3.2, 3.2]:
-				var base: Vector2 = grip + side * offset * 0.6
-				draw_line(base, base + along * 10.0 + side * offset * 0.4,
-					metal, 1.6, false)
-			draw_circle(grip, 1.6, glow)
-		Hero.AttackProfile.SAGE:
-			# Needle rifle: longest, thinnest, scoped. The sight bead floats past
-			# the muzzle so the eye finds the tip even at a glance.
-			draw_line(grip - along * 5.0, grip + along * 15.0, dark, 2.2, false)
-			draw_line(grip + along * 5.0, grip + along * 15.0, metal, 1.0, false)
-			draw_circle(grip + along * 1.0 - side * 2.2, 1.3, metal)
-			draw_line(grip + along * 6.0 - side * 1.7,
-				grip + along * 6.0 + side * 1.7, glow, 1.6, false)
-			draw_circle(grip + along * 16.0, 1.0, glow)
-		Hero.AttackProfile.KEEPER:
-			# Bell-mouth lantern gun: short fat body, wide flare, and the lamp
-			# orb riding above — the orb is the Keeper's tell at any range.
-			draw_line(grip - along * 3.0, grip + along * 5.0, dark, 4.2, false)
-			var tip: Vector2 = grip + along * 5.0
-			draw_line(tip, tip + along * 4.0 + side * 3.6, metal, 1.6, false)
-			draw_line(tip, tip + along * 4.0 - side * 3.6, metal, 1.6, false)
-			var lamp: Vector2 = grip + along * 1.0 - side * 3.6
-			draw_circle(lamp, 2.8, glow)
-			draw_circle(lamp, 1.3, Color(1.0, 0.98, 0.9, 0.95))
-			draw_line(grip - side * 1.0, grip + side * 1.0, glow, 2.2, false)
-		Hero.AttackProfile.KNIGHT:
-			# Stubby cannon: the shortest barrel, the thickest walls, a ringed
-			# muzzle you could drop a marble through, and a round breech.
-			draw_line(grip - along * 5.0, grip + along * 7.0, dark, 5.4, false)
-			draw_line(grip - along * 4.0, grip + along * 6.0, metal, 2.2, false)
-			draw_arc(grip + along * 7.0, 2.8, 0.0, TAU, 12, metal, 1.2, false)
-			draw_circle(grip + along * 7.0, 1.6, Color(0.08, 0.08, 0.12, 0.95))
-			draw_circle(grip - along * 5.0, 2.2, dark)
-			draw_line(grip - along * 1.0 - side * 2.6,
-				grip - along * 1.0 + side * 2.6, glow, 1.4, false)
-		Hero.AttackProfile.ECLIPSE:
-			draw_line(grip - along * 7.0, grip + along * 6.0, dark, 1.8, false)
-			draw_arc(grip + along * 6.0, 4.2, angle - 1.2, angle + 1.2, 10,
-				metal, 1.5, false)
-			draw_circle(grip - along * 7.0, 1.5, glow)
-		_:
-			draw_line(grip, grip + along * 11.0, metal, 2.2, false)
-			draw_line(grip + side * 2.4, grip - side * 2.4, glow, 1.6, false)
-			draw_circle(grip - along * 1.6, 1.4, glow)
-			draw_circle(grip + along * 11.0, 0.9, Color(1.0, 1.0, 1.0, 0.9))
+	var mirror := Vector2(1.0, 1.0)
+	if _aim.x < 0.0:
+		mirror = Vector2(1.0, -1.0)
+	var anchor: Vector2 = painted_anchor(_profile, _aim)
+	var pivot: Vector2 = texture_pivot(_profile)
+	var scaled := Vector2(
+		mirror.x * DRAW_SCALE, mirror.y * DRAW_SCALE)
+	var seated := Vector2(pivot.x * scaled.x, pivot.y * scaled.y)
+	draw_set_transform(anchor - seated.rotated(angle), angle, scaled)
+	draw_texture(sheet, Vector2.ZERO, PAINT_TINT)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Legacy flame color through the explicit boost. Alpha rides untouched.
+func _lit(color: Color) -> Color:
+	return Color(
+		color.r * FLASH_BOOST.x,
+		color.g * FLASH_BOOST.y,
+		color.b * FLASH_BOOST.z,
+		color.a)
 
 
 func _draw_cut_flash(fade: float) -> void:
 	var angle: float = _aim.angle()
 	var light := Color(_secondary.r, _secondary.g, _secondary.b, 0.75 * fade)
+	light = _lit(light)
 	if _kind == TWIN_CUT:
 		for offset in [-0.42, 0.42]:
 			draw_arc(Vector2.ZERO, 12.0, angle - 0.5 + offset,
-				angle + 0.5 + offset, 8, light, 2.0, false)
+				angle + 0.5 + offset, 8, light, 2.0, true)
 	else:
-		draw_arc(Vector2.ZERO, 13.0, angle - 0.7, angle + 0.7, 10, light, 2.4, false)
+		draw_arc(Vector2.ZERO, 13.0, angle - 0.7, angle + 0.7, 10, light, 2.4, true)
 
 
 func _draw_ring_flash(fade: float) -> void:
 	var radius: float = 20.0 + (1.0 - fade) * 26.0
 	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 26,
-		Color(_primary.r, _primary.g, _primary.b, 0.5 * fade), 2.2, false)
+		_lit(Color(_primary.r, _primary.g, _primary.b, 0.5 * fade)), 2.2, true)
 
 
 func _draw_muzzle_flash(fade: float) -> void:
 	var angle: float = _aim.angle()
 	var along: Vector2 = Vector2.RIGHT.rotated(angle)
 	var side: Vector2 = along.orthogonal()
-	var hot := Color(1.0, 0.95, 0.82, 0.9 * fade)
-	var warm := Color(_primary.r, _primary.g, _primary.b, 0.55 * fade)
-	# Flash seats float just past each new muzzle: needle 13, bell 7, ring 5.
+	var hot := _lit(Color(1.0, 0.95, 0.82, 0.9 * fade))
+	var warm := _lit(Color(_primary.r, _primary.g, _primary.b, 0.55 * fade))
+	# Flash seats ride the same muzzles the sheets end on: needle 16, bell 9, ring 9.
 	match _kind:
 		MUZZLE_RIFLE:
 			var tip: Vector2 = along * MUZZLE_RIFLE_SEAT
-			draw_line(tip, tip + along * 7.0, hot, 2.0, false)
-			draw_line(tip + side * 3.0, tip - side * 3.0, warm, 1.4, false)
+			draw_line(tip, tip + along * 7.0, hot, 2.0, true)
+			draw_line(tip + side * 3.0, tip - side * 3.0, warm, 1.4, true)
 		MUZZLE_SCATTER:
 			var mouth: Vector2 = along * MUZZLE_SCATTER_SEAT
 			for spread in [-0.5, -0.25, 0.0, 0.25, 0.5]:
 				var ray: Vector2 = Vector2.RIGHT.rotated(angle + spread)
 				draw_line(mouth, mouth + ray * 9.0, hot if spread == 0.0 else warm,
-					1.8, false)
+					1.8, true)
 		MUZZLE_CANNON:
 			var mouth: Vector2 = along * MUZZLE_CANNON_SEAT
 			draw_circle(mouth + along * 3.0, 5.5 * fade + 2.0, warm)
 			draw_circle(mouth + along * 3.0, 2.6 * fade + 1.0, hot)
-			draw_line(mouth - along * 2.0, mouth + along * 9.0, hot, 2.6, false)
+			draw_line(mouth - along * 2.0, mouth + along * 9.0, hot, 2.6, true)
 		_:
 			var tip: Vector2 = along * MUZZLE_SPARK_SEAT
 			draw_circle(tip, 3.4 * fade + 1.2, hot)
-			draw_arc(tip, 5.5, 0.0, TAU, 12, warm, 1.2, false)
+			draw_arc(tip, 5.5, 0.0, TAU, 12, warm, 1.2, true)

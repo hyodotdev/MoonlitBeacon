@@ -17,10 +17,11 @@ barrage_source = 6
 behavior = 0
 
 sheet = ExtResource("sheet")
-cell = 48
+cell = 144
 facings = 4
 frames = 4
 lift = -8.0
+visual_scale = 0.3333333333333333
 speed = 118.0
 turn_rate = 9.0
 health = 20

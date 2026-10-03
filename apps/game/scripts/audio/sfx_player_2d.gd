@@ -21,14 +21,16 @@ func _process(_delta: float) -> void:
 
 ## Call this before leaving the scene. Same rule as `music_player.release()`.
 func release() -> void:
-	if not _needs_flush:
-		return
+	var active: bool = _needs_flush or playing
 	_needs_flush = false
+	set_process(true)
+	if not active:
+		return
 	stop()
 
 
 func _exit_tree() -> void:
-	if not _needs_flush:
+	if not _needs_flush and not playing:
 		return
 	_needs_flush = false
 	stop()

@@ -14,6 +14,13 @@ extends HBoxContainer
 ## Gated with `OS.is_debug_build()` so it cannot leak into a shipping build.
 ## `--export-release` makes this node free itself. Not a check, not a hide —
 ## `queue_free()`. Leave it around and it will show someday.
+##
+## The buttons themselves stay behind `show_developer_controls`, which the
+## production entry turns off: device builds boot into a clean game screen.
+## Hiding never stops the automation hooks below — the capture probe, the
+## clean-UI handshake and the boot request all keep running while hidden.
+## Device developers re-enable with the `dev_launcher` launch argument or
+## the `moonlit_dev_launcher` root meta; the old title keeps its buttons.
 
 ## State each button builds. [level, cycle, label] and, optionally, whether the run counts as
 ## started from the title.
@@ -43,6 +50,13 @@ const STORE_CAPTURE_PROBE: Script = preload(
 const STORE_CAPTURE_BOOT: Script = preload(
 	"res://scripts/dev/store_capture_boot.gd")
 
+## Show the debug jump buttons. Off in the production entry: hidden there
+## by default on every build, while the probe and boot hooks keep working.
+@export var show_developer_controls: bool = true
+## Launch argument or root meta that re-enables hidden buttons for a run.
+const DEV_LAUNCHER_ARG: String = "dev_launcher"
+const DEV_LAUNCHER_META: String = "moonlit_dev_launcher"
+
 
 static func take_boost(tree: SceneTree) -> Array:
 	if tree == null or not tree.root.has_meta(BOOST_META):
@@ -53,10 +67,22 @@ static func take_boost(tree: SceneTree) -> Array:
 	return boost
 
 
+## True while the jump buttons are on screen. Tests read this.
+func are_developer_controls_visible() -> bool:
+	return visible and get_child_count() > 0
+
+
 func _ready() -> void:
 	if not OS.is_debug_build():
 		set_process(false)
 		queue_free()
+		return
+
+	if not show_developer_controls and not _debug_opt_in():
+		# Clean production boot: no buttons, no footprint, hooks alive.
+		visible = false
+		_signal_store_capture_title_ready.call_deferred()
+		_launch_store_capture_boot.call_deferred()
 		return
 
 	add_theme_constant_override("separation", 6)
@@ -102,6 +128,19 @@ func _ready() -> void:
 	add_child(store_preview)
 	_signal_store_capture_title_ready.call_deferred()
 	_launch_store_capture_boot.call_deferred()
+
+
+## Explicit per-run opt-in for device developers: a launch argument or
+## a root meta set by automation before the scene boots.
+func _debug_opt_in() -> bool:
+	for token in OS.get_cmdline_user_args():
+		if token == DEV_LAUNCHER_ARG or token.begins_with(DEV_LAUNCHER_ARG + "="):
+			return true
+	var tree: SceneTree = get_tree()
+	if tree != null and tree.root != null \
+			and tree.root.has_meta(DEV_LAUNCHER_META):
+		return bool(tree.root.get_meta(DEV_LAUNCHER_META, false))
+	return false
 
 
 func _launch_store_capture_boot() -> void:

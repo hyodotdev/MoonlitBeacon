@@ -649,6 +649,8 @@ function persistentSnapshot(appInstalled) {
   // Preserve every pre-existing non-control root file, including future game
   // saves not yet known to this producer. The explicit list above guarantees
   // known files still get an absent-state assertion on a new installation.
+  // Documents files only: native SDK preferences and Keychain entries are
+  // never captured here, and this backup does not protect Keychain items.
   const names = new Set(PERSISTENT_FILES);
   for (const name of documentFileNames()) {
     if (!CONTROL_FILE_SET.has(name)) names.add(name);

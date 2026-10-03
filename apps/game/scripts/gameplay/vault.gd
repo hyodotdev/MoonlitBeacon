@@ -42,6 +42,17 @@ enum RunSettlementStatus {
 	SAVE_FAILED,
 }
 
+## One journey receipt's fate. `DUPLICATE` and `RETIRED` grant nothing and
+## save nothing: they are pure reads, so crashing around them is harmless.
+## `FLOORED` records a remote floor without granting its historical value.
+enum JourneyReceipt {
+	SETTLED,
+	DUPLICATE,
+	RETIRED,
+	SAVE_FAILED,
+	FLOORED,
+}
+
 ## Every boon that can be bought. One `.tres` is one boon.
 const POOL: Array[String] = [
 	"res://resources/boons/steady_heart.tres",
@@ -51,6 +62,23 @@ const POOL: Array[String] = [
 	"res://resources/boons/dew_sense.tres",
 	"res://resources/boons/shard_sense.tres",
 ]
+
+## Settled journey receipts remembered for exactly-once grants. Bounded: at
+## most this many journeys are retained. Older sequence ids past the bound
+## read as retired and grant nothing, so bounding the ledger can never turn
+## a forgotten receipt into fresh money.
+const MAX_SETTLED_JOURNEYS: int = 16
+## Largest cumulative receipt target the ledger accepts: 2^53 - 1, the
+## largest integer JSON carries exactly.
+const JOURNEY_TARGET_CAP: int = 9007199254740991
+## Largest checkpoint id the ledger accepts. Seals tick far slower than
+## frames; a billion is thousands of years of gates.
+const JOURNEY_CHECKPOINT_CAP: int = 1000000000
+## Unsettled fallback ids remembered per session. One entry per failed issue,
+## removed on its first successful settle; bounding it can only strand an
+## absurd backlog, never mint, and the coordinator floors the active journey
+## from its checkpoint echo anyway.
+const MAX_ISSUED_FALLBACKS: int = 64
 
 ## Slope of the shard curve. Smaller gives more.
 ##
@@ -109,6 +137,18 @@ var opened: Array[String] = []
 var hero_sources: Dictionary = {}
 ## Currently picked character. Empty uses the first.
 var chosen: String = ""
+## Journey sequence ids issued so far. Fresh journeys take the next one.
+var journey_seq_issued: int = 0
+## Settled receipts: `[journey_id, checkpoint, target]` triples. The id is an
+## int sequence, or a random String when its issue save failed.
+var settled_journeys: Array = []
+## Fallback string ids this session issued through `begin_journey()` that
+## have not settled yet. A string with no ledger record settles only from
+## this set; evicted or never-issued strings retire instead of minting.
+## Memory-only on purpose, and kept across `load_vault()`: an in-flight
+## fallback must still settle after a reload, and a restart reconciles the
+## active journey through its floor instead of re-issuing it.
+var _issued_fallback_ids: Dictionary = {}
 
 
 func _ready() -> void:
@@ -166,6 +206,332 @@ func award(score: int) -> int:
 	return int(result.get("awarded", 0)) \
 		if int(result.get("status", RunSettlementStatus.SAVE_FAILED)) \
 		== RunSettlementStatus.APPLIED else 0
+
+
+## Issue the next journey sequence id, durably. A fresh journey settles its
+## earned shards against this id, so a retried receipt grants exactly once
+## even across a crash between the Vault save and the journey write.
+##
+## When the counter save fails, fall back to a random string id instead of
+## reusing a sequence: retries still dedup while the entry is retained, and
+## no two journeys ever share an id. The fallback is remembered for its
+## first settle; any other unknown string retires instead of minting.
+func begin_journey() -> Variant:
+	journey_seq_issued += 1
+	var seq: int = journey_seq_issued
+	if save_vault() != OK:
+		journey_seq_issued = seq - 1
+		var fallback: String = "r%x%x" % [
+			int(Time.get_unix_time_from_system()) % 0xffffff, abs(randi())]
+		_issued_fallback_ids[fallback] = true
+		while _issued_fallback_ids.size() > MAX_ISSUED_FALLBACKS:
+			_issued_fallback_ids.erase(_issued_fallback_ids.keys()[0])
+		return fallback
+	return seq
+
+
+## Settle one journey receipt exactly once: `(journey, checkpoint)` with a
+## cumulative shard `target`. Returns `status`, `granted`, and
+## `settled_target` (the cumulative granted total the caller echoes).
+##
+## The grant is `target` minus the journey's settled base. A redelivery of
+## the same receipt pays 0 without saving — unless the live score advanced
+## past the sealed one, in which case only the new delta pays, immediately,
+## so value is never stranded behind a crash. An older checkpoint of a
+## settled journey (a retired receipt, e.g. from a restored backup) always
+## pays 0 even revalued upward: its value was superseded already. So does a
+## sequence id evicted past the bounded ledger or never issued, and so does
+## an unusable id that normalizes to null.
+##
+## Save failure rolls the balance and the ledger back and returns
+## `SAVE_FAILED` with 0 granted, so a retry grants the full delta. Callers
+## seal the checkpoint unsettled on failure; the next seal's cumulative
+## target carries the value, which keeps retries available across restart.
+##
+## Unknown strings retire: a string with no ledger record settles only when
+## this session issued it through `begin_journey()` and it has not settled
+## yet. A replay of an evicted fallback, or a string that was never issued,
+## mints nothing. Remote history never arrives here: the coordinator floors
+## it first through `initialize_remote_receipt_floor()`.
+func settle_journey_receipt(
+	journey: Variant, checkpoint_id: int, target: int
+) -> Dictionary:
+	var receipt_id: Variant = _normalize_journey_id(journey)
+	var cid: int = clampi(checkpoint_id, 0, JOURNEY_CHECKPOINT_CAP)
+	var want: int = clampi(target, 0, JOURNEY_TARGET_CAP)
+	if receipt_id == null \
+			or (receipt_id is int and _journey_seq_retired(int(receipt_id))) \
+			or (receipt_id is String \
+				and _journey_string_retired(str(receipt_id))):
+		return {
+			"status": JourneyReceipt.RETIRED,
+			"granted": 0,
+			"settled_target": 0,
+		}
+	var record: Array = _find_settled_journey(receipt_id)
+	if not record.is_empty() \
+			and (cid < int(record[1]) or want <= int(record[2])):
+		return {
+			"status": JourneyReceipt.DUPLICATE,
+			"granted": 0,
+			"settled_target": int(record[2]),
+		}
+	var base: int = int(record[2]) if not record.is_empty() else 0
+	var grant: int = maxi(want - base, 0)
+	var before_shards: int = shards
+	var before_ledger: Array = settled_journeys.duplicate(true)
+	_upsert_settled_journey(receipt_id, cid, want)
+	shards += grant
+	if save_vault() != OK:
+		shards = before_shards
+		settled_journeys = before_ledger
+		return {
+			"status": JourneyReceipt.SAVE_FAILED,
+			"granted": 0,
+			"settled_target": base,
+		}
+	# The first settle consumes the issuance: a later eviction leaves no
+	# record and no issuance, so the replay retires instead of paying again.
+	_issued_fallback_ids.erase(receipt_id)
+	if grant > 0:
+		changed.emit()
+	return {
+		"status": JourneyReceipt.SETTLED,
+		"granted": grant,
+		"settled_target": want,
+	}
+
+
+## Record a downloaded checkpoint's cumulative target as this device's floor
+## without granting its historical value. New play above the floor still
+## settles exactly once through `settle_journey_receipt()`; the history
+## itself pays 0. An int floor also advances the issue watermark so a later
+## local `begin_journey()` never reuses the remote id. A higher floor only
+## ever rises, never pays. Save failure rolls everything back for a retry.
+## Paid entitlements and the coin ledger are untouched: only the journey
+## receipt ledger and the sequence watermark move.
+func initialize_remote_receipt_floor(
+	journey: Variant, checkpoint_id: int, target: int
+) -> Dictionary:
+	var receipt_id: Variant = _normalize_journey_id(journey)
+	var cid: int = clampi(checkpoint_id, 0, JOURNEY_CHECKPOINT_CAP)
+	var want: int = clampi(target, 0, JOURNEY_TARGET_CAP)
+	if receipt_id == null:
+		return {
+			"status": JourneyReceipt.RETIRED,
+			"granted": 0,
+			"settled_target": 0,
+		}
+	var record: Array = _find_settled_journey(receipt_id)
+	if not record.is_empty():
+		var floor_target: int = maxi(int(record[2]), want)
+		var floor_cid: int = maxi(int(record[1]), cid)
+		if floor_target == int(record[2]) and floor_cid == int(record[1]):
+			return {
+				"status": JourneyReceipt.DUPLICATE,
+				"granted": 0,
+				"settled_target": int(record[2]),
+			}
+		var before_ledger: Array = settled_journeys.duplicate(true)
+		_upsert_settled_journey(receipt_id, floor_cid, floor_target)
+		if save_vault() != OK:
+			settled_journeys = before_ledger
+			return {
+				"status": JourneyReceipt.SAVE_FAILED,
+				"granted": 0,
+				"settled_target": int(record[2]),
+			}
+		return {
+			"status": JourneyReceipt.FLOORED,
+			"granted": 0,
+			"settled_target": floor_target,
+		}
+	var before_seq: int = journey_seq_issued
+	var before_fresh: Array = settled_journeys.duplicate(true)
+	if receipt_id is int:
+		journey_seq_issued = maxi(journey_seq_issued, int(receipt_id))
+	_upsert_settled_journey(receipt_id, cid, want)
+	if save_vault() != OK:
+		journey_seq_issued = before_seq
+		settled_journeys = before_fresh
+		return {
+			"status": JourneyReceipt.SAVE_FAILED,
+			"granted": 0,
+			"settled_target": 0,
+		}
+	return {
+		"status": JourneyReceipt.FLOORED,
+		"granted": 0,
+		"settled_target": want,
+	}
+
+
+## Receipt ids that survive a ConfigFile round trip: int sequences
+## (retired downstream when never issued), their integral floats below
+## 2^53, or the random fallback strings. Anything else normalizes to null
+## and settles as retired: it was never issued, so it must never mint.
+func _normalize_journey_id(journey: Variant) -> Variant:
+	if journey is int:
+		return journey
+	if journey is float and journey == floorf(journey) \
+			and journey > -Journey.JSON_INT_LIMIT \
+			and journey < Journey.JSON_INT_LIMIT:
+		return int(journey)
+	if journey is String and Journey.is_safe_id(str(journey)):
+		return str(journey)
+	return null
+
+
+## A ledger id from disk: an int sequence in range, an integral float of
+## one below 2^53, or a random fallback string. Anything else is null
+## (dropped on load).
+func _normalize_loaded_journey_id(raw: Variant) -> Variant:
+	if raw is int and int(raw) >= 1 and int(raw) <= Journey.MAX_SAFE_INT:
+		return int(raw)
+	if raw is float and raw >= 1.0 and raw < Journey.JSON_INT_LIMIT \
+			and raw == floorf(raw):
+		return int(raw)
+	if raw is String and Journey.is_safe_id(str(raw)):
+		return str(raw)
+	return null
+
+
+## Receipt equality across the mixed int/string ledger. GDScript errors on
+## `7 == "r1"`, so ids compare equal only within one type.
+func _same_receipt_id(left: Variant, right: Variant) -> bool:
+	return typeof(left) == typeof(right) and left == right
+
+
+func _find_settled_journey(receipt_id: Variant) -> Array:
+	for entry in settled_journeys:
+		if entry is Array and (entry as Array).size() == 3 \
+				and _same_receipt_id((entry as Array)[0], receipt_id):
+			return (entry as Array).duplicate()
+	return []
+
+
+## Decide what a locally-present checkpoint echo means for the receipt
+## ledger, without granting anything. This is the restart-recovery path:
+## a locally-issued integer, or a session-issued fallback, with no record
+## may still be owed its failed settlement, so it is left strictly alone
+## (`local-pending`) and the next `settle_journey_receipt` retry pays it
+## exactly once. Only unknown ids — never issued here and never recorded,
+## including evicted history and garbage — are floored with zero granted,
+## which can never mint. Existing records are never raised from an echo:
+## the echo may carry an unsettled retry delta that flooring would steal.
+## Returns `{status, code, granted: 0, settled_target}` with code one of
+## `local-pending`, `duplicate`, `floored`, `floor-save-failed`,
+## `floor-retired`.
+func reconcile_local_receipt(journey: Variant, checkpoint_id: int,
+		target: int) -> Dictionary:
+	var receipt_id: Variant = _normalize_journey_id(journey)
+	if receipt_id == null:
+		return {
+			"status": JourneyReceipt.RETIRED,
+			"code": "floor-retired",
+			"granted": 0,
+			"settled_target": 0,
+		}
+	if not _find_settled_journey(receipt_id).is_empty():
+		return {
+			"status": JourneyReceipt.DUPLICATE,
+			"code": "duplicate",
+			"granted": 0,
+			"settled_target": int(
+				_find_settled_journey(receipt_id)[2]),
+		}
+	if receipt_id is int and int(receipt_id) <= journey_seq_issued:
+		return {
+			"status": JourneyReceipt.DUPLICATE,
+			"code": "local-pending",
+			"granted": 0,
+			"settled_target": 0,
+		}
+	if receipt_id is String \
+			and _issued_fallback_ids.has(str(receipt_id)):
+		return {
+			"status": JourneyReceipt.DUPLICATE,
+			"code": "local-pending",
+			"granted": 0,
+			"settled_target": 0,
+		}
+	var floored: Dictionary = initialize_remote_receipt_floor(
+		receipt_id, checkpoint_id, target)
+	var code: String = "floor-retired"
+	if int(floored.get("status", -1)) == JourneyReceipt.FLOORED:
+		code = "floored"
+	elif int(floored.get("status", -1)) == JourneyReceipt.SAVE_FAILED:
+		code = "floor-save-failed"
+	elif int(floored.get("status", -1)) == JourneyReceipt.DUPLICATE:
+		code = "duplicate"
+	floored["code"] = code
+	return floored
+
+
+## A string id with no ledger record settles only when this session
+## issued it and it has not settled yet. Anything else — an evicted
+## fallback replayed, or a string that was never issued — retires and
+## mints nothing.
+func _journey_string_retired(candidate: String) -> bool:
+	if not _find_settled_journey(candidate).is_empty():
+		return false
+	return not _issued_fallback_ids.has(candidate)
+
+
+## A sequence id with no record is retired when it sits below every retained
+## one (evicted past the bound), or was never issued at all. The live
+## sequence may not have sealed yet, so it is never retired.
+func _journey_seq_retired(seq: int) -> bool:
+	if seq < 1 or seq > journey_seq_issued:
+		return true
+	if seq == journey_seq_issued or not _find_settled_journey(seq).is_empty():
+		return false
+	var floor: int = journey_seq_issued + 1
+	for entry in settled_journeys:
+		if entry is Array and (entry as Array).size() == 3 \
+				and (entry as Array)[0] is int:
+			floor = mini(floor, int((entry as Array)[0]))
+	return seq < floor
+
+
+func _upsert_settled_journey(
+	receipt_id: Variant, checkpoint_id: int, target: int
+) -> void:
+	for i in settled_journeys.size():
+		var entry: Array = settled_journeys[i]
+		if entry.size() == 3 \
+				and _same_receipt_id(entry[0], receipt_id):
+			settled_journeys[i] = [receipt_id, checkpoint_id, target]
+			return
+	settled_journeys.append([receipt_id, checkpoint_id, target])
+	while settled_journeys.size() > MAX_SETTLED_JOURNEYS:
+		if not _evict_one_settled_journey(receipt_id):
+			break
+
+
+## Shrink the ledger past its bound. Lowest sequence first, so retirement
+## (below every retained id) stays sound; random fallbacks oldest-first.
+## Never the just-written entry.
+func _evict_one_settled_journey(keep: Variant) -> bool:
+	var victim: int = -1
+	var victim_seq: int = -1
+	for i in settled_journeys.size():
+		var entry: Array = settled_journeys[i]
+		if entry.size() != 3 or _same_receipt_id(entry[0], keep):
+			continue
+		if entry[0] is int \
+				and (victim_seq < 0 or int(entry[0]) < victim_seq):
+			victim = i
+			victim_seq = int(entry[0])
+	if victim >= 0:
+		settled_journeys.remove_at(victim)
+		return true
+	for i in settled_journeys.size():
+		var entry: Array = settled_journeys[i]
+		if entry.size() == 3 and not _same_receipt_id(entry[0], keep):
+			settled_journeys.remove_at(i)
+			return true
+	return false
 
 
 func rank_of(path: String) -> int:
@@ -611,6 +977,8 @@ func load_vault() -> void:
 	opened.clear()
 	hero_sources.clear()
 	chosen = ""
+	journey_seq_issued = 0
+	settled_journeys.clear()
 	var file: ConfigFile = _load_saved_config()
 	if file == null:
 		return                                   # First launch. An empty vault is normal
@@ -669,6 +1037,39 @@ func load_vault() -> void:
 	var saved_hero: String = str(file.get_value(SECTION, "hero", ""))
 	if saved_hero in HEROES and hero_open(saved_hero):
 		chosen = saved_hero
+	# Journey receipts are optional in every schema: old saves predate them
+	# and load with an empty ledger. Entries that fail shape are dropped, so
+	# a hand-edited ledger can only lose history, never mint from it.
+	journey_seq_issued = maxi(int(file.get_value(
+		SECTION, "journey_seq_issued", 0)), 0)
+	var saved_settled: Variant = file.get_value(SECTION, "settled_journeys", [])
+	if saved_settled is Array:
+		var seen: Dictionary = {}
+		for raw in saved_settled:
+			if not raw is Array or (raw as Array).size() != 3:
+				continue
+			var loaded_id: Variant = _normalize_loaded_journey_id(
+				(raw as Array)[0])
+			var loaded_cid: Variant = (raw as Array)[1]
+			var loaded_target: Variant = (raw as Array)[2]
+			if loaded_id == null or not loaded_cid is int \
+					or not loaded_target is int:
+				continue
+			if int(loaded_cid) < 0 or int(loaded_cid) > JOURNEY_CHECKPOINT_CAP:
+				continue
+			if int(loaded_target) < 0 \
+					or int(loaded_target) > JOURNEY_TARGET_CAP:
+				continue
+			var slot: String = "%s:%s" % [
+				typeof(loaded_id), str(loaded_id)]
+			if seen.has(slot):
+				continue
+			seen[slot] = true
+			settled_journeys.append(
+				[loaded_id, int(loaded_cid), int(loaded_target)])
+		while settled_journeys.size() > MAX_SETTLED_JOURNEYS:
+			if not _evict_one_settled_journey(null):
+				break
 
 
 func save_vault() -> Error:
@@ -680,6 +1081,8 @@ func save_vault() -> Error:
 	file.set_value(SECTION, "hero", chosen)
 	file.set_value(SECTION, "opened", opened)
 	file.set_value(SECTION, "hero_sources", hero_sources)
+	file.set_value(SECTION, "journey_seq_issued", journey_seq_issued)
+	file.set_value(SECTION, "settled_journeys", settled_journeys)
 	for path in POOL:
 		file.set_value(SECTION, path, rank_of(path))
 	var encoded: String = file.encode_to_text()
@@ -773,6 +1176,12 @@ func _config_is_usable(file: ConfigFile) -> bool:
 	if file.has_section_key(SECTION, "hero_sources") \
 			and typeof(file.get_value(SECTION, "hero_sources")) != TYPE_DICTIONARY:
 		return false
+	if file.has_section_key(SECTION, "journey_seq_issued") \
+			and typeof(file.get_value(SECTION, "journey_seq_issued")) != TYPE_INT:
+		return false
+	if file.has_section_key(SECTION, "settled_journeys") \
+			and typeof(file.get_value(SECTION, "settled_journeys")) != TYPE_ARRAY:
+		return false
 	for path in POOL:
 		if file.has_section_key(SECTION, path) \
 				and typeof(file.get_value(SECTION, path)) != TYPE_INT:
@@ -800,6 +1209,7 @@ func _known_key_count(file: ConfigFile) -> int:
 	for key in [
 		"shards", "continue_coins", "continue_coin_grants",
 		"hero", "opened", "hero_sources",
+		"journey_seq_issued", "settled_journeys",
 	]:
 		if file.has_section_key(SECTION, key):
 			count += 1

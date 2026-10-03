@@ -27,6 +27,7 @@ const ANALYTICS_FONT_MAX: int = 13
 const ANALYTICS_FONT_MIN: int = 9
 const ANALYTICS_AVAILABLE_WIDTH: float = 196.0
 
+@onready var _title: Label = $Title
 @onready var _music_bar: HBoxContainer = $MusicBar
 @onready var _sfx_bar: HBoxContainer = $SfxBar
 @onready var _analytics_label: Label = $AnalyticsLabel
@@ -43,6 +44,20 @@ var _locale_buttons: Dictionary = {}
 var _privacy_url: String = ""
 var _support_url: String = ""
 var _link_failed: bool = false
+var _beads_hung: bool = false
+
+
+func _flank_bead(anchor: float, from: float, to: float) -> void:
+	var bead: TextureRect = WorldChrome.bead()
+	bead.anchor_left = anchor
+	bead.anchor_top = 0.5
+	bead.anchor_right = anchor
+	bead.anchor_bottom = 0.5
+	bead.offset_left = from
+	bead.offset_top = -6.0
+	bead.offset_right = to
+	bead.offset_bottom = 6.0
+	_title.add_child(bead)
 
 
 func _ready() -> void:
@@ -185,6 +200,13 @@ func _fill(cells: Array[ColorRect], step: int) -> void:
 
 
 func open() -> void:
+	# Moon beads flanking the journal title; the 140px label carries short
+	# titles in every locale, so they float over the dim, never on glyphs.
+	# Hung on first open, never in `_ready` (arena node budget).
+	if not _beads_hung:
+		_beads_hung = true
+		_flank_bead(0.0, -20.0, -8.0)
+		_flank_bead(1.0, 8.0, 20.0)
 	visible = true
 	_configure_external_links()
 	_redraw()

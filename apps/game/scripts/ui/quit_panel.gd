@@ -9,6 +9,7 @@ extends Control
 signal cancelled
 
 @onready var _no: Button = $No
+@onready var _card: Panel = $Card
 
 
 func _ready() -> void:
@@ -17,6 +18,10 @@ func _ready() -> void:
 
 
 func open() -> void:
+	# The gate sigil over the gate-return question; the title starts well
+	# below the card's top edge, so the tab never touches it. Hung on first
+	# open, never in `_ready` (arena node budget).
+	WorldChrome.ensure_tab(_card, "gate")
 	visible = true
 	_no.grab_focus()
 

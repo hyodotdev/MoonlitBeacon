@@ -1,0 +1,66 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/production_entry.gd" id="script"]
+[ext_resource type="PackedScene" path="res://scenes/menus/title_menu.tscn" id="title"]
+[ext_resource type="PackedScene" path="res://scenes/ui/gate_entry.tscn" id="gate"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/title_theme.ogg" id="bgm"]
+[ext_resource type="Script" path="res://scripts/audio/music_player.gd" id="music"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="sfx_confirm"]
+[ext_resource type="Script" path="res://scripts/dev/test_launcher.gd" id="testlauncher"]
+
+[node name="ProductionEntry" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("script")
+
+[node name="Title" parent="." instance=ExtResource("title")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Gate" parent="." instance=ExtResource("gate")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Ui" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="TestLauncher" type="HBoxContainer" parent="Ui"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -330.0
+offset_top = -30.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+script = ExtResource("testlauncher")
+show_developer_controls = false
+
+[node name="Bgm" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("bgm")
+volume_db = -60.0
+bus = &"Music"
+
+[node name="Sfx" type="AudioStreamPlayer" parent="."]
+script = ExtResource("music")
+stream = ExtResource("sfx_confirm")
+volume_db = -4.0
+bus = &"Sfx"

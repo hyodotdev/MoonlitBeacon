@@ -1,18 +1,9 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/quit_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="buttons_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="buttons_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="buttons_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="buttons_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="buttons_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_berry/normal.tres" id="buttons_berry_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_berry/hover.tres" id="buttons_berry_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_berry/pressed.tres" id="buttons_berry_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_berry/disabled.tres" id="buttons_berry_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_berry/focus.tres" id="buttons_berry_focus"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_panel.gd" id="world_panel"]
 
 [node name="QuitPanel" type="Control"]
 process_mode = 3
@@ -35,6 +26,8 @@ grow_vertical = 2
 color = Color(0.02, 0.03, 0.07, 0.82)
 
 [node name="Card" type="Panel" parent="."]
+script = ExtResource("world_panel")
+kind = "panel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -48,7 +41,6 @@ offset_bottom = 58.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = ExtResource("panel")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 1
@@ -71,6 +63,8 @@ text = "QUIT_TITLE"
 horizontal_alignment = 1
 
 [node name="No" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -86,14 +80,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 text = "QUIT_NO"
 
 [node name="Yes" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "coral"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -109,9 +100,4 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(0.95, 0.84, 0.8, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("buttons_berry_normal")
-theme_override_styles/hover = ExtResource("buttons_berry_hover")
-theme_override_styles/pressed = ExtResource("buttons_berry_pressed")
-theme_override_styles/disabled = ExtResource("buttons_berry_disabled")
-theme_override_styles/focus = ExtResource("buttons_berry_focus")
 text = "QUIT_YES"

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="176" height="176" viewBox="0 0 176 176">
+  <!-- Relic / hero choice card: a grand cut-corner plaque with double
+       keylines and etched bevel diamonds. -->
+  <defs>
+    <linearGradient id="bronze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8825a"/>
+      <stop offset="0.3" stop-color="#6b5a3e"/>
+      <stop offset="0.7" stop-color="#3f3220"/>
+      <stop offset="1" stop-color="#1f190d"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#222a60"/>
+      <stop offset="0.5" stop-color="#151a3c"/>
+      <stop offset="1" stop-color="#0f1332"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cdd8f4" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#cdd8f4" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.26"/>
+    </linearGradient>
+  </defs>
+  <path d="M 43 8 H 137 L 170 41 V 139 L 137 172 H 43 L 10 139 V 41 Z" fill="#02030a" opacity="0.55"/>
+  <path d="M 38 2 H 138 L 174 38 V 138 L 138 174 H 38 L 2 138 V 38 Z" fill="url(#bronze)"/>
+  <path d="M 6 36 L 40 4 H 136 L 170 36" fill="none" stroke="#d9b47a" stroke-width="3" opacity="0.9"/>
+  <path d="M 6 140 L 40 172 H 136 L 170 140" fill="none" stroke="#141007" stroke-width="3" opacity="0.85"/>
+  <path d="M 42 8 H 134 L 168 42 V 134 L 134 168 H 42 L 8 134 V 42 Z" fill="#141007"/>
+  <path d="M 44 11 H 132 L 165 44 V 132 L 132 165 H 44 L 11 132 V 44 Z" fill="url(#ink)"/>
+  <polygon points="44,11 132,11 146,25 146,47 30,47 30,25" fill="url(#sheen)"/>
+  <polygon points="30,129 146,129 146,151 132,165 44,165 30,151" fill="url(#shade)"/>
+  <path d="M 48 16 H 128 L 160 48 V 128 L 128 160 H 48 L 16 128 V 48 Z" fill="none" stroke="#4b7f88" stroke-width="2" opacity="0.85"/>
+  <path d="M 53 21 H 123 L 155 53 V 123 L 123 155 H 53 L 21 123 V 53 Z" fill="none" stroke="#8a5f1e" stroke-width="1.4" opacity="0.9"/>
+  <g fill="none" stroke-width="1.6">
+    <path d="M 34 28 L 39 33 L 34 38 L 29 33 Z" stroke="#8a5f1e"/>
+    <line x1="25" y1="40" x2="30" y2="35" stroke="#4b7f88"/>
+    <line x1="40" y1="25" x2="35" y2="30" stroke="#4b7f88"/>
+    <path d="M 142 28 L 147 33 L 142 38 L 137 33 Z" stroke="#8a5f1e"/>
+    <line x1="151" y1="40" x2="146" y2="35" stroke="#4b7f88"/>
+    <line x1="136" y1="25" x2="141" y2="30" stroke="#4b7f88"/>
+    <path d="M 34 138 L 39 143 L 34 148 L 29 143 Z" stroke="#8a5f1e"/>
+    <line x1="25" y1="136" x2="30" y2="141" stroke="#4b7f88"/>
+    <line x1="40" y1="151" x2="35" y2="146" stroke="#4b7f88"/>
+    <path d="M 142 138 L 147 143 L 142 148 L 137 143 Z" stroke="#8a5f1e"/>
+    <line x1="151" y1="136" x2="146" y2="141" stroke="#4b7f88"/>
+    <line x1="136" y1="151" x2="141" y2="146" stroke="#4b7f88"/>
+  </g>
+  <g fill="#5d4a26">
+    <path d="M 20 16 L 24 20 L 20 24 L 16 20 Z"/>
+    <path d="M 156 16 L 160 20 L 156 24 L 152 20 Z"/>
+    <path d="M 20 152 L 24 156 L 20 160 L 16 156 Z"/>
+    <path d="M 156 152 L 160 156 L 156 160 L 152 156 Z"/>
+  </g>
+</svg>

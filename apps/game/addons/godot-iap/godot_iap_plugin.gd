@@ -29,6 +29,8 @@ func _exit_tree() -> void:
 
 class GodotIapExportPlugin extends EditorExportPlugin:
 	const PLUGIN_NAME = "GodotIap"
+	const ExtensionListComposer = preload(
+		"res://addons/moonlit-identity/extension_list_composer.gd")
 	const ANDROID_GDAP_PATH = "res://addons/godot-iap/android/GodotIap.gdap"
 	# Untracked developer settings. The example includes it so a debug export can
 	# reach a local IAPKit server; a release export must never carry the key.
@@ -70,9 +72,12 @@ class GodotIapExportPlugin extends EditorExportPlugin:
 				IOS_GDEXTENSION_EXPORT,
 				FileAccess.get_file_as_bytes(IOS_GDEXTENSION_SOURCE),
 				false)
+			# One composed list shared with the MoonlitIdentity export
+			# plugin: writing only this entry here would drop the other
+			# extension whenever this writer runs last.
 			add_file(
-				"res://.godot/extension_list.cfg",
-				(IOS_GDEXTENSION_EXPORT + "\n").to_utf8_buffer(),
+				ExtensionListComposer.extension_list_path(),
+				ExtensionListComposer.compose().to_utf8_buffer(),
 				false)
 		else:
 			push_warning(

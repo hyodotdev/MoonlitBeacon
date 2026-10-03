@@ -71,9 +71,11 @@ enum AttackProfile {
 @export var projectile_secondary: Color = Color(0.88, 0.96, 1.0, 1.0)
 
 ## Character art. Facing is four columns `down · up · left · right`, and
-## animation frames run top to bottom. The six custom heroes are 48×64, four
-## rows each for walk and idle. Default 16×16 is a compatibility value so older
-## course resources still load.
+## animation frames run top to bottom. The six custom heroes are 144×192
+## painted cells at visual_scale 0.255, four rows each for walk and idle: 3×
+## the legacy 48×64 pixels at 1/3 the legacy 0.765 body factor, so the world
+## footprint matches. Default 16×16 at 0.765 is a compatibility value so older
+## course resources still load and render at the tuned size.
 ##
 ## Keep the sheet and layout on the character resource so adding custom art
 ## does not require cloning the Player scene per character. Portrait is one
@@ -83,9 +85,12 @@ enum AttackProfile {
 @export var idle_sheet: Texture2D = null
 @export var portrait: Texture2D = null
 @export var sprite_cell: Vector2i = Vector2i(16, 16)
+## Sprite-node scale for the sheets. Painted cells are 3× the legacy pixels,
+## so 0.255 keeps the body, muzzle seats, and collision shapes where they were.
+@export var visual_scale: float = 0.765
 ## Region that drops transparent padding in the detail view. Size 0 uses the
-## whole cell. Combat keeps the original cell; only the detail view scales up
-## by an integer.
+## whole cell. Combat keeps the original cell; only the detail view rescales,
+## smooth, into its icon cell.
 @export var preview_crop: Rect2i = Rect2i()
 @export_range(1, 12, 1) var walk_frames: int = 4
 @export_range(1, 12, 1) var idle_frames: int = 1
@@ -93,7 +98,8 @@ enum AttackProfile {
 @export_range(1.0, 24.0, 0.5) var idle_fps: float = 1.0
 
 
-## First idle frame for a 48×48 icon cell. A 24×24 crop, so it scales exactly 2×.
+## First idle frame for a 48×48 icon cell. A 72×72 head crop of the painted
+## idle sheet, downscaled smooth.
 ##
 ## The shrine card and the detail header must share the same picture or "tap
 ## the small one to see the large one" fails. Drop a 96×96 portrait in that

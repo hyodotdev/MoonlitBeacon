@@ -56,6 +56,7 @@ import {
   buildAndroidPersistentEvidence,
   captureAndroidPersistentSnapshot,
   decodeAndroidPrivateFileBase64,
+  isAndroidPersistentDynamicFile,
   isAndroidPrivateFileMissingBase64Error,
   restoreAndroidPersistentSnapshot,
 } from './lib/android-capture-persistence.mjs';
@@ -824,8 +825,40 @@ async function waitForArena(label, locale) {
   );
 }
 
+function isPrivateFileName(name) {
+  // Lowercase control/fixed files by charset; account partitions (uppercase
+  // `MB-` IDs, mixed-case UIDs) only by the validated dynamic pattern.
+  return /^[a-z0-9._-]+$/u.test(name) || isAndroidPersistentDynamicFile(name);
+}
+
+function listPrivateFileNames() {
+  const result = spawnSync(
+    adb,
+    ['-s', serial, 'shell', 'run-as', PACKAGE, 'ls', '-1', 'files'],
+    {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      env: CAPTURE_CHILD_ENV,
+      maxBuffer: 1 * 1024 * 1024,
+    },
+  );
+  const stderr = String(result.stderr ?? '').trim();
+  if (result.status !== 0 || stderr !== '') {
+    // A fresh install has no files dir yet: empty universe, fixed files
+    // still probe individually. Anything else fails closed.
+    if (result.status === 1 && /No such file or directory/u.test(stderr)) return [];
+    fail(
+      'failed to list debug APK private files. '
+      + `(${stderr || `ls status ${result.status}`})`,
+    );
+  }
+  return String(result.stdout ?? '').split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
+}
+
 function readPrivateFile(name, optional = false) {
-  if (!/^[a-z0-9._-]+$/u.test(name)) {
+  if (!isPrivateFileName(name)) {
     fail(`debug private file name is not safe: ${name}`);
   }
   let lastError = '';
@@ -964,7 +997,7 @@ function clearStoreCaptureBootHandshake() {
 }
 
 function writePrivateFile(name, contents) {
-  if (!/^[a-z0-9._-]+$/u.test(name)) {
+  if (!isPrivateFileName(name)) {
     fail(`debug private file name is not safe: ${name}`);
   }
   run(
@@ -1010,6 +1043,7 @@ function capturePersistentFilesBeforeFirstLaunch() {
   adbRun(['shell', 'am', 'force-stop', PACKAGE]);
   return captureAndroidPersistentSnapshot(
     (name) => readPrivateFile(name, true),
+    { listFiles: listPrivateFileNames },
   );
 }
 
@@ -1021,6 +1055,7 @@ function restorePersistentFiles(original) {
     removeFile: (name) => adbRun([
       'shell', 'run-as', PACKAGE, 'rm', '-f', `files/${name}`,
     ]),
+    listFiles: listPrivateFileNames,
   });
 }
 

@@ -47,6 +47,19 @@ import {
 } from './lib/iapkit-config.mjs';
 import { runGodotExportPreflight } from './lib/godot-export-preflight.mjs';
 import {
+  appleSignInGranted,
+  assertAppleSignInProfileSupport,
+  cleanupIdentityExport,
+  generatedEntitlementsPromiseAppleSignIn,
+  identityNativeArtifactStatus,
+  prepareIdentityExport,
+  recoverStaleAppleEntitlementGrant,
+  restoreTemporaryAppleEntitlement,
+  shouldStageAppleEntitlement,
+  stageTemporaryAppleEntitlement,
+} from './lib/identity-export.mjs';
+import { redactIdentitySecrets } from './lib/player-identity-build.mjs';
+import {
   cleanupIncompleteIosExportDirectory,
   cleanupStaleIosWorkflowExportDirectory,
   configureGeneratedIosInfoPlistLocalizations,
@@ -298,6 +311,9 @@ function configureAutomaticReleaseSigning() {
 
 let stagedIapIos = false;
 let stagedIapKitConfig = false;
+let stagedIdentityConfig = false;
+let stagedAppleEntitlement = false;
+let stagedAppleEntitlementPrevious = null;
 let ownsIapIosLock = false;
 let ownsIapIosLockGuard = false;
 let ownsIosWorkflowLock = false;
@@ -453,6 +469,14 @@ function acquireIapIosLock() {
       }
       recoverDirectIapKitConfig(ROOT);
       cleanupStaleGeneratedIapKitConfig(ROOT);
+      cleanupIdentityExport({ root: ROOT });
+      {
+        // A killed export may have left the temporary preset grant behind.
+        const stale = recoverStaleAppleEntitlementGrant({ root: ROOT });
+        if (stale.recovered) {
+          console.log(`Recovered stale Apple entitlement staging (${stale.note}).`);
+        }
+      }
       if (existsSync(IAP_IOS_STAGE) && IAP_IOS_STAGE.startsWith(IAP_ADDON + '/')) {
         rmSync(IAP_IOS_STAGE, { recursive: true, force: true });
       }
@@ -494,6 +518,24 @@ function unstageIapIos() {
       cleanupError = error;
     }
   }
+  if (ownsIapIosLock && stagedIdentityConfig) {
+    try {
+      cleanupIdentityExport({ root: ROOT });
+    } catch (error) {
+      cleanupError ??= error;
+    }
+  }
+  if (ownsIapIosLock && stagedAppleEntitlement) {
+    try {
+      restoreTemporaryAppleEntitlement({
+        root: ROOT,
+        presetsPath: join(ROOT, 'apps/game/export_presets.cfg'),
+        previous: stagedAppleEntitlementPrevious,
+      });
+    } catch (error) {
+      cleanupError ??= error;
+    }
+  }
   if (ownsIapIosLock && stagedIapIos && IAP_IOS_STAGE.startsWith(IAP_ADDON + '/')) {
     try {
       rmSync(IAP_IOS_STAGE, { recursive: true, force: true });
@@ -517,6 +559,9 @@ function unstageIapIos() {
   }
   stagedIapIos = false;
   stagedIapKitConfig = false;
+  stagedIdentityConfig = false;
+  stagedAppleEntitlement = false;
+  stagedAppleEntitlementPrevious = null;
   ownsIapIosLock = false;
   if (cleanupError) throw cleanupError;
 }
@@ -569,6 +614,53 @@ function doExport(release = false) {
       env: CHILD_ENV,
     });
     stageIapIos();
+    // Identity preflight is diagnostics plus staging, never a gate: a
+    // missing provider setup stages partial (or no) config and the export
+    // still runs honest local guest play.
+    const identityExport = prepareIdentityExport({
+      root: ROOT,
+      platform: 'ios',
+      env: process.env,
+    });
+    console.log(redactIdentitySecrets(identityExport.report).trimEnd());
+    for (const artifact of identityNativeArtifactStatus({
+      root: ROOT,
+      platform: 'ios',
+      variant: release ? 'release' : 'debug',
+    })) {
+      console.log(
+        `identity artifact ${artifact.label}: ${artifact.present ? 'present' : 'missing'}`,
+      );
+    }
+    if (identityExport.installed) {
+      stagedIdentityConfig = true;
+      console.log('Staged public identity config for one export; removed after.');
+    } else {
+      console.log('No public identity config to stage; the export runs guest-only.');
+    }
+    // The temporary applesignin grant rides the supported
+    // `entitlements/additional` preset hook for exactly this export; the
+    // locked presets are restored byte-exact afterwards.
+    if (shouldStageAppleEntitlement({
+      resolution: identityExport.resolution,
+      exportPresetsSource: readFileSync(
+        join(ROOT, 'apps/game/export_presets.cfg'),
+        'utf8',
+      ),
+    })) {
+      const appleStaged = stageTemporaryAppleEntitlement({ root: ROOT });
+      if (appleStaged.staged) {
+        stagedAppleEntitlement = true;
+        stagedAppleEntitlementPrevious = appleStaged.previous;
+        console.log(
+          'Added the temporary Sign in with Apple grant to the iOS preset extras; restored after.',
+        );
+      } else {
+        console.log(
+          'Sign in with Apple grant already present in the iOS preset extras; leaving it.',
+        );
+      }
+    }
     run('node', [
       'scripts/godot.mjs',
       '--headless',
@@ -634,6 +726,7 @@ function doBuild(udid, bundleIdentifier = BUNDLE) {
     app = iosDebugAppPath(DEV_FALLBACK_DD, SCHEME);
     installIosFallbackIcon(app);
     verifyDebugIosApp(app, 'after successful Debug development build', bundleIdentifier);
+    verifyAppleSignInProfileForApp(app);
     return app;
   }
   const usedFallback = runIosDebugBuildWithFallback(
@@ -684,6 +777,7 @@ function doBuild(udid, bundleIdentifier = BUNDLE) {
     installIosFallbackIcon(app);
   }
   verifyDebugIosApp(app, 'after successful Debug build', bundleIdentifier);
+  verifyAppleSignInProfileForApp(app);
   return app;
 }
 
@@ -976,6 +1070,38 @@ function verifyDistributionArchive() {
   });
 }
 
+function generatedSchemePromisesAppleSignIn() {
+  let names = [];
+  try {
+    names = readdirSync(join(PROJ_DIR, SCHEME), { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.entitlements'))
+      .map((entry) => entry.name);
+  } catch {
+    return false;
+  }
+  return names.some((name) => {
+    try {
+      return generatedEntitlementsPromiseAppleSignIn(
+        readFileSync(join(PROJ_DIR, SCHEME, name), 'utf8'),
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+function verifyAppleSignInProfileForApp(app) {
+  if (!generatedSchemePromisesAppleSignIn()) return;
+  const scratch = mkdtempSync(join(tmpdir(), 'moonlit-ios-applesignin-'));
+  try {
+    const profile = readProvisioningProfile(app, scratch);
+    assertAppleSignInProfileSupport(profile.Entitlements, { required: true });
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+  console.log('Sign in with Apple: signing profile grants the staged entitlement.');
+}
+
 function readCodeSigningEntitlements(app, scratch) {
   const result = run(
     'codesign',
@@ -1118,12 +1244,13 @@ function verifyAppStoreIpa() {
       `${signature.stdout ?? ''}\n${signature.stderr ?? ''}`,
       expected,
     );
-    assertDistributionEntitlements(
-      readCodeSigningEntitlements(app, scratch),
-      expected,
-    );
+    const appEntitlements = readCodeSigningEntitlements(app, scratch);
+    assertDistributionEntitlements(appEntitlements, expected);
     const profile = readProvisioningProfile(app, scratch);
     assertDistributionProfile(profile, expected);
+    assertAppleSignInProfileSupport(profile.Entitlements, {
+      required: appleSignInGranted(appEntitlements),
+    });
     const signingCertificate = readCodeSigningCertificate(app, scratch);
     assertSigningCertificateValid(signingCertificate);
     assertProfileContainsSigningCertificate(profile, signingCertificate);

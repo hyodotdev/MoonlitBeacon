@@ -32,6 +32,20 @@ var _mouse_left_down: bool = false
 var _choice_armed: bool = false
 var _open_generation: int = 0
 var _paused_before_open: bool = false
+var _beads_hung: bool = false
+
+
+func _flank_bead(anchor: float, from: float, to: float) -> void:
+	var bead: TextureRect = WorldChrome.bead()
+	bead.anchor_left = anchor
+	bead.anchor_top = 0.5
+	bead.anchor_right = anchor
+	bead.anchor_bottom = 0.5
+	bead.offset_left = from
+	bead.offset_top = -6.0
+	bead.offset_right = to
+	bead.offset_bottom = 6.0
+	_title.add_child(bead)
 var _privacy_url: String = ""
 var _open_tween: Tween
 var _save_failed: bool = false
@@ -82,6 +96,13 @@ func open() -> void:
 	_refresh_copy()
 	_refresh_privacy_link()
 	_set_actions_enabled(false)
+	# Moon beads inside the title's own margins; the consent title always
+	# leaves room at the row edges in all five locales. Hung on first open,
+	# never in `_ready` (arena node budget).
+	if not _beads_hung:
+		_beads_hung = true
+		_flank_bead(0.0, 8.0, 20.0)
+		_flank_bead(1.0, -20.0, -8.0)
 	visible = true
 	modulate.a = 0.0
 	get_tree().paused = true

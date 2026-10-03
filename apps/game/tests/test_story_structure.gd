@@ -30,6 +30,7 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_acts_by_cycle()
+	_test_acts_match_episode_catalog()
 	_test_every_key_exists_in_every_locale()
 	_test_chronicle_persistence()
 	_test_chronicle_survives_a_corrupt_file()
@@ -68,6 +69,22 @@ func _test_acts_by_cycle() -> void:
 	for cycle: int in membership:
 		_expect_equal(str(Acts.of_cycle(cycle)["id"]), str(membership[cycle]),
 			"cycle %d belongs to %s" % [cycle, membership[cycle]])
+
+
+## `Acts` resolves through the episode catalog now; the literal boundaries
+## it keeps for direct iteration must agree with it, or the two drift apart.
+func _test_acts_match_episode_catalog() -> void:
+	var bounds: Array[Dictionary] = StoryEpisodes.act_boundaries()
+	_expect_equal(bounds.size(), Acts.LIST.size(), "four act boundaries in the catalog")
+	for index in bounds.size():
+		_expect_equal(str(bounds[index]["id"]), str(Acts.LIST[index]["id"]),
+			"catalog act %d id" % index)
+		_expect_equal(int(bounds[index]["from"]), int(Acts.LIST[index]["from"]),
+			"catalog act %d start" % index)
+		_expect_equal(int(bounds[index]["number"]), int(Acts.LIST[index]["number"]),
+			"catalog act %d number" % index)
+	_expect_equal(StoryEpisodes.story_beats(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12],
+		"catalog beats match the shipped story")
 
 
 # --- translations -------------------------------------------------------------
@@ -250,11 +267,12 @@ func _test_chronicle_panel() -> void:
 	TranslationServer.set_locale("en")
 	panel.call("open")
 	await get_tree().process_frame
-	var list: VBoxContainer = panel.get_node("Frame/Margin/Rows/Scroll/List") as VBoxContainer
+	var list: VBoxContainer = panel.get_node(
+		"Frame/Margin/Rows/Book/IndexScroll/IndexList") as VBoxContainer
 	# Eight section headings plus one row per entry: nothing is hidden, so the
 	# player can see how much is left.
 	_expect_equal(list.get_child_count(), 8 + Chronicle.total_count(),
-		"the page lists every section and every entry")
+		"the index lists every section and every entry")
 	var progress: Label = panel.get_node("Frame/Margin/Rows/Header/Progress") as Label
 	_expect_equal(progress.text, "Recorded 2/40", "the page shows how many are recorded")
 
@@ -265,6 +283,44 @@ func _test_chronicle_panel() -> void:
 	var heading_title: Label = heading_row.get_child(heading_row.get_child_count() - 1) as Label
 	_expect_true(heading_title.size.x >= 40.0 and heading_title.size.y <= 30.0,
 		"a section heading lays out on one line")
+
+	# The open page beside the index shows the selected memory at reading
+	# size: first the first found entry, then whatever row is tapped.
+	var page_title: Label = panel.get_node(
+		"Frame/Margin/Rows/Book/Page/PageMargin/PageRows/PageTitle") as Label
+	var page_body: VBoxContainer = panel.get_node(
+		"Frame/Margin/Rows/Book/Page/PageMargin/PageRows/PageScroll/PageBody") \
+		as VBoxContainer
+	var page_state: Label = panel.get_node(
+		"Frame/Margin/Rows/Book/Page/PageMargin/PageRows/PageState") as Label
+	_expect_true(page_title != null and not page_title.text.is_empty()
+		and page_title.text != "?",
+		"the page opens on a found memory")
+	_expect_true(page_body != null and page_body.get_child_count() >= 1,
+		"the page carries the memory's lines")
+	_expect_true(page_state != null and page_state.text.contains("/"),
+		"the page numbers itself among all memories")
+	var locked_row: Control = null
+	var found_row: Control = null
+	for child in list.get_children():
+		if child is WorldFrame:
+			if (child as WorldFrame).kind == "chip":
+				locked_row = child
+			else:
+				found_row = child
+	_expect_true(locked_row != null and found_row != null,
+		"the index keeps found and undiscovered rows apart")
+	if locked_row != null:
+		var tap := InputEventMouseButton.new()
+		tap.button_index = MOUSE_BUTTON_LEFT
+		tap.pressed = true
+		locked_row.emit_signal(&"gui_input", tap)
+		_expect_equal(page_title.text, "?",
+			"a locked row opens a locked page")
+	if found_row != null:
+		found_row.grab_focus()
+		_expect_true(page_title.text != "?",
+			"keyboard focus opens the focused memory")
 
 	panel.call("close")
 	_expect_equal(closed[0], 1, "closing the page reports it")

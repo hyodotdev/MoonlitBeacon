@@ -13,6 +13,15 @@ extends Node
 ## Usage:
 ##     node scripts/godot.mjs --path apps/game res://tools/shot_ui.tscn
 ##     node scripts/godot.mjs --path apps/game res://tools/shot_ui.tscn -- ko,ja hud,relic
+##     node scripts/godot.mjs --path apps/game res://tools/shot_ui.tscn -- ko "" 840x360
+##     node scripts/godot.mjs --path apps/game res://tools/shot_ui.tscn -- en "" 808x360 validate
+##
+## The third argument overrides the capture size (responsive bounds are
+## confirmed at 840x360 and 808x606). A fourth `validate` argument skips the
+## capture and instead asserts, per screen, that the panel opens visible and
+## error-free, that every World* decor node ignores the mouse, and that every
+## custom-drawn control samples Linear. Validate runs headless; the director
+## renders the real pictures on a display.
 ##
 ## Output lands in `builds/shots/ui/<locale>/<screen>.png`, so it is not
 ## committed. Lives in `tools/`, which `_runtime_fingerprint()` excludes.
@@ -71,20 +80,27 @@ const SCREENS: Dictionary = {
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	get_window().size = Vector2i(808, 360)
-	get_window().content_scale_size = Vector2i(808, 360)
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	var win_size := Vector2i(808, 360)
+	if args.size() >= 3 and not args[2].is_empty() and args[2] != "validate":
+		var bits: PackedStringArray = args[2].split("x")
+		win_size = Vector2i(int(bits[0]), int(bits[1]))
+	get_window().size = win_size
+	get_window().content_scale_size = win_size
+	var validate: bool = "validate" in args
 
 	var locales: Array[String] = DEFAULT_LOCALES.duplicate()
 	var wanted: Array[String] = []
-	var args: PackedStringArray = OS.get_cmdline_user_args()
 	if args.size() >= 1 and not args[0].is_empty():
 		locales = []
 		for locale in args[0].split(","):
 			locales.append(locale)
 	if args.size() >= 2 and not args[1].is_empty():
 		for id in args[1].split(","):
-			wanted.append(id)
+			if id != "validate":
+				wanted.append(id)
 
+	var failures: int = 0
 	for locale in locales:
 		TranslationServer.set_locale(locale)
 		var dir: String = ProjectSettings.globalize_path("%s/%s" % [OUT, locale])
@@ -92,8 +108,139 @@ func _ready() -> void:
 		for id: String in SCREENS:
 			if not wanted.is_empty() and not id in wanted:
 				continue
-			await _shoot(id, "%s/%s.png" % [dir, id])
-	get_tree().quit(0)
+			if validate:
+				failures += await _validate(id, locale)
+			else:
+				await _shoot(id, "%s/%s.png" % [dir, id])
+	if validate:
+		print("validate: %d screens checked at %dx%d" % [
+			SCREENS.size() if wanted.is_empty() else wanted.size(),
+			win_size.x, win_size.y])
+	get_tree().quit(1 if failures > 0 else 0)
+
+
+## Open one screen like the capture does, then assert structure instead of
+## photographing it. Returns 1 on failure, 0 when the screen is sound.
+func _validate(id: String, locale: String) -> int:
+	var world := Node2D.new()
+	add_child(world)
+	if id != "title":
+		var room: Room = ROOM.instantiate() as Room
+		world.add_child(room)
+		room.build(load(FOREST) as RoomKind, SEED)
+		var camera := Camera2D.new()
+		camera.position = FRAME_AT
+		world.add_child(camera)
+		camera.make_current()
+	var layer := CanvasLayer.new()
+	layer.layer = 10
+	world.add_child(layer)
+	var node: Node = (load(SCREENS[id]) as PackedScene).instantiate()
+	if id == "title":
+		world.add_child(node)
+	else:
+		layer.add_child(node)
+	await get_tree().process_frame
+	_open(id, node)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var problems: Array[String] = []
+	if not is_instance_valid(node):
+		problems.append("instance invalid")
+	elif not (node as CanvasItem).visible:
+		problems.append("not visible after open")
+	if is_instance_valid(node):
+		_walk_validate(node, problems)
+		_check_role(id, node, problems)
+	if problems.is_empty():
+		print("ok %s [%s]" % [id, locale])
+	else:
+		printerr("FAIL %s [%s]: %s" % [id, locale, "; ".join(problems)])
+	get_tree().paused = false
+	world.queue_free()
+	await get_tree().process_frame
+	return 0 if problems.is_empty() else 1
+
+
+func _walk_validate(node: Node, problems: Array[String]) -> void:
+	for child in node.get_children():
+		if child is TextureRect and str(child.name).begins_with("World"):
+			if (child as TextureRect).mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				problems.append("%s eats taps" % child.get_path())
+		if child is WorldButton or child is WorldFrame \
+				or child is WorldPanel or child is WorldLabel:
+			if (child as Control).texture_filter \
+					!= CanvasItem.TEXTURE_FILTER_LINEAR:
+				problems.append("%s not Linear" % child.get_path())
+		if child is WorldButton or child is WorldLabel:
+			# Faces exist exactly while drawn; hidden branches carry none.
+			if not (child as Control).is_visible_in_tree():
+				_walk_validate(child, problems)
+				continue
+			var face := (child as Control).get_child(0) as WorldFace
+			if face == null or not face.show_behind_parent:
+				problems.append("%s face not behind native paint"
+					% child.get_path())
+		_walk_validate(child, problems)
+
+
+## Role-layout asserts: each major screen carries its own composition, not
+## a generic dialog. Structural only (nodes, counts, copy hooks); the
+## director judges the pixels from the real renders.
+func _check_role(id: String, node: Node, problems: Array[String]) -> void:
+	match id:
+		"shrine":
+			var rail: HBoxContainer = node.get_node_or_null(
+				"Frame/Margin/Rows/HeroesScroll/Heroes") as HBoxContainer
+			if rail == null or rail.get_child_count() != 6:
+				problems.append("shrine rail is not six heroes")
+		"hero":
+			var body: TextureRect = node.get_node_or_null(
+				"Frame/Margin/Rows/Content/BodyStage/Center/Body") as TextureRect
+			if body == null or body.texture == null:
+				problems.append("hero exhibition has no body")
+			else:
+				if body.get_node_or_null("Dais") == null:
+					problems.append("hero exhibition has no dais")
+				var weapon: TextureRect = body.get_node_or_null(
+					"Weapon") as TextureRect
+				if weapon == null or weapon.texture == null:
+					problems.append("hero exhibition has no weapon")
+		"chronicle":
+			var index: VBoxContainer = node.get_node_or_null(
+				"Frame/Margin/Rows/Book/IndexScroll/IndexList") as VBoxContainer
+			var page: Label = node.get_node_or_null(
+				"Frame/Margin/Rows/Book/Page/PageMargin/PageRows/PageTitle") as Label
+			if index == null or index.get_child_count() == 0:
+				problems.append("chronicle index is empty")
+			if page == null or page.text.is_empty():
+				problems.append("chronicle page shows no memory")
+		"shop":
+			var cards: HBoxContainer = node.get_node_or_null(
+				"Frame/Margin/Rows/CardsScroll/Cards") as HBoxContainer
+			var coins: HBoxContainer = node.get_node_or_null(
+				"Frame/Margin/Rows/CoinsScroll/Coins") as HBoxContainer
+			if cards == null or cards.get_child_count() == 0:
+				problems.append("shop has no product cards")
+			if coins == null or coins.get_child_count() == 0:
+				problems.append("shop has no coin cards")
+			if coins != null and coins.get_child_count() > 0:
+				var mint: Control = (coins.get_child(0) as Control) \
+					.get_node_or_null("Rows/Footer/Artwork") as Control
+				if mint == null:
+					problems.append("coin card has no mint mark")
+		"result_lose", "result_win":
+			var hero_body: TextureRect = node.get_node_or_null(
+				"HeroBody") as TextureRect
+			var hero_name: Label = node.get_node_or_null(
+				"HeroName") as Label
+			if hero_body == null or not hero_body.visible \
+					or hero_body.texture == null:
+				problems.append("journey record hides its hero")
+			if hero_name == null or not hero_name.visible \
+					or hero_name.text.is_empty():
+				problems.append("journey record names no hero")
 
 
 func _shoot(id: String, path: String) -> void:
@@ -164,9 +311,11 @@ func _open(id: String, node: Node) -> void:
 		"choice_cycle":
 			node.call("open_cycle", 3)
 		"result_lose":
-			node.call("show_result", false, _sample_score(2), true, true)
+			node.call("show_result", false, _sample_score(2), true, true,
+				-1, false, KEEPER)
 		"result_win":
-			node.call("show_result", true, _sample_score(9), true, false)
+			node.call("show_result", true, _sample_score(9), true, false,
+				3, false, KEEPER)
 		"ladder":
 			node.call("view")
 		"hero":

@@ -40,10 +40,14 @@ const ROW_GAP: float = 0.08
 ## The total counts up a little more slowly.
 const SUM_SECONDS: float = 0.42
 
+@onready var _dim: ColorRect = $Dim
+@onready var _card: Panel = $Card
 @onready var _title: Label = $Title
 @onready var _epitaph: Label = $Epitaph
 @onready var _detail: Label = $Detail
 @onready var _stamp: Label = $Stamp
+@onready var _hero_body: TextureRect = $HeroBody
+@onready var _hero_name: Label = $HeroName
 @onready var _window: TextureRect = $Window
 @onready var _road: Label = $Road
 @onready var _hint: Label = $Hint
@@ -54,7 +58,14 @@ const SUM_SECONDS: float = 0.42
 @onready var _shrine: Button = $Actions/Shrine
 @onready var _record: Button = $Actions/Record
 
+const DIM_WIN: Color = Color(0.10, 0.07, 0.03, 0.86)
+const DIM_LOSE: Color = Color(0.02, 0.04, 0.09, 0.88)
+
 var _accepting: bool = false
+## The journey seal, allocated with the first result and never before. A seal
+## built in the declaration would sit unparented on every unopened Result and
+## leak its CanvasItem and texture at teardown.
+var _seal: TextureRect = null
 
 ## Numbers currently on screen. The tween edits these and `_redraw()` draws.
 var _rows: Array = []
@@ -77,11 +88,28 @@ func _ready() -> void:
 
 func show_result(
 	won: bool, score: Score, is_best: bool, can_record: bool = false,
-	places_restored: int = -1
+	places_restored: int = -1, gate_retry_available: bool = false,
+	hero_path: String = ""
 ) -> void:
 	_accepting = false
 	_reveal_finished = false
 	_overlay_blocked = false
+	# Decor hangs on first result, never in `_ready`: the arena holds this
+	# panel closed and hidden decor would spend the node budget for nothing.
+	WorldChrome.ensure_tab(_card, "gate")
+	if _seal == null:
+		_seal = WorldChrome.seal(true)
+	if _seal.get_parent() == null:
+		_seal.anchor_left = 0.5
+		_seal.anchor_top = 0.5
+		_seal.anchor_right = 0.5
+		_seal.anchor_bottom = 0.5
+		_seal.offset_left = 88.0
+		_seal.offset_top = -66.0
+		_seal.offset_right = 152.0
+		_seal.offset_bottom = -2.0
+		add_child(_seal)
+		move_child(_seal, _stamp.get_index())
 	_set_actions_enabled(false)
 	_score = score
 	_is_best = is_best
@@ -91,6 +119,12 @@ func show_result(
 	# A run they returned from and settled is already over. Showing paid
 	# continue then treats a win like a death, so it is only on a loss.
 	_continue.visible = not won
+	# After a lost run with a checkpoint, Retry returns through the saved
+	# gate instead of starting over. The button says which one it is.
+	if gate_retry_available and not won:
+		_retry.text = tr("RESULT_GATE_RETRY")
+	else:
+		_retry.text = tr("RESULT_RETRY")
 	_title.text = tr("RESULT_WIN") \
 		if won and score.cycles >= LEGEND_CYCLE \
 		else (tr("RESULT_ESCAPE") if won else tr("RESULT_LOSE"))
@@ -124,6 +158,11 @@ func show_result(
 	_stamp.text = score.rank()
 	_stamp.add_theme_color_override("font_color", RANK_COLORS.get(score.rank(), LOSE_COLOR))
 	_stamp.visible = false
+	# The journey stamp behind the rank and the wash over the room: gold for a
+	# cleared gate, cold ink for a defeat. Same layout either way.
+	_seal.texture = WorldChrome.SEAL_WIN if won else WorldChrome.SEAL_LOSE
+	_dim.color = DIM_WIN if won else DIM_LOSE
+	_refresh_hero(hero_path)
 
 	_refresh_persistence_summary()
 	_refresh_purchase_goal()
@@ -197,6 +236,37 @@ func _refresh_road(ending: String, score: Score, places: int) -> void:
 	cell.region = Rect2(32 if ending == "win" else 0, 0, 32, 32)
 	_window.texture = cell
 	_window.visible = true
+
+
+## The journey record's hero plate: the actual completed run's full body on
+## a dais, with the hero's name in its accent. `hero_path` is the arena's
+## run-start snapshot, never a fresh vault read, so a later shrine selection
+## cannot rewrite who fought this run. Empty hides the plate.
+func _refresh_hero(hero_path: String) -> void:
+	var hero: Hero = load(hero_path) as Hero \
+		if not hero_path.is_empty() else null
+	if hero == null or hero.portrait == null:
+		_hero_body.visible = false
+		_hero_name.visible = false
+		return
+	_hero_body.texture = hero.portrait
+	_hero_body.visible = true
+	_hero_name.text = tr(hero.display_name)
+	_hero_name.add_theme_color_override("font_color", hero.accent)
+	_hero_name.visible = true
+	if _hero_body.get_node_or_null("Dais") == null:
+		var dais: TextureRect = WorldChrome.dais()
+		dais.name = &"Dais"
+		dais.show_behind_parent = true
+		dais.anchor_left = 0.0
+		dais.anchor_top = 1.0
+		dais.anchor_right = 1.0
+		dais.anchor_bottom = 1.0
+		dais.offset_left = 0.0
+		dais.offset_top = -12.0
+		dais.offset_right = 0.0
+		dais.offset_bottom = 12.0
+		_hero_body.add_child(dais)
 
 
 func _refresh_purchase_goal() -> void:

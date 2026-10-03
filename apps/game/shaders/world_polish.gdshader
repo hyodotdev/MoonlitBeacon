@@ -25,7 +25,7 @@ uniform float foot_shade : hint_range(0.0, 0.6) = 0.2;
 uniform float sway : hint_range(0.0, 3.0) = 0.0;
 uniform float sway_speed : hint_range(0.0, 4.0) = 0.9;
 // Sprites whose region starts above this row of the sheet are trees. The nature
-// sheet keeps every tree above row 128 and every rock, log and stump below it.
+// sheets keep every tree above this row and every rock, log and stump below it.
 uniform float tree_rows_above = 128.0;
 
 varying vec4 tint;

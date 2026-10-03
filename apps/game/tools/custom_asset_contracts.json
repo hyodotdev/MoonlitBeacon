@@ -35,1138 +35,1224 @@
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/camp.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 43930,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.camp.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/camp_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 57397,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.camp.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/camp_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65044,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.camp_siege",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/camp_siege.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 43904,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.camp_siege.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/camp_siege_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 58300,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.camp_siege.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/camp_siege_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 65476,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 34737,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 52307,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field.windup_cross",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_windup_cross.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 52864,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field.windup_radial",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_windup_radial.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 52864,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field_storm",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_storm.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 35319,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field_storm.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_storm_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 53774,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field_storm.windup_cross",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_storm_windup_cross.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 53283,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.field_storm.windup_radial",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/field_storm_windup_radial.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 53283,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 34488,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest.charge",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_charge.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 55074,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 52504,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 58991,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest_thorn",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_thorn.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 36212,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest_thorn.charge",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_thorn_charge.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 60620,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest_thorn.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_thorn_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 55773,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.forest_thorn.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/forest_thorn_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 62162,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 38681,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 48072,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost.charge",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_charge.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 50995,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 46179,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost_rime",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_rime.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 37413,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost_rime.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_rime_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 42456,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost_rime.charge",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_rime_charge.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 46897,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.frost_rime.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/frost_rime_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 44820,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 37571,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 49568,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh.charge",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_charge.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 54924,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 44514,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh_glow",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_glow.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 38751,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh_glow.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_glow_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 51465,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh_glow.charge",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_glow_charge.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 58084,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.marsh_glow.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/marsh_glow_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 46633,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.ruins",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/ruins.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 45315,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.ruins.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/ruins_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 58482,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.ruins.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/ruins_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 49798,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.ruins_halo",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/ruins_halo.png",
-      "width": 384,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 1152,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 46939,
       "frame_grid": {
         "columns": 6,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.ruins_halo.windup",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/ruins_halo_windup.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 60900,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "boss.ruins_halo.recover",
       "category": "boss",
       "status": "final",
       "path": "assets/custom/actors/guardians/ruins_halo_recover.png",
-      "width": 256,
-      "height": 64,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 48,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 52013,
       "frame_grid": {
         "columns": 4,
         "rows": 1,
-        "cell_width": 64,
-        "cell_height": 64,
+        "cell_width": 192,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
-          "left": 2,
-          "right": 2,
-          "top": 2,
+          "left": 1,
+          "right": 1,
+          "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.caster",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/caster.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 21929,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.drifter",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/drifter.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 19915,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.ember",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/ember.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 21289,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.stalker",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/stalker.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 12889,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.swarm",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/swarm.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 6954,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.weaver",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/weaver.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 23415,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "enemy.wisp",
       "category": "enemy",
       "status": "final",
       "path": "assets/custom/actors/spirits/wisp.png",
-      "width": 192,
-      "height": 192,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 4096,
+      "width": 576,
+      "height": 576,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 18840,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 48,
+        "cell_width": 144,
+        "cell_height": 144,
         "allow_blank_frames": false,
-        "edge_padding": 1
-      }
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 1,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "fx.beacon_flame",
@@ -1248,15 +1334,15 @@
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/dancer/idle.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 39647,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1264,7 +1350,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "hero.dancer.portrait",
@@ -1273,31 +1360,37 @@
       "path": "assets/custom/actors/heroes/dancer/portrait.png",
       "width": 96,
       "height": 96,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 8192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2803,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
         "cell_width": 96,
         "cell_height": 96,
         "allow_blank_frames": false,
-        "edge_padding": 2
-      }
+        "edge_padding": {
+          "left": 18,
+          "right": 19,
+          "top": 4,
+          "bottom": 4
+        }
+      },
+      "max_alpha_levels": 239
     },
     {
       "id": "hero.dancer.walk",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/dancer/walk.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 47074,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1305,22 +1398,23 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "hero.eclipse.idle",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/eclipse/idle.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 44612,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1328,7 +1422,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "hero.eclipse.portrait",
@@ -1337,31 +1432,37 @@
       "path": "assets/custom/actors/heroes/eclipse/portrait.png",
       "width": 96,
       "height": 96,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 8192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3638,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
         "cell_width": 96,
         "cell_height": 96,
         "allow_blank_frames": false,
-        "edge_padding": 2
-      }
+        "edge_padding": {
+          "left": 15,
+          "right": 16,
+          "top": 4,
+          "bottom": 4
+        }
+      },
+      "max_alpha_levels": 226
     },
     {
       "id": "hero.eclipse.walk",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/eclipse/walk.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 53618,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1369,22 +1470,23 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "hero.keeper.idle",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/keeper/idle.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 41467,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1392,7 +1494,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "hero.keeper.portrait",
@@ -1401,31 +1504,37 @@
       "path": "assets/custom/actors/heroes/keeper/portrait.png",
       "width": 96,
       "height": 96,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 8192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3287,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
         "cell_width": 96,
         "cell_height": 96,
         "allow_blank_frames": false,
-        "edge_padding": 2
-      }
+        "edge_padding": {
+          "left": 17,
+          "right": 18,
+          "top": 4,
+          "bottom": 4
+        }
+      },
+      "max_alpha_levels": 195
     },
     {
       "id": "hero.keeper.walk",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/keeper/walk.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 48802,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1433,22 +1542,23 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "hero.knight.idle",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/knight/idle.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 39030,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1456,7 +1566,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "hero.knight.portrait",
@@ -1465,31 +1576,37 @@
       "path": "assets/custom/actors/heroes/knight/portrait.png",
       "width": 96,
       "height": 96,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 8192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2647,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
         "cell_width": 96,
         "cell_height": 96,
         "allow_blank_frames": false,
-        "edge_padding": 2
-      }
+        "edge_padding": {
+          "left": 25,
+          "right": 26,
+          "top": 4,
+          "bottom": 4
+        }
+      },
+      "max_alpha_levels": 214
     },
     {
       "id": "hero.knight.walk",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/knight/walk.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 46870,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1497,22 +1614,23 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "hero.sage.idle",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/sage/idle.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 36945,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1520,7 +1638,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "hero.sage.portrait",
@@ -1529,31 +1648,37 @@
       "path": "assets/custom/actors/heroes/sage/portrait.png",
       "width": 96,
       "height": 96,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 8192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2680,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
         "cell_width": 96,
         "cell_height": 96,
         "allow_blank_frames": false,
-        "edge_padding": 2
-      }
+        "edge_padding": {
+          "left": 22,
+          "right": 23,
+          "top": 4,
+          "bottom": 4
+        }
+      },
+      "max_alpha_levels": 219
     },
     {
       "id": "hero.sage.walk",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/sage/walk.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 43500,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1561,22 +1686,23 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "hero.warden.idle",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/warden/idle.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 36405,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1584,7 +1710,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 256
     },
     {
       "id": "hero.warden.portrait",
@@ -1593,31 +1720,37 @@
       "path": "assets/custom/actors/heroes/warden/portrait.png",
       "width": 96,
       "height": 96,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 8192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3116,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
         "cell_width": 96,
         "cell_height": 96,
         "allow_blank_frames": false,
-        "edge_padding": 2
-      }
+        "edge_padding": {
+          "left": 16,
+          "right": 16,
+          "top": 4,
+          "bottom": 4
+        }
+      },
+      "max_alpha_levels": 188
     },
     {
       "id": "hero.warden.walk",
       "category": "hero",
       "status": "final",
       "path": "assets/custom/actors/heroes/warden/walk.png",
-      "width": 192,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16384,
+      "width": 576,
+      "height": 768,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 42136,
       "frame_grid": {
         "columns": 4,
         "rows": 4,
-        "cell_width": 48,
-        "cell_height": 64,
+        "cell_width": 144,
+        "cell_height": 192,
         "allow_blank_frames": false,
         "edge_padding": {
           "left": 1,
@@ -1625,7 +1758,8 @@
           "top": 1,
           "bottom": 0
         }
-      }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "objective.beacon_clearing",
@@ -1734,11 +1868,11 @@
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/camp.png",
-      "width": 368,
-      "height": 144,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 24,
-      "max_alpha_levels": 2
+      "width": 1104,
+      "height": 432,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 34321,
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.camp_floor_atlas",
@@ -1756,223 +1890,281 @@
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ground_camp.png",
-      "width": 96,
-      "height": 96,
+      "width": 512,
+      "height": 512,
       "alpha_mode": "opaque",
-      "max_visible_rgb_colors": 16
+      "max_visible_rgb_colors": 48111
     },
     {
       "id": "terrain.camp_props",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/camp_props.png",
-      "width": 256,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 64,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 38507,
       "frame_grid": {
-        "columns": 16,
-        "rows": 16,
-        "cell_width": 16,
-        "cell_height": 16,
-        "allow_blank_frames": true,
-        "edge_padding": 0
-      }
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 192,
+        "cell_height": 192,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.field_atlas",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/field.png",
-      "width": 80,
-      "height": 240,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 16,
-      "max_alpha_levels": 2
+      "width": 240,
+      "height": 720,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 13324,
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.field_ground",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ground_field.png",
-      "width": 96,
-      "height": 96,
+      "width": 512,
+      "height": 512,
       "alpha_mode": "opaque",
-      "max_visible_rgb_colors": 16
+      "max_visible_rgb_colors": 66561
     },
     {
       "id": "terrain.field_props",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/field_props.png",
-      "width": 256,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 64,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 41119,
       "frame_grid": {
-        "columns": 16,
-        "rows": 16,
-        "cell_width": 16,
-        "cell_height": 16,
-        "allow_blank_frames": true,
-        "edge_padding": 0
-      }
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 192,
+        "cell_height": 192,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.forest_floor",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/forest_floor.png",
-      "width": 256,
-      "height": 256,
+      "width": 512,
+      "height": 512,
       "alpha_mode": "opaque",
-      "max_visible_rgb_colors": 32
+      "max_visible_rgb_colors": 73490
     },
     {
       "id": "terrain.forest_props",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/forest_props.png",
-      "width": 256,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 64,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 41990,
       "frame_grid": {
-        "columns": 16,
-        "rows": 16,
-        "cell_width": 16,
-        "cell_height": 16,
-        "allow_blank_frames": true,
-        "edge_padding": 0
-      }
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 192,
+        "cell_height": 192,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.nature_atlas",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/nature.png",
-      "width": 384,
-      "height": 336,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 32,
-      "max_alpha_levels": 2
+      "width": 1152,
+      "height": 1008,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 37201,
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.frost_ground",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ground_frost.png",
-      "width": 96,
-      "height": 96,
+      "width": 512,
+      "height": 512,
       "alpha_mode": "opaque",
-      "max_visible_rgb_colors": 16
+      "max_visible_rgb_colors": 19433
     },
     {
       "id": "terrain.frost_props",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/frost_props.png",
-      "width": 256,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 64,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 41294,
       "frame_grid": {
-        "columns": 16,
-        "rows": 16,
-        "cell_width": 16,
-        "cell_height": 16,
-        "allow_blank_frames": true,
-        "edge_padding": 0
-      }
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 192,
+        "cell_height": 192,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.frost_nature",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/frost_nature.png",
-      "width": 384,
-      "height": 336,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 32,
-      "max_alpha_levels": 2
+      "width": 1152,
+      "height": 1008,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 36340,
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.marsh_ground",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ground_marsh.png",
-      "width": 96,
-      "height": 96,
+      "width": 512,
+      "height": 512,
       "alpha_mode": "opaque",
-      "max_visible_rgb_colors": 16
+      "max_visible_rgb_colors": 51590
     },
     {
       "id": "terrain.marsh_props",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/marsh_props.png",
-      "width": 256,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 64,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 48359,
       "frame_grid": {
-        "columns": 16,
-        "rows": 16,
-        "cell_width": 16,
-        "cell_height": 16,
-        "allow_blank_frames": true,
-        "edge_padding": 0
-      }
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 192,
+        "cell_height": 192,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.marsh_nature",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/marsh_nature.png",
-      "width": 384,
-      "height": 336,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 32,
-      "max_alpha_levels": 2
+      "width": 1152,
+      "height": 1008,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 51375,
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.ruins_ground",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ground_ruins.png",
-      "width": 96,
-      "height": 96,
+      "width": 512,
+      "height": 512,
       "alpha_mode": "opaque",
-      "max_visible_rgb_colors": 24
+      "max_visible_rgb_colors": 62936
     },
     {
       "id": "terrain.ruins_props",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ruins_props.png",
-      "width": 256,
-      "height": 256,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 64,
+      "width": 768,
+      "height": 192,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 39897,
       "frame_grid": {
-        "columns": 16,
-        "rows": 16,
-        "cell_width": 16,
-        "cell_height": 16,
-        "allow_blank_frames": true,
-        "edge_padding": 0
-      }
+        "columns": 4,
+        "rows": 1,
+        "cell_width": 192,
+        "cell_height": 192,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 1,
+          "right": 1,
+          "top": 0,
+          "bottom": 0
+        }
+      },
+      "max_alpha_levels": 249
     },
     {
       "id": "terrain.ruins_nature",
       "category": "terrain",
       "status": "final",
       "path": "assets/custom/world/terrain/ruins_nature.png",
-      "width": 384,
-      "height": 336,
-      "alpha_mode": "binary",
-      "max_visible_rgb_colors": 32,
-      "max_alpha_levels": 2
+      "width": 1152,
+      "height": 1008,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 54131,
+      "max_alpha_levels": 249
+    },
+    {
+      "id": "terrain.camp_nature",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/camp_nature.png",
+      "width": 1152,
+      "height": 1008,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 48197,
+      "max_alpha_levels": 249
+    },
+    {
+      "id": "terrain.field_nature",
+      "category": "terrain",
+      "status": "final",
+      "path": "assets/custom/world/terrain/field_nature.png",
+      "width": 1152,
+      "height": 1008,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 54066,
+      "max_alpha_levels": 249
     },
     {
       "id": "ui.app_icon_background",
@@ -2798,6 +2990,150 @@
         "cell_width": 32,
         "cell_height": 32,
         "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "weapon.warden",
+      "category": "weapon",
+      "status": "final",
+      "path": "assets/custom/items/weapons/warden.png",
+      "width": 68,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 800,
+      "max_alpha_levels": 160,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 68,
+        "cell_height": 20,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 4,
+          "right": 4,
+          "top": 4,
+          "bottom": 4
+        }
+      }
+    },
+    {
+      "id": "weapon.dancer",
+      "category": "weapon",
+      "status": "final",
+      "path": "assets/custom/items/weapons/dancer.png",
+      "width": 60,
+      "height": 36,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 800,
+      "max_alpha_levels": 160,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 60,
+        "cell_height": 36,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 4,
+          "right": 4,
+          "top": 4,
+          "bottom": 4
+        }
+      }
+    },
+    {
+      "id": "weapon.keeper",
+      "category": "weapon",
+      "status": "final",
+      "path": "assets/custom/items/weapons/keeper.png",
+      "width": 60,
+      "height": 36,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 800,
+      "max_alpha_levels": 160,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 60,
+        "cell_height": 36,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 4,
+          "right": 4,
+          "top": 4,
+          "bottom": 4
+        }
+      }
+    },
+    {
+      "id": "weapon.knight",
+      "category": "weapon",
+      "status": "final",
+      "path": "assets/custom/items/weapons/knight.png",
+      "width": 60,
+      "height": 28,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 800,
+      "max_alpha_levels": 160,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 60,
+        "cell_height": 28,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 4,
+          "right": 4,
+          "top": 4,
+          "bottom": 4
+        }
+      }
+    },
+    {
+      "id": "weapon.eclipse",
+      "category": "weapon",
+      "status": "final",
+      "path": "assets/custom/items/weapons/eclipse.png",
+      "width": 68,
+      "height": 32,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 800,
+      "max_alpha_levels": 160,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 68,
+        "cell_height": 32,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 4,
+          "right": 4,
+          "top": 4,
+          "bottom": 4
+        }
+      }
+    },
+    {
+      "id": "weapon.sage",
+      "category": "weapon",
+      "status": "final",
+      "path": "assets/custom/items/weapons/sage.png",
+      "width": 88,
+      "height": 28,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 800,
+      "max_alpha_levels": 160,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 88,
+        "cell_height": 28,
+        "allow_blank_frames": false,
+        "edge_padding": {
+          "left": 4,
+          "right": 4,
+          "top": 4,
+          "bottom": 4
+        }
       }
     }
   ]

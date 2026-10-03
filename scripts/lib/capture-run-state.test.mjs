@@ -2154,8 +2154,8 @@ test('capture and derived generator bind Android debug APK build inputs together
   );
   assert.equal(
     [...captureSource.matchAll(/env: CAPTURE_CHILD_ENV/g)].length,
-    5,
-    'the shared run and all four direct adb spawns must use a credential-free environment',
+    6,
+    'the shared run and all five direct adb spawns must use a credential-free environment',
   );
   assert.equal(
     captureSource.includes('env: process.env'),

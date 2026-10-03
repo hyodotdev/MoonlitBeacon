@@ -9,7 +9,7 @@ extends Control
 
 signal closed
 
-const PANEL_STYLE: StyleBoxTexture = preload("res://resources/ui/panels/panel.tres")
+## The frame paints from the shared WorldFrame class in the scene.
 const MUTED: Color = Color(0.62, 0.69, 0.82, 1.0)
 const SUCCESS: Color = Color(0.64, 1.0, 0.75, 1.0)
 const LOCKED: Color = Color(1.0, 0.72, 0.5, 1.0)
@@ -78,11 +78,12 @@ const CAPTURE_KEEPER_PATH: String = "res://resources/heroes/keeper.tres"
 const CAPTURE_KEEPER_NAME_KEY: String = "HERO_KEEPER_NAME"
 const CAPTURE_KEEPER_DESCRIPTION_KEY: String = "HERO_KEEPER_DESC"
 
-@onready var _frame: PanelContainer = $Frame
+@onready var _frame: WorldFrame = $Frame
 @onready var _portrait: TextureRect = $Frame/Margin/Rows/Header/Portrait
 @onready var _name: Label = $Frame/Margin/Rows/Header/Copy/Name
 @onready var _state: Label = $Frame/Margin/Rows/Header/Copy/State
 @onready var _body: TextureRect = $Frame/Margin/Rows/Content/BodyStage/Center/Body
+@onready var _stage: WorldFrame = $Frame/Margin/Rows/Content/BodyStage
 @onready var _description: Label = $Frame/Margin/Rows/Content/Description
 @onready var _close: Button = $Frame/Margin/Rows/Footer/Close
 @onready var _motion_name: Label = $Frame/Margin/Rows/MotionStage/MotionRows/MotionName
@@ -111,6 +112,7 @@ func open_hero(hero: Hero, path: String) -> void:
 		return
 	_hero = hero
 	_hero_path = path
+	_ensure_exhibit()
 	_build_icon_frames()
 	_refresh_copy()
 	_refresh_motion()
@@ -152,6 +154,42 @@ func _refresh_motion() -> void:
 		_hero.attack_profile, "HERO_MOTION_ROUND"))
 	_motion_name.add_theme_color_override("font_color", _hero.accent)
 	_motion_track.show_hero(_hero)
+
+
+## The exhibition dressing: a dais under the full body and the hero's
+## signature weapon as a corner medallion. Both are additive children of the
+## pinned 96×96 body cell, so the capture geometry never moves.
+func _ensure_exhibit() -> void:
+	if _body.get_node_or_null("Dais") == null:
+		var dais: TextureRect = WorldChrome.dais()
+		dais.name = &"Dais"
+		dais.show_behind_parent = true
+		dais.anchor_left = 0.0
+		dais.anchor_top = 1.0
+		dais.anchor_right = 1.0
+		dais.anchor_bottom = 1.0
+		dais.offset_left = 0.0
+		dais.offset_top = -12.0
+		dais.offset_right = 0.0
+		dais.offset_bottom = 12.0
+		_body.add_child(dais)
+	if _body.get_node_or_null("Weapon") == null:
+		var weapon := TextureRect.new()
+		weapon.name = &"Weapon"
+		weapon.custom_minimum_size = Vector2(40, 40)
+		weapon.anchor_left = 1.0
+		weapon.anchor_top = 1.0
+		weapon.anchor_right = 1.0
+		weapon.anchor_bottom = 1.0
+		weapon.offset_left = -44.0
+		weapon.offset_top = -48.0
+		weapon.offset_right = -4.0
+		weapon.offset_bottom = -8.0
+		weapon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		weapon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		weapon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		weapon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(weapon)
 
 
 func is_open() -> bool:
@@ -442,8 +480,7 @@ func _debug_expected_state_source_key(expected_path: String) -> String:
 
 ## Build the idle frame for the header icon.
 ##
-## A 24×24 crop in a 48×48 cell is exactly 2×. Pixels land on a 4-cell grid
-## with no blur.
+## The 72×72 painted head crop scales into the 48 cell with a smooth filter.
 func _build_icon_frames() -> void:
 	_icon_frames.clear()
 	_icon_frame = 0
@@ -499,6 +536,7 @@ func _refresh_copy() -> void:
 		return
 	# Hang a 96×96 portrait in a 96×96 cell 1:1. No scale, so every source pixel shows.
 	_body.texture = _hero.portrait
+	_refresh_weapon()
 	_name.text = tr(_hero.display_name)
 	_description.text = tr(_hero.description)
 	# This is the ownership question — `hero_open()` is all-true on debug, so
@@ -527,12 +565,25 @@ func _refresh_copy() -> void:
 
 func _apply_accent(accent: Color) -> void:
 	_name.add_theme_color_override("font_color", accent)
-	# The kit panel, tinted toward the hero so each preview is wearing its colour.
-	# Tinting the whole sticker keeps the pixel edges; the old flat frame drew a
-	# smooth accent border that did not match anything else on screen.
-	var style: StyleBoxTexture = PANEL_STYLE.duplicate() as StyleBoxTexture
-	style.modulate_color = Color.WHITE.lerp(accent, 0.34)
-	_frame.add_theme_stylebox_override("panel", style)
+	# The world frame, tinted toward the hero so each preview wears its colour.
+	_frame.face_tint = Color.WHITE.lerp(accent, 0.34)
+	# The exhibition stage glows faintly with the same accent.
+	_stage.face_tint = Color.WHITE.lerp(accent, 0.22)
+
+
+## The corner medallion shows the hero's real painted signature weapon. A
+## missing file hides the medallion instead of breaking the preview.
+func _refresh_weapon() -> void:
+	var medallion: TextureRect = _body.get_node_or_null("Weapon") as TextureRect
+	if medallion == null:
+		return
+	var hero_id: String = _hero_path.get_file().get_basename()
+	var weapon_path: String = "res://assets/custom/items/weapons/%s.png" % hero_id
+	if ResourceLoader.exists(weapon_path):
+		medallion.texture = load(weapon_path) as Texture2D
+		medallion.visible = medallion.texture != null
+	else:
+		medallion.visible = false
 
 
 func _on_vault_changed() -> void:

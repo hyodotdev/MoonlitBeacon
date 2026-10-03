@@ -80,6 +80,7 @@ func _ready() -> void:
 		_test_back_closes_preview_first()
 		await _test_capture_visual_guards()
 		_test_hero_descs_lead_with_weapons()
+		_test_world_chrome(heroes)
 	_finish()
 
 
@@ -200,11 +201,12 @@ func _test_card_preview(card: Control, hero_id: String, path: String) -> void:
 		"%s shrine portrait button 48x48" % hero_id)
 	_expect_true(not portrait.disabled, "%s preview button independent of lock" % hero_id)
 	_expect_true(portrait.texture_normal != null, "%s shrine portrait texture" % hero_id)
-	# Hang a 24×24 crop at 2× in a 48 cell. A 96×96 portrait shrinks to 0.5× and smears.
+	# Hang the 72×72 painted head crop scaled into the 48 cell with a smooth
+	# filter. The crop is hero.preview_crop on the idle sheet.
 	var card_icon: AtlasTexture = portrait.texture_normal as AtlasTexture
 	_expect_true(card_icon != null, "%s shrine portrait AtlasTexture" % hero_id)
 	if card_icon != null:
-		_expect_equal(card_icon.region, Rect2(12, 32, 24, 24), "%s shrine portrait crop" % hero_id)
+		_expect_equal(card_icon.region, Rect2(36, 96, 72, 72), "%s shrine portrait crop" % hero_id)
 		if card_icon.atlas != null:
 			_expect_equal(
 				card_icon.atlas.resource_path,
@@ -224,16 +226,15 @@ func _test_card_preview(card: Control, hero_id: String, path: String) -> void:
 		Control.MOUSE_FILTER_STOP,
 		"%s detail blocks lower input" % hero_id)
 
-	# Both pictures use an integer scale of their source size. In the large cell hang a 96×96 portrait
-	# 1:1, and hang a 24×24 crop at 2× in the small cell. Shrinking to 0.5× or stretching to 4×
-	# smears pixels only there.
+	# The painted pictures render smooth: the 96×96 portrait hangs 1:1 and the
+	# 72×72 head crop scales into the 48 cell, both with a Linear filter.
 	var body: TextureRect = preview.get_node(
 		"Frame/Margin/Rows/Content/BodyStage/Center/Body") as TextureRect
 	_expect_equal(body.custom_minimum_size, Vector2(96, 96), "%s full-body cell 96x96" % hero_id)
 	_expect_equal(
 		body.texture_filter,
-		CanvasItem.TEXTURE_FILTER_NEAREST,
-		"%s full-body Nearest filter" % hero_id)
+		CanvasItem.TEXTURE_FILTER_LINEAR,
+		"%s full-body Linear filter" % hero_id)
 	_expect_true(body.texture != null, "%s full-body texture" % hero_id)
 	if body.texture != null:
 		_expect_equal(
@@ -244,14 +245,27 @@ func _test_card_preview(card: Control, hero_id: String, path: String) -> void:
 			Vector2i(body.texture.get_size()),
 			Vector2i(96, 96),
 			"%s full-body portrait 1:1" % hero_id)
+	# The exhibition: a dais under the body and the hero's real painted
+	# signature weapon as a corner medallion.
+	var dais: TextureRect = body.get_node_or_null("Dais") as TextureRect
+	_expect_true(dais != null and dais.show_behind_parent,
+		"%s body stands on a dais" % hero_id)
+	var weapon: TextureRect = body.get_node_or_null("Weapon") as TextureRect
+	_expect_true(weapon != null and weapon.visible,
+		"%s signature weapon medallion" % hero_id)
+	if weapon != null and weapon.texture != null:
+		_expect_equal(
+			weapon.texture.resource_path,
+			"res://assets/custom/items/weapons/%s.png" % hero_id,
+			"%s weapon is the hero's own" % hero_id)
 
 	var icon: TextureRect = preview.get_node(
 		"Frame/Margin/Rows/Header/Portrait") as TextureRect
 	_expect_equal(icon.custom_minimum_size, Vector2(48, 48), "%s icon cell 48x48" % hero_id)
 	_expect_equal(
 		icon.texture_filter,
-		CanvasItem.TEXTURE_FILTER_NEAREST,
-		"%s icon Nearest filter" % hero_id)
+		CanvasItem.TEXTURE_FILTER_LINEAR,
+		"%s icon Linear filter" % hero_id)
 	var atlas: AtlasTexture = icon.texture as AtlasTexture
 	_expect_true(atlas != null, "%s icon first-frame AtlasTexture" % hero_id)
 	if atlas != null:
@@ -261,13 +275,13 @@ func _test_card_preview(card: Control, hero_id: String, path: String) -> void:
 				atlas.atlas.resource_path,
 				"res://assets/custom/actors/heroes/%s/idle.png" % hero_id,
 				"%s icon idle path" % hero_id)
-		_expect_equal(atlas.region, Rect2(12, 32, 24, 24), "%s down first-frame 2-head crop" % hero_id)
+		_expect_equal(atlas.region, Rect2(36, 96, 72, 72), "%s down first-frame 2-head crop" % hero_id)
 	var timer: Timer = preview.get_node("AnimationTimer") as Timer
 	_expect_true(not timer.is_stopped(), "%s icon idle animation playing" % hero_id)
 	preview.call("_advance_icon_frame")
 	atlas = icon.texture as AtlasTexture
 	if atlas != null:
-		_expect_equal(atlas.region, Rect2(12, 96, 24, 24), "%s down second-frame 2-head crop" % hero_id)
+		_expect_equal(atlas.region, Rect2(36, 288, 72, 72), "%s down second-frame 2-head crop" % hero_id)
 	var description: Label = preview.get_node(
 		"Frame/Margin/Rows/Content/Description") as Label
 	var state: Label = preview.get_node(
@@ -647,7 +661,7 @@ func _test_capture_visual_guards() -> void:
 	var swapped_body: AtlasTexture = AtlasTexture.new()
 	swapped_body.atlas = load(
 		"res://assets/custom/actors/heroes/dancer/idle.png") as Texture2D
-	swapped_body.region = Rect2(12, 32, 24, 24)
+	swapped_body.region = Rect2(36, 96, 72, 72)
 	body.texture = swapped_body
 	state = _shrine.call("debug_store_capture_state", preview_request)
 	_expect_equal(
@@ -749,6 +763,36 @@ func _test_capture_visual_guards() -> void:
 	_expect_true(not bool(state.get("state_source_matches", true)), "rejects swapped Keeper state original key")
 	_expect_true(not bool(state.get("ready", true)), "rejects ready after swapping Keeper state original key")
 	preview.set("_state_source_key", original_state_source)
+
+
+## The guardian exhibition paints from the shared world classes: hero cards
+## are lit/plain chips, buy buttons ember, the beacon crest heads the rail,
+## and every ornament ignores the mouse.
+func _test_world_chrome(heroes: HBoxContainer) -> void:
+	var first := heroes.get_child(0) as WorldFrame
+	_expect_true(first != null
+		and (first.kind == "chip" or first.kind == "chip_lit"),
+		"hero cards are world chips")
+	var close := _shrine.get_node(
+		"Frame/Margin/Rows/Footer/Close") as WorldButton
+	_expect_true(close != null and close.kind == "steel",
+		"shrine Close takes the steel road")
+	var crest := _shrine.get_node(
+		"Frame/Margin/Rows/Header/WorldCrest") as TextureRect
+	_expect_true(crest != null
+		and crest.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"beacon crest ignores taps")
+	_expect_decor_ignores(_shrine)
+
+
+func _expect_decor_ignores(node: Node) -> void:
+	for child in node.get_children():
+		if child is TextureRect and str(child.name).begins_with("World"):
+			_expect_true(
+				(child as TextureRect).mouse_filter
+					== Control.MOUSE_FILTER_IGNORE,
+				"%s ignores the mouse" % child.name)
+		_expect_decor_ignores(child)
 
 
 func _finish() -> void:

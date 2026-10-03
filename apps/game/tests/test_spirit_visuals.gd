@@ -4,8 +4,13 @@ extends SceneTree
 
 const SPIRIT_SCENE: PackedScene = preload("res://scenes/actors/spirit.tscn")
 const CUSTOM_PREFIX: String = "res://assets/custom/actors/"
-const ENEMY_CELL: int = 48
-const GUARDIAN_CELL: int = 64
+const ENEMY_CELL: int = 144
+const GUARDIAN_CELL: int = 192
+## Legacy cells rendered through the (0.9, 0.85) sprite squash. Painted sheets
+## are 3x at visual_scale 1/3, so the world body must match these exactly.
+const LEGACY_SQUASH: Vector2 = Vector2(0.9, 0.85)
+const LEGACY_ENEMY_CELL: int = 48
+const LEGACY_GUARDIAN_CELL: int = 64
 const DIRECTIONS: Array[StringName] = [&"down", &"up", &"left", &"right"]
 const GUARDIAN_ANIMATIONS: Array[StringName] = [
 	&"guardian_windup",
@@ -213,7 +218,7 @@ func _test_enemies() -> void:
 		_expect_false(
 			kind.sheet.resource_path.contains("/third_party/"),
 			"%s does not use free-pack assets" % enemy_id)
-		_expect_equal(kind.sheet.get_size(), Vector2(192, 192), "%s sheet size" % enemy_id)
+		_expect_equal(kind.sheet.get_size(), Vector2(576, 576), "%s sheet size" % enemy_id)
 		_expect_equal(kind.cell, ENEMY_CELL, "%s cell size" % enemy_id)
 		_expect_equal(kind.facings, 4, "%s facing count" % enemy_id)
 		_expect_equal(kind.frames, 4, "%s frame count" % enemy_id)
@@ -291,7 +296,7 @@ func _test_guardians() -> void:
 
 		_expect_equal(
 			kind.sheet.get_size(),
-			Vector2(384, 64),
+			Vector2(1152, 192),
 			"%s idle 6-frame size" % guardian_id)
 		for state_texture: Texture2D in [
 			kind.guardian_windup_sheet,
@@ -300,8 +305,8 @@ func _test_guardians() -> void:
 			kind.guardian_recover_sheet,
 		]:
 			_expect_true(
-				state_texture.get_size().x >= 256
-					and state_texture.get_size().y == 64,
+				state_texture.get_size().x >= 768
+					and state_texture.get_size().y == 192,
 				"%s state sheet at least 4 frames" % guardian_id)
 		_expect_equal(kind.cell, GUARDIAN_CELL, "%s cell size" % guardian_id)
 		_expect_equal(kind.facings, 1, "%s facing count" % guardian_id)
@@ -358,6 +363,20 @@ func _test_runtime_kind(
 			and hit_flash.b >= 1.64,
 		"%s custom-palette hit flash" % actor_id)
 	if sprite != null:
+		_expect_equal(
+			sprite.texture_filter,
+			CanvasItem.TEXTURE_FILTER_LINEAR,
+			"%s painted sheet smooth filter" % actor_id)
+		# The world body must render exactly as the legacy sheet did: the
+		# sprite keeps the legacy squash, visual_scale only shrinks the zoom.
+		var legacy_cell: int = (
+			LEGACY_GUARDIAN_CELL if facings == 1 else LEGACY_ENEMY_CELL)
+		var want: Vector2 = Vector2(
+			float(legacy_cell) * LEGACY_SQUASH.x,
+			float(legacy_cell) * LEGACY_SQUASH.y)
+		var got: Vector2 = sprite.scale * float(cell)
+		_expect_approx(got.x, want.x, 0.01, "%s world body width" % actor_id)
+		_expect_approx(got.y, want.y, 0.01, "%s world body height" % actor_id)
 		var frames: SpriteFrames = sprite.sprite_frames
 		_expect_true(frames != null, "%s runtime SpriteFrames" % actor_id)
 		if frames != null:
@@ -409,7 +428,11 @@ func _test_runtime_kind(
 							frames.get_frame_texture(
 								state_animation, frame_index),
 							expected_texture.resource_path,
-							Rect2(frame_index * GUARDIAN_CELL, 0, 64, 64),
+							Rect2(
+							frame_index * GUARDIAN_CELL,
+							0,
+							GUARDIAN_CELL,
+							GUARDIAN_CELL),
 							"%s %s[%d]"
 								% [actor_id, state_animation, frame_index])
 	spirit.free()
@@ -510,3 +533,11 @@ func _expect_equal(actual: Variant, expected: Variant, label: String) -> void:
 		return
 	_failed += 1
 	printerr("  FAIL ", label, " — expected=", expected, " actual=", actual)
+
+
+func _expect_approx(actual: float, expected: float, tolerance: float, label: String) -> void:
+	_checked += 1
+	if absf(actual - expected) <= tolerance:
+		return
+	_failed += 1
+	printerr("  FAIL ", label, " — expected~", expected, " actual=", actual)

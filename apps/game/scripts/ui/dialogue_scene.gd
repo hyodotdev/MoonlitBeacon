@@ -20,6 +20,7 @@ const BLIP_EVERY: int = 3
 const BLIP_PITCH_SPREAD: float = 0.14
 
 @onready var _dim: ColorRect = $Dim
+@onready var _box: Panel = $Box
 @onready var _bust: TextureRect = $Bust
 @onready var _name_plate: Panel = $Box/NamePlate
 @onready var _name_label: Label = $Box/NamePlate/Name
@@ -48,6 +49,7 @@ func play(hero: Hero, lines: Array[String]) -> void:
 	if lines.is_empty():
 		finished.emit()
 		return
+	WorldChrome.ensure_tab(_box, "moon")
 	_lines = lines
 	_index = 0
 	_open = true

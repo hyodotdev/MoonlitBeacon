@@ -75,7 +75,7 @@ test('Android godot-iap AARs match the documented official binaries', () => {
 test(`Moonlit GDScript integration reverses exactly to official ${GODOT_IAP_VERSION}`, (t) => {
   const readme = readRepoFile('vendor/godot-iap/README.md').toString('utf8');
   const patchPath = 'vendor/godot-iap/0001-moonlit-integration.patch';
-  const patchSha = '84839a7e1141dbf2b163c2b197c5e9c2f868ffacdecef4347c59c8666874c667';
+  const patchSha = 'f83b01ff8eba05de4873c3c50fb81b2ffeb53892f1111df834ce465f9e10cedd';
   const files = [
     {
       path: 'apps/game/addons/godot-iap/godot_iap.gd',
@@ -85,7 +85,7 @@ test(`Moonlit GDScript integration reverses exactly to official ${GODOT_IAP_VERS
     {
       path: 'apps/game/addons/godot-iap/godot_iap_plugin.gd',
       officialSha: '31500d82ee2ed4b78e42fcbc1dd8c28ad5d97419df18b29a72b08bd83bea9ab8',
-      moonlitSha: '47ec04b62c99d99addd6e76636143007edd944cc3a6229dd416c92993b9899a6',
+      moonlitSha: '052e86d6a4a688ecb93e6d9f385014a985ac892685fb9c4e1fbfa2da850c6110',
     },
   ];
   const unmodified = {

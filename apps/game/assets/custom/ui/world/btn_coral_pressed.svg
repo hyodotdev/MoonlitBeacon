@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <!-- Coral road, pressed: stamped into ash. -->
+  <defs>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#33100e"/>
+      <stop offset="0.5" stop-color="#7e2f2b"/>
+      <stop offset="1" stop-color="#a8574e"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#100505"/>
+      <stop offset="0.55" stop-color="#260e0c"/>
+      <stop offset="1" stop-color="#381512"/>
+    </linearGradient>
+  </defs>
+  <path d="M 19 6 H 63 L 77 20 V 62 L 63 76 H 19 L 5 62 V 20 Z" fill="#02030a" opacity="0.5"/>
+  <path d="M 16 2 H 64 L 78 16 V 64 L 64 78 H 16 L 2 64 V 16 Z" fill="url(#edge)"/>
+  <path d="M 5 65 L 17 77 H 63 L 75 65" fill="none" stroke="#a8574e" stroke-width="2.4" opacity="0.8"/>
+  <path d="M 19 7 H 61 L 73 19 V 61 L 61 73 H 19 L 7 61 V 19 Z" fill="#100505"/>
+  <path d="M 20 9 H 60 L 71 20 V 60 L 60 71 H 20 L 9 60 V 20 Z" fill="url(#face)"/>
+  <polygon points="20,9 60,9 66,15 66,21 14,21 14,15" fill="#000000" opacity="0.4"/>
+  <path d="M 24 13 H 56 L 67 24 V 56 L 56 67 H 24 L 13 56 V 24 Z" fill="none" stroke="#7e2f2b" stroke-width="1.6" opacity="0.7"/>
+  <g fill="none" stroke="#5d211d" stroke-width="1.4">
+    <path d="M 22 19 L 25 22 L 22 25 L 19 22 Z"/>
+    <path d="M 58 19 L 61 22 L 58 25 L 55 22 Z"/>
+    <path d="M 22 55 L 25 58 L 22 61 L 19 58 Z"/>
+    <path d="M 58 55 L 61 58 L 58 61 L 55 58 Z"/>
+  </g>
+</svg>

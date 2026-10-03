@@ -109,7 +109,7 @@ libraries = {
 }
 
 [node name="Ui" type="CanvasLayer" parent="."]
-layer = 2
+layer = 0
 
 [node name="Screen" type="Control" parent="Ui"]
 layout_mode = 3

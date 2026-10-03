@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Divider bead: a crescent moon held in a bronze ring. -->
+  <defs>
+    <linearGradient id="bronze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9b47a"/>
+      <stop offset="0.5" stop-color="#8a6f4d"/>
+      <stop offset="1" stop-color="#4a3a24"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8f2ee"/>
+      <stop offset="1" stop-color="#5fa8a2"/>
+    </linearGradient>
+  </defs>
+  <circle cx="24" cy="24" r="20" fill="#0a0e24"/>
+  <circle cx="24" cy="24" r="20" fill="none" stroke="url(#bronze)" stroke-width="5"/>
+  <circle cx="24" cy="24" r="15.5" fill="none" stroke="#f2c14e" stroke-width="1.4" opacity="0.8"/>
+  <path fill-rule="evenodd" fill="url(#moon)" d="M 24 13 A 11 11 0 1 0 24 35 A 11 11 0 1 0 24 13 Z M 28.5 15.5 A 8.5 8.5 0 1 1 28.5 32.5 A 8.5 8.5 0 1 1 28.5 15.5 Z"/>
+</svg>

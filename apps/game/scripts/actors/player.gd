@@ -109,6 +109,12 @@ const MOONLIGHT_CAST_SECONDS: float = MoonlightCast.CAST_SECONDS
 ## (0.315, 0.35, 0.57) on the sprite only so the face does not die into a purple blotch.
 ## Brightening the root overexposes Slash and MoonfireAura.
 const HERO_READABILITY_TINT: Color = Color(3.175, 2.857, 1.754, 1)
+## Sprite offset the foot planting assumes. Breathe animates the live offset,
+## so the formula reads this base value instead.
+const HERO_BASE_OFFSET_Y: float = -8.0
+## Tuned body factor the legacy position formula was built around. Painted
+## heroes render at visual_scale 0.255 = 1/3 of this for 3× cells.
+const LEGACY_BODY_FACTOR: float = 0.765
 
 ## Bounds that keep the player inside the arena. Coordinates in the base resolution.
 ## Held inward of the dense tree edge.
@@ -231,10 +237,18 @@ func apply_hero_visual(hero: Hero) -> bool:
 			and not _debug_direction_capture_vfx_suppressed)
 	_sprite.sprite_frames = frames
 	_sprite.self_modulate = HERO_READABILITY_TINT
-	# Custom cells larger than the default 16px still keep feet at the same world point.
-	# Sprite offset stays -8, so only raise the node by half the extra height.
-	# A 32px cell then is position -8 + offset -8 = center -16, so the bottom edge is at 0.
-	_sprite.position.y = -float(maxi(hero.sprite_cell.y - 16, 0)) * 0.5
+	# Painted cells are 3× the legacy pixels at 1/3 the legacy 0.765 body
+	# factor, so the world body renders pixel-identical. Position runs the
+	# legacy formula on the world cell, then corrects for the offset scaling
+	# with the node: at 0.765 the legacy feet float 5.64px above the root, and
+	# muzzle seats and BODY_CENTER were measured against that rendering.
+	# Read the base offset, not the live one: Breathe animates offset, and a
+	# mid-breath hero swap must not shift the feet.
+	_sprite.scale = Vector2.ONE * hero.visual_scale
+	var world_cell: float = float(hero.sprite_cell.y) * hero.visual_scale \
+		/ LEGACY_BODY_FACTOR
+	_sprite.position.y = -float(maxi(int(round(world_cell)) - 16, 0)) * 0.5 \
+		+ (LEGACY_BODY_FACTOR - hero.visual_scale) * HERO_BASE_OFFSET_Y
 	_sprite_base_y = _sprite.position.y
 	_play_current()
 	return true

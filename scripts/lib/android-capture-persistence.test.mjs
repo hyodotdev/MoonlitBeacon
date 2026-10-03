@@ -1,15 +1,20 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
 import {
   ANDROID_CAPTURE_PERSISTENT_FILES,
+  ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN,
+  androidPersistentDynamicFiles,
+  androidPersistentDynamicHashes,
   androidPersistentHashes,
   assertAndroidPersistentReportEvidence,
   buildAndroidPersistenceAnchor,
   buildAndroidPersistentEvidence,
   captureAndroidPersistentSnapshot,
   decodeAndroidPrivateFileBase64,
+  isAndroidPersistentDynamicFile,
   isAndroidPrivateFileMissingBase64Error,
   restoreAndroidPersistentSnapshot,
 } from './android-capture-persistence.mjs';
@@ -24,6 +29,7 @@ function fixture(initial = {}) {
     readFile: (name) => files.has(name) ? Buffer.from(files.get(name)) : null,
     writeFile: (name, value) => files.set(name, Buffer.from(value)),
     removeFile: (name) => files.delete(name),
+    listFiles: () => [...files.keys()],
   };
 }
 
@@ -276,6 +282,7 @@ test('shared persistence builder rejects a mismatch in actual restored bytes', (
   wrong['vault.cfg'] = Buffer.from('after');
   assert.throws(() => buildAndroidPersistentEvidence(original, {
     files: [...ANDROID_CAPTURE_PERSISTENT_FILES],
+    dynamicFiles: [],
     observed,
     restored: wrong,
     mutated: false,
@@ -319,6 +326,28 @@ test('phone and tablet snapshot before the first direct launch and restore after
     }
     assert.ok(launch > snapshot, `${relativePath} snapshot precedes first launch`);
     assert.ok(restore > launch, `${relativePath} restore follows launch/capture`);
+    const captureStart = source.indexOf(
+      'function capturePersistentFilesBeforeFirstLaunch()',
+    );
+    const captureBody = source.slice(
+      captureStart,
+      source.indexOf('\nfunction ', captureStart + 1),
+    );
+    assert.match(
+      captureBody,
+      /listFiles/u,
+      `${relativePath} enumerates account partitions at capture`,
+    );
+    const restoreStart = source.indexOf('function restorePersistentFiles(original)');
+    const restoreBody = source.slice(
+      restoreStart,
+      source.indexOf('\nfunction ', restoreStart + 1),
+    );
+    assert.match(
+      restoreBody,
+      /listFiles/u,
+      `${relativePath} enumerates account partitions at restore`,
+    );
     assert.match(
       source,
       /['"]scripts\/lib\/android-capture-persistence\.mjs['"]/u,
@@ -349,6 +378,254 @@ test('phone and tablet snapshot before the first direct launch and restore after
     'utf8',
   );
   assert.match(phone, /const TEST_HERO_REQUEST_FILE = 'test_hero\.request'/u);
+});
+
+const DYNAMIC_PUBLIC_ID = 'MB-0123456789abcdef0123456789abcdef';
+const DYNAMIC_UID = 'firebaseUid_123-ABC';
+
+test('dynamic pattern accepts every partition kind and rejects lookalikes', () => {
+  assert.match(
+    ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN,
+    /^\^.*\$$/u,
+    'pattern is anchored at both ends',
+  );
+  for (const name of [
+    `journey.${DYNAMIC_PUBLIC_ID}.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.bak`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.bak.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rev.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rev.json.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-local.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-local.json.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-remote.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-remote.json.tmp`,
+    `cloud_journey.${DYNAMIC_UID}.json`,
+    `cloud_journey.${DYNAMIC_UID}.json.tmp`,
+    'journey.empty.json',
+    `journey.h_${'a'.repeat(32)}.json`,
+    `cloud_journey.h_${'b'.repeat(32)}.json.tmp`,
+  ]) {
+    assert.equal(isAndroidPersistentDynamicFile(name), true, name);
+  }
+  for (const name of [
+    'journey.json',
+    'journey.json.tmp',
+    'journey.json.bak',
+    'cloud_journey.json',
+    'journey..json',
+    'journey.MB-1.json.bak.tmp.extra',
+    `journey.${'a'.repeat(65)}.json`,
+    'journey.MB-1.rev.json.bak',
+    'journey.MB-1.rejected-sideways.json',
+    'journey.MB-1.JSON',
+    'JOURNEY.MB-1.json',
+    'journey.MB 1.json',
+    'journey.MB/1.json',
+    'journey.MB-1.json\n',
+    '../journey.MB-1.json',
+    'journey.MB-1.json/.',
+    '.',
+    '..',
+    '',
+    'vault.cfg',
+    'unexpected.cfg',
+    'store_capture_state.json',
+  ]) {
+    assert.equal(isAndroidPersistentDynamicFile(name), false, name);
+  }
+  for (const notString of [null, undefined, 123, {}, []]) {
+    assert.equal(isAndroidPersistentDynamicFile(notString), false, String(notString));
+  }
+});
+
+test('capture enumerates account partitions and skips control files', () => {
+  const partition = `journey.${DYNAMIC_PUBLIC_ID}.json`;
+  const baseline = `journey.${DYNAMIC_PUBLIC_ID}.rev.json`;
+  const cloud = `cloud_journey.${DYNAMIC_UID}.json`;
+  const device = fixture({
+    'settings.cfg': 'locale=ko',
+    [partition]: '{"cycle":3}',
+    [baseline]: '{"acked_revision":9}',
+    [cloud]: '{"revision":9}',
+    'store_capture_state.json': '{"nonce":"control"}',
+  });
+  const snapshot = captureAndroidPersistentSnapshot(device.readFile, {
+    listFiles: device.listFiles,
+  });
+  assert.deepEqual(
+    androidPersistentDynamicFiles(snapshot),
+    [partition, baseline, cloud].sort(),
+  );
+  assert.equal(snapshot[partition].toString(), '{"cycle":3}');
+  assert.equal(Object.hasOwn(snapshot, 'store_capture_state.json'), false);
+  assert.equal(
+    androidPersistentDynamicHashes(snapshot)[partition],
+    createHash('sha256').update('{"cycle":3}').digest('hex'),
+  );
+  // Without a lister the same device reads fixed files only.
+  const fixedOnly = captureAndroidPersistentSnapshot(device.readFile);
+  assert.deepEqual(androidPersistentDynamicFiles(fixedOnly), []);
+  assert.throws(
+    () => captureAndroidPersistentSnapshot(device.readFile, { listFiles: () => ({}) }),
+    /did not return an array/u,
+  );
+  assert.throws(
+    () => captureAndroidPersistentSnapshot(device.readFile, { listFiles: () => [null] }),
+    /non-string entry/u,
+  );
+});
+
+test('restore repairs mutated partitions and removes capture-created ones', () => {
+  const partition = `journey.${DYNAMIC_PUBLIC_ID}.json`;
+  const backup = `${partition}.bak`;
+  const device = fixture({
+    'settings.cfg': 'locale=ko',
+    [partition]: 'before-partition',
+    [backup]: 'before-backup',
+  });
+  const original = captureAndroidPersistentSnapshot(device.readFile, {
+    listFiles: device.listFiles,
+  });
+  device.files.set(partition, Buffer.from('mutated-partition'));
+  device.files.delete(backup);
+  const created = `cloud_journey.${DYNAMIC_UID}.json`;
+  device.files.set(created, Buffer.from('capture-created'));
+  const result = restoreAndroidPersistentSnapshot(original, device);
+  assert.equal(result.mutated, true);
+  assert.deepEqual(result.dynamicFiles, [backup, partition].sort());
+  assert.equal(device.files.get(partition).toString(), 'before-partition');
+  assert.equal(device.files.get(backup).toString(), 'before-backup');
+  assert.equal(device.files.has(created), false);
+  const evidence = buildAndroidPersistentEvidence(original, result);
+  assert.equal(evidence.persistent_data_dynamic_mutated_during_capture, true);
+  assert.equal(evidence.persistent_data_mutated_during_capture, true);
+  assert.equal(evidence.persistent_data_dynamic_restored_byte_exact, true);
+  assert.deepEqual(
+    evidence.persistent_data_dynamic_sha256_before,
+    evidence.persistent_data_dynamic_sha256_restored,
+  );
+  assert.ok(Object.hasOwn(
+    evidence.persistent_data_dynamic_sha256_observed,
+    created,
+  ));
+  const anchored = buildAndroidPersistenceAnchor(
+    evidence,
+    original,
+    result,
+    { captureId: '3'.repeat(64), path: 'builds/evidence/persistence.json' },
+  );
+  assert.equal(assertAndroidPersistentReportEvidence({
+    ...evidence,
+    persistence_anchor: anchored.anchor,
+  }, { anchorBytes: anchored.bytes }), true);
+});
+
+test('shared persistence gate fails closed on dynamic fragment tampering', () => {
+  const partition = `journey.${DYNAMIC_PUBLIC_ID}.json`;
+  const backup = `${partition}.bak`;
+  const device = fixture({
+    'settings.cfg': 'locale=ko',
+    [partition]: 'partition-bytes',
+    [backup]: 'backup-bytes',
+  });
+  const original = captureAndroidPersistentSnapshot(device.readFile, {
+    listFiles: device.listFiles,
+  });
+  const restoreResult = restoreAndroidPersistentSnapshot(original, device);
+  const evidence = buildAndroidPersistentEvidence(original, restoreResult);
+  const anchored = buildAndroidPersistenceAnchor(
+    evidence,
+    original,
+    restoreResult,
+    { captureId: '4'.repeat(64), path: 'builds/evidence/persistence.json' },
+  );
+  const report = { ...evidence, persistence_anchor: anchored.anchor };
+  assert.equal(
+    report.persistent_data_dynamic_files.length,
+    2,
+    'fixture carries two partitions',
+  );
+  const mutations = [
+    (value) => { delete value.persistent_data_dynamic_files; },
+    (value) => { value.persistent_data_dynamic_files.push('unexpected.cfg'); },
+    (value) => {
+      value.persistent_data_dynamic_files.push(`journey.${DYNAMIC_PUBLIC_ID}.json`);
+    },
+    (value) => { value.persistent_data_dynamic_files.reverse(); },
+    (value) => { delete value.persistent_data_dynamic_sha256_before[partition]; },
+    (value) => {
+      value.persistent_data_dynamic_sha256_restored[partition] = 'c'.repeat(64);
+    },
+    (value) => {
+      value.persistent_data_dynamic_sha256_observed['unexpected.cfg'] = 'd'.repeat(64);
+    },
+    (value) => {
+      value.persistent_data_dynamic_mutated_during_capture =
+        !value.persistent_data_dynamic_mutated_during_capture;
+    },
+    (value) => { value.persistent_data_dynamic_restored_byte_exact = false; },
+  ];
+  for (const mutate of mutations) {
+    const counterexample = structuredClone(report);
+    mutate(counterexample);
+    assert.throws(
+      () => assertAndroidPersistentReportEvidence(counterexample),
+      /dynamic|persistent|restore|hash/u,
+    );
+  }
+});
+
+test('every production user:// save is covered by the fixed list or the dynamic pattern', () => {
+  const scriptsRoot = resolve('apps/game/scripts');
+  const gdFiles = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (entry.name.endsWith('.gd')) gdFiles.push(path);
+    }
+  };
+  walk(scriptsRoot);
+  assert.ok(gdFiles.length > 50, 'production scripts found');
+  // Capture-owned handshakes are armed and cleaned by the capture scripts
+  // themselves, never preserved as user data.
+  const handshakeFiles = new Set([
+    'store_capture_boot.request.json',
+    'store_capture_clean_combat.ready',
+    'store_capture_clean_combat.request',
+    'store_capture_clean_title.ready',
+    'store_capture_clean_title.request',
+    'store_capture_missile_core.request',
+    'store_capture_runtime.request.json',
+    'store_capture_runtime.state.json',
+    'store_capture_runtime.state.tmp',
+    'store_capture_state.json',
+    'store_capture_state.tmp',
+    'store_capture_title_runtime.ready',
+  ]);
+  // Dynamic path builders emit a prefix plus a validated account token;
+  // the pattern (not a literal) covers every name they produce.
+  const dynamicPrefixes = new Set(['journey.', 'cloud_journey.']);
+  const fixed = new Set(ANDROID_CAPTURE_PERSISTENT_FILES);
+  const uncovered = [];
+  for (const file of gdFiles) {
+    const text = readFileSync(file, 'utf8');
+    for (const match of text.matchAll(/user:\/\/([A-Za-z0-9_.-]*)/gu)) {
+      const name = match[1];
+      if (name === '') continue;
+      if (fixed.has(name) || handshakeFiles.has(name) || dynamicPrefixes.has(name)) continue;
+      uncovered.push(`${file}: user://${name}`);
+    }
+  }
+  assert.deepEqual(uncovered, []);
+  // Every fixed name must still be produced by the game, so a removed save
+  // fails loudly instead of lingering as a dead contract entry.
+  const allText = gdFiles.map((file) => readFileSync(file, 'utf8')).join('\n');
+  for (const name of ANDROID_CAPTURE_PERSISTENT_FILES) {
+    const stem = name.replace(/\.tmp$/, '').replace(/\.bak$/, '');
+    assert.ok(allText.includes(stem), `${name} is still produced by the game`);
+  }
 });
 
 test('optional private read retries only atomic-replace races and rejects real errors', () => {

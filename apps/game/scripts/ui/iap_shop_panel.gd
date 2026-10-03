@@ -15,12 +15,9 @@ const FONT_BOLD: Font = preload(
 )
 ## Cards and buttons here are built in code, so they load the same shared styles
 ## the scenes point at by path. Changing the look is a change in the UI kit.
-const ROW_STYLE: StyleBoxTexture = preload("res://resources/ui/panels/chip.tres")
-const ROW_STYLE_OWNED: StyleBoxTexture = preload("res://resources/ui/panels/chip_gold.tres")
-const BUTTON_NORMAL: StyleBox = preload("res://resources/ui/buttons_gold/normal.tres")
-const BUTTON_HOVER: StyleBox = preload("res://resources/ui/buttons_gold/hover.tres")
-const BUTTON_PRESSED: StyleBox = preload("res://resources/ui/buttons_gold/pressed.tres")
-const BUTTON_DISABLED: StyleBox = preload("res://resources/ui/buttons_gold/disabled.tres")
+## Cards, stages and buttons here are built in code from the shared world
+## classes; scenes point at the same classes by script. Owned cards take the
+## lit chip, buy buttons the ember road.
 const SUPPORTER_ICON: Texture2D = preload(
 	"res://assets/custom/ui/app_icon_main.png")
 const BEACON_FLAME: Texture2D = preload(
@@ -32,6 +29,7 @@ const SUCCESS: Color = Color(0.55, 1.0, 0.70, 1.0)
 const ERROR: Color = Color(1.0, 0.55, 0.52, 1.0)
 const SUPPORTER_ARTWORK_KIND: String = "supporter_app_icon"
 const LANTERN_ARTWORK_KIND: String = "lantern_palette_flames"
+const COIN_ARTWORK_KIND: String = "coin_mint"
 const FLAME_FIRST_FRAME: Rect2 = Rect2(0, 0, 12, 12)
 const LANTERN_ARTWORK_PALETTES: Array[String] = [
 	"ember",
@@ -89,6 +87,8 @@ const CAPTURE_FALLBACK_STATUS_TEXT: String = \
 const CAPTURE_FALLBACK_BUY_TEXT: String = "구매"
 const CAPTURE_FALLBACK_RESTORE_TEXT: String = "구매 복원"
 
+@onready var _frame: PanelContainer = $Frame
+@onready var _header: HBoxContainer = $Frame/Margin/Rows/Header
 @onready var _coin_balance: Label = $Frame/Margin/Rows/Header/CoinBalance
 @onready var _status: Label = $Frame/Margin/Rows/Status
 @onready var _coins_scroll: ScrollContainer = $Frame/Margin/Rows/CoinsScroll
@@ -127,6 +127,13 @@ func _ready() -> void:
 
 
 func open() -> void:
+	# Coin tab and rail crest, hung on first open, never in `_ready`:
+	# the arena holds this panel closed and hidden decor would spend the
+	# node budget for nothing.
+	WorldChrome.ensure_tab(_frame, "coin")
+	if _header.get_node_or_null("WorldCrest") == null:
+		_header.add_child(WorldChrome.crest("coin"))
+		_header.move_child(_header.get_child(-1), 0)
 	if _preview.is_open():
 		_preview.close_preview()
 	_open_draw_frame = Engine.get_frames_drawn()
@@ -205,28 +212,27 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	var accent: Color = catalog.get("accent", Color.WHITE)
 	var owned: bool = Shop.owns(product_id)
 	var earned: bool = Shop.benefit_already_earned(product_id)
-	var card: PanelContainer = PanelContainer.new()
+	var card := WorldFrame.new()
+	card.kind = "chip_lit" if owned else "chip"
 	var product_key: String = product_id.get_slice(
 		".", product_id.get_slice_count(".") - 1)
 	card.name = StringName("Product" + product_key.to_pascal_case())
 	card.set_meta(&"product_id", product_id)
-	# Coin cards have no art, so they are that much shorter. The two-row shop
-	# still fitting Pixel 10's 337px safe area is because of that gap.
+	# Coin cards carry only a small mint mark, so they stay that much
+	# shorter. The two-row shop still fitting Pixel 10's 337px safe area
+	# is because of that gap.
 	var coin: bool = Shop.is_consumable(product_id)
-	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(246, 117)
+	# Showcase cards run wider so the taller art stages never steal
+	# description width: blurbs still show whole in three lines.
+	card.custom_minimum_size = Vector2(200, 68) if coin else Vector2(264, 117)
 	if coin:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	# Horizontal drag on the parent ScrollContainer still works over product
 	# cards. Only portrait and buy buttons are child STOP for their own taps.
 	card.mouse_filter = Control.MOUSE_FILTER_PASS
-	# A gold rim marks what the player already owns. Duplicated so this card can
-	# keep the padding it was laid out with without touching the shared style.
-	var style: StyleBoxTexture = (ROW_STYLE_OWNED if owned else ROW_STYLE).duplicate() as StyleBoxTexture
-	style.content_margin_left = 7.0
-	style.content_margin_top = 3.0 if coin else 5.0
-	style.content_margin_right = 7.0
-	style.content_margin_bottom = 3.0 if coin else 5.0
-	card.add_theme_stylebox_override("panel", style)
+	# Coin cards pack tighter than hero rows; the lit chip marks owned.
+	var edge: float = 3.0 if coin else 5.0
+	card.pad = Vector4(7, edge, 7, edge)
 
 	var rows: VBoxContainer = VBoxContainer.new()
 	rows.name = &"Rows"
@@ -289,6 +295,10 @@ func _make_product_card(product_id: String) -> PanelContainer:
 	footer.name = &"Footer"
 	footer.add_theme_constant_override("separation", 4)
 	rows.add_child(footer)
+	# The mint mark rides beside the price, where currency is read, so the
+	# coin row keeps its short cards and the two-row shop keeps its bounds.
+	if coin:
+		footer.add_child(_make_coin_artwork(accent))
 	var price: Label
 	var price_size: int = 10 if coin else 11
 	if owned:
@@ -360,12 +370,12 @@ func _make_product_artwork(
 
 func _make_supporter_artwork(accent: Color) -> PanelContainer:
 	var stage: PanelContainer = _make_artwork_stage(
-		SUPPORTER_ARTWORK_KIND, Vector2(46, 44), accent)
+		SUPPORTER_ARTWORK_KIND, Vector2(56, 56), accent)
 	var center: CenterContainer = CenterContainer.new()
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage.add_child(center)
 	var icon: TextureRect = _artwork_texture_rect(
-		&"SupporterIcon", SUPPORTER_ICON, Vector2(38, 38))
+		&"SupporterIcon", SUPPORTER_ICON, Vector2(48, 48))
 	icon.set_meta(&"artwork_item_kind", SUPPORTER_ARTWORK_KIND)
 	center.add_child(icon)
 	return stage
@@ -373,7 +383,7 @@ func _make_supporter_artwork(accent: Color) -> PanelContainer:
 
 func _make_lantern_artwork(accent: Color) -> PanelContainer:
 	var stage: PanelContainer = _make_artwork_stage(
-		LANTERN_ARTWORK_KIND, Vector2(92, 44), accent)
+		LANTERN_ARTWORK_KIND, Vector2(112, 56), accent)
 	var flames: HBoxContainer = HBoxContainer.new()
 	flames.name = &"PaletteFlames"
 	flames.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -387,7 +397,7 @@ func _make_lantern_artwork(accent: Color) -> PanelContainer:
 		var flame: TextureRect = _artwork_texture_rect(
 			StringName("Flame" + palette_id.to_pascal_case()),
 			frame,
-			Vector2(20, 38))
+			Vector2(24, 48))
 		var palette: Dictionary = Shop.PALETTES[palette_id]
 		flame.self_modulate = palette.get("light", Color.WHITE)
 		flame.set_meta(&"artwork_item_kind", LANTERN_ARTWORK_KIND)
@@ -396,21 +406,33 @@ func _make_lantern_artwork(accent: Color) -> PanelContainer:
 	return stage
 
 
+## Consumable coin cards carry the moon-gate mint mark beside the price:
+## the same coin crest the shop tab wears, so currency reads as currency
+## at a glance. Footer height, so the coin row keeps its short cards.
+func _make_coin_artwork(accent: Color) -> PanelContainer:
+	var stage: PanelContainer = _make_artwork_stage(
+		COIN_ARTWORK_KIND, Vector2(28, 28), accent)
+	var center: CenterContainer = CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stage.add_child(center)
+	var mark: TextureRect = WorldChrome.crest("coin")
+	mark.custom_minimum_size = Vector2(24, 24)
+	mark.set_meta(&"artwork_item_kind", COIN_ARTWORK_KIND)
+	center.add_child(mark)
+	return stage
+
+
 func _make_artwork_stage(
 		kind: String, minimum_size: Vector2, accent: Color) -> PanelContainer:
-	var stage: PanelContainer = PanelContainer.new()
+	var stage := WorldFrame.new()
 	stage.name = &"Artwork"
+	stage.kind = "chip"
 	stage.custom_minimum_size = minimum_size
 	stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	stage.set_meta(&"artwork_kind", kind)
 	# The stage tints with the product's accent instead of drawing its own border.
-	var style: StyleBoxTexture = ROW_STYLE.duplicate() as StyleBoxTexture
-	style.modulate_color = Color.WHITE.lerp(accent, 0.22)
-	style.content_margin_left = 2.0
-	style.content_margin_top = 2.0
-	style.content_margin_right = 2.0
-	style.content_margin_bottom = 2.0
-	stage.add_theme_stylebox_override("panel", style)
+	stage.face_tint = Color.WHITE.lerp(accent, 0.22)
+	stage.pad = Vector4(2, 2, 2, 2)
 	return stage
 
 
@@ -1102,7 +1124,8 @@ func _label(text: String, size: int, color: Color, bold: bool = false) -> Label:
 
 
 func _button(text: String, accent: Color, compact: bool = false) -> Button:
-	var button: Button = Button.new()
+	var button := WorldButton.new()
+	button.kind = "ember"
 	button.text = text
 	button.custom_minimum_size = Vector2(72, 20) if compact else Vector2(82, 22)
 	button.focus_mode = Control.FOCUS_NONE
@@ -1111,11 +1134,6 @@ func _button(text: String, accent: Color, compact: bool = false) -> Button:
 	button.add_theme_color_override("font_color", accent)
 	button.add_theme_color_override(
 		"font_disabled_color", Color(accent.r, accent.g, accent.b, 0.42))
-	button.add_theme_stylebox_override("normal", BUTTON_NORMAL)
-	button.add_theme_stylebox_override("hover", BUTTON_HOVER)
-	button.add_theme_stylebox_override("pressed", BUTTON_PRESSED)
-	button.add_theme_stylebox_override("disabled", BUTTON_DISABLED)
-	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	return button
 
 

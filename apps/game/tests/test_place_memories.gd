@@ -23,6 +23,21 @@ const UI_FONT: Font = preload(
 	"res://assets/third_party/fonts/Galmuri11-Multilingual.tres")
 const UI_FONT_BOLD: Font = preload(
 	"res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres")
+const VOICE_HERO_PATHS: Array[String] = [
+	"res://resources/heroes/warden.tres",
+	"res://resources/heroes/dancer.tres",
+	"res://resources/heroes/keeper.tres",
+	"res://resources/heroes/knight.tres",
+	"res://resources/heroes/eclipse.tres",
+	"res://resources/heroes/sage.tres",
+]
+## Same three framings as the gate-entry layout suite: the base 808x360
+## canvas, a wider phone viewport and a 4:3 tablet viewport.
+const VOICE_FRAMINGS: Array[Vector2i] = [
+	Vector2i(808, 360), Vector2i(840, 360), Vector2i(808, 606)]
+## Longest real voice lines in ko and ja: the strip must stay one line.
+const VOICE_LONG_KO_KEY: String = "VOICE_CYCLE_6"
+const VOICE_LONG_JA_KEY: String = "VOICE_MEET_STALKER_1"
 
 var _failed: int = 0
 var _checked: int = 0
@@ -56,6 +71,7 @@ func _run() -> void:
 	await _test_road_geometry()
 	await _test_story_not_gated_on_places()
 	_test_five_languages_fit()
+	await _test_voice_strip_portrait_bounds()
 	await _test_budget_and_teardown()
 	TranslationServer.set_locale(original)
 
@@ -847,6 +863,148 @@ func _test_five_languages_fit() -> void:
 		_expect_true(epitaph <= 780.0,
 			"%s longest epitaph fits (%d px)" % [locale, int(epitaph)])
 	TranslationServer.set_locale(current)
+
+
+# --- voice strip portrait bounds (brief 094) ------------------------------------
+## The 72x72 painted head crop must land in the 24px portrait cell without
+## pushing the strip out of the viewport. Real `VoicePanel.say` with all six
+## actual Hero resources, at base/wide/tablet framings, plus long ko/ja
+## lines and one real-arena spot check with the Warden.
+func _test_voice_strip_portrait_bounds() -> void:
+	_expect_equal(VoicePanel.PANEL_HEIGHT, 34.0, "the strip keeps its height")
+	_expect_equal(VoicePanel.PORTRAIT, 24.0, "the portrait cell keeps its size")
+	_expect_equal(VoicePanel.FONT_SIZE, 13, "the strip font is not shrunk")
+	_expect_equal(VoicePanel.HOLD_BASE, 1.9, "the hold base is kept")
+	_expect_equal(VoicePanel.HOLD_PER_CHAR, 0.045, "the hold per char is kept")
+	_expect_equal(VoicePanel.FADE, 0.14, "the fade is kept")
+	var original_size: Vector2i = get_tree().root.size
+	var original_locale: String = TranslationServer.get_locale()
+	TranslationServer.set_locale("en")
+	for framing in VOICE_FRAMINGS:
+		get_tree().root.size = framing
+		await get_tree().process_frame
+		await get_tree().process_frame
+		for hero_path in VOICE_HERO_PATHS:
+			await _check_voice_strip_case(
+				framing, hero_path, tr("PLACE_MEMORY_FOREST"))
+	for locale in ["ko", "ja"]:
+		TranslationServer.set_locale(locale)
+		var key: String = VOICE_LONG_KO_KEY if locale == "ko" \
+			else VOICE_LONG_JA_KEY
+		get_tree().root.size = Vector2i(808, 360)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		await _check_voice_strip_case(Vector2i(808, 360),
+			"res://resources/heroes/warden.tres", tr(key))
+	await _check_voice_strip_real_arena()
+	TranslationServer.set_locale(original_locale)
+	get_tree().root.size = original_size
+	await get_tree().process_frame
+
+
+func _check_voice_strip_case(
+		framing: Vector2i, hero_path: String, line: String) -> void:
+	var tag: String = "%dx%d/%s" % [
+		framing.x, framing.y, hero_path.get_file().get_basename()]
+	var layer := CanvasLayer.new()
+	add_child(layer)
+	var panel := VoicePanel.new()
+	layer.add_child(panel)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var hero: Hero = load(hero_path) as Hero
+	_expect_true(hero != null, tag + " hero loads")
+	panel.say(hero, line)
+	for _frame in 5:
+		await get_tree().process_frame
+	var box: PanelContainer = panel.get_node("Box") as PanelContainer
+	var row: HBoxContainer = panel.get_node("Box/Row") as HBoxContainer
+	var portrait: TextureRect = panel.get_node(
+		"Box/Row/Portrait") as TextureRect
+	var text: Label = panel.get_node("Box/Row/Text") as Label
+	var atlas: AtlasTexture = portrait.texture as AtlasTexture
+	_expect_true(atlas != null, tag + " portrait AtlasTexture")
+	if atlas != null:
+		_expect_equal(atlas.region, Rect2(36, 96, 72, 72),
+			tag + " 72x72 painted head crop")
+	_expect_equal(portrait.custom_minimum_size, Vector2(24, 24),
+		tag + " 24px portrait cell")
+	_expect_equal(portrait.expand_mode, TextureRect.EXPAND_IGNORE_SIZE,
+		tag + " portrait ignores texture size")
+	_expect_true(portrait.size.x <= 24.5 and portrait.size.y <= 24.5,
+		tag + " portrait fits its cell (%s)" % portrait.size)
+	_expect_true(portrait.size.x >= 23.5 and portrait.size.y >= 23.5,
+		tag + " portrait fills its cell (%s)" % portrait.size)
+	var box_minimum: Vector2 = box.get_combined_minimum_size()
+	_expect_true(box_minimum.y <= VoicePanel.PANEL_HEIGHT + 0.5,
+		tag + " box minimum fits the strip (%s)" % box_minimum)
+	_expect_true(panel.size.y <= VoicePanel.PANEL_HEIGHT + 0.5,
+		tag + " strip keeps its height (%s)" % panel.size)
+	_expect_equal(panel.offset_top, -VoicePanel.PANEL_HEIGHT - 6.0,
+		tag + " strip top pinned")
+	_expect_equal(panel.offset_bottom, -6.0,
+		tag + " strip bottom pinned, not grown downward")
+	_expect_equal(text.get_theme_font_size("font_size"),
+		VoicePanel.FONT_SIZE, tag + " font not shrunk")
+	_expect_equal(text.get_line_count(), 1, tag + " one readable line")
+	var viewport: Rect2 = Rect2(Vector2.ZERO, get_tree().root.size)
+	for named in [
+		[box, "box"], [row, "row"], [portrait, "portrait"], [text, "text"]]:
+		var rect: Rect2 = (named[0] as Control).get_global_rect()
+		_expect_true(viewport.encloses(rect.grow(-0.5)),
+			tag + " %s inside %s" % [named[1], rect])
+	_expect_true(panel.visible, tag + " say shows the strip")
+	_expect_equal(text.text, line, tag + " strip speaks the line")
+	for node in [panel, box, row, portrait, text]:
+		_expect_equal((node as Control).mouse_filter,
+			Control.MOUSE_FILTER_IGNORE,
+			tag + " %s ignores input" % (node as Control).name)
+	_expect_false(get_tree().paused, tag + " say never pauses")
+	panel.say(hero, "a second line")
+	await get_tree().process_frame
+	_expect_equal(text.text, "a second line",
+		tag + " a second say swaps in place")
+	_expect_true(panel.visible, tag + " the swap stays visible")
+	panel.clear()
+	_expect_false(panel.visible, tag + " clear walks off")
+	panel.queue_free()
+	layer.queue_free()
+	await get_tree().process_frame
+
+
+## The reported case in its real room: the Warden speaks on a live arena and
+## the whole strip stays inside the viewport after layout.
+func _check_voice_strip_real_arena() -> void:
+	var tag: String = "arena/warden"
+	get_tree().root.size = Vector2i(808, 360)
+	await get_tree().process_frame
+	var arena: Node2D = await _new_arena()
+	_quiet_first_sights(arena)
+	var panel: Control = arena.get("_voice_panel") as Control
+	_expect_true(panel != null, tag + " carries the voice strip")
+	if panel == null:
+		await _drop(arena)
+		return
+	var hero: Hero = load(
+		"res://resources/heroes/warden.tres") as Hero
+	panel.call("say", hero, tr("PLACE_MEMORY_FOREST"))
+	for _frame in 5:
+		await get_tree().process_frame
+	var box: Control = panel.get_node("Box") as Control
+	var portrait: TextureRect = panel.get_node(
+		"Box/Row/Portrait") as TextureRect
+	_expect_true(box.get_combined_minimum_size().y <= 34.5,
+		tag + " box minimum fits the strip (%s)" % box.get_combined_minimum_size())
+	_expect_true(portrait.size.x <= 24.5 and portrait.size.y <= 24.5,
+		tag + " portrait fits its cell (%s)" % portrait.size)
+	var viewport: Rect2 = Rect2(Vector2.ZERO, get_tree().root.size)
+	for named in ["Box", "Box/Row", "Box/Row/Portrait", "Box/Row/Text"]:
+		var rect: Rect2 = (panel.get_node(named) as Control).get_global_rect()
+		_expect_true(viewport.encloses(rect.grow(-0.5)),
+			tag + " %s inside %s" % [named, rect])
+	_expect_true(panel.visible, tag + " say shows the strip")
+	_expect_false(get_tree().paused, tag + " combat never pauses")
+	await _drop(arena)
 
 
 # --- budget -----------------------------------------------------------------

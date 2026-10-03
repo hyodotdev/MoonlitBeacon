@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Journey stamp, defeat: the ring breaks north-east and one ember falls through. -->
+  <defs>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.55" stop-color="#070a1e" stop-opacity="0"/>
+      <stop offset="0.8" stop-color="#070a1e" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#070a1e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8a93ad"/>
+      <stop offset="0.5" stop-color="#5a6f8e"/>
+      <stop offset="1" stop-color="#2b3348"/>
+    </linearGradient>
+    <radialGradient id="ember" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#ffe9b8"/>
+      <stop offset="0.45" stop-color="#ff7a70"/>
+      <stop offset="1" stop-color="#7e2f2b"/>
+    </radialGradient>
+    <radialGradient id="coldMoon" cx="0.4" cy="0.35" r="0.75">
+      <stop offset="0" stop-color="#4b7f88"/>
+      <stop offset="0.7" stop-color="#2b4a52"/>
+      <stop offset="1" stop-color="#141c26"/>
+    </radialGradient>
+  </defs>
+  <circle cx="128" cy="128" r="126" fill="url(#halo)"/>
+  <!-- Outer ring, broken north-east: a 40-unit gap centred at 7/8 round. -->
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#141821" stroke-width="15" opacity="0.3" stroke-dasharray="663.7 40" stroke-dashoffset="68"/>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="url(#ash)" stroke-width="11" stroke-linecap="round" stroke-dasharray="663.7 40" stroke-dashoffset="68"/>
+  <circle cx="128" cy="128" r="95" fill="none" stroke="#5a6f8e" stroke-width="4" opacity="0.8"/>
+  <circle cx="128" cy="128" r="88" fill="none" stroke="#2b3348" stroke-width="1.6" opacity="0.9"/>
+  <circle cx="118" cy="132" r="34" fill="url(#coldMoon)"/>
+  <circle cx="118" cy="132" r="34" fill="none" stroke="#0c0f18" stroke-width="3" opacity="0.7"/>
+  <!-- The fallen ember and its cooling trail. -->
+  <circle cx="196" cy="52" r="13" fill="url(#ember)"/>
+  <circle cx="186" cy="70" r="5" fill="#ff7a70" opacity="0.75"/>
+  <circle cx="179" cy="84" r="3.2" fill="#c96a5e" opacity="0.6"/>
+  <circle cx="174" cy="95" r="2" fill="#8a4a44" opacity="0.5"/>
+</svg>

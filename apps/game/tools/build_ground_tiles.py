@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Build one seamless 96x96 ground tile per terrain.
 
+Retired since 4.0.0: production ground floors come from the painted masters
+via pack_painted_world.py, and --check delegates there. The builders below
+stay as the record the painted packer follows.
+
 Two of the original three floors were a single flat colour. ``floor.png`` is 352x417
 and holds one **untextured** 80x16 strip that the camp repeated across a
 1720x1000 play area, and the field cropped an equally flat 16x16 tile out of
@@ -326,29 +330,22 @@ def main() -> int:
         help="fail if the tiles on disk differ from what this tool generates")
     args = parser.parse_args()
 
-    problems: list[str] = []
-    for name, builder in BUILDERS.items():
-        canvas = builder()
-        _validate(name, canvas)
-        payload = canvas.to_png()
-        digest = hashlib.sha256(payload).hexdigest()[:16]
-        target = OUTPUT_DIR / f"ground_{name}.png"
-        if args.check:
-            if not target.exists():
-                problems.append(f"missing {target.name}")
-            elif target.read_bytes() != payload:
-                problems.append(f"out of date {target.name}")
-            continue
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(payload)
-        print(f"wrote {target.relative_to(GAME_ROOT)}  sha256:{digest}")
-    if args.check:
-        if problems:
-            raise SystemExit(
-                "ground tiles are not what build_ground_tiles.py generates:\n  "
-                + "\n  ".join(problems)
-                + "\nRun: node scripts/python.mjs -B apps/game/tools/build_ground_tiles.py")
-        print("check: production ground tiles are deterministic")
+    # Ground floors come from the painted masters since 4.0.0. Do not bake
+    # them here: writing would clobber the painted pack with pixel art.
+    #
+    # Do not delete the builders above. Tile size, seamlessness and tone are
+    # written here, and the painted packer follows that table as-is.
+    if not args.check:
+        raise SystemExit(
+            "build_ground_tiles.py no longer bakes ground floors; run "
+            "apps/game/tools/pack_painted_world.py instead")
+    from pack_painted_world import check_current
+
+    problems = check_current(byte_verify=False)
+    if problems:
+        raise SystemExit(
+            "painted ground floors are not current:\n  " + "\n  ".join(problems))
+    print("ground tiles check: painted sheets current")
     return 0
 
 

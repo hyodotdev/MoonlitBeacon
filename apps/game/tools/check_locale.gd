@@ -83,6 +83,7 @@ func _init() -> void:
 			failed += 1
 		else:
 			print("  ", locale, ": ", PROBE, " → ", text)
+	failed += _check_gate_table()
 	failed += _check_bundled_font_glyphs()
 
 	if failed > 0:
@@ -91,6 +92,39 @@ func _init() -> void:
 		return
 	print("translation load confirmed — ", loaded)
 	quit()
+
+
+## Every key the shipped English gate table carries must resolve in every
+## locale through the imported resources. The key list comes from the
+## resource itself, never from the source CSV, so this fails exactly when
+## an export would show raw `gate.*` keys.
+func _check_gate_table() -> int:
+	var failed: int = 0
+	var english: Translation = load(
+		"res://localization/gate_entry.en.translation") as Translation
+	if english == null:
+		printerr("  gate_entry.en.translation did not import")
+		return 1
+	var keys: PackedStringArray = english.get_message_list()
+	if keys.is_empty():
+		printerr("  gate_entry.en.translation ships no keys")
+		return 1
+	GateEntryStrings.ensure_loaded()
+	if GateEntryStrings.key_count() != keys.size():
+		printerr("  GateEntryStrings counts ",
+			GateEntryStrings.key_count(),
+			" keys, the table ships ", keys.size())
+		failed += 1
+	for locale in EXPECTED:
+		TranslationServer.set_locale(locale)
+		for key in keys:
+			if tr(key) == key:
+				printerr("  ", locale, ": ", key, " is not translated")
+				failed += 1
+	if failed == 0:
+		print("  gate: ", keys.size(), " keys resolve in ",
+			EXPECTED.size(), " locales")
+	return failed
 
 
 ## Read the real CSV translations and confirm body and bold font pairs have

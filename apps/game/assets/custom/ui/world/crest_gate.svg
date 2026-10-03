@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <!-- Crest: the moon gate itself, pillars and lintel around a crescent. -->
+  <defs>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4a3a24"/>
+      <stop offset="0.5" stop-color="#d9b47a"/>
+      <stop offset="1" stop-color="#4a3a24"/>
+    </linearGradient>
+    <linearGradient id="lintel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9b47a"/>
+      <stop offset="0.5" stop-color="#8a5f1e"/>
+      <stop offset="1" stop-color="#4a340f"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e4f6f2"/>
+      <stop offset="1" stop-color="#5fa8a2"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="26" width="12" height="38" rx="2" fill="url(#bronze)"/>
+  <rect x="56" y="26" width="12" height="38" rx="2" fill="url(#bronze)"/>
+  <rect x="12" y="26" width="12" height="38" rx="2" fill="none" stroke="#241c0e" stroke-width="2"/>
+  <rect x="56" y="26" width="12" height="38" rx="2" fill="none" stroke="#241c0e" stroke-width="2"/>
+  <rect x="10" y="64" width="60" height="8" rx="3" fill="url(#bronze)"/>
+  <rect x="10" y="64" width="60" height="8" rx="3" fill="none" stroke="#241c0e" stroke-width="2"/>
+  <rect x="8" y="12" width="64" height="14" rx="4" fill="url(#lintel)"/>
+  <rect x="8" y="12" width="64" height="14" rx="4" fill="none" stroke="#241c0e" stroke-width="2"/>
+  <line x1="14" y1="19" x2="66" y2="19" stroke="#ffe1a1" stroke-width="1.6" opacity="0.7"/>
+  <circle cx="40" cy="46" r="13" fill="#0a0e24"/>
+  <path fill-rule="evenodd" fill="url(#moon)" d="M 39 37 A 9.5 9.5 0 1 0 39 56 A 9.5 9.5 0 1 0 39 37 Z M 43 38.8 A 7.4 7.4 0 1 1 43 54.2 A 7.4 7.4 0 1 1 43 38.8 Z"/>
+</svg>

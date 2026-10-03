@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">
+  <!-- Moon-gate modal frame: a cut-corner octagon of aged bronze around
+       deep ink, with etched moon diamonds at the bevels. 144px of vector art
+       map to 36 logical units; the outer 48px corners map to 12 units. -->
+  <defs>
+    <linearGradient id="bronze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8825a"/>
+      <stop offset="0.3" stop-color="#6b5a3e"/>
+      <stop offset="0.7" stop-color="#3f3220"/>
+      <stop offset="1" stop-color="#1f190d"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#202659"/>
+      <stop offset="0.5" stop-color="#141838"/>
+      <stop offset="1" stop-color="#0e1230"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cdd8f4" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#cdd8f4" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.28"/>
+    </linearGradient>
+  </defs>
+  <!-- Contact shadow, offset down-right. -->
+  <path d="M 38 7 H 114 L 141 34 V 114 L 114 141 H 38 L 11 114 V 34 Z" fill="#02030a" opacity="0.55"/>
+  <!-- Bronze body, polished crown, shadowed foot. -->
+  <path d="M 32 2 H 112 L 142 32 V 112 L 112 142 H 32 L 2 112 V 32 Z" fill="url(#bronze)"/>
+  <path d="M 6 30 L 32 4 H 112 L 138 30" fill="none" stroke="#d9b47a" stroke-width="3" opacity="0.9"/>
+  <path d="M 6 114 L 32 140 H 112 L 138 114" fill="none" stroke="#141007" stroke-width="3" opacity="0.85"/>
+  <!-- Dark groove, then the ink face. -->
+  <path d="M 36 8 H 108 L 136 36 V 108 L 108 136 H 36 L 8 108 V 36 Z" fill="#141007"/>
+  <path d="M 38 11 H 106 L 133 38 V 106 L 106 133 H 38 L 11 106 V 38 Z" fill="url(#ink)"/>
+  <polygon points="38,11 106,11 120,25 120,41 24,41 24,25" fill="url(#sheen)"/>
+  <polygon points="24,103 120,103 120,119 106,133 38,133 24,119" fill="url(#shade)"/>
+  <!-- Etched moon keyline. -->
+  <path d="M 42 16 H 102 L 128 42 V 102 L 102 128 H 42 L 16 102 V 42 Z" fill="none" stroke="#4b7f88" stroke-width="2" opacity="0.85"/>
+  <!-- Etched diamonds and ticks at the four bevels. -->
+  <g fill="none" stroke-width="1.6">
+    <path d="M 28 23 L 33 28 L 28 33 L 23 28 Z" stroke="#8a5f1e"/>
+    <line x1="20" y1="34" x2="25" y2="29" stroke="#4b7f88"/>
+    <line x1="34" y1="20" x2="29" y2="25" stroke="#4b7f88"/>
+    <path d="M 116 23 L 121 28 L 116 33 L 111 28 Z" stroke="#8a5f1e"/>
+    <line x1="124" y1="34" x2="119" y2="29" stroke="#4b7f88"/>
+    <line x1="110" y1="20" x2="115" y2="25" stroke="#4b7f88"/>
+    <path d="M 28 111 L 33 116 L 28 121 L 23 116 Z" stroke="#8a5f1e"/>
+    <line x1="20" y1="110" x2="25" y2="115" stroke="#4b7f88"/>
+    <line x1="34" y1="124" x2="29" y2="119" stroke="#4b7f88"/>
+    <path d="M 116 111 L 121 116 L 116 121 L 111 116 Z" stroke="#8a5f1e"/>
+    <line x1="124" y1="110" x2="119" y2="115" stroke="#4b7f88"/>
+    <line x1="110" y1="124" x2="115" y2="119" stroke="#4b7f88"/>
+  </g>
+  <!-- Pin studs on the rim cuts: dark, small, quiet. -->
+  <g fill="#5d4a26">
+    <path d="M 17 13 L 21 17 L 17 21 L 13 17 Z"/>
+    <path d="M 127 13 L 131 17 L 127 21 L 123 17 Z"/>
+    <path d="M 17 123 L 21 127 L 17 131 L 13 127 Z"/>
+    <path d="M 127 123 L 131 127 L 127 131 L 123 127 Z"/>
+  </g>
+</svg>

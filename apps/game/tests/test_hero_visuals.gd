@@ -3,7 +3,12 @@ extends SceneTree
 ## Confirm runtime sheet assembly for all six player heroes, plus the Player safety fallback.
 
 const PLAYER_SCENE: PackedScene = preload("res://scenes/actors/player.tscn")
-const CELL: Vector2i = Vector2i(48, 64)
+const CELL: Vector2i = Vector2i(144, 192)
+## Painted cells are 3x at 1/3 the legacy 0.765 body factor, so the sprite sits
+## lower to render the same world feet. See Player.apply_hero_visual.
+const APPLIED_POSITION_Y: float = -28.08
+## World foot of the rendered body: unchanged from the legacy sheets.
+const WORLD_FOOT_Y: float = -5.64
 const DIRECTIONS: Array[StringName] = [&"down", &"up", &"left", &"right"]
 const HERO_CASES: Array[Dictionary] = [
 	{
@@ -128,10 +133,18 @@ func _test_applied_hero(
 	if hero == null:
 		return
 	_expect_true(player.apply_hero_visual(hero), "%s sheet applied" % hero_id)
-	_expect_equal(sprite.position.y, -24.0, "%s foot-origin position.y" % hero_id)
+	_expect_approx(
+		sprite.position.y, APPLIED_POSITION_Y, 0.001,
+		"%s foot-origin position.y" % hero_id)
+	# The world foot must not move: sprite base plus the un-breathed cell
+	# bottom lands where the legacy 48x64 sheets landed.
+	var base_foot: float = sprite.position.y \
+		+ (float(hero.sprite_cell.y) * 0.5 + Player.HERO_BASE_OFFSET_Y) \
+		* hero.visual_scale
+	_expect_approx(base_foot, WORLD_FOOT_Y, 0.01, "%s world foot y" % hero_id)
 	_expect_equal(
 		hero.preview_crop,
-		Rect2i(12, 32, 24, 24),
+		Rect2i(36, 96, 72, 72),
 		"%s detail view 2-head crop" % hero_id)
 	_expect_equal(hero.accent, hero_case["accent"], "%s role accent color" % hero_id)
 	_expect_equal(
@@ -426,7 +439,7 @@ func _expect_atlas(
 		_expect_equal(
 			Vector2i(atlas_texture.region.size),
 			expected_region,
-			label + " 48x64 region")
+			label + " 144x192 region")
 
 
 func _finish() -> void:
@@ -452,3 +465,11 @@ func _expect_true(actual: bool, label: String) -> void:
 
 func _expect_false(actual: bool, label: String) -> void:
 	_expect_equal(actual, false, label)
+
+
+func _expect_approx(actual: float, expected: float, tolerance: float, label: String) -> void:
+	_checked += 1
+	if absf(actual - expected) <= tolerance:
+		return
+	_failed += 1
+	printerr("  FAIL ", label, " — expected~", expected, " actual=", actual)

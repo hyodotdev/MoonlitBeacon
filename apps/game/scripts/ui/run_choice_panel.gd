@@ -24,6 +24,7 @@ const CHOICE_TITLE_AVAILABLE_WIDTH: float = 252.0
 @onready var _frame: PanelContainer = $Center/Frame
 @onready var _title: Label = $Center/Frame/Content/Rows/Title
 @onready var _subtitle: Label = $Center/Frame/Content/Rows/Subtitle
+@onready var _rule: ColorRect = $Center/Frame/Content/Rows/Rule
 @onready var _left_button: Button = $Center/Frame/Content/Rows/Choices/Left
 @onready var _right_button: Button = $Center/Frame/Content/Rows/Choices/Right
 @onready var _left_title: Label = \
@@ -108,6 +109,19 @@ func close_without_choice() -> void:
 
 
 func _open() -> void:
+	# A moon bead riding the divider: the two roads part under one moon.
+	# Hung on first open, never in `_ready` (arena node budget).
+	if _rule.get_node_or_null("WorldBead") == null:
+		var bead: TextureRect = WorldChrome.bead()
+		bead.anchor_left = 0.5
+		bead.anchor_top = 0.5
+		bead.anchor_right = 0.5
+		bead.anchor_bottom = 0.5
+		bead.offset_left = -6.0
+		bead.offset_top = -6.0
+		bead.offset_right = 6.0
+		bead.offset_bottom = 6.0
+		_rule.add_child(bead)
 	if not visible:
 		_paused_before_open = get_tree().paused
 	_open_generation += 1

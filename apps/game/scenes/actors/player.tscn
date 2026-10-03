@@ -12,83 +12,83 @@
 
 [sub_resource type="AtlasTexture" id="Atlas_idle_down"]
 atlas = ExtResource("idle")
-region = Rect2(0, 0, 48, 64)
+region = Rect2(0, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_down_0"]
 atlas = ExtResource("walk")
-region = Rect2(0, 0, 48, 64)
+region = Rect2(0, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_down_1"]
 atlas = ExtResource("walk")
-region = Rect2(0, 64, 48, 64)
+region = Rect2(0, 192, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_down_2"]
 atlas = ExtResource("walk")
-region = Rect2(0, 128, 48, 64)
+region = Rect2(0, 384, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_down_3"]
 atlas = ExtResource("walk")
-region = Rect2(0, 192, 48, 64)
+region = Rect2(0, 576, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_idle_up"]
 atlas = ExtResource("idle")
-region = Rect2(48, 0, 48, 64)
+region = Rect2(144, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_up_0"]
 atlas = ExtResource("walk")
-region = Rect2(48, 0, 48, 64)
+region = Rect2(144, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_up_1"]
 atlas = ExtResource("walk")
-region = Rect2(48, 64, 48, 64)
+region = Rect2(144, 192, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_up_2"]
 atlas = ExtResource("walk")
-region = Rect2(48, 128, 48, 64)
+region = Rect2(144, 384, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_up_3"]
 atlas = ExtResource("walk")
-region = Rect2(48, 192, 48, 64)
+region = Rect2(144, 576, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_idle_left"]
 atlas = ExtResource("idle")
-region = Rect2(96, 0, 48, 64)
+region = Rect2(288, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_left_0"]
 atlas = ExtResource("walk")
-region = Rect2(96, 0, 48, 64)
+region = Rect2(288, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_left_1"]
 atlas = ExtResource("walk")
-region = Rect2(96, 64, 48, 64)
+region = Rect2(288, 192, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_left_2"]
 atlas = ExtResource("walk")
-region = Rect2(96, 128, 48, 64)
+region = Rect2(288, 384, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_left_3"]
 atlas = ExtResource("walk")
-region = Rect2(96, 192, 48, 64)
+region = Rect2(288, 576, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_idle_right"]
 atlas = ExtResource("idle")
-region = Rect2(144, 0, 48, 64)
+region = Rect2(432, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_right_0"]
 atlas = ExtResource("walk")
-region = Rect2(144, 0, 48, 64)
+region = Rect2(432, 0, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_right_1"]
 atlas = ExtResource("walk")
-region = Rect2(144, 64, 48, 64)
+region = Rect2(432, 192, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_right_2"]
 atlas = ExtResource("walk")
-region = Rect2(144, 128, 48, 64)
+region = Rect2(432, 384, 144, 192)
 
 [sub_resource type="AtlasTexture" id="Atlas_walk_right_3"]
 atlas = ExtResource("walk")
-region = Rect2(144, 192, 48, 64)
+region = Rect2(432, 576, 144, 192)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_warden"]
 animations = [{
@@ -207,7 +207,7 @@ tracks/0/keys = {
 "times": PackedFloat32Array(0, 0.9, 1.8),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
-"values": [Vector2(0, -8), Vector2(0, -9), Vector2(0, -8)]
+"values": [Vector2(0, -8), Vector2(0, -11), Vector2(0, -8)]
 }
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_player"]
@@ -255,10 +255,11 @@ scale = Vector2(1.2, 1)
 texture = ExtResource("shadow")
 
 [node name="Sprite" type="AnimatedSprite2D" parent="."]
+texture_filter = 2
 material = ExtResource("polish")
 self_modulate = Color(3.175, 2.857, 1.754, 1)
 position = Vector2(0, -8)
-scale = Vector2(0.765, 0.765)
+scale = Vector2(0.255, 0.255)
 offset = Vector2(0, -8)
 sprite_frames = SubResource("SpriteFrames_warden")
 animation = &"idle_down"
@@ -298,6 +299,7 @@ autoplay = "breathe"
 
 [node name="Cam" type="Camera2D" parent="."]
 position = Vector2(0, -8)
+process_callback = 0
 position_smoothing_enabled = false
 limit_left = 0
 limit_top = 0

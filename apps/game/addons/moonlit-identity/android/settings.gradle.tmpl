@@ -1,0 +1,22 @@
+// Rendered to settings.gradle by scripts/build-player-identity.mjs
+// --build-android (template copied verbatim). Pins live in
+// scripts/lib/player-identity-build.mjs (IDENTITY_PINS) and are repeated
+// here so the standalone build resolves the same artifacts.
+// (Groovy: no '#' comments. A Node audit test enforces that.)
+
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+rootProject.name = "MoonlitIdentity"
+include(":MoonlitIdentity")

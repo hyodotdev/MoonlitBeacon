@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Standalone manifest for the MoonlitIdentity Android plugin.
+  Rendered to src/main/AndroidManifest.xml by the Android build entry
+  point in scripts/build-player-identity.mjs (template copied verbatim;
+  note XML comments forbid double hyphens, so no CLI flag is spelled
+  out here). The v2 meta-data key registers the plugin class with the
+  Godot 4 runtime; the format matches the vendored godot-iap AAR
+  manifest: package plus uses-sdk plus one application meta-data. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="dev.moonlitbeacon.identity">
+    <uses-sdk android:minSdkVersion="23" />
+    <application>
+        <meta-data
+            android:name="org.godotengine.plugin.v2.MoonlitIdentity"
+            android:value="dev.moonlitbeacon.identity.MoonlitIdentityPlugin" />
+    </application>
+</manifest>

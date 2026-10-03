@@ -1,0 +1,8 @@
+# Rendered to MoonlitIdentity/consumer-rules.pro by
+# scripts/build-player-identity.mjs --build-android (template copied
+# verbatim). The host app's minification must keep the plugin entry point
+# and every method Godot calls through the bridge.
+-keep public class dev.moonlitbeacon.identity.MoonlitIdentityPlugin { *; }
+-keepclassmembers class * {
+    @org.godotengine.godot.plugin.UsedByGodot <methods>;
+}

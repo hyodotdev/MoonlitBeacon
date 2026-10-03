@@ -556,3 +556,13 @@ CHRONICLE_PLACES,기억된 장소,Places Remembered,思い出された場所,被
 OBJECTIVE_ROAD,집으로 가는 길을 밝히자,Keep the road home lit,家への道を灯そう,点亮回家的路,點亮回家的路
 OBJECTIVE_PLACES,6곳 중 %d곳 기억됨,%d of 6 places remembered,6か所中%dか所思い出した,6处地方记起了%d处,6處地方記起了%d處
 RESULT_ROAD,집으로 가는 길 · %s · 6곳 중 %d곳,Road home · %s · %d of 6 places,家への道 · %s · 6か所中%dか所,回家的路 · %s · 6处中%d处,回家的路 · %s · 6處中%d處
+JOURNEY_CONTINUE,계속하기,Continue,つづきから,继续,繼續
+JOURNEY_NEW,새로 시작,New Journey,はじめから,新的旅程,新的旅程
+JOURNEY_CONFIRM_TITLE,처음부터 시작할까요,Start over?,はじめから始める?,要重新开始吗,要重新開始嗎
+JOURNEY_CONFIRM_DESC,저장된 문이 지워지고 새 여정이 시작됩니다,The saved gate is erased and a new journey begins,保存された門は消えて 新しい旅が始まる,已保存的门将被删除并开始新的旅程,已儲存的門將被刪除並開始新的旅程
+JOURNEY_CONFIRM_ERASE,지우고 시작,Erase and start,消して始める,删除并开始,刪除並開始
+JOURNEY_CONFIRM_KEEP,여정 유지,Keep journey,旅をつづける,保留旅程,保留旅程
+JOURNEY_SAVE_FAILED,여정을 저장하지 못했습니다 · 마지막 문 이후의 기록이 위험합니다,Could not save the journey · progress past the last gate is at risk,旅を保存できなかった · 最後の門からの記録が危険だ,无法保存旅程 · 上一道门之后的进度面临风险,無法儲存旅程 · 上一道門之後的進度面臨風險
+JOURNEY_RESUME_FAILED,저장된 여정을 읽지 못했습니다 · 새로 시작합니다,The saved journey could not be read · starting over,保存された旅を読めなかった · はじめから始める,无法读取已保存的旅程 · 重新开始,無法讀取已儲存的旅程 · 重新開始
+JOURNEY_RESUMED,마지막 문으로 · %d순환,Back at the last gate · Wave %d,最後の門へ · 第%d巡,回到上一道门 · 第%d轮,回到上一道門 · 第%d輪
+RESULT_GATE_RETRY,문에서 재시작,Retry from gate,門から再挑戦,从上一个门重试,從上一個門重試

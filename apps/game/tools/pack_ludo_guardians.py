@@ -186,10 +186,14 @@ def main() -> int:
         print(f"{len(sheets)} guardian sheets exist")
         return 0
 
-    for path, sheet in sheets.items():
-        sheet.save(path)
-    print(f"baked {len(sheets)} guardian sheets")
-    return 0
+    # Guardian sheets come from the painted masters since 4.0.0. Do not bake
+    # them here: writing would clobber the painted pack.
+    print(
+        "pack_ludo_guardians.py no longer bakes guardian sheets; run "
+        "apps/game/tools/pack_painted_world.py instead",
+        file=sys.stderr,
+    )
+    return 2
 
 
 if __name__ == "__main__":

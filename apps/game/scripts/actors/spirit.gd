@@ -595,6 +595,10 @@ const BODY_SCALE_GLOBAL: float = 0.612
 ## that exactly restores the pre-shrink ratio. Normal spirits are fine at current size,
 ## so only guardians get this.
 const GUARDIAN_BODY_SCALE: float = 1.25
+## Sprite squash the legacy 48px sheets shipped with. The painted sheets keep
+## it: `visual_scale` only compensates the 3× zoom, so the world body renders
+## exactly as before.
+const LEGACY_SPRITE_SCALE: Vector2 = Vector2(0.9, 0.85)
 
 
 func _apply_kind() -> void:
@@ -626,6 +630,11 @@ func _apply_kind() -> void:
 		_add_guardian_animation(
 			sheet, GUARDIAN_RECOVER_ANIM, kind.guardian_recover_sheet)
 	_sprite.sprite_frames = sheet
+	# Painted sheets are 3× the legacy pixels; visual_scale only compensates
+	# the zoom on top of the legacy squash, so the world body renders exactly
+	# as before. Root scale (body_scale) still owns collision, so only the
+	# sprite node shrinks.
+	_sprite.scale = LEGACY_SPRITE_SCALE * kind.visual_scale
 	# `offset` is overwritten every frame by the `Hover` animation. Set it here and it lives
 	# one frame then dies. Size-based lift goes on `position` instead.
 	_sprite.position.y = kind.lift
@@ -689,7 +698,8 @@ func _apply_guardian_tier() -> void:
 		return
 	var grow: float = minf(1.0 + GUARDIAN_TIER_STEP * float(tier),
 		GUARDIAN_TIER_MAX_SCALE)
-	_sprite.scale = Vector2.ONE * grow
+	var art: float = kind.visual_scale if kind != null else 1.0
+	_sprite.scale = Vector2.ONE * grow * art
 
 	# Swallowed light leaks out of the body. As designed —
 	# what ate a beacon glows, and what glows is large.
@@ -705,9 +715,9 @@ func _apply_guardian_tier() -> void:
 	if tier >= 3:
 		var beat: Tween = create_tween().set_loops()
 		var pace: float = maxf(0.62 - 0.04 * float(tier - 3), 0.32)
-		beat.tween_property(_sprite, "scale", Vector2.ONE * (grow * 1.05), pace) \
+		beat.tween_property(_sprite, "scale", Vector2.ONE * (grow * 1.05 * art), pace) \
 			.set_trans(Tween.TRANS_SINE)
-		beat.tween_property(_sprite, "scale", Vector2.ONE * grow, pace) \
+		beat.tween_property(_sprite, "scale", Vector2.ONE * (grow * art), pace) \
 			.set_trans(Tween.TRANS_SINE)
 
 

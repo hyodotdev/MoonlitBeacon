@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <!-- Owned / highlighted row: the ingot rim burns ember-gold. -->
+  <defs>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe1a1"/>
+      <stop offset="0.45" stop-color="#c99a3e"/>
+      <stop offset="1" stop-color="#5d4212"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#252c5c"/>
+      <stop offset="0.6" stop-color="#161b40"/>
+      <stop offset="1" stop-color="#10142e"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe9b8" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#ffe9b8" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M 23 5 H 59 L 75 21 V 61 L 59 77 H 23 L 7 61 V 21 Z" fill="#02030a" opacity="0.5"/>
+  <path d="M 20 2 H 60 L 78 20 V 60 L 60 78 H 20 L 2 60 V 20 Z" fill="url(#edge)"/>
+  <path d="M 5 19 L 21 3 H 59 L 75 19" fill="none" stroke="#fff3d6" stroke-width="2.4" opacity="0.9"/>
+  <path d="M 5 61 L 21 77 H 59 L 75 61" fill="none" stroke="#3a2a10" stroke-width="2.4" opacity="0.85"/>
+  <path d="M 23 7 H 57 L 73 23 V 57 L 57 73 H 23 L 7 57 V 23 Z" fill="#3a2a10"/>
+  <path d="M 24 9 H 56 L 71 24 V 56 L 56 71 H 24 L 9 56 V 24 Z" fill="url(#face)"/>
+  <polygon points="24,9 56,9 63,16 63,26 17,26 17,16" fill="url(#sheen)"/>
+  <path d="M 28 13 H 52 L 67 28 V 52 L 52 67 H 28 L 13 52 V 28 Z" fill="none" stroke="#c99a3e" stroke-width="1.6" opacity="0.9"/>
+</svg>

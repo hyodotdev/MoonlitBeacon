@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Recolour the shared nature sheet into one sheet per later terrain.
 
+Retired since 4.0.0: production nature sheets come from the painted masters
+via pack_painted_world.py, and --check delegates there. The palettes below
+stay as the record the painted packer follows.
+
 `nature.png` holds the trees, stumps, rocks and grass the first three terrains scatter. It has
 only sixteen colours, so a new terrain does not need new drawings to look like somewhere else:
 the same shapes in a different palette are enough for the *scatter*, and the four big drawn
@@ -126,24 +130,28 @@ def main() -> int:
     parser.add_argument("--check", action="store_true",
                         help="fail if the sheets on disk differ from what this tool bakes")
     args = parser.parse_args()
-    source = Image.open(SOURCE).convert("RGBA")
-    problems: list[str] = []
-    for name, palette in PALETTES.items():
-        baked = _recolour(source, palette)
-        target = TERRAIN_DIR / f"{name}_nature.png"
-        if args.check:
-            problem = check_sheet(target, baked)
-            if problem is not None:
-                problems.append(problem)
-            continue
-        target.write_bytes(_png(baked))
-        print(f"wrote {target.relative_to(GAME_ROOT)}")
-    if args.check:
-        if problems:
-            print("terrain tilesets are not what build_terrain_tilesets.py bakes:",
-                  *problems, sep="\n  ")
-            return 1
-        print("check: terrain tilesets are current")
+    # Nature sheets come from the painted masters since 4.0.0. Do not bake
+    # them here: writing would clobber the painted pack with recolored pixel
+    # art, and the painted nature sheet holds colours no palette maps.
+    #
+    # Do not delete `_recolour()` and PALETTES above. The per-terrain scatter
+    # palettes are written here, and the painted packer follows that table
+    # as-is.
+    if not args.check:
+        print(
+            "build_terrain_tilesets.py no longer bakes nature sheets; run "
+            "apps/game/tools/pack_painted_world.py instead",
+            file=sys.stderr,
+        )
+        return 2
+    from pack_painted_world import check_current
+
+    problems = check_current(byte_verify=False)
+    if problems:
+        print("painted nature sheets are not current:",
+              *problems, sep="\n  ")
+        return 1
+    print("terrain tilesets check: painted sheets current")
     return 0
 
 

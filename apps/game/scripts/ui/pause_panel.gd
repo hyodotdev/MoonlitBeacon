@@ -11,6 +11,7 @@ signal title_requested
 signal pause_changed(paused: bool)
 
 @onready var _overlay: ColorRect = $Overlay
+@onready var _card: Panel = $Overlay/Card
 @onready var _objective: Label = $Overlay/Objective
 
 

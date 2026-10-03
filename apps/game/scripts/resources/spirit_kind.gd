@@ -169,8 +169,11 @@ static func guardian_toughness_scale(cycle: int) -> float:
 ## pre-course compatibility resources.
 @export var sheet: Texture2D = null
 
-## Cell size. Regular spirits are 24, guardians 64.
+## Cell size. Painted regular spirits are 144, guardians 192 (3× the legacy
+## 48/64 pixels, rendered at visual_scale 1/3 for the same world footprint).
 @export var cell: int = 16
+## Sprite-node scale for the sheets. Default 1.0 keeps compatibility resources.
+@export var visual_scale: float = 1.0
 
 ## Facing count. 1 means no facing — the same picture from every side.
 @export var facings: int = 4

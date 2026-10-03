@@ -380,10 +380,10 @@ func _test_assets(hero: Hero, id: String) -> void:
 	_expect_true(hero.portrait != null, id + " portrait")
 	if hero.walk_sheet != null:
 		_expect_equal(hero.walk_sheet.resource_path, root_path + "walk.png", id + " walk path")
-		_expect_equal(Vector2i(hero.walk_sheet.get_size()), Vector2i(192, 256), id + " walk 192x256")
+		_expect_equal(Vector2i(hero.walk_sheet.get_size()), Vector2i(576, 768), id + " walk 576x768")
 	if hero.idle_sheet != null:
 		_expect_equal(hero.idle_sheet.resource_path, root_path + "idle.png", id + " idle path")
-		_expect_equal(Vector2i(hero.idle_sheet.get_size()), Vector2i(192, 256), id + " idle 192x256")
+		_expect_equal(Vector2i(hero.idle_sheet.get_size()), Vector2i(576, 768), id + " idle 576x768")
 	if hero.portrait != null:
 		_expect_equal(hero.portrait.resource_path, root_path + "portrait.png", id + " portrait path")
 		_expect_equal(Vector2i(hero.portrait.get_size()), Vector2i(96, 96), id + " portrait 96x96")
