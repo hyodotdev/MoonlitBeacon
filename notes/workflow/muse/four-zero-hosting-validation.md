@@ -1,0 +1,118 @@
+# 4.0.0 Hosting migration — director validation
+
+Recorded 2026-10-04. Operational evidence is local under `builds/verify/`,
+not a store-submission receipt. This note does not claim 4.0.0 has shipped.
+
+## Domain and first public release
+
+The requested public origin is `https://moonlitbeacon.hyo.dev`.
+Vercel manages `hyo.dev` DNS. The Firebase-generated setup was applied to
+that zone: `moonlitbeacon` CNAME points to `moonlitbeacon-778ee.web.app`,
+and the dedicated ACME TXT verification record was added. Existing apex,
+mail, wildcard and unrelated subdomain records were preserved.
+
+Firebase readback confirmed host and ownership active. Certificate
+propagation was observed, then ordinary HTTPS requests (without disabling
+certificate validation or overriding DNS) returned the reviewed site.
+The first hosting-only deploy succeeded on the existing default site.
+No Firestore rules or native Firebase/Apple callback was changed.
+
+At 2026-10-03 19:14 UTC, independent HTTP verification checked 18 routes:
+root, English x-default privacy/support, five locale choosers, and ten
+localized privacy/support pages. Every response was HTTP 200 and matched
+the accepted static bytes exactly. CSS matched too; a missing route
+returned HTTP 404. No NUL byte was found in the HTML.
+
+Proofs:
+- `release4-custom-domain-state.json`
+- `release4-vercel-dns-cname-add.log`, `release4-vercel-dns-acme-add.log`
+- `release4-player-care-first-deploy.log`
+- `release4-player-care-live-proof.json`
+- `release4-player-care-live.jpg`
+
+The monorepo course/reference composition is a subsequent implementation
+brief. Its final deployment must be independently verified; the first
+release above contains only player-care.
+
+## Player-care implementation review
+
+Briefs 148–150 produced 53 accepted files: dependency-free five-language
+privacy/support source and exact static output, hosting config and current
+game/store contact links. Processor disclosures and native-session/data
+retention details were checked against the owned published policy and game
+source. The report alone was not counted as verification.
+
+Independent site tests: 11/11; contact tests: 4/4; gate-locale tests: 5/5.
+A Japanese processor link was deliberately replaced in the copy; tests 1
+and 6 failed (9 pass, 2 fail, exit 1). Restoring the original bytes returned
+11/11. Normal implementer quick-check judging passed (13 seconds, exit 0,
+zero failure-looking lines). Root site/check tests passed after acceptance.
+
+All ten policy/support pages were rendered at 390px width in Chrome.
+Document scroll width equalled viewport width on every page; each support
+table contained exactly ten products. The viewport override was reset.
+
+## Android Google account recovery
+
+On the attached Samsung device, the director observed the existing Google
+account and Wave 1 save, signed out, then completed reauthentication via
+the official Google native confirmation using keyboard navigation.
+After the confirmation, the original public player ID and Wave 1 hero/save
+returned. Account UI explicitly showed Google signed in. Resume loaded the
+actual arena and rendered gameplay; the process being alive was not the
+criterion. The game was left stopped at its level-up choice.
+
+This test used the previously installed development build. Later accepted
+changes touch capture evidence and website contact links, not provider or
+save logic. Final native store-binary tests are still required before
+claiming final release verification. This does not prove iPad Apple sign-in
+or store purchase/restore transactions.
+
+Proofs:
+- `release4-galaxy-google-reauth-account.png`
+- `release4-galaxy-google-resume-arena.png`
+
+No credentials, Google email/profile, purchase token or private account
+identifier are recorded in this note. The public ID is visible only in the
+local screenshot proof and was not sent to the implementer.
+
+## Combined care/course review
+
+Brief 151 was independently judged and accepted, then committed as
+`055a0eb`. The real combined build copied 37 care files and 142 docs files
+(26 docs pages); its checker resolved 1,725 local links. All 20 hosting
+regressions passed. The director disabled the symlink guard in the copy:
+the suite exited 1, then the original bytes were restored and the suite
+returned to 20/20. Nine scope boundaries, including root Firestore config,
+the existing Pages workflow, the game project and Terms CSV, remained
+byte-identical. Normal quick-check judging and root hosting/care checks
+passed.
+
+The director served the composed output and followed the visible course
+link into Lesson 1. Images loaded, the canonical URL used the requested
+custom origin, and the mobile page at 390px had no horizontal overflow.
+This review is distinct from deploying the final combined site; Terms
+publication and the final combined deploy are subsequent work.
+
+## Integrated verification and capture restart
+
+The root `pnpm verify` after briefs 146–150 passed, including the game/IAP
+regressions, engine smoke check, asset generators, locale, repository rules
+and the actual 26-page docs build/anchor check. The new hosting regression
+suite was independently run after brief 151 acceptance.
+
+The first final phone recapture built and installed successfully, then
+failed its initial title-ready marker after 90 seconds. No new canonical
+set was published. The producer restored existing persistent files.
+Inspection confirmed the marker writer still looked for `Ui/Screen` on
+`current_scene`, while production embeds that original title under
+`Title`. Brief 153 repairs this specific readiness path and adds marker
+coverage; the richer title capture-state bridge is already covered by its
+218 scene checks. This failure is not a successful screenshot recapture.
+
+The director also found the local release environment still resolving
+`MOONLIT_PUBLIC_SITE_URL` to the former public host. Only that public URL
+line in the private `.env` was changed to the requested origin; credential
+lines and mode 600 were preserved. A new process loading the normal
+release environment independently confirmed the custom Firebase origin.
+The private environment file is not tracked or sent to the implementer.
