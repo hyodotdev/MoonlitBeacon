@@ -116,3 +116,77 @@ line in the private `.env` was changed to the requested origin; credential
 lines and mode 600 were preserved. A new process loading the normal
 release environment independently confirmed the custom Firebase origin.
 The private environment file is not tracked or sent to the implementer.
+
+## Terms review and actual combined-deploy findings
+
+Brief 152 was read and independently judged. Site tests passed 15/15;
+hosting tests passed 20/20. Every localized Terms page and English
+x-default decoded to exactly the same eight CSV paragraphs in order. A
+changed English source paragraph made the site suite exit 1; restoring
+the exact original CSV bytes returned 15/15. All five Terms pages rendered
+at 390px with eight paragraphs and no horizontal overflow. Existing
+styles, game CSV/config, root Firestore and Pages workflow were unchanged.
+
+The combined build contained 49 care plus 142 docs files (26 docs pages),
+and checked 2,068 local links. Normal quick-check judging initially
+failed because this fresh copy lacked imported translation resources;
+the actual editor-import operation created those generated resources,
+after which judging passed with zero failure-looking lines. Brief 152
+was accepted and committed as `ee4984d`; the scoped app ignore also keeps
+the generated Firebase cache out of Git.
+
+The real combined deploy was then attempted with the documented command.
+Firebase CLI refused `../../builds/hosting` as outside the config's project
+directory before uploading. The care-only live release remained in place.
+Brief 154 fixes the output location and adds that actual CLI boundary to
+the config checker; no final combined live success is claimed here yet.
+
+Brief 153 repaired the missing title-ready marker and was independently
+verified: 45/45 marker cases, 218/218 rich title-state cases, and 64/64
+clean-UI cases passed. Replacing production resolution with the old root
+lookup made the marker suite fail, then an exact byte restore returned
+45/45. Quick-check judging passed. The accepted root marker suite passed,
+and the change was committed as `4418533`.
+
+A subsequent full root verify caught a stale Node assertion still looking
+for inline screen/version checks after the four-frame wait. Those checks
+now live in the strict clean-title predicate before marker writing. This
+is tracked as brief 155; the final whole-tree verification has not passed
+yet, despite the related behavioral scene suites passing.
+
+## Combined website published and verified
+
+Brief 154 was independently read, tested, accepted and committed as
+`1c8945b`: hosting regressions 21/21, care regressions 15/15, actual
+combined build/check passed (49 care + 142 docs files, 26 docs pages,
+2,068 local links). Disabling the in-project public-directory guard made
+one regression fail; exact restoration returned 21/21. Scoped hygiene
+passed. The composer itself did not use the checker during the separate
+mutation probe; the actual final checker ran after restoration.
+
+The director reran the documented hosting-only Firebase deploy from
+`apps/player-care`. It completed upload, finalization and release (exit 0).
+Ordinary HTTPS verification fetched all 191 deployed files: every response
+was HTTP 200 and byte-identical to the inspected combined output. The 28
+clean routes also matched, used the canonical custom origin and contained
+no NUL. A missing route returned HTTP 404. Browser verification followed
+the live care navigation into the rendered course/docs home.
+
+Proofs: `release4-final-combined-hosting-deploy-retry.log`,
+`release4-final-combined-hosting-live-proof.json`, and
+`release4-final-firebase-site.jpg`. This proves website publication only;
+it does not prove native store submission. Brief 157 records that actual
+operation in the existing public-site handoff.
+
+Brief 155 was accepted and committed as `d6e0a11` after independent
+capture-state 40/40, Android build 130/130 and Play-package 232/232 tests.
+Bypassing the live marker predicate made the capture-state suite fail;
+exact restoration returned green. Root capture-state checks passed. This
+repairs the stale source assertion without weakening the runtime proof.
+
+The second final phone producer passed title boot, then failed the actual
+direct-distribution boundary. The installed build reported its real
+feature/cache/ledger checks correctly, but the remaining Ui lookup still
+expected Title to be current_scene rather than ProductionEntry.Title.
+Brief 156 repairs this confirmed embedding error; no canonical phone
+screenshots were published by this failed attempt.
