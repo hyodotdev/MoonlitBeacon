@@ -25,6 +25,22 @@ const ALLOWED_LOCALES: Array[String] = ["ko", "en", "ja", "zh_CN", "zh_TW"]
 const DIRECT_PROBE_PRODUCT_ID: String = \
 	"com.crossplatformkorea.moonlitbeacon.hero_dancer"
 const DIRECT_PROBE_HERO_PATH: String = "res://resources/heroes/dancer.tres"
+## Real-scene identity for the title lookup. The production entry nests the
+## original title under its Title child; the standalone title carries
+## Ui/Screen itself. Paths, not class names: `--script` regressions compile
+## without autoload symbols, so naming TestLauncher or ProductionEntry here
+## would break them through production_entry.gd's Settings reference.
+const STANDALONE_TITLE_PATH: String = "res://scenes/menus/title_menu.tscn"
+const PRODUCTION_ENTRY_PATH: String = "res://scenes/menus/production_entry.tscn"
+const PRODUCTION_TITLE_CHILD: String = "Title"
+const PRODUCTION_GATE_CHILD: String = "Gate"
+const PRODUCTION_CONFIRM_CHILD: String = "FreshConfirm"
+## Gate panels that occlude the title when visible. Same set the boot
+## marker checks; the distribution regression pins the parity on real scenes.
+const GATE_OCCLUDING_PANELS: Array[String] = [
+	"GateAccountPanel", "GateConflictPanel", "GateHallPanel",
+	"GateExitPanel", "GateTermsPanel",
+]
 
 static var _last_nonce: String = ""
 static var _frames_after_prepare: int = 0
@@ -104,10 +120,22 @@ static func poll(scene: Node) -> void:
 
 
 static func _direct_distribution_state(scene: Node) -> Dictionary:
-	var store: Node = scene.get_node_or_null("/root/Shop")
-	var screen: CanvasItem = scene.get_node_or_null("Ui/Screen") as CanvasItem
-	var store_button: Button = scene.get_node_or_null(
-		"Ui/Screen/StoreButton") as Button
+	var store: Node = null
+	if scene != null:
+		store = scene.get_node_or_null("/root/Shop")
+	# The production entry nests the original title under its Title child,
+	# so a root-only Ui/Screen lookup misses the real screen and button (and
+	# would credit a decoy shape on a non-title scene). Resolve through real
+	# scene identity, and fail closed while a gate card, panel, loader or
+	# confirm covers the production title.
+	var title_root: Node = _resolve_title_root(scene)
+	var occluded: bool = _is_production_title_occluded(scene)
+	var screen: CanvasItem = null
+	var store_button: Button = null
+	if title_root != null:
+		screen = title_root.get_node_or_null("Ui/Screen") as CanvasItem
+		store_button = title_root.get_node_or_null(
+			"Ui/Screen/StoreButton") as Button
 	if store == null or not store.has_method("storefront_enabled") \
 			or not store.has_method("owns"):
 		return {
@@ -121,7 +149,8 @@ static func _direct_distribution_state(scene: Node) -> Dictionary:
 			"cached_paid_entitlement_owned": true,
 			"cached_paid_entitlement_ignored": false,
 			"cached_paid_entitlements_restored": false,
-			"title_screen_visible": screen != null and screen.is_visible_in_tree(),
+			"title_screen_visible": screen != null and screen.is_visible_in_tree() \
+				and not occluded,
 			"title_store_button_present": store_button != null,
 			"title_store_button_self_visible": store_button.visible \
 				if store_button != null else true,
@@ -152,7 +181,8 @@ static func _direct_distribution_state(scene: Node) -> Dictionary:
 	var direct_feature: bool = OS.has_feature("direct_distribution")
 	var storefront_enabled: bool = bool(store.call("storefront_enabled"))
 	var store_state_unavailable: bool = int(store.get("state")) == 0
-	var title_screen_visible: bool = screen != null and screen.is_visible_in_tree()
+	var title_screen_visible: bool = screen != null \
+		and screen.is_visible_in_tree() and not occluded
 	var button_present: bool = store_button != null
 	var button_self_visible: bool = store_button.visible if button_present else true
 	var button_visible_in_tree: bool = store_button.is_visible_in_tree() \
@@ -181,6 +211,60 @@ static func _direct_distribution_state(scene: Node) -> Dictionary:
 		"title_store_button_enabled": button_enabled,
 		"title_store_button_hidden": button_hidden,
 	}
+
+
+## Resolve the node carrying the original title's Ui/Screen: the Title
+## child under the production entry, the scene root itself for the
+## standalone title, null for any other scene — even a decoy carrying the
+## same Ui/Screen shape. Structural on purpose (see the path constants).
+static func _resolve_title_root(scene: Node) -> Node:
+	if scene == null:
+		return null
+	if scene.scene_file_path == STANDALONE_TITLE_PATH:
+		return scene
+	if scene.scene_file_path == PRODUCTION_ENTRY_PATH:
+		return scene.get_node_or_null(PRODUCTION_TITLE_CHILD)
+	return null
+
+
+## True while a gate card, panel, loader or confirm covers the production
+## title. Mirrors the rejection the boot marker applies before claiming a
+## clean title capture. Duck-typed on purpose: naming the gate classes here
+## would pull the same autoload symbols `--script` runs cannot compile.
+## Fails closed: a missing gate, or one that cannot prove its rest state,
+## is not a clean title.
+static func _is_production_title_occluded(scene: Node) -> bool:
+	if scene == null or scene.scene_file_path != PRODUCTION_ENTRY_PATH:
+		return false
+	var gate: Node = scene.get_node_or_null(PRODUCTION_GATE_CHILD)
+	if gate == null or not gate.has_method("is_title_rest") \
+			or not bool(gate.call("is_title_rest")):
+		return true
+	if _loader_covers(gate):
+		return true
+	for panel_name in GATE_OCCLUDING_PANELS:
+		var panel: Control = gate.get_node_or_null(panel_name) as Control
+		if panel != null and panel.visible:
+			return true
+	var confirm: Control = scene.get_node_or_null(
+		PRODUCTION_CONFIRM_CHILD) as Control
+	return confirm != null and confirm.visible \
+		and confirm.is_visible_in_tree()
+
+
+## True while the gate loader is working, failed, cancelled, or veiling.
+## A missing loader covers nothing; an unreadable one fails closed.
+static func _loader_covers(gate: Node) -> bool:
+	if not gate.has_method("get_loader"):
+		return true
+	var loader: Node = gate.call("get_loader") as Node
+	if loader == null:
+		return false
+	for method in ["is_loading", "is_showing_error", "is_showing_cancelled"]:
+		if loader.has_method(method) and bool(loader.call(method)):
+			return true
+	var veil: CanvasItem = loader as CanvasItem
+	return veil != null and veil.visible and veil.is_visible_in_tree()
 
 
 static func capture_locale(request: Dictionary) -> String:
