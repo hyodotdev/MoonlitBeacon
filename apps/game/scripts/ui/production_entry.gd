@@ -733,29 +733,56 @@ func debug_prepare_store_capture(request: Dictionary) -> void:
 		_entry.close_panels()
 		_entry.show_title_rest()
 		_title.cancel_external_start()
+		_title.debug_prepare_store_capture(request)
 	elif kind in ["shrine", "hero_preview", "iap_review"]:
 		_title.debug_prepare_store_capture(request)
 
 
-## Capture proof for the production entry. `title` reports the honest
-## gate state plus the title layer (see the 4.0.0 production host log).
-## Panel kinds forward to the title's original panels.
+## Capture proof for the production entry. `title` reports the visible
+## original title's full state plus namespaced gate context; an open card,
+## loader or gate panel rejects `ready` instead of claiming a clean title
+## underneath. Panel kinds forward to the title's original panels.
 func debug_store_capture_state(request: Dictionary) -> Dictionary:
 	if not OS.is_debug_build():
 		return {}
 	var kind: String = str(request.get("kind", ""))
 	if kind == "title":
+		var title_state: Dictionary = _title.debug_store_capture_state(
+			request)
+		if title_state.is_empty():
+			return {}
 		var host: Node = _host()
-		var debug: Dictionary = host.debug_production_state() \
-			if host != null else {}
-		debug["gate_visible"] = _entry.visible \
+		var host_state: Dictionary = {}
+		if host != null and host.has_method("debug_production_state"):
+			host_state = host.debug_production_state()
+		for key in host_state.keys():
+			title_state["production_" + str(key)] = host_state[key]
+		title_state["production_gate_visible"] = _entry.visible \
 			and _entry.is_visible_in_tree()
-		debug["title_visible"] = _title.visible \
+		title_state["production_title_node_visible"] = _title.visible \
 			and _title.is_visible_in_tree()
-		debug["selection_open"] = _entry.is_selection_open()
-		debug["expected_version"] = "v" + str(ProjectSettings.get_setting(
+		title_state["production_selection_open"] = _entry.is_selection_open()
+		title_state["production_title_rest"] = _entry.is_title_rest()
+		var loader: GateLoadingOverlay = _entry.get_loader()
+		var loader_visible: bool = loader != null and loader.visible \
+			and loader.is_visible_in_tree()
+		var loader_active: bool = loader != null \
+			and (loader.is_loading() or loader.is_showing_error() \
+				or loader.is_showing_cancelled() or loader_visible)
+		title_state["production_loader_visible"] = loader_visible
+		title_state["production_loader_active"] = loader_active
+		var gate_panel_open: bool = _gate_panel_open()
+		title_state["production_gate_panel_open"] = gate_panel_open
+		var confirm_visible: bool = _confirm_card != null \
+			and _confirm_card.visible \
+			and _confirm_card.is_visible_in_tree()
+		title_state["production_confirm_visible"] = confirm_visible
+		title_state["expected_version"] = "v" + str(ProjectSettings.get_setting(
 			"application/config/version", "0.0.0"))
-		return debug
+		if not _entry.is_title_rest() or loader_active \
+				or gate_panel_open or confirm_visible:
+			title_state["ready"] = false
+		return title_state
 	if kind in ["shrine", "hero_preview", "iap_review"]:
 		return _title.debug_store_capture_state(request)
 	return {}
