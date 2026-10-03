@@ -330,3 +330,36 @@ The first full iPad attempt completed 21 shots, then timed out on the
 keychain search list and removed the isolated capture app; production
 app data remained untouched. Its failure/evidence is preserved. A normal
 fresh full retry is running; partial shots are not labelled canonical.
+
+## Store policy address readback and capture retry
+
+The director reopened the saved App Store privacy-policy localization
+fields and read back the custom Firebase URLs for English, Korean,
+Japanese, Simplified Chinese and Traditional Chinese. The UI says the
+address changes are released with the next app version; this is not a
+4.0.0 review submission. Local proof is
+`release4-asc-five-firebase-privacy-urls-saved.png`. The five added native
+privacy data types are still incomplete and have not been published.
+
+The two complete-set iPad capture attempts failed at Xcode handoff
+screens 22 and 6 after the bounded 299-second operator timeout. Neither
+partial result is canonical store evidence. Producer cleanup restored the
+owned keychain search list and isolated capture state. Logs/results were
+preserved under `release4-ipad-timeout-at-shot-22/` and
+`release4-ipad-timeout-at-shot-6/`. A fresh normal all-locale attempt is
+running; no timestamp, nonce, signature or evidence check was bypassed.
+
+The connected Android reached Google's official internal-test invitation.
+Its acceptance explicitly permits sharing the account email and game
+usage with the developer. Acceptance is pending user confirmation; no
+Play-store-installed final native purchase check is claimed.
+
+Brief 164 supplied the 407-character English Play reviewer entry note.
+The director read its sole-file diff, independently counted its exact
+bytes, checked the guest/start/resume signal wiring and the English
+production/Store labels, and ran copy and root hygiene successfully.
+Normal Muse accept applied only `google-play-review-entry.txt`. The
+exact note was saved in Play Console Sign in details and reopened for
+readback. Play confirmed the change was saved in Publishing overview,
+ready to send for review; it has not been sent. Local proof is
+`release4-play-guest-review-entry-saved.png`.
