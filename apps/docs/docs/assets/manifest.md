@@ -146,6 +146,8 @@ Project path:   res://assets/third_party/fonts/
 | `Galmuri11-Multilingual.tres` | body = MapleStory Light + CJK fallback (old name kept) |
 | `Galmuri11-Bold-Multilingual.tres` | titles and buttons = MapleStory Bold + CJK fallback |
 | `NotoSansCJKsc-SyntheticBold.tres` | CJK bold fallback (Noto synthetic bold) |
+| `GoogleSans[GRAD,opsz,wght].ttf` | Google door title face, used at weight 500 · SIL OFL 1.1 |
+| `OFL.txt` | license text accompanying the Google Sans face |
 
 ### Why we left the pixel font
 
@@ -299,68 +301,56 @@ Grab 32x32 and 1px of the neighboring tile comes in at the bottom.
 ## Combat terrain structures (Night Forest · Moonlit Field · Abandoned Camp)
 
 ```text
-Source:         original (deterministic pixel production)
+Source:         original painted masters (built-in image generation, 4.0.0),
+                packed deterministically
 Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/world/terrain/
-Used:           nature.png, forest_floor.png, floor.png, field.png, camp.png,
-                forest_props.png, field_props.png, camp_props.png,
-                ground_field.png, ground_camp.png
-Modification:   tools/build_world_assets.py builds original terrain that
-                preserves existing atlas coordinates and canvas size;
-                tools/build_terrain_obstacles.py generates structure sheets
-                paired with Room's foot-based circular collision;
-                tools/build_ground_tiles.py builds the seamless 96x96 field
-                and camp floor tiles
+Used:           nature.png, field_nature.png, camp_nature.png,
+                forest_floor.png, ground_field.png, ground_camp.png,
+                field.png, camp.png, floor.png,
+                forest_props.png, field_props.png, camp_props.png
+Modification:   tools/pack_painted_world.py packs the biome atlases into 3x
+                runtime sheets (--check keeps them current; source mapping in
+                notes/plans/4-0-0-art-build-log.md). World rects are unchanged:
+                Room scales regions by RoomKind.art_zoom and draws at 1/3 with
+                a smooth filter, so pivots, feet and collision never move.
+                floor.png stays with tools/build_world_assets.py
 ```
 
-`ground_field` and `ground_camp` replace two floors that were a **single flat
-colour**. The camp repeated an untextured 80x16 strip out of `floor.png`, and
-the field cropped an equally flat 16x16 tile out of its own prop atlas, so both
-maps read as a void at any tint. The new tiles carry grain, patches, stones and
-tufts inside a nine-colour palette, and every feature wraps at the tile edge
-because `Room`'s ground sprite repeats. 96px was chosen over 48px because the
-play area is 1720x1000: a 48px tile repeats about 36 x 21 times and reads as
-wallpaper.
-
-Contrast is capped on purpose. `build_ground_tiles.py` fails the build if a
-tile's luminance spread leaves the 12–74 band — too flat is the bug it exists
-to fix, and too loud makes the floor compete with the spirits the player has to
-dodge. The forest is deliberately excluded: `forest_floor.png` is already a
-real 256x256 textured tile.
-
-`nature` · `floor` · `field` · `camp` only keep AtlasTexture coordinates
-compatible; pixels were redrawn in an ink-navy, moon-teal, beacon-vermilion
-palette. The first four cells of the first row of each `*_props` sheet are
-real blocking structures;
-the rest stay transparent for later 16px-grid expansion. Forest is birch,
-standing stone, thorn brush, moonstone; field is wind standing-stone,
-cairn, silver grass, observation ring; camp is palisade, crate, cart,
-lantern stone. The same seed makes the same coordinates and variants, and
-player, spirits, beacons, and loot all compute safe positions from the
-same structure list.
+Floors are seamless painted `512×512` panels that repeat across the
+1720x1000 play area; the pack check fails on any visible edge step. Scatter
+sheets are `1152×1008` (`Room.KIND` world rects times three): the shared
+`nature.png` plus one sheet per place, with every tree above sheet row 384
+and rocks, logs and stumps below it so the sway shader only moves crowns.
+Prop sheets keep their logical coords times three — `field.png` `240×720`,
+`camp.png` `1104×432` — including the beacon-hearth canvas at world
+`192,80,32,30`. Each `*_props` sheet holds four `192×192` blocking
+structures with feet at world y=50; collision still comes from
+`Room.OBSTACLE_RADII`, never from the art. Forest is birch, standing stone,
+thorn brush, moonstone; field is wind standing-stone, cairn, silver grass,
+observation ring; camp is palisade, crate, cart, lantern stone. The same
+seed makes the same coordinates and variants, and player, spirits, beacons,
+and loot all compute safe positions from the same structure list.
 
 ---
 
 ## Later terrain (Frost Pass · Mirewood Marsh · Moonlit Ruins)
 
 ```text
-Source:         structures: ChatGPT image generation (one 4 x 3 grid of twelve on flat
-                magenta, 2026-09-29), cut apart and packed deterministically
-                floors and tree sheets: original (deterministic pixel production)
+Source:         original painted masters (built-in image generation, 4.0.0),
+                packed deterministically
 Creator:        Moonlit Beacon
 License:        follows the project license
 Project path:   res://assets/custom/world/terrain/
 Used:           frost_props.png, marsh_props.png, ruins_props.png,
                 ground_frost.png, ground_marsh.png, ground_ruins.png,
                 frost_nature.png, marsh_nature.png, ruins_nature.png
-Modification:   tools/cut_lineup.py keys the grid into twelve transparent PNGs
-                (tools/terrain_structures/); tools/pack_terrain_structures.py
-                downscales each into a 64x64 cell (contact shadow at y=61), thresholds
-                alpha and clusters the four structures of a place to at most 56 colours;
-                tools/build_ground_tiles.py builds the three seamless 96x96 floors;
-                tools/build_terrain_tilesets.py recolours nature.png through a
-                sixteen-colour table per place
+Modification:   tools/pack_painted_world.py packs the biome atlases into 3x
+                runtime sheets (--check keeps them current; source mapping in
+                notes/plans/4-0-0-art-build-log.md). World rects are unchanged:
+                Room scales regions by RoomKind.art_zoom and draws at 1/3 with
+                a smooth filter, so pivots, feet and collision never move
 ```
 
 | Place | Floor | Trees and stones | The four structures |
@@ -369,10 +359,11 @@ Modification:   tools/cut_lineup.py keys the grid into twelve transparent PNGs
 | Mirewood Marsh | dark bog water with moss banks, lily pads and broken ripples | olive and moss pines, bare willows, wet dark wood | glowing mushroom cluster, mossy log with reeds, wisp jar on a post, mossy frog statue |
 | Moonlit Ruins | weathered flagstones in running bond, cracked, mossed at the joints | dusk-indigo growth and violet-grey rubble | broken pillar, moon altar, crumbling arch, glowing menhir |
 
-The floors obey the same contrast band as the others (luminance spread 12–74).
-The four structures of each place keep the sheet shape `Room` already reads: a
-256x256 sheet with four 64x64 cells on the first row, feet near y=50. Each
-drawing keeps its baked contact shadow, like the structures it stands beside.
+Floors are seamless painted `512×512` panels; scatter sheets are `1152×1008`
+per place. The four structures of each place keep the world shape `Room`
+already reads: four `192×192` cells on one row, feet at world y=50, collision
+from `Room.OBSTACLE_RADII`. Each drawing keeps its baked contact shadow, like
+the structures it stands beside.
 
 ---
 
@@ -713,6 +704,54 @@ default nearest filter would drop every other pixel into noise at that ratio.
 
 ---
 
+## UI (world kit · cut-bronze vector frames)
+
+```text
+Source:         original hand-authored SVG (no generator, no pack)
+Creator:        Moonlit Beacon
+License:        follows the project license
+Project path:   res://assets/custom/ui/world/
+Used:           34 .svg sources (22 nine-patch faces, 12 ornaments)
+Modification:   edited directly as vector originals; tools/build_world_ui_kit.py
+                validates sizes and determinism (--check) but generates no art
+```
+
+4.0.0 replaces the 3.x sticker kit on the production screens with **one set of
+cut-corner bronze frames**: beveled octagon silhouettes, narrow polished rims,
+a dark groove, deep-ink inset faces, etched moon diamonds at the bevels, and
+three button roads — ember (primary), steel (quiet), coral (painful). Every
+source keeps **4 texels per logical unit** (a 36-unit frame is 144px of vector
+art) and every control samples it with an explicit Linear filter; the locked
+global Nearest never touches this kit.
+
+Godot 4.7 `StyleBoxTexture` passes its margins through as destination fixed
+edges, so a 48px margin corner would draw 48 logical pixels wide. The kit is
+therefore painted by four tiny classes — `WorldPanel`, `WorldFrame`,
+`WorldButton`, `WorldLabel` — whose `_draw` maps source texels to logical
+units explicitly through `WorldChrome.slices`: 48 → 12, 32 → 8, 56 → 14,
+16 → 4. Native text, icons, focus, signals and hitboxes stay native; invisible
+margin styles preserve the old kit's content margins, so no layout moves.
+
+| File | Size | Use |
+| --- | --- | --- |
+| `frame_panel.svg` | 144×144 | modal frame. 48px src → 12u corners |
+| `frame_chip.svg` · `frame_chip_lit.svg` | 80×80 ×2 | pills and list rows. 32px → 8u. lit marks owned/found |
+| `frame_card.svg` · `card_focus.svg` | 176×176 ×2 | relic/hero card + focus halo. 56px → 14u |
+| `btn_<ember·steel·coral>_<state>.svg` | 80×80 ×15 | three roads × normal/hover/pressed/disabled/focus. 32px → 8u |
+| `bar_back.svg` · `bar_fill.svg` | 48×48 ×2 | progress slot + neutral-white fill the HUD tints. 16px → 4u |
+| `bead_moon.svg` | 48×48 | divider bead and title flanks |
+| `seal_win.svg` · `seal_lose.svg` | 256×256 ×2 | journey stamps: unbroken gold / broken ash + fallen ember |
+| `crest_<motif>.svg` | 80×80 ×6 | header/tab glyphs: moon · beacon · relic · book · coin · gate |
+| `dash_base.svg` · `dash_fill.svg` | 208 · 104 | dash dial ring + crescent bolt |
+| `dais.svg` | 384×96 | hero stage ellipse |
+
+Stretched edges carry only smooth axial gradients and full-width bands, so a
+panel of any size stretches them without a seam; all ornament sits inside the
+fixed corners. `test_run_choice_panel` proves the 48 → 12 / 32 → 8 mapping
+and that labels, focus and hitboxes are unaffected.
+
+---
+
 ## Objectives · projectiles (moonlight gate · Moon Disc · enemy moonshot)
 
 ```text
@@ -807,18 +846,27 @@ is the same picture with a different color. No reason to make two files.
 ## Player (six heroes)
 
 ```text
-Source:         ChatGPT image generation (three lineups of the six heroes on flat magenta,
-                one per view, plus three 6 x 4 walk-cycle grids, 2026-09-29), cut apart
-                and packed deterministically
+Source:         original painted masters (built-in image generation, 4.0.0),
+                packed deterministically
 Creator:        Moonlit Beacon
 License:        follows the project license
-Original path:  _asset_sources/chatgpt_heroes_2026-09-29/ (not distributed · gitignored)
+Original path:  notes/workflow/muse/art/4-0-0/<hero>-turnaround.png,
+                notes/workflow/muse/art/4-0-0/gait/<hero>-sidewalk-v2.png
+                (side-walk donors, kept)
 Project path:   res://assets/custom/actors/heroes/warden/, res://assets/custom/actors/heroes/dancer/, res://assets/custom/actors/heroes/keeper/, res://assets/custom/actors/heroes/knight/, res://assets/custom/actors/heroes/eclipse/, res://assets/custom/actors/heroes/sage/
 Used:           each hero's walk.png, idle.png, portrait.png
-Modification:   tools/cut_lineup.py keys each picture into transparent PNGs
-                (tools/hero_maple/<hero>/{front,back,left}.png and
-                walk_<facing>_<0..3>.png), and tools/pack_maple_heroes.py fits them to
-                the 48×64 cell as binary-alpha RGBA. Right is a flip of left.
+Modification:   tools/pack_painted_world.py fits each turnaround's four true
+                facings into 144×192 cells as graded-alpha RGBA (--check keeps
+                them current; source mapping in
+                notes/plans/4-0-0-art-build-log.md). Walk side columns instead
+                come from the registered gait donors: the left column holds
+                the donor's contact / recover / opposite-contact / recover
+                stride at one scale with the torso registered, and the right
+                column mirrors it exactly (crop and registration table in
+                notes/workflow/muse/gait-131-implementation.md). Idle,
+                portraits and down/up walk columns are byte-identical to the
+                turnaround bake. Hero.visual_scale (0.255) renders the legacy
+                world body with a smooth filter
 ```
 
 | Hero | Design |
@@ -832,48 +880,86 @@ Modification:   tools/cut_lineup.py keys each picture into transparent PNGs
 
 | File | Size | Layout | Playback |
 | --- | --- | --- | --- |
-| `walk.png` | 192×256 | 48×64 cells, columns=down·up·left·right, rows=4 frames | 12fps |
-| `idle.png` | 192×256 | 48×64 cells, columns=4 facings, rows=4 frames | 4fps |
-| `portrait.png` | 96×96 | single portrait, the upper part of the front view | static |
+| `walk.png` | 576×768 | 144×192 cells, columns=down·up·left·right, rows=4 frames | 12fps |
+| `idle.png` | 576×768 | 144×192 cells, columns=4 facings, rows=4 breath frames | 4fps |
+| `portrait.png` | 96×96 | single full-body portrait | static |
 
-All three files use binary alpha and put the feet on the bottom of the cell. A hero
-is about 36px tall inside the 48×64 cell, drawn as a chibi with a big head and a bold
+All three files use graded alpha and put the feet on the bottom of the cell. A hero
+is about 36 world px tall, drawn as a shaded chibi with a big head and a bold
 silhouette, and every facing keeps that height and foot origin, so turning does not
-change the size. The walk is four drawn frames per facing: contact with one foot
-forward, passing pose, contact with the other foot, passing pose. The idle is the standing
-view with a small brightness pulse. Right is the left view flipped.
+change the size. The walk is four source poses per facing; the idle breathes
+feet-planted about the soles. Down, up and idle facings are true turnaround art;
+the walk sides are the donor stride on the left with its exact mirror on the
+right, so the same legs alternate on both sides.
 
 A `0.16s` casting cue plays after each shot, so a hero needs no separate attack sheet.
 
 Shrine buy/select cards and the five individual-hero IAP cards press each Hero's `48×48`
-icon, a `24×24` crop of the idle sheet at 2×, to open a full-body detail even before
-purchase. The detail shows the hero's `96×96` portrait 1:1, and looking does not change buy,
-unlock, or equip state. All six hero resources and the Player safety fallback use these
-custom sheets.
+icon, the `72×72` `preview_crop` of the idle sheet scaled smooth, to open a full-body
+detail even before purchase. The detail shows the hero's `96×96` portrait 1:1, and
+looking does not change buy, unlock, or equip state. All six hero resources and the
+Player safety fallback use these custom sheets.
+
+---
+
+## Player (six held weapons)
+
+```text
+Source:         built-in image generation (one transparent 2×3 weapon atlas,
+                1536×1024, right-facing, generous alpha padding), separated
+                and packed deterministically
+Creator:        Moonlit Beacon
+License:        follows the project license
+Original path:  notes/workflow/muse/art/4-0-0/painted-weapons.png (master, kept)
+Project path:   res://assets/custom/items/weapons/
+Used:           warden.png, dancer.png, keeper.png, knight.png, eclipse.png, sage.png
+Modification:   tools/pack_painted_weapons.py separates the atlas by alpha
+                components (the grid is approximate: two blades cross the
+                middle column and the reaper curl crosses the row line),
+                floors dust alpha, scrubs matte RGB, crops each core exactly,
+                downscales to four texels per logical pixel, and expands a 4px
+                transparent margin. No repainting: the tool never draws.
+```
+
+Author note: these are the original shaded equipment for the 4.0.0 painted
+heroes — the bright primitive bars `WeaponRig` used to draw are gone, but
+every attack number, muzzle seat, and timing is untouched. Each sheet holds
+four texels per logical pixel and draws at quarter scale through per-item
+Linear filtering, so the paint stays smooth at real device output. Guns align
+by barrel axis so each painted tip lands exactly on its muzzle seat; melee
+weapons align by grip with the blade following the aim. The dancer sheet
+holds both fang daggers straddling one hand point. Calibration (tips, grips,
+axis rows) is measured from the master alpha by the pack tool and frozen in
+`WeaponRig` logical constants, guarded by `tests/test_painted_weapons.gd`.
+
+| Atlas cell | Runtime file | Size | Paint |
+| --- | --- | --- | --- |
+| row 1 left, Warden sword | `warden.png` | 68×20 | curved moon-silver blade, blue guard, navy grip |
+| row 1 right, Dancer fangs | `dancer.png` | 60×36 | matched pair, parallel, violet guard accents |
+| row 2 left, Keeper pistol | `keeper.png` | 60×36 | brass lantern pistol, bell barrel, glass chamber |
+| row 2 right, Knight cannon | `knight.png` | 60×28 | stout ring cannon, circular aperture, blue accent |
+| row 3 left, Eclipse reaper | `eclipse.png` | 68×32 | haft with silver crescent curling around the tip |
+| row 3 right, Sage rifle | `sage.png` | 88×28 | slim needle rifle, star sight, teal stock |
 
 ---
 
 ## Enemies · bosses (Moonlit spirit bestiary)
 
 ```text
-Source:         normal enemies: ChatGPT image generation (one lineup of seven creatures on
-                flat magenta, 2026-09-29), cut apart and packed deterministically
-                guardians: ChatGPT image generation (two 3 x 2 grids of six on flat magenta,
-                2026-09-29: the first three places, then the later three), cut apart and
-                baked deterministically
+Source:         original painted masters (built-in image generation, 4.0.0),
+                packed deterministically
 Creator:        Moonlit Beacon
 License:        follows the project license
+Original path:  notes/workflow/muse/art/4-0-0/spirit-turnarounds.png,
+                notes/workflow/muse/art/4-0-0/guardian-states.png
 Project path:   res://assets/custom/actors/spirits/, res://assets/custom/actors/guardians/
 Used:           4-facing float motion for 7 normal enemies
-                idle, wind-up, charge, recover motion for forest, field, and camp guardians
-Modification:   normal enemies: tools/cut_lineup.py keys the lineup into one
-                transparent front-view PNG per creature (tools/spirit_grok/), and
-                tools/pack_grok_spirits.py shrinks each to 15-24px and lays out the four
-                facings (down, up, left, right) and four bob frames as binary-alpha RGBA.
-                guardians: tools/cut_lineup.py keys the grids into twelve transparent PNGs
-                (tools/guardian_ludo/), and tools/pack_ludo_guardians.py bakes 44 sheets from
-                them by deforming the one body (idle sway, wind-up growth and glow, charge
-                stretch, recover flatten) as binary-alpha RGBA of at most 44 colours
+                idle, wind-up, charge, recover motion for all 12 guardians
+Modification:   tools/pack_painted_world.py packs the turnaround atlases into
+                3x runtime sheets as graded-alpha RGBA (--check keeps them
+                current; source mapping in notes/plans/4-0-0-art-build-log.md).
+                Every facing is true turnaround art. SpiritKind.visual_scale
+                (1/3) renders the legacy world body with a smooth filter
 ```
 
 | Normal enemy | Design | Behavior cue |
@@ -886,11 +972,11 @@ Modification:   normal enemies: tools/cut_lineup.py keys the lineup into one
 | Stalker | shy cat-bat with big ears | straight charge |
 | Swarm | fluffy dandelion-puff pup | weak and fast cluster |
 
-Normal-enemy sheets are all `192×192` with `48×48` cells in four columns
+Normal-enemy sheets are all `576×576` with `144×144` cells in four columns
 down·up·left·right and four frame rows. They are not recolors: each creature has its
 own silhouette, and asset regression checks that all 7 alpha silhouettes and all 7
-full-image hashes differ. The frames of one column are a small bob of a single front
-drawing; right is that drawing mirrored, and up is it darkened.
+full-image hashes differ. Every column is a true turnaround view; the four frames
+breathe feet-planted with a small bob.
 
 | Guardian | Idle | State sheets | Design |
 | --- | --- | --- | --- |
@@ -901,10 +987,11 @@ drawing; right is that drawing mirrored, and up is it darkened.
 | Marsh (toad) | `marsh.png` 6 frames | wind-up, charge, recover 4 frames each | round toad with a lily-pad hat holding a glowing orb; the Glowcap form wears a crown of glowing mushrooms and cattails |
 | Ruins (sentinel) | `ruins.png` 6 frames | wind-up, recover 4 frames each | stone cat with a gold crescent on its brow and floating stones round it; the Halo form has a ring of stones and gold plating |
 
-Guardian cells are `64×64`. Idle is `384×64`, state sheets `256×64`,
-horizontal layout with no facing. Every `SpiritKind` state slot is filled
-with a custom sheet so mid-states do not fall back to the old free boss
-picture.
+Guardian cells are `192×192`. Idle is `1152×192` (6 frames), state sheets
+`768×192` (4 frames), horizontal layout with no facing. Variant forms keep
+the base silhouette with restrained channel grades and shifted breathing so
+they stay distinct. Every `SpiritKind` state slot is filled with a custom
+sheet so mid-states do not fall back to the old free boss picture.
 
 ---
 
@@ -1175,3 +1262,160 @@ notice set does not grow. 40ms · 1,808 bytes.
 `dialogue_scene.gd` plays once every three letters and wobbles pitch
 ±14% each play. The same sound on every character sounds like a machine
 talking.
+
+---
+
+## Title (moon gate entry background)
+
+```text
+Source:         original title master approved for the 4.0.0 entry surface
+Creator:        Moonlit Beacon
+License:        follows the project license
+Original path:  notes/workflow/muse/art/4-0-0/moon-gate-title.png
+Project path:   res://assets/gate/moon_gate_title.png
+Used:           full-screen background of the new moon gate entry surface
+                (GateEntry); the shaded navy/teal/amber moon gate sits right,
+                the traveler lower left, control space stays quiet left
+Modification:   byte copy of the approved master, no repaint and no resize;
+                runtime framing crops with TextureRect cover at 808x360,
+                wide-phone and tablet viewports
+```
+
+Author note: the runtime file is the approved master copied byte for byte
+(1672x941 RGB, about 2.5MB). Nothing here is generated or repainted, so a
+later art refresh replaces one file and this row. The entry scene draws it
+with a per-item linear filter while the project keeps its global nearest
+filter, and all light, mist and dust above it are small procedural layers
+so the painting stays the single art source on this screen.
+
+---
+
+## UI (moon gate entry frames · forecourt lineup — drawn from code)
+
+```text
+Source:         original (vector geometry drawn at runtime, no image files)
+Creator:        Moonlit Beacon
+License:        follows the project license
+Project path:   res://scripts/ui/gate_frame_style.gd
+                res://scripts/ui/gate_beacon_mark.gd
+                res://scripts/ui/gate_hero_forecourt.gd
+Used:           every button face, dialog card, ID field, progress bar and
+                Hall row on the moon gate entry/account/Hall/conflict/exit/
+                loading surfaces; the crescent-and-beacon title mark; the
+                six-hero forecourt lineup behind the interaction layer
+Modification:   none — these scripts are the editable source. No PNG, SVG or
+                .tres was added for this look. The lineup reuses the shipped
+                144x192 hero idle sheets and the six painted weapon sheets
+                already recorded under the Player rows; no new hero,
+                weapon or bitmap art was introduced.
+```
+
+Author note: the entry screen is the smooth-shaded surface — painting, hero
+sheets and MapleStory type all render linear — so its frames are drawn as
+smooth vector chamfers at runtime instead of chunky nine-patch pixels. That
+keeps one look per surface: the pixel UI kit stays the in-game voice, these
+frames stay the gate voice. `gate_frame_style.gd` also pins the entry
+minimum-size rule (content margins only): any extra floor clamps the 420px
+Hall card wider and off-center, and the layout suite guards that width.
+
+Round 082 hardened both pieces. The lineup grounds on measured opaque
+bounds (alpha >= 32): every down/left idle cell carries 110px of paint
+tall (cell y 82..191, feet at the cell bottom), 57-82px wide depending on
+hero and facing. Those numbers live as constants in
+`gate_hero_forecourt.gd` and the state suite re-measures them from the
+source sheets, so an art refresh fails loudly instead of drifting the
+footing. The gate-mouth keep-clear rect is read off the committed master
+(painting pixels 1140,220-1450,500) and mapped through aspect-cover
+framing per viewport. The accent language is fixed: gold for the one
+gate-entry action, mint for provider/guest passage, coral for destructive
+choices, steel blue for navigation.
+
+---
+
+## UI (official Google sign-in tiles)
+
+```text
+Source:         Google Identity branding kit (gradient Super G tiles)
+Creator:        Google LLC
+License:        Google brand use as permitted by the sign-in branding
+                guidelines; the mark itself is unmodified
+Original path:  signin-assets.zip from
+                https://developers.google.com/identity/branding-guidelines
+                (kit updated 2026-07-07)
+Project path:   res://assets/third_party/signin/
+Used:           the Google door's mark on the moon gate entry chooser;
+                the Android tile on Android/desktop, the iOS tile on iOS
+Modification:   none to the bytes. SHA-256 android
+                2bc2ae8e4c67de66d74bf1deed12cd8f22981270266a487576b671b0b4df361c
+                ios
+                085692d68716db0e621635128407cb0f0a8db058b1dbfebe3f57a2c9d625d145
+                (donor record notes/workflow/muse/donors/official-signin-110/
+                donor-sha256.json). Runtime draws an AtlasTexture crop of
+                the measured 79x80 glyph alone (android x40-118 y40-119,
+                iOS x48-126 y48-127); every colorful pixel is kept and no
+                stroke, corner, or baked padding pixel reaches the button.
+```
+
+Author note: both tiles hold the same 79x80 gradient G with platform
+padding baked in (40px Android, 48px iOS) on a white rounded tile with
+the 1px #747775 stroke. An earlier ring-only crop kept the tiles'
+rounded-corner stroke pixels and is not used: the button draws its own
+spec face (white fill, inside 1px stroke) with the glyph alone at an
+explicit 20px logical height and exact spec edge/gap padding, so no
+tile edge can double-draw or leave corner dirt. Import keeps the pixels
+lossless with mipmaps on, minified with a mipmapped linear filter. The
+reference's older four-solid-color G was measured and not shipped.
+
+---
+
+## UI (official Apple sign-in artwork)
+
+```text
+Source:         Apple Design Resources, Logo Sign in with Apple
+Creator:        Apple Inc.
+License:        Apple Design Resources license EA1677, approved by the
+                user before extraction; artwork unmodified
+Original path:  Logo-Sign-in-with-Apple.dmg from
+                https://developer.apple.com/design/resources/
+Project path:   res://assets/third_party/signin/apple-left-white-medium.svg
+Used:           the Apple door's mark on the moon gate entry chooser,
+                drawn whole at button height on the black brand face
+Modification:   none to the bytes. SHA-256
+                f43d1ed5be59bcffdf4c20b5e29f8de041858678f549515377d0ba4f5ebd115e
+                (donor record notes/workflow/muse/donors/official-signin-110/
+                donor-sha256.json). Import rasterizes the 31x44 file at
+                4x with mipmaps for the 3x device scale; the file's own
+                padding is preserved and the glyph is never cropped out.
+```
+
+Author note: the shipped file is the padded medium white-on-black
+artwork (31x44, glyph about 15x19), so its apparent size balances the
+Google G at the shared 44px door height. The license RTF stays with
+the donor record and is not shipped at runtime. The square logo-only
+variant was kept as reference only and not shipped.
+
+---
+
+## Fonts (Google Sans for the Google door)
+
+```text
+Source:         Google Sans official font repo (ofl/googlesans)
+Creator:        Google LLC
+License:        SIL Open Font License 1.1
+Original path:  GoogleSans[GRAD,opsz,wght].ttf + OFL.txt from
+                https://github.com/google/fonts/tree/main/ofl/googlesans
+Project path:   res://assets/third_party/fonts/GoogleSans[GRAD,opsz,wght].ttf
+                res://assets/third_party/fonts/OFL.txt
+Used:           Google door titles through a FontVariation at weight 500
+                with the bundled Noto Sans CJK fallback for localized
+                glyphs; no other surface uses this face
+Modification:   none to the bytes. SHA-256 font
+                d0a87d835a944b8b40d0e82a5651bb59ab97b936a2aeed5946eb57e7b2a3a90a
+                license
+                2b75ef20f13d83a7514aee452c4782c20cdc9ff2dee17600f44d37a06d4fb958
+                (donor record notes/workflow/muse/donors/official-signin-110/
+                donor-sha256.json)
+```
+
+Author note: the variable face keeps its original bracketed filename so
+the shipped bytes map to the donor record with no renaming step.
