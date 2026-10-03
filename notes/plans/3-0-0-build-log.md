@@ -1296,6 +1296,50 @@ provenance requirements are untouched. No new tests, no
 runtime, capture, or remote operations; final screenshots and
 deployment remain pending with the director.
 
+## Resolve the embedded title in the distribution probe: brief 156 (2026-10-04)
+
+The phone producer reached the direct-distribution installed-binary probe
+with every store proof green except the title UI: `title_screen_visible`
+and `title_store_button_present` were false, so `ready` stayed false.
+Cause was the same embedding the boot marker had just been repaired for:
+`store_capture_probe.gd` resolved `Ui/Screen` on the scene root, but the
+production scene nests the original title under its `Title` child.
+
+The probe now resolves through real scene identity — the `Title` child
+under `production_entry.tscn`, the root itself under `title_menu.tscn`,
+null otherwise — and fails closed while a gate card, panel, loader, or
+confirm covers the production title. The resolver is structural on
+purpose: naming `TestLauncher` or `ProductionEntry` from the probe broke
+the `--script` clean-UI regression, which compiles without autoload
+symbols, through `production_entry.gd`'s `Settings` reference. The live
+Shop singleton, export feature, unavailable state, paid-SKU memory
+fixture, `owns()` call, immediate byte-equivalent restore, and every
+exported field are untouched.
+
+What bit us: the first version reused the marker's resolver through the
+global class name and turned the clean-UI suite red with compile errors
+(caught before anything else ran). The second lesson was a missing
+`await` on the new test's parity helper, which freed the production
+entry mid-check and silently skipped four asserts behind a passing
+count — the count is only trustworthy with the error stream next to it.
+
+Coverage is `test_direct_distribution_title` (108 cases, registered in
+the regression runner): production and standalone UI fields against the
+actual embedded nodes, bare/decoy/missing rejection, card/panel/loader/
+confirm occlusion parity with the marker, and the Shop memory/revision/
+disk boundary. A headless engine proves every component but not the
+final `ready`; the installed APK proves that. Reverting to the old root
+lookup fails 10 of the 108, then restores exact bytes (sha256 pinned in
+the report). One stale host pin was noticed along the way
+(`capture-run-state.test.mjs` still demanded the pre-repair inline
+marker shape in `test_launcher.gd`), but brief 155 fixed it
+independently in the real tree, so this copy leaves that file at
+baseline and the director gates on the current-root suites after
+acceptance. Other debug helpers were inspected — arena/shot harnesses
+already resolve their own roots or forward through `has_method` — and no
+further embedding mistake was found. `check:store-screenshots` fails as
+expected after the `apps/game` touch; no recapture (non-visual).
+
 ## Not done
 
 - Store screenshots: the fresh five-locale Android originals (phone 40 PNGs, seven-inch 30, ten-inch 30)
