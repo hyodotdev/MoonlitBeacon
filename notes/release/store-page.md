@@ -16,11 +16,11 @@ store-review submit.
 | Item | Value |
 | --- | --- |
 | Title | 달빛 봉화 (Moonlit Beacon) |
-| Version | 3.0.0 |
+| Version | 4.0.0 |
 | Platform | Android (arm64-v8a, Android 7.0+) |
-| File | `MoonlitBeacon-3.0.0.apk` |
+| File | `MoonlitBeacon-4.0.0.apk` |
 | Category | Action · Arcade |
-| Tags | `pixel-art`, `top-down`, `survivor`, `roguelite`, `mobile`, `godot` |
+| Tags | `painted-art`, `top-down`, `survivor`, `roguelite`, `mobile`, `godot` |
 | Price | Free |
 
 Upload steps are in [checklist](./checklist.md) section 9.
@@ -43,7 +43,7 @@ and
 | Google Play short description | 유물을 모아 무기를 키우고 봉화 셋을 밝혀 변화하는 수호자에 맞서세요 | Power up with relics, light three beacons, and face a changing Guardian |
 | App Store subtitle | 봉화를 밝히는 무한 생존 액션 | Relic-powered survival |
 | App Store promotional text | 나리의 신호를 따라 불씨와 유물로 무기를 키우고, 두 갈래 달빛 문으로 여섯 지형을 오가며 봉화를 밝히고 수호자에 도전하세요. | Keep the road home lit for Nari: grow weapons with embers and relics, choose roads through six regions, light beacons, face a Guardian each Wave. |
-| App Store keywords | 서바이벌,로그라이트,픽셀,액션,봉화,수호자,오프라인 | survival,roguelite,pixel,action,beacon,guardian,offline |
+| App Store keywords | 서바이벌,로그라이트,동화풍,액션,봉화,수호자,클라우드 | survival,roguelite,painted,action,beacon,guardian,cloud |
 
 | Item | Japanese (`ja`) | Simplified Chinese (`zh-Hans`) | Traditional Chinese (`zh-Hant`) |
 | --- | --- | --- | --- |
@@ -51,21 +51,23 @@ and
 | Google Play short description | 遺物で武器を育て、三つの烽火を灯し、変化する守護者に挑もう | 收集遗物强化武器，点燃三座烽火，迎战不断变化的守护者 | 收集遺物強化武器，點燃三座烽火，迎戰不斷變化的守護者 |
 | App Store subtitle | 烽火を灯すエンドレスサバイバル | 点燃烽火的无尽生存动作 | 點燃烽火的無盡生存動作 |
 | App Store promotional text | ナリの信号を追って火種と遺物で武器を育て、二つの門から選ぶ六地域で烽火を灯し、守護者に挑もう。 | 跟随娜莉的信号，用火种与遗物强化武器，在分叉月门间选择道路，穿越六片区域点燃烽火，迎战不同的守护者。 | 跟隨娜莉的信號，用火種與遺物強化武器，在分叉月門間選擇道路，穿越六片區域點燃烽火，迎戰不同的守護者。 |
-| App Store keywords | サバイバル,ローグライト,ドット,アクション,烽火,オフライン | 生存,类幸存者,像素,动作,烽火,守护者,离线 | 生存,類倖存者,像素,動作,烽火,守護者,離線 |
+| App Store keywords | サバイバル,ローグライト,ペイント,アクション,烽火,クラウド | 生存,类幸存者,彩绘,动作,烽火,守护者,云存档 | 生存,類倖存者,彩繪,動作,烽火,守護者,雲存檔 |
 
 | Shared item | Value |
 | --- | --- |
 | Category | Games · Action |
 | Ads | None |
-| Account | No required account |
+| Account | Guest entry everywhere; Google/Apple sign-in where configured |
 | In-app purchases | 7 non-consumables (permanent, restorable) + 3 consumable Continue Coins |
-| Public ladder intro | Local top 10 stored on-device only |
+| Public ladder intro | Hall best board per player ID · local top 10 stays on-device |
 
-Screenshots and public copy show only the local ladder. Confirm
-`firebase.cfg` inclusion and privacy answers against the actual submit
-build, and do not market Firebase, a global ladder, online competition, or
-analytics in copy or images until the global ladder and optional anonymous
-analytics are verified in the release environment.
+Finished screenshots still show only the local ladder until a recapture is
+authorized. Copy describes the Hall best board from the shipped code path
+(`cloud_hall.gd` + `gate_hall_panel.gd`): one row per player ID with hero
+and score, plus the on-device local top 10. Confirm `firebase.cfg`
+inclusion and privacy answers against the actual submit build, and do not
+market online competition or analytics in copy or images: optional
+analytics stays disabled in the submit configuration.
 
 ### Values the actual seller fills before submit
 
@@ -88,19 +90,27 @@ analytics are verified in the release environment.
       review until the actual selling party finally confirms DSA status and
       per-country display duties.
 - [x] App Store copyright — `2026 Hyo Jang`
-- [ ] Re-audit Google Play Data safety answers — a build with no analytics
-      config, like this 3.0.0 submit, keeps only existing purchase-
-      verification Purchase history and Diagnostics matched to real
-      behavior, and does not add `App activity > App interactions` as
-      analytics collection. Only a later build that turns protected
-      analytics collection on also reflects collected, not shared,
-      optional, encrypted in transit, plus Analytics purpose and 90-day TTL.
-- [ ] Re-audit App Store App Privacy labels — this 3.0.0 analytics-disabled
-      build keeps only existing Purchase History/Diagnostic Data matched to
-      real purchase-verification behavior, and does not add Analytics-
-      purpose `Usage Data > Product Interaction`. Declare not linked to the
-      user, not used for tracking, and Analytics purpose together only when
-      protected analytics collection is turned on later.
+- [ ] Re-audit Google Play Data safety answers for 4.0.0 accounts — this
+      submit collects more than purchase-verification data even with
+      analytics off: Firebase sign-in (anonymous guest plus configured
+      Google/Apple), the public player ID, private account-to-ID
+      ownership, checkpoint saves, Hall entries, and existing purchase
+      verification. Audit collected/provider-processed data separately
+      from publicly displayed fields (Hall rows show ID, hero, and score
+      only). Email/profile processing follows SDK scopes and final native
+      consent/build evidence — never assume it absent. Do not record
+      final label answers here; the selling party sets them after the
+      audit. Optional gameplay analytics stays a separate default-off
+      feature whose shipped config must be inspected; its 90-day TTL
+      never applies to account checkpoints.
+- [ ] Re-audit App Store App Privacy labels for 4.0.0 accounts — same
+      scope as the Data safety item above: account, save, Hall, and
+      purchase-verification data are in play, and gameplay/account data
+      must not be declared unlinked. Email/profile linkage follows SDK
+      scopes and final native consent/build evidence. Do not record
+      final label answers here; the selling party sets them after the
+      audit. Analytics-purpose labels are added only if a later build
+      turns protected analytics collection on.
 - [ ] Before enabling protected analytics collection, disclose in the
       5-language privacy policy: optional consent, allowed event categories,
       anonymous play metrics excluding permanent IDs/names/purchase IDs, max
@@ -145,7 +155,7 @@ Power up with relics, light three beacons, and face a changing Guardian
 두 번째 순환부터 문은 두 갈래로 열립니다. 두 달빛 문이 가는 곳을 알려 주면,
 길은 당신이 고릅니다.
 
-새 단장한 화면에서, 다시 그린 영웅·정령·수호자와 달빛 조명 아래의 밤을 만나세요.
+새 단장한 화면에서, 손으로 그린 듯한 밤 지형과 다시 그린 영웅·정령·수호자를 달빛 조명 아래에서 만나세요.
 
 ■ 조작
 우하단 대시 버튼을 제외한 화면 어디든 누르면 이동 스틱이 그 자리에 생깁니다.
@@ -188,7 +198,10 @@ Power up with relics, light three beacons, and face a changing Guardian
 완료한 순환, 밝힌 봉화, 생존 시간, 레벨과 처치로 점수와 S~D 랭크를 계산합니다.
 죽어도 달빛 조각을 얻어 영구 은혜 6종을 올릴 수 있습니다. 달빛 제단에서는 다시
 그린 영웅 6명의 고유한 색과 공격 연출을 미리 볼 수 있습니다.
-최고 기록과 로컬 상위 10개는 기기에 남습니다.
+관문에서는 저장된 이야기를 영웅·유물·성장과 함께 이어하고, 계정의 클라우드
+사본에 닿을 때는 어느 쪽을 쓸지 먼저 보여 주고 고릅니다. 전당은 플레이어
+ID마다 최고 영웅과 점수를 한 줄로 보여 주며, 최고 기록과 로컬 상위 10개는
+기기에 남습니다.
 
 ■ 언어
 한국어, 영어, 일본어, 중국어 간체와 번체를 지원합니다. 설정에서 그 자리에서
@@ -204,8 +217,10 @@ Power up with relics, light three beacons, and face a changing Guardian
 점수·레벨·유물을 유지하고 이어가며, 사용한 코인은 복원되지 않습니다. 검증과 consume
 처리가 끝나면 같은 묶음을 다시 살 수 있습니다.
 
-기본 플레이와 로컬 상위 10개 기록은 오프라인에서도 동작합니다. 스토어 상품 조회,
-구매와 구매 검증에는 인터넷 연결이 필요합니다. 광고와 필수 계정은 없습니다.
+기본 플레이와 로컬 기록은 게스트로 오프라인에서도 동작합니다. 스토어 상품 조회,
+구매와 구매 검증, 로그인과 클라우드 저장, 전당에는 인터넷 연결이 필요합니다.
+게스트 입장은 언제나 가능하고, Google/Apple 로그인은 준비된 기기에서만
+보입니다. 광고는 없습니다.
 ```
 
 ## English description
@@ -215,7 +230,7 @@ Nari, signal keeper of Lantern Hollow, went to mend the beacon road and never ca
 
 Light three beacons a Wave to take back her trail across six places. Each beacon restores its place's memory — ribbons, chimes, kettle, bell, boat, lens — with one line. Grow weapons with embers and relics, wake that Guardian, then cash out or face a fiercer Wave. From Wave 2 each gate is a fork: two gates name their destinations.
 
-Redrawn heroes, spirits, and guardians under moonlit lighting.
+A painted night world with redrawn heroes, spirits, and guardians under moonlit lighting.
 
 ■ Controls
 Touch anywhere except the bottom-right dash button and a movement stick appears there.
@@ -251,7 +266,10 @@ the count is Depth, each zone an omen, guardians new mutations.
 Completed Waves, lit beacons, survival time, level, and spirits scattered set score and
 S–D rank. Every run grants Moon Shards for six permanent boons. Moon Shrine lets you
 preview six redrawn heroes with distinct colors and attack effects.
-Your personal best and local top 10 stay on the device.
+The gate resumes your saved checkpoint with hero, relics, and growth. When
+your cloud account is reachable, your best hero and score join the Hall
+board under your player ID; personal best and local top 10 stay on
+the device.
 
 ■ Language
 Korean, English, Japanese, Simplified Chinese, and Traditional Chinese.
@@ -267,9 +285,10 @@ Three consumable Continue Coin packs grant 1, 5, or 10 coins. Spending one resum
 the spot where you fell while keeping score, level, and relics. Spent coins are not
 restored, and each pack can be purchased again after verification and consumption.
 
-Core play and the local top 10 work offline. Loading store products, purchasing, and
-purchase verification require an internet connection. There are no ads or required
-accounts.
+Core play and local records work offline as a guest. Loading store products,
+purchasing, purchase verification, sign-in, cloud saves, and the Hall require
+an internet connection. Guest entry is always available; Google/Apple sign-in
+appears only where configured. There are no ads.
 ```
 
 ## Japanese description
@@ -284,7 +303,7 @@ accounts.
 二巡回目からは門が二つに分かれます。二つの月の門が行き先を示し、進む道は
 あなたが選びます。
 
-新しい画面で、描き直した英雄・精霊・守護者と月光に照らされた夜が待っています。
+新しい画面で、手描き風の夜の地形と描き直した英雄・精霊・守護者が、月光に照らされて待っています。
 
 ■ 操作
 右下のダッシュボタン以外なら、画面のどこに触れてもその場所に移動スティックが
@@ -326,7 +345,9 @@ accounts.
 巡回数、烽火、生存時間、レベル、撃破数からスコアとS〜Dランクを算出します。
 倒れても月光の欠片を獲得し、六つの永続加護を強化できます。月光の祭壇では、
 描き直され、色と攻撃演出が異なる六人の英雄を購入前に確認できます。
-自己ベストとローカル上位10件は端末に保存されます。
+関門では英雄・遺物・成長とともに保存場所から再開できます。クラウドの
+アカウント保存に届く時は、最良の英雄とスコアがプレイヤーIDとともに
+殿堂の掲示板に並び、自己ベストとローカル上位10件は端末に保存されます。
 
 ■ 言語
 韓国語、英語、日本語、簡体字中国語、繁体字中国語に対応。設定から再起動せずに
@@ -342,8 +363,10 @@ accounts.
 レベル・遺物を維持して倒れた場所から再開できます。使用済みコインは復元されず、
 検証と消費処理の完了後は同じ商品を再購入できます。
 
-基本プレイとローカル上位10件はオフラインでも動作します。商品の読み込み、購入、
-購入確認にはインターネット接続が必要です。広告や必須アカウントはありません。
+基本プレイとローカル記録はゲストとしてオフラインでも動作します。商品の読み込み、
+購入、購入確認、ログイン、クラウド保存と殿堂にはインターネット接続が必要です。
+ゲスト入場はいつでも可能で、Google/Appleログインは対応した端末にだけ
+表示されます。広告はありません。
 ```
 
 ## Simplified Chinese description
@@ -357,7 +380,7 @@ accounts.
 选择结算当前记录返回，或前往更激烈的下一轮。从第二轮起，每道门都会分叉：
 两扇月之门标出目的地，道路由你选择。
 
-在焕然一新的界面中，与重绘的英雄、精灵、守护者相遇，漫步月光照亮的夜色。
+在焕然一新的界面中，漫步手绘风的月夜地形，与重绘的英雄、精灵、守护者相遇。
 
 ■ 操作
 触摸右下角冲刺按钮以外的任意位置，移动摇杆就会出现在那里。
@@ -392,7 +415,8 @@ accounts.
 完成轮数、点燃烽火、存活时间、等级与击败数将决定分数和S至D评级。
 每局结束都会获得月光碎片，可升级六种永久祝福。月光祭坛可在购买前预览重绘的
 六名英雄，他们拥有不同配色与攻击特效。
-个人最佳与本地前10名记录会保存在设备中。
+月之门会带着英雄、遗物与成长从存档处继续。当云端账号可达时，最佳英雄与
+分数会以玩家 ID 登上殿堂榜；个人最佳与本地前10名记录会保存在设备中。
 
 ■ 语言
 支持韩语、英语、日语、简体中文和繁体中文，可在设置中即时切换，无需重启。
@@ -405,8 +429,9 @@ accounts.
 另有1枚、5枚和10枚三种消耗型继续游戏金币。每次使用一枚，可保留分数、等级与遗物，
 从倒下之处继续。已使用的金币不可恢复；完成验证与消耗处理后可再次购买同一商品。
 
-基础玩法与本地前10名记录可离线使用。加载商品、购买与购买验证需要网络连接。
-游戏没有广告，也不要求账号。
+基础玩法与本地记录可以游客身份离线使用。加载商品、购买与购买验证、登录、
+云存档与殿堂需要网络连接。游客入口始终可用，Google/Apple 登录只在已配置
+的设备上显示。游戏没有广告。
 ```
 
 ## Traditional Chinese description
@@ -420,7 +445,7 @@ accounts.
 選擇結算目前紀錄返回，或前往更激烈的下一輪。從第二輪起，每道門都會分叉：
 兩扇月之門標出目的地，道路由你選擇。
 
-在煥然一新的介面中，與重繪的英雄、精靈、守護者相遇，漫步月光照亮的夜色。
+在煥然一新的介面中，漫步手繪風的月夜地形，與重繪的英雄、精靈、守護者相遇。
 
 ■ 操作
 觸碰右下角衝刺按鈕以外的任意位置，移動搖桿就會出現在那裡。
@@ -455,7 +480,8 @@ accounts.
 完成輪數、點燃烽火、存活時間、等級與擊敗數將決定分數和S至D評級。
 每局結束都會獲得月光碎片，可升級六種永久祝福。月光祭壇可在購買前預覽重繪的
 六名英雄，他們擁有不同配色與攻擊特效。
-個人最佳與本機前10名紀錄會儲存在裝置中。
+月之門會帶著英雄、遺物與成長從存檔處繼續。當雲端帳號可達時，最佳英雄與
+分數會以玩家 ID 登上殿堂榜；個人最佳與本機前10名紀錄會儲存在裝置中。
 
 ■ 語言
 支援韓語、英語、日語、簡體中文和繁體中文，可在設定中即時切換，無須重新啟動。
@@ -468,8 +494,9 @@ accounts.
 另有1枚、5枚和10枚三種消耗型繼續遊戲金幣。每次使用一枚，可保留分數、等級與遺物，
 從倒下之處繼續。已使用的金幣不可恢復；完成驗證與消耗處理後可再次購買同一商品。
 
-基礎玩法與本機前10名紀錄可離線使用。載入商品、購買與購買驗證需要網路連線。
-遊戲沒有廣告，也不要求帳號。
+基礎玩法與本機紀錄，訪客身分可離線使用。載入商品、購買與購買驗證、登入、
+雲存檔與殿堂需要網路連線。訪客入口始終可用，Google/Apple 登入只在已設定
+的裝置上顯示。遊戲沒有廣告。
 ```
 
 ### Last paragraph to swap on the itch.io direct-distribution APK
@@ -480,11 +507,11 @@ the paragraph below. Do not put this paragraph in Google Play or App Store
 descriptions.
 
 ```text
-itch.io에서 직접 배포하는 APK는 무료이며 광고·결제·계정이 없습니다.
-기본 플레이와 로컬 기록은 오프라인에서도 동작합니다.
+itch.io에서 직접 배포하는 APK는 무료이며 광고와 결제가 없습니다.
+게스트로 플레이하고, 기본 플레이와 로컬 기록은 오프라인에서도 동작합니다.
 
-The APK distributed directly on itch.io is free and has no ads, purchases, or account.
-Core play and local records work offline.
+The APK distributed directly on itch.io is free and has no ads or purchases.
+It plays as a guest; core play and local records work offline.
 ```
 
 ## Controls (on the page with a picture)
@@ -555,121 +582,121 @@ Source and course: https://github.com/hyodotdev/MoonlitBeacon
 ## Google Play release notes — English (`en-US`)
 
 ```text
-Moonlit Beacon 3.0.0
+Moonlit Beacon 4.0.0
 
-- Follow Nari's signal home: keep the road home lit, kettle warm.
-- Six places, forked gates from Wave 2, each beacon one memory.
-- Three acts, an epilogue, and a Chronicle of all seen.
-- Redrawn heroes, spirits, guardians under moonlight.
-- Nine skills as the Waves pass; weave slow readable bullets.
+- Enter as a guest, or with Google/Apple sign-in where configured.
+- The gate resumes your saved checkpoint with hero, relics, and growth.
+- Your cloud account keeps a copy and asks before either side wins.
+- Best hero and score join the Hall board under your player ID.
+- A painted night world with redrawn heroes, spirits, and guardians.
 ```
 
 ## Google Play release notes — Korean (`ko-KR`)
 
 ```text
-달빛 봉화 3.0.0
+달빛 봉화 4.0.0
 
-- 나리의 신호를 따라 집으로: 길을 밝히고 주전자를 지키세요.
-- 여섯 지형, 2순환부터 갈래 문, 봉화마다 기억 하나.
-- 3막과 에필로그, 본 것을 모으는 연대기.
-- 다시 그린 영웅·정령·수호자와 달빛 조명.
-- 순환마다 스킬 아홉 가지, 느린 탄막을 헤치세요.
+- 게스트로 들어가거나, 준비된 기기에서 Google/Apple로 로그인하세요.
+- 관문이 영웅·유물·성장과 함께 저장된 이야기를 이어줍니다.
+- 계정의 클라우드 사본은 어느 쪽을 쓸지 먼저 묻습니다.
+- 최고 영웅과 점수가 플레이어 ID로 전당에 오릅니다.
+- 손으로 그린 듯한 밤 지형과 다시 그린 영웅·정령·수호자.
 ```
 
 ## Google Play release notes — Japanese (`ja-JP`)
 
 ```text
-月明かりの烽火 3.0.0
+月明かりの烽火 4.0.0
 
-- ナリの信号を追って家へ: 道を灯し、やかんを守ろう。
-- 六地域、二巡回目から分岐の門、烽火ごとに記憶一つ。
-- 三幕とエピローグ、見たものを集める年代記。
-- 描き直した英雄・精霊・守護者と月光。
-- 巡回ごとにスキル九つ、遅い弾幕を縫おう。
+- ゲストで入るか、対応端末ではGoogle/Appleでログイン。
+- 関門が英雄・遺物・成長とともに保存場所から再開します。
+- クラウド保存はどちらを使うか先に確認します。
+- 最良の英雄とスコアがプレイヤーIDで殿堂入りします。
+- 手描き風の夜の地形と描き直した英雄・精霊・守護者。
 ```
 
 ## Google Play release notes — Simplified Chinese (`zh-CN`)
 
 ```text
-月光烽火 3.0.0
+月光烽火 4.0.0
 
-- 跟着娜莉的信号回家：点亮归路，别让水壶凉了。
-- 六片区域，第2轮起分叉门，每座烽火一处记忆。
-- 三幕加尾声，配上收集所见的编年史。
-- 重绘的英雄、精灵与守护者，月光下的夜。
-- 随轮次解锁九种技能，在缓慢弹幕中穿行。
+- 以游客进入，或在已配置设备上使用 Google/Apple 登录。
+- 月之门带着英雄、遗物与成长从存档处继续。
+- 云存档在使用哪一侧之前会先征求确认。
+- 最佳英雄与分数以玩家 ID 登上殿堂榜。
+- 手绘风月夜地形与重绘的英雄、精灵、守护者。
 ```
 
 ## Google Play release notes — Traditional Chinese (`zh-TW`)
 
 ```text
-月光烽火 3.0.0
+月光烽火 4.0.0
 
-- 跟著娜莉的信號回家：點亮歸路，別讓水壺涼了。
-- 六片區域，第2輪起分叉門，每座烽火一處記憶。
-- 三幕加尾聲，配上收集所見的編年史。
-- 重繪的英雄、精靈與守護者，月光下的夜。
-- 隨輪次解鎖九種技能，在緩慢彈幕中穿行。
+- 以訪客進入，或在已設定裝置上使用 Google/Apple 登入。
+- 月之門帶著英雄、遺物與成長從存檔處繼續。
+- 雲存檔在使用哪一側之前會先徵求確認。
+- 最佳英雄與分數以玩家 ID 登上殿堂榜。
+- 手繪風月夜地形與重繪的英雄、精靈、守護者。
 ```
 
 ## App Store What's New — English (`en-US`)
 
 ```text
-Moonlit Beacon 3.0.0
+Moonlit Beacon 4.0.0
 
-- Follow Nari's signal home: keep the road home lit, kettle warm.
-- Six places, forked gates from Wave 2, each beacon one memory.
-- Three acts, an epilogue, and a Chronicle of all seen.
-- Redrawn heroes, spirits, guardians under moonlight.
-- Nine skills as the Waves pass; weave slow readable bullets.
+- Enter as a guest, or with Google/Apple sign-in where configured.
+- The gate resumes your saved checkpoint with hero, relics, and growth.
+- Your cloud account keeps a copy and asks before either side wins.
+- Best hero and score join the Hall board under your player ID.
+- A painted night world with redrawn heroes, spirits, and guardians.
 ```
 
 ## App Store What's New — Korean (`ko`)
 
 ```text
-달빛 봉화 3.0.0
+달빛 봉화 4.0.0
 
-- 나리의 신호를 따라 집으로: 길을 밝히고 주전자를 지키세요.
-- 여섯 지형, 2순환부터 갈래 문, 봉화마다 기억 하나.
-- 3막과 에필로그, 본 것을 모으는 연대기.
-- 다시 그린 영웅·정령·수호자와 달빛 조명.
-- 순환마다 스킬 아홉 가지, 느린 탄막을 헤치세요.
+- 게스트로 들어가거나, 준비된 기기에서 Google/Apple로 로그인하세요.
+- 관문이 영웅·유물·성장과 함께 저장된 이야기를 이어줍니다.
+- 계정의 클라우드 사본은 어느 쪽을 쓸지 먼저 묻습니다.
+- 최고 영웅과 점수가 플레이어 ID로 전당에 오릅니다.
+- 손으로 그린 듯한 밤 지형과 다시 그린 영웅·정령·수호자.
 ```
 
 ## App Store What's New — Japanese (`ja`)
 
 ```text
-月明かりの烽火 3.0.0
+月明かりの烽火 4.0.0
 
-- ナリの信号を追って家へ: 道を灯し、やかんを守ろう。
-- 六地域、二巡回目から分岐の門、烽火ごとに記憶一つ。
-- 三幕とエピローグ、見たものを集める年代記。
-- 描き直した英雄・精霊・守護者と月光。
-- 巡回ごとにスキル九つ、遅い弾幕を縫おう。
+- ゲストで入るか、対応端末ではGoogle/Appleでログイン。
+- 関門が英雄・遺物・成長とともに保存場所から再開します。
+- クラウド保存はどちらを使うか先に確認します。
+- 最良の英雄とスコアがプレイヤーIDで殿堂入りします。
+- 手描き風の夜の地形と描き直した英雄・精霊・守護者。
 ```
 
 ## App Store What's New — Simplified Chinese (`zh-Hans`)
 
 ```text
-月光烽火 3.0.0
+月光烽火 4.0.0
 
-- 跟着娜莉的信号回家：点亮归路，别让水壶凉了。
-- 六片区域，第2轮起分叉门，每座烽火一处记忆。
-- 三幕加尾声，配上收集所见的编年史。
-- 重绘的英雄、精灵与守护者，月光下的夜。
-- 随轮次解锁九种技能，在缓慢弹幕中穿行。
+- 以游客进入，或在已配置设备上使用 Google/Apple 登录。
+- 月之门带着英雄、遗物与成长从存档处继续。
+- 云存档在使用哪一侧之前会先征求确认。
+- 最佳英雄与分数以玩家 ID 登上殿堂榜。
+- 手绘风月夜地形与重绘的英雄、精灵、守护者。
 ```
 
 ## App Store What's New — Traditional Chinese (`zh-Hant`)
 
 ```text
-月光烽火 3.0.0
+月光烽火 4.0.0
 
-- 跟著娜莉的信號回家：點亮歸路，別讓水壺涼了。
-- 六片區域，第2輪起分叉門，每座烽火一處記憶。
-- 三幕加尾聲，配上收集所見的編年史。
-- 重繪的英雄、精靈與守護者，月光下的夜。
-- 隨輪次解鎖九種技能，在緩慢彈幕中穿行。
+- 以訪客進入，或在已設定裝置上使用 Google/Apple 登入。
+- 月之門帶著英雄、遺物與成長從存檔處繼續。
+- 雲存檔在使用哪一側之前會先徵求確認。
+- 最佳英雄與分數以玩家 ID 登上殿堂榜。
+- 手繪風月夜地形與重繪的英雄、精靈、守護者。
 ```
 
 ## Bug reports
