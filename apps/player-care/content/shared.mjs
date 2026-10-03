@@ -66,3 +66,13 @@ export const CSV_LOCALES = {
   'zh-Hans': ['zh-Hans', 'zh-CN'],
   'zh-Hant': ['zh-Hant', 'zh-TW'],
 };
+
+// Game Terms locale columns (apps/game/localization/gate_entry.csv header)
+// mapped onto site paths. Terms bodies are read from this CSV at build.
+export const GATE_LOCALES = {
+  en: 'en',
+  ko: 'ko',
+  ja: 'ja',
+  'zh-Hans': 'zh_CN',
+  'zh-Hant': 'zh_TW',
+};

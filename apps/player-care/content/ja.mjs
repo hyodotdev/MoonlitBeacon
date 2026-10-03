@@ -10,6 +10,7 @@ export const CONTENT = {
   skip: '本文へ進む',
   navHome: '最初',
   navPrivacy: 'プライバシーポリシー',
+  navTerms: '利用規約',
   navSupport: 'サポート',
   navDocs: '講座・ドキュメント',
   mainNavLabel: '頁',
@@ -23,7 +24,7 @@ export const CONTENT = {
   },
 
   homeTitle: '月明かりの烽火 — プレイヤー案内',
-  homeLede: 'Hyo Devの月明かりの烽火の個人情報とサポートの頁を五つの言語で置きます。',
+  homeLede: 'Hyo Devの月明かりの烽火の個人情報とサポートと利用規約の頁を五つの言語で置きます。',
   homePrivacyHeading: 'プライバシーポリシー',
   homeSupportHeading: 'サポート',
   homeContact:
@@ -193,7 +194,7 @@ export const CONTENT = {
 <li>ゲストの進行は端末専用です。入らずに入れ直したり端末を替えたりすると失われます。</li>
 <li>Google・Appleで入ればチェックポイントのクラウド写しが残ります。</li>
 <li>出ると以前のIDと保存は端末に残り新しいゲストが始まります。同じ提供者で入り直せばそのアカウントのIDと保管された保存に戻ります。</li>
-<li>連携していないローカル情報は入れ直しや消去で失われることがあります(規約)。</li>
+<li>連携していないローカル情報は入れ直しや消去で失われることがあります(<a href="/ja/terms">規約</a>)。</li>
 </ul>`,
     },
     {
@@ -233,6 +234,10 @@ export const CONTENT = {
 </ul>`,
     },
   ],
+
+  termsTitle: '利用規約 — 月明かりの烽火',
+  termsLede: 'ゲーム内に表示される利用規約そのままです。',
+  termsNote: 'ゲーム内の利用規約と同じ文章です。',
 
   tableCaption: 'ストアで売る10品の全部です。',
   thItem: '商品',

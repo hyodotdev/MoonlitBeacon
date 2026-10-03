@@ -1,29 +1,35 @@
 # Player-care publication note (4.0.0)
 
-Short deploy handoff for the combined public site: the privacy/support pages
-plus the course/reference under `/MoonlitBeacon/` from one Hosting deploy.
-Nothing here is published; the director deploys only after inspection.
-Publication is not verified; do not treat these URLs as live until the
-director confirms TLS. No deploy was performed from this repo.
+Short deploy handoff for the combined public site: the privacy/support/terms
+pages plus the course/reference under `/MoonlitBeacon/` from one Hosting
+deploy. Nothing here is published by the implementer; the director deploys
+only after inspection. The director has deployed the inspected
+privacy/support care-only release and verified all 18 routes over ordinary
+HTTPS. The final combined docs/Terms release remains director-operated and
+pending; do not treat its URLs as live until the director confirms. No
+deploy was performed from this repo copy.
 
 ## Target
 
 - Public origin `https://moonlitbeacon.hyo.dev` (custom domain registered
   in Firebase Hosting with server-specified DNS; DNS done outside this repo).
 - Deploy target stays the existing default site `moonlitbeacon-778ee`
-  (`firebase.hosting.json` `site`, `--project moonlitbeacon-778ee`). Zero
-  existing hosting releases, so the first deploy overwrites nothing.
+  (`firebase.hosting.json` `site`, `--project moonlitbeacon-778ee`). One
+  prior hosting release exists (the director's verified care-only
+  privacy/support deploy); the combined deploy adds the course/reference
+  and Terms without touching Firestore.
 - Default site URL and native auth callback remain as configured; they are
   not public site URLs and are never printed in player copy.
 - Hosting-only: `public: ../../builds/hosting` (generated combined output:
-  37 inspected care files at the root, the 142-file docs build with 26 pages
+  49 inspected care files at the root, the 142-file docs build with 26 pages
   under `MoonlitBeacon/`), `cleanUrls`, nothing else. No rewrites,
   functions, or other services; the real care `404.html` serves missing
   pages. The root `firebase.json` stays Firestore-only.
 - Docusaurus canonical `url` is the custom origin with `baseUrl`
   `/MoonlitBeacon/` unchanged, so the GitHub Pages mirror keeps working.
   Care nav links `/MoonlitBeacon/` with five localized labels; the docs
-  navbar/footer link back to `/en/privacy` and `/en/support`.
+  navbar/footer link back to `/en/privacy`, `/en/support`, and
+  `/en/terms`.
 - Game contact settings point at the custom origin via the contact contract
   (`configure-store-contact.mjs` dry-run then apply):
   `https://moonlitbeacon.hyo.dev/{locale}/privacy|support` in `project.godot`.
@@ -33,9 +39,9 @@ director confirms TLS. No deploy was performed from this repo.
 
 ## URLs to verify after deploy
 
-- `https://moonlitbeacon.hyo.dev/{en,ko,ja,zh-Hans,zh-Hant}/privacy` and
-  `/…/support` (10 pages)
-- `…/privacy` and `…/support` (English x-default, full bodies)
+- `https://moonlitbeacon.hyo.dev/{en,ko,ja,zh-Hans,zh-Hant}/privacy`,
+  `/…/support`, and `/…/terms` (15 pages)
+- `…/privacy`, `…/support`, and `…/terms` (English x-default, full bodies)
 - `…/`, `…/{locale}/` (choosers), `…/404.html`
 - `…/MoonlitBeacon/` (docs home), `…/MoonlitBeacon/course` (course guide),
   `…/MoonlitBeacon/course/chapter-01` (Lesson 1),
@@ -76,8 +82,12 @@ director confirms TLS. No deploy was performed from this repo.
   1, 5, 10. Permanent means store-account restore, never irrevocable
   ownership after a refund. No legacy bundle sale, no consumable claim.
 - Publisher/support: `store-page.md` (Hyo Dev, copyright 2026 Hyo Jang,
-  `hyo@hyo.dev`) and its GitHub Issues bug-report link. Terms stay in
-  `apps/game/localization/gate_entry.csv`, referenced only.
+  `hyo@hyo.dev`) and its GitHub Issues bug-report link.
+- Terms: `apps/game/localization/gate_entry.csv` rows `gate.terms.title`
+  and `gate.terms.p1`–`p8`, read at build time with the existing CSV
+  parser and published verbatim (escaped) on `/terms` and
+  `/{locale}/terms`. Only the surrounding labels are localized site copy;
+  the agreement itself is unchanged and never duplicated in site files.
 
 ## Published processor/support disclosure (preserved, not new)
 
@@ -124,23 +134,24 @@ cd apps/player-care && firebase deploy --only hosting --config firebase.hosting.
 ```
 
 The build step renders a fresh care `dist/`, a fresh docs build, and the
-combined `builds/hosting/`; the check step verifies exact parity (37 care +
+combined `builds/hosting/`; the check step verifies exact parity (49 care +
 142 docs files), all local links, no NUL/notes/secrets/symlinks, the real
 `404.html`, and the narrow hosting-only config. To confirm a boundary by
 hand, delete or flip one byte under `builds/hosting/`, watch `hosting:check`
 fail, then re-run `pnpm hosting:build` to restore (composition is
 deterministic: same inputs, same bytes).
 
-Then open all 10 localized URLs plus `/privacy` and `/support`, the docs
-home, course guide, and Lesson 1 over the custom origin, confirm live
-TLS/HTTP, and confirm Settings › Privacy/Support in the game open them per
-locale before store metadata relies on them.
+Then open all 15 localized URLs plus `/privacy`, `/support`, and `/terms`,
+the docs home, course guide, and Lesson 1 over the custom origin, confirm
+live TLS/HTTP, and confirm Settings › Privacy/Support in the game open them
+per locale before store metadata relies on them.
 
 ## Deliberately not done
 
 - No deploy, no network calls, no DNS writes, no credentials.
 - Historical evidence URLs, fixture URLs, native callback URLs, and
   Firebase project identifiers are unchanged.
-- No Terms, auth, IAP, save, gameplay, asset, course-content, or version
-  change. Only `docusaurus.config.ts` origin/navbar/footer changed on the
-  docs side; lesson and reference prose are untouched.
+- No change to the Terms agreement text itself, and no auth, IAP, save,
+  gameplay, asset, course-content, or version change. Only
+  `docusaurus.config.ts` origin/navbar/footer (now with the Terms link)
+  changed on the docs side; lesson and reference prose are untouched.

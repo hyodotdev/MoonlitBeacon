@@ -10,6 +10,7 @@ export const CONTENT = {
   skip: '跳到正文',
   navHome: '首頁',
   navPrivacy: '隱私權政策',
+  navTerms: '使用條款',
   navSupport: '支援',
   navDocs: '課程與文件',
   mainNavLabel: '頁面',
@@ -23,7 +24,7 @@ export const CONTENT = {
   },
 
   homeTitle: '月光烽火 — 玩家服務',
-  homeLede: 'Hyo Dev 出品的月光烽火的隱私與支援頁面，共五種語言。',
+  homeLede: 'Hyo Dev 出品的月光烽火的隱私、支援與條款頁面，共五種語言。',
   homePrivacyHeading: '隱私權政策',
   homeSupportHeading: '支援',
   homeContact:
@@ -193,7 +194,7 @@ export const CONTENT = {
 <li>訪客進度只保存在本機。未登入就重裝或更換裝置，進度會遺失。</li>
 <li>用 Google/Apple 登入後，檢查點的雲端副本會保留。</li>
 <li>登出會保留原 ID 與存檔，並啟用全新訪客；用同一提供方重新登入則回到該帳號的 ID 與保留的存檔。</li>
-<li>未關聯的本地資料可能在重裝或清除儲存空間後遺失(條款)。</li>
+<li>未關聯的本地資料可能在重裝或清除儲存空間後遺失(<a href="/zh-Hant/terms">條款</a>)。</li>
 </ul>`,
     },
     {
@@ -233,6 +234,10 @@ export const CONTENT = {
 </ul>`,
     },
   ],
+
+  termsTitle: '使用條款 — 月光烽火',
+  termsLede: '與遊戲中顯示的使用條款一致。',
+  termsNote: '正文與遊戲內條款相同。',
 
   tableCaption: '商店在售的全部 10 項。',
   thItem: '商品',

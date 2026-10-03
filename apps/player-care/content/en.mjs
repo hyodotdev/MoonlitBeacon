@@ -11,6 +11,7 @@ export const CONTENT = {
   skip: 'Skip to content',
   navHome: 'Home',
   navPrivacy: 'Privacy Policy',
+  navTerms: 'Terms',
   navSupport: 'Support',
   navDocs: 'Course & Docs',
   mainNavLabel: 'Pages',
@@ -25,7 +26,7 @@ export const CONTENT = {
 
   homeTitle: 'Moonlit Beacon — Player Care',
   homeLede:
-    'Privacy and support pages for Moonlit Beacon by Hyo Dev, in five languages.',
+    'Privacy, support, and terms pages for Moonlit Beacon by Hyo Dev, in five languages.',
   homePrivacyHeading: 'Privacy Policy',
   homeSupportHeading: 'Support',
   homeContact:
@@ -197,7 +198,7 @@ export const CONTENT = {
 <li>Guest progress is device-only. Reinstalling or moving to a new device without signing in loses it.</li>
 <li>Sign in with Google or Apple to keep a cloud copy of your checkpoint.</li>
 <li>Signing out keeps the old ID and saves on the device and starts a fresh guest; signing back in with the same provider returns to that account's ID and kept saves.</li>
-<li>Unlinked local data may be lost if you reinstall or clear storage (Terms).</li>
+<li>Unlinked local data may be lost if you reinstall or clear storage (<a href="/en/terms">Terms</a>).</li>
 </ul>`,
     },
     {
@@ -237,6 +238,10 @@ export const CONTENT = {
 </ul>`,
     },
   ],
+
+  termsTitle: 'Terms of Use — Moonlit Beacon',
+  termsLede: 'The Terms of Use as shown in the game.',
+  termsNote: 'Same text as the in-game Terms.',
 
   tableCaption: 'All 10 items sold in the store.',
   thItem: 'Item',

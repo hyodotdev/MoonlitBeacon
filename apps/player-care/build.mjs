@@ -15,6 +15,7 @@ import {
   CSV_LOCALES,
   DOCS_MOUNT,
   DOCS_PREFIX,
+  GATE_LOCALES,
   HREFLANG,
   LINKS,
   LOCALES,
@@ -27,6 +28,7 @@ import {
 const APP_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = dirname(APP_DIR);
 const CSV_PATH = join(REPO_ROOT, '..', 'notes', 'release', 'store-localizations.csv');
+export const GATE_CSV_PATH = join(APP_DIR, '..', 'game', 'localization', 'gate_entry.csv');
 const DIST_DIR = join(APP_DIR, 'dist');
 
 const CONTENT_MODULES = Object.fromEntries(
@@ -138,6 +140,54 @@ export function loadProducts(csvText) {
   return products;
 }
 
+// In-game Terms rows, in modal order. The site publishes these cells
+// verbatim (escaped); the agreement itself is never edited here.
+export const TERMS_TITLE_KEY = 'gate.terms.title';
+export const TERMS_KEYS = [
+  'gate.terms.p1',
+  'gate.terms.p2',
+  'gate.terms.p3',
+  'gate.terms.p4',
+  'gate.terms.p5',
+  'gate.terms.p6',
+  'gate.terms.p7',
+  'gate.terms.p8',
+];
+
+export function loadTerms(csvText) {
+  const rows = parseCsv(csvText);
+  const header = rows[0];
+  const byKey = new Map(rows.slice(1).map((cells) => [
+    cells[0],
+    Object.fromEntries(header.map((name, index) => [name, cells[index] ?? ''])),
+  ]));
+  const titleRow = byKey.get(TERMS_TITLE_KEY);
+  if (titleRow === undefined) {
+    throw new Error(`terms source is missing ${TERMS_TITLE_KEY}`);
+  }
+  const terms = {};
+  for (const locale of LOCALES) {
+    const column = GATE_LOCALES[locale];
+    const title = titleRow[column];
+    if (title === undefined || title === '') {
+      throw new Error(`terms source is missing ${TERMS_TITLE_KEY} for ${locale}`);
+    }
+    const paragraphs = TERMS_KEYS.map((key) => {
+      const row = byKey.get(key);
+      if (row === undefined) {
+        throw new Error(`terms source is missing ${key}`);
+      }
+      const cell = row[column];
+      if (cell === undefined || cell === '') {
+        throw new Error(`terms source is missing ${key} for ${locale}`);
+      }
+      return cell;
+    });
+    terms[locale] = { title, paragraphs };
+  }
+  return terms;
+}
+
 function grantText(content, product) {
   if (product.id.endsWith('.supporter')) return content.grantSupporter;
   if (product.id.endsWith('.lantern_colors')) return content.grantLantern;
@@ -162,7 +212,7 @@ ${rows}
 }
 
 function alternates(kind) {
-  // kind: 'privacy' | 'support' | 'index'
+  // kind: 'privacy' | 'support' | 'terms' | 'index'
   const links = LOCALES.map((locale) => {
     const path = kind === 'index' ? `/${locale}/` : `/${locale}/${kind}`;
     return `<link rel="alternate" hreflang="${HREFLANG[locale]}" href="${SITE_BASE}${path}">`;
@@ -173,7 +223,7 @@ function alternates(kind) {
 }
 
 function navBlock(content, locale, current) {
-  // current: 'home' | 'privacy' | 'support'
+  // current: 'home' | 'privacy' | 'terms' | 'support'
   const base = locale === null ? '' : `/${locale}`;
   const item = (key, label, path) => {
     const currentAttr = key === current ? ' aria-current="page"' : '';
@@ -185,13 +235,14 @@ function navBlock(content, locale, current) {
   return `<nav aria-label="${escapeHtml(content.mainNavLabel)}"><ul>
 ${item('home', content.navHome, '/')}
 ${item('privacy', content.navPrivacy, '/privacy')}
+${item('terms', content.navTerms, '/terms')}
 ${item('support', content.navSupport, '/support')}
 ${docsItem}
 </ul></nav>`;
 }
 
 function languageNav(content, locale, pagePath) {
-  // pagePath: '' (index) | 'privacy' | 'support'; links to the same page.
+  // pagePath: '' (index) | 'privacy' | 'terms' | 'support'; links to the same page.
   const items = LOCALES.map((target) => {
     const href = pagePath === '' ? `/${target}/` : `/${target}/${pagePath}`;
     const currentAttr = target === locale ? ' aria-current="page"' : '';
@@ -217,6 +268,15 @@ function sectionsHtml(sections, tableHtml) {
     return `<section aria-labelledby="${section.id}"><h2 id="${section.id}"><span class="num" aria-hidden="true">${escapeHtml(section.num)}</span>${escapeHtml(section.h)}</h2>
 ${body}</section>`;
   }).join('\n');
+}
+
+function termsSection(localeTerms) {
+  // One section whose heading is the in-game modal title and whose eight
+  // paragraphs are the CSV cells, escaped, in modal order.
+  const body = localeTerms.paragraphs
+    .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+    .join('\n');
+  return [{ id: 'terms', num: '', h: localeTerms.title, html: body }];
 }
 
 function pageShell({
@@ -275,6 +335,7 @@ export async function renderPages() {
   const content = await loadContent();
   const csvText = readFileSync(CSV_PATH, 'utf8');
   const products = loadProducts(csvText);
+  const terms = loadTerms(readFileSync(GATE_CSV_PATH, 'utf8'));
   const pages = new Map(); // clean route -> { file bodies per output path, lang }
 
   const emit = (cleanRoute, outputs, body) => {
@@ -287,6 +348,9 @@ export async function renderPages() {
     const links = [];
     for (const locale of LOCALES) {
       links.push([`/${locale}/privacy`, `${content[locale].navPrivacy} (${content[locale].languageNames[locale]})`]);
+    }
+    for (const locale of LOCALES) {
+      links.push([`/${locale}/terms`, `${content[locale].navTerms} (${content[locale].languageNames[locale]})`]);
     }
     for (const locale of LOCALES) {
       links.push([`/${locale}/support`, `${content[locale].navSupport} (${content[locale].languageNames[locale]})`]);
@@ -311,14 +375,15 @@ export async function renderPages() {
     }));
   }
 
-  // x-default privacy/support: full English policy bodies.
-  for (const kind of ['privacy', 'support']) {
+  // x-default privacy/support/terms: full English bodies.
+  for (const kind of ['privacy', 'support', 'terms']) {
     const en = content.en;
-    const title = kind === 'privacy' ? en.privacyTitle : en.supportTitle;
-    const lede = kind === 'privacy' ? en.privacyLede : en.supportLede;
-    const sections = kind === 'privacy' ? en.privacySections : en.supportSections;
+    const title = kind === 'privacy' ? en.privacyTitle : kind === 'support' ? en.supportTitle : en.termsTitle;
+    const lede = kind === 'privacy' ? en.privacyLede : kind === 'support' ? en.supportLede : en.termsLede;
+    const sections = kind === 'privacy' ? en.privacySections : kind === 'support' ? en.supportSections : termsSection(terms.en);
     const table = kind === 'support' ? productTable(en, products.en) : null;
-    const main = articleMain(en, title, lede, en.updated, sectionsHtml(sections, table));
+    const updated = kind === 'terms' ? en.termsNote : en.updated;
+    const main = articleMain(en, title, lede, updated, sectionsHtml(sections, table));
     const nav = navBlock(en, null, kind);
     const lang = languageNav(en, 'en', kind);
     emit(`/${kind}`, [`${kind}.html`, `${kind}/index.html`], pageShell({
@@ -338,11 +403,12 @@ export async function renderPages() {
     }));
   }
 
-  // Locale indexes and the 10 localized pages.
+  // Locale indexes and the 15 localized pages.
   for (const locale of LOCALES) {
     const strings = content[locale];
     const indexMain = chooserMain(strings, `${strings.gameName} — ${strings.homeName}`, [
       [`/${locale}/privacy`, strings.navPrivacy],
+      [`/${locale}/terms`, strings.navTerms],
       [`/${locale}/support`, strings.navSupport],
     ]);
     const indexNav = navBlock(strings, locale, 'home');
@@ -363,12 +429,13 @@ export async function renderPages() {
       footerHtml: footerBlock(strings),
     }));
 
-    for (const kind of ['privacy', 'support']) {
-      const title = kind === 'privacy' ? strings.privacyTitle : strings.supportTitle;
-      const lede = kind === 'privacy' ? strings.privacyLede : strings.supportLede;
-      const sections = kind === 'privacy' ? strings.privacySections : strings.supportSections;
+    for (const kind of ['privacy', 'support', 'terms']) {
+      const title = kind === 'privacy' ? strings.privacyTitle : kind === 'support' ? strings.supportTitle : strings.termsTitle;
+      const lede = kind === 'privacy' ? strings.privacyLede : kind === 'support' ? strings.supportLede : strings.termsLede;
+      const sections = kind === 'privacy' ? strings.privacySections : kind === 'support' ? strings.supportSections : termsSection(terms[locale]);
       const table = kind === 'support' ? productTable(strings, products[locale]) : null;
-      const main = articleMain(strings, title, lede, strings.updated, sectionsHtml(sections, table));
+      const updated = kind === 'terms' ? strings.termsNote : strings.updated;
+      const main = articleMain(strings, title, lede, updated, sectionsHtml(sections, table));
       const nav = navBlock(strings, locale, kind);
       const langNav = languageNav(strings, locale, kind);
       emit(`/${locale}/${kind}`, [`${locale}/${kind}.html`, `${locale}/${kind}/index.html`], pageShell({
@@ -395,14 +462,14 @@ export async function renderPages() {
     const links = LOCALES.map((locale) => [`/${locale}/`, `${content[locale].gameName} (${content[locale].languageNames[locale]})`]);
     links.unshift(['/', 'Home']);
     const main = `<h1>Page not found</h1>
-<p class="lede">This address has no privacy or support page. Start from a language below.</p>
+<p class="lede">This address has no privacy, support, or terms page. Start from a language below.</p>
 <ul class="link-list">
 ${links.map(([href, label]) => `<li><a href="${href}">${escapeHtml(label)}<span class="go" aria-hidden="true">&rarr;</span></a></li>`).join('\n')}
 </ul>`;
     emit('/404.html', ['404.html'], pageShell({
       lang: 'en',
       title: 'Page not found — Moonlit Beacon',
-      description: 'This address has no privacy or support page.',
+      description: 'This address has no privacy, support, or terms page.',
       canonical: `${SITE_BASE}/404.html`,
       alternatesHtml: alternates('index'),
       skipText: en.skip,
@@ -416,7 +483,7 @@ ${links.map(([href, label]) => `<li><a href="${href}">${escapeHtml(label)}<span 
     }));
   }
 
-  return { pages, products, content };
+  return { pages, products, content, terms };
 }
 
 export function expectedOutputs(pages) {
@@ -531,7 +598,7 @@ const OUTBOUND_ALLOWLIST = new Set(Object.values(LINKS));
 const BALANCED_TAGS = ['html', 'head', 'body', 'header', 'main', 'footer', 'nav', 'table', 'ul'];
 
 function routeLang(cleanRoute) {
-  if (cleanRoute === '/' || cleanRoute === '/privacy' || cleanRoute === '/support') return 'en';
+  if (cleanRoute === '/' || cleanRoute === '/privacy' || cleanRoute === '/support' || cleanRoute === '/terms') return 'en';
   if (cleanRoute === '/404.html') return 'en';
   const segment = cleanRoute.split('/')[1];
   return LOCALES.includes(segment) ? segment : null;
@@ -576,7 +643,7 @@ export function isDocsMountTarget(target) {
 
 export async function checkBuilt(outDir) {
   const problems = [];
-  const { pages, products, content } = await renderPages();
+  const { pages, products, content, terms } = await renderPages();
 
   const expected = new Set(expectedOutputs(pages));
 
@@ -660,6 +727,31 @@ export async function checkBuilt(outDir) {
     }
 
     const strings = LOCALES.includes(expectedLang) ? content[expectedLang] : content.en;
+    if (/\/terms(\.html|\/index\.html)$/u.test(`/${file}`)) {
+      const localeTerms = terms[strings.lang];
+      let lastIndex = -1;
+      for (const [position, paragraph] of localeTerms.paragraphs.entries()) {
+        const needle = escapeHtml(paragraph);
+        const at = text.indexOf(needle);
+        if (at === -1) {
+          problems.push(`${where}: terms page lacks paragraph ${position + 1}`);
+        } else if (at < lastIndex) {
+          problems.push(`${where}: terms paragraphs out of order at ${position + 1}`);
+        } else {
+          lastIndex = at;
+        }
+      }
+      const sectionStart = text.indexOf('<section aria-labelledby="terms">');
+      const sectionEnd = sectionStart === -1 ? -1 : text.indexOf('</section>', sectionStart);
+      if (sectionStart === -1 || sectionEnd === -1) {
+        problems.push(`${where}: terms section missing`);
+      } else {
+        const count = (text.slice(sectionStart, sectionEnd).match(/<p>/gu) ?? []).length;
+        if (count !== localeTerms.paragraphs.length) {
+          problems.push(`${where}: expected ${localeTerms.paragraphs.length} terms paragraphs, found ${count}`);
+        }
+      }
+    }
     if (/\/privacy(\.html|\/index\.html)$/u.test(`/${file}`)) {
       for (const token of [...PRIVACY_COMMON, ...PRIVACY_LOCALE[strings.lang]]) {
         if (!text.includes(token)) problems.push(`${where}: privacy page lacks "${token}"`);
@@ -793,7 +885,7 @@ async function main(args) {
         throw new Error(`dist/ is stale — rebuild with pnpm player-care:build:\n${mismatches.map((line) => `  ${line}`).join('\n')}`);
       }
       await checkBuilt(DIST_DIR);
-      process.stdout.write(`player-care check ok — ${expectedOutputs(pages).length} files, 10 localized pages\n`);
+      process.stdout.write(`player-care check ok — ${expectedOutputs(pages).length} files, 15 localized pages\n`);
     } finally {
       rmSync(fresh, { recursive: true, force: true });
     }

@@ -10,6 +10,7 @@ export const CONTENT = {
   skip: '본문으로 건너뛰기',
   navHome: '처음',
   navPrivacy: '개인정보처리방침',
+  navTerms: '이용약관',
   navSupport: '고객지원',
   navDocs: '강좌·문서',
   mainNavLabel: '페이지',
@@ -23,7 +24,7 @@ export const CONTENT = {
   },
 
   homeTitle: '달빛 봉화 — 플레이어 안내',
-  homeLede: 'Hyo Dev의 달빛 봉화 개인정보와 고객지원 페이지를 다섯 언어로 둡니다.',
+  homeLede: 'Hyo Dev의 달빛 봉화 개인정보와 고객지원과 이용약관 페이지를 다섯 언어로 둡니다.',
   homePrivacyHeading: '개인정보처리방침',
   homeSupportHeading: '고객지원',
   homeContact:
@@ -193,7 +194,7 @@ export const CONTENT = {
 <li>게스트 진행은 기기 전용입니다. 로그인 없이 재설치하거나 기기를 바꾸면 사라집니다.</li>
 <li>Google·Apple로 로그인하면 체크포인트의 클라우드 사본이 남습니다.</li>
 <li>로그아웃하면 이전 ID와 저장은 기기에 남고 새 게스트가 시작됩니다. 같은 제공자로 다시 로그인하면 그 계정의 ID와 보관된 저장으로 돌아갑니다.</li>
-<li>연결하지 않은 로컬 데이터는 재설치하거나 저장소를 지우면 사라질 수 있습니다(약관).</li>
+<li>연결하지 않은 로컬 데이터는 재설치하거나 저장소를 지우면 사라질 수 있습니다(<a href="/ko/terms">약관</a>).</li>
 </ul>`,
     },
     {
@@ -233,6 +234,10 @@ export const CONTENT = {
 </ul>`,
     },
   ],
+
+  termsTitle: '이용약관 — 달빛 봉화',
+  termsLede: '게임에 표시되는 이용약관 그대로입니다.',
+  termsNote: '게임 안의 이용약관과 같은 글입니다.',
 
   tableCaption: '상점에서 파는 10종 전부입니다.',
   thItem: '상품',

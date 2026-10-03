@@ -75,7 +75,7 @@ test('composes care files at root and docs files under the mount', async () => {
   const fixture = await freshFixture();
   try {
     const composed = composeHosting(fixture);
-    assert.equal(composed.careFiles, 37);
+    assert.equal(composed.careFiles, 49);
     assert.equal(composed.docsFiles, 6);
     assert.equal(
       readFileSync(join(fixture.outDir, 'ko', 'privacy.html'), 'utf8'),
@@ -87,7 +87,7 @@ test('composes care files at root and docs files under the mount', async () => {
     );
     assert.ok(!existsSync(join(fixture.outDir, 'course.html')), 'docs files stay under the mount');
     const summary = await checkHosting(fixture.options);
-    assert.equal(summary.careFiles, 37);
+    assert.equal(summary.careFiles, 49);
     assert.equal(summary.docsFiles, 6);
     assert.equal(summary.docsPages, 5);
     assert.ok(summary.linksChecked > 100, `links resolved: ${summary.linksChecked}`);
@@ -262,7 +262,7 @@ test('composer accepts an empty existing directory', async () => {
   try {
     mkdirSync(fixture.outDir, { recursive: true });
     const composed = composeHosting(fixture);
-    assert.equal(composed.careFiles, 37);
+    assert.equal(composed.careFiles, 49);
     await checkHosting(fixture.options);
   } finally {
     cleanup(fixture.root);

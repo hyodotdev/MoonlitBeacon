@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { build, checkBuilt, expectedOutputs, loadProducts, renderPages } from './build.mjs';
+import { GATE_CSV_PATH, build, checkBuilt, expectedOutputs, loadProducts, loadTerms, renderPages } from './build.mjs';
 import { COIN_GRANTS, LINKS, LOCALES, PRODUCT_ORDER, SITE_BASE } from './content/shared.mjs';
 
 const RETENTION_TOKENS = {
@@ -41,6 +41,76 @@ const SUPPORT_MINIMUM_TOKENS = {
   'zh-Hant': '最少訂單資訊',
 };
 
+// One verbatim substring per Terms paragraph per locale, pinned against the
+// game CSV. Any edit to the agreement text breaks this test on purpose.
+const TERMS_TOKENS = {
+  en: [
+    'Starting the game means you accept them',
+    'durable ID with a local journey',
+    'best-effort: nothing here promises permanent records',
+    'Unlinked local data may be lost',
+    'adds no extra fees or refund windows',
+    'do not submit false records',
+    'handled as described in the Privacy Policy',
+    'shared under the MIT License',
+  ],
+  ko: [
+    '게임을 시작하면 이 약관과',
+    '고유 ID로 로컬 여정',
+    '영구 보관이나 즉시 동기화',
+    '연결하지 않은 로컬 데이터',
+    '별도 수수료나 환불 기한',
+    '거짓 기록을 올리거나',
+    '개인정보처리방침대로',
+    'MIT 라이선스',
+  ],
+  ja: [
+    'ゲームを始めるとこの規約と',
+    'ローカルの旅を遊びます',
+    '永久保存や即時同期を約束しません',
+    '連携していないローカルデータ',
+    '手数料や返金期限はありません',
+    '偽りの記録を送ったり',
+    'プライバシーポリシーのとおり',
+    'MITライセンスで共有',
+  ],
+  'zh-Hans': [
+    '开始游戏即表示您接受本条款',
+    '专用 ID 进行本地游玩',
+    '不保证永久保存或即时同步',
+    '未关联的本地数据',
+    '不另设费用或退款期限',
+    '不要提交虚假记录',
+    '按隐私政策处理',
+    '按 MIT 许可证共享',
+  ],
+  'zh-Hant': [
+    '開始遊戲即表示您接受本條款',
+    '專用 ID 進行本地遊玩',
+    '不保證永久保存或即時同步',
+    '未關聯的本地資料',
+    '不另設費用或退款期限',
+    '不要提交虛假紀錄',
+    '按隱私權政策處理',
+    '按 MIT 授權共享',
+  ],
+};
+
+function decodeHtmlEntities(value) {
+  return value
+    .replace(/&quot;/gu, '"')
+    .replace(/&gt;/gu, '>')
+    .replace(/&lt;/gu, '<')
+    .replace(/&amp;/gu, '&');
+}
+
+function termsParagraphs(body) {
+  const section = body.match(/<section aria-labelledby="terms">([\s\S]*?)<\/section>/u);
+  assert.ok(section, 'terms section present');
+  return [...section[1].matchAll(/<p>([\s\S]*?)<\/p>/gu)]
+    .map((match) => decodeHtmlEntities(match[1]));
+}
+
 function freshBuild() {
   const dir = mkdtempSync(join(tmpdir(), 'player-care-test-'));
   return build(dir).then((pages) => ({ dir, pages }));
@@ -50,10 +120,12 @@ test('renders every route plus the stylesheet', async () => {
   const { dir, pages } = await freshBuild();
   try {
     const outputs = expectedOutputs(pages);
-    // 1 root + 2 x-default x2 + 5 locale indexes x2 + 10 localized x2 + 404 + css
-    assert.equal(outputs.length, 1 + 4 + 10 + 20 + 1 + 1);
+    // 1 root + 3 x-default x2 + 5 locale indexes x2 + 15 localized x2 + 404 + css
+    assert.equal(outputs.length, 1 + 6 + 10 + 30 + 1 + 1);
     assert.ok(outputs.includes('en/privacy.html'));
     assert.ok(outputs.includes('zh-Hant/support/index.html'));
+    assert.ok(outputs.includes('terms.html'));
+    assert.ok(outputs.includes('zh-Hant/terms/index.html'));
     await checkBuilt(dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -160,6 +232,68 @@ test('privacy pages link processor policies and explain support handling', async
       assert.ok(body.includes(EXCLUSION_TOKENS[locale]), `${locale} scopes the statistics event`);
       assert.ok(body.includes(SUPPORT_MINIMUM_TOKENS[locale]), `${locale} limits order detail`);
     }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('terms pages match the in-game CSV paragraphs exactly, in order', async () => {
+  const { dir } = await freshBuild();
+  try {
+    const { terms } = await renderPages();
+    for (const locale of LOCALES) {
+      assert.equal(terms[locale].paragraphs.length, 8, `${locale} has 8 paragraphs`);
+      const body = readFileSync(join(dir, locale, 'terms.html'), 'utf8');
+      assert.deepEqual(termsParagraphs(body), terms[locale].paragraphs, `${locale} paragraphs verbatim`);
+    }
+    const xDefault = readFileSync(join(dir, 'terms.html'), 'utf8');
+    assert.deepEqual(termsParagraphs(xDefault), terms.en.paragraphs, 'x-default terms are English');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('terms pages carry every pinned paragraph per locale', async () => {
+  const { dir } = await freshBuild();
+  try {
+    for (const locale of LOCALES) {
+      assert.equal(TERMS_TOKENS[locale].length, 8, `${locale} pins 8 paragraphs`);
+      const body = readFileSync(join(dir, locale, 'terms.html'), 'utf8');
+      let lastIndex = -1;
+      for (const [position, token] of TERMS_TOKENS[locale].entries()) {
+        const at = body.indexOf(token);
+        assert.ok(at !== -1, `${locale} paragraph ${position + 1} keeps "${token}"`);
+        assert.ok(at > lastIndex, `${locale} paragraph ${position + 1} in order`);
+        lastIndex = at;
+      }
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('terms loader rejects a source missing a paragraph', () => {
+  const csvText = readFileSync(GATE_CSV_PATH, 'utf8');
+  const dropped = csvText.split('\n').filter((line) => !line.startsWith('gate.terms.p8,')).join('\n');
+  assert.throws(() => loadTerms(dropped), /terms source is missing gate\.terms\.p8/);
+  const emptied = csvText.split('\n').map((line) => {
+    if (!line.startsWith('gate.terms.p6,')) return line;
+    const cells = line.split(',');
+    cells[1] = '';
+    return cells.join(',');
+  }).join('\n');
+  assert.throws(() => loadTerms(emptied), /terms source is missing gate\.terms\.p6 for ko/);
+});
+
+test('checker fails when a terms paragraph is removed from output', async () => {
+  const { dir } = await freshBuild();
+  try {
+    const target = join(dir, 'zh-Hant', 'terms.html');
+    const body = readFileSync(target, 'utf8');
+    const stripped = body.replace(/<p>[^<]*不要提交虛假紀錄[^<]*<\/p>\n?/u, '');
+    assert.notEqual(stripped, body, 'a paragraph was removed');
+    writeFileSync(target, stripped);
+    await assert.rejects(() => checkBuilt(dir), /terms page lacks paragraph 6/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

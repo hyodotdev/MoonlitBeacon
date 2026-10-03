@@ -10,6 +10,7 @@ export const CONTENT = {
   skip: '跳到正文',
   navHome: '首页',
   navPrivacy: '隐私政策',
+  navTerms: '使用条款',
   navSupport: '支持',
   navDocs: '课程与文档',
   mainNavLabel: '页面',
@@ -23,7 +24,7 @@ export const CONTENT = {
   },
 
   homeTitle: '月光烽火 — 玩家服务',
-  homeLede: 'Hyo Dev 出品的月光烽火的隐私与支持页面，共五种语言。',
+  homeLede: 'Hyo Dev 出品的月光烽火的隐私、支持与条款页面，共五种语言。',
   homePrivacyHeading: '隐私政策',
   homeSupportHeading: '支持',
   homeContact:
@@ -193,7 +194,7 @@ export const CONTENT = {
 <li>游客进度只保存在本机。未登录就重装或更换设备，进度会丢失。</li>
 <li>用 Google/Apple 登录后，检查点的云端副本会保留。</li>
 <li>退出登录会保留原 ID 与存档，并启用全新游客；用同一提供方重新登录则回到该账号的 ID 与保留的存档。</li>
-<li>未关联的本地数据可能在重装或清除存储后丢失(条款)。</li>
+<li>未关联的本地数据可能在重装或清除存储后丢失(<a href="/zh-Hans/terms">条款</a>)。</li>
 </ul>`,
     },
     {
@@ -233,6 +234,10 @@ export const CONTENT = {
 </ul>`,
     },
   ],
+
+  termsTitle: '使用条款 — 月光烽火',
+  termsLede: '与游戏中显示的使用条款一致。',
+  termsNote: '正文与游戏内条款相同。',
 
   tableCaption: '商店在售的全部 10 项。',
   thItem: '商品',

@@ -107,6 +107,11 @@ const config: Config = {
           position: 'right',
         },
         {
+          href: `${CARE_BASE}/en/terms`,
+          label: 'Terms',
+          position: 'right',
+        },
+        {
           href: `https://github.com/${ORG}/${REPO}`,
           label: 'GitHub',
           position: 'right',
@@ -136,6 +141,7 @@ const config: Config = {
           items: [
             {label: 'Privacy Policy', href: `${CARE_BASE}/en/privacy`},
             {label: 'Support', href: `${CARE_BASE}/en/support`},
+            {label: 'Terms of Use', href: `${CARE_BASE}/en/terms`},
             {label: 'GitHub', href: `https://github.com/${ORG}/${REPO}`},
             {label: 'Godot Engine', href: 'https://godotengine.org'},
           ],
