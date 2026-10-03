@@ -76,6 +76,12 @@ function fail(message) {
 }
 
 function assertFileName(name) {
+  // Account partitions carry uppercase `MB-` IDs and mixed-case Firebase
+  // UIDs; accept them only by the anchored full-match dynamic pattern.
+  // Lowercase control/fixed files keep the historical charset contract.
+  if (typeof name === 'string' && isAndroidPersistentDynamicFile(name)) {
+    return name;
+  }
   if (typeof name !== 'string' || !/^[a-z0-9._-]+$/u.test(name)) {
     fail(`Unsafe Android persistent filename: ${String(name)}`);
   }

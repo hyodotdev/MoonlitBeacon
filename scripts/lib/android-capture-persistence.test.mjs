@@ -668,3 +668,280 @@ test('optional private read retries only atomic-replace races and rejects real e
       `${relativePath} does not accept cat errors as file bytes`);
   }
 });
+
+test('native Base64 readers accept precisely validated dynamic partitions', () => {
+  const syntheticZero = 'MB-00000000000000000000000000000000';
+  const valid = [
+    `journey.${syntheticZero}.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.bak`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.bak.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rev.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rev.json.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-local.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-remote.json.tmp`,
+    `journey.${DYNAMIC_UID}.json`,
+    `cloud_journey.${DYNAMIC_UID}.json`,
+    `cloud_journey.${DYNAMIC_UID}.json.tmp`,
+  ];
+  const binary = Buffer.from([0, 1, 10, 13, 127, 128, 255]);
+  for (const name of valid) {
+    assert.equal(isAndroidPersistentDynamicFile(name), true, name);
+    // Production passes adb stdout as a Buffer; wrapped lines must survive.
+    const encoded = binary.toString('base64');
+    const wrapped = `${encoded.slice(0, 4)}\r\n${encoded.slice(4)}\n`;
+    assert.deepEqual(
+      decodeAndroidPrivateFileBase64(Buffer.from(wrapped, 'ascii'), name),
+      binary,
+      name,
+    );
+    assert.deepEqual(
+      decodeAndroidPrivateFileBase64('', name),
+      Buffer.alloc(0),
+      name,
+    );
+    const stderr = `base64: files/${name}: No such file or directory`;
+    assert.equal(
+      isAndroidPrivateFileMissingBase64Error(stderr, name),
+      true,
+      name,
+    );
+    assert.equal(
+      isAndroidPrivateFileMissingBase64Error(Buffer.from(`${stderr}\n`), name),
+      true,
+      name,
+    );
+    // Same-name match only: wrong file and real errors stay false, not absent.
+    assert.equal(
+      isAndroidPrivateFileMissingBase64Error(
+        'base64: files/other.json: No such file or directory',
+        name,
+      ),
+      false,
+      name,
+    );
+    assert.equal(
+      isAndroidPrivateFileMissingBase64Error(
+        `base64: files/${name}: Permission denied`,
+        name,
+      ),
+      false,
+      name,
+    );
+    // Filename passes, payload still fails closed on shell error text.
+    assert.throws(
+      () => decodeAndroidPrivateFileBase64(
+        `cat: files/${name}: No such file or directory`,
+        name,
+      ),
+      /Base64/u,
+      name,
+    );
+  }
+  // Uppercase lookalikes fail; the fix must not accept every uppercase name.
+  const rejected = [
+    'journey.MB-1.JSON',
+    'JOURNEY.MB-1.json',
+    'journey.MB-1.rejected-sideways.json',
+    'journey.MB 1.json',
+    'journey.MB/1.json',
+    'journey.MB-1.json\n',
+    'journey:MB-1.json',
+    '../journey.MB-1.json',
+    'journey.MB-1.json/../vault.cfg',
+    'journey.$(id).json',
+    'journey.a;b.json',
+    'journey.a|b.json',
+    `journey.${'A'.repeat(65)}.json`,
+    'journey.MB-1.json.bak.tmp.extra',
+    'journey.MB-1.rev.json.bak',
+    'cloud_journey.MB-1.json.bak',
+    'cloud_journey.MB-1.rev.json',
+    '',
+  ];
+  for (const name of rejected) {
+    assert.equal(isAndroidPersistentDynamicFile(name), false, name);
+    assert.throws(
+      () => decodeAndroidPrivateFileBase64(Buffer.from('aGk='), name),
+      /Unsafe/u,
+      name,
+    );
+    assert.throws(
+      () => isAndroidPrivateFileMissingBase64Error(
+        `base64: files/${name}: No such file or directory`,
+        name,
+      ),
+      /Unsafe/u,
+      name,
+    );
+  }
+  // Lowercase charset contract is preserved even for non-dynamic names.
+  for (const name of [
+    'store_capture_runtime.state.json',
+    'unexpected.cfg',
+    'journey..json',
+    `journey.${'a'.repeat(65)}.json`,
+  ]) {
+    assert.equal(isAndroidPersistentDynamicFile(name), false, name);
+    assert.deepEqual(
+      decodeAndroidPrivateFileBase64('aGk=', name),
+      Buffer.from('hi'),
+      name,
+    );
+    assert.equal(
+      isAndroidPrivateFileMissingBase64Error(
+        `base64: files/${name}: No such file or directory`,
+        name,
+      ),
+      true,
+      name,
+    );
+  }
+});
+
+test('dynamic snapshot/read/restore round-trips through the production Base64 boundary', () => {
+  const syntheticZero = 'MB-00000000000000000000000000000000';
+  const valid = [
+    `journey.${syntheticZero}.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.bak`,
+    `journey.${DYNAMIC_PUBLIC_ID}.json.bak.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rev.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rev.json.tmp`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-local.json`,
+    `journey.${DYNAMIC_PUBLIC_ID}.rejected-remote.json.tmp`,
+    `journey.${DYNAMIC_UID}.json`,
+    `cloud_journey.${DYNAMIC_UID}.json`,
+    `cloud_journey.${DYNAMIC_UID}.json.tmp`,
+  ];
+  const ignored = [
+    'store_capture_state.json',
+    'journey..json',
+    `journey.${'a'.repeat(65)}.json`,
+    'journey.MB-1.JSON',
+    'JOURNEY.MB-1.json',
+    'journey.MB 1.json',
+    'journey.MB/1.json',
+    '../journey.MB-1.json',
+    'journey.$(id).json',
+    'journey.a;b.json',
+    'journey.MB-1.json.bak.tmp.extra',
+    'journey.MB-1.rev.json.bak',
+    'cloud_journey.MB-1.json.bak',
+  ];
+  for (const name of valid) {
+    assert.equal(isAndroidPersistentDynamicFile(name), true, name);
+  }
+  for (const name of ignored) {
+    assert.equal(isAndroidPersistentDynamicFile(name), false, name);
+  }
+  const binaryPartition = `journey.${DYNAMIC_UID}.json`;
+  const emptyPartition = `cloud_journey.${DYNAMIC_UID}.json`;
+  const files = new Map();
+  files.set('settings.cfg', Buffer.from('locale=ko'));
+  files.set('vault.cfg', Buffer.from('paid hero source'));
+  for (const name of valid) {
+    if (name === binaryPartition) {
+      files.set(name, Buffer.from([0, 1, 10, 13, 127, 128, 255]));
+    } else if (name === emptyPartition) {
+      files.set(name, Buffer.alloc(0));
+    } else {
+      files.set(name, Buffer.from(`payload:${name}`));
+    }
+  }
+  for (const name of ignored) files.set(name, Buffer.from(`ignored:${name}`));
+  // Production moves bytes as Base64 stdout (Buffer) and classifies the
+  // atomic-replace race by the exact base64 stderr line.
+  const readFile = (name) => {
+    if (!files.has(name)) {
+      const stderr = `base64: files/${name}: No such file or directory`;
+      if (!isAndroidPrivateFileMissingBase64Error(stderr, name)) {
+        throw new Error(`missing helper rejected absence: ${name}`);
+      }
+      return null;
+    }
+    const encoded = files.get(name).toString('base64');
+    const wrapped = encoded.length > 4
+      ? `${encoded.slice(0, 4)}\r\n${encoded.slice(4)}\n`
+      : encoded;
+    return decodeAndroidPrivateFileBase64(
+      Buffer.from(wrapped, 'ascii'),
+      name,
+    );
+  };
+  const device = {
+    files,
+    readFile,
+    writeFile: (name, value) => files.set(name, Buffer.from(value)),
+    removeFile: (name) => files.delete(name),
+    listFiles: () => [...files.keys()],
+  };
+  const original = captureAndroidPersistentSnapshot(readFile, {
+    listFiles: device.listFiles,
+  });
+  assert.deepEqual(
+    androidPersistentDynamicFiles(original),
+    [...valid].sort(),
+  );
+  for (const name of ignored) {
+    assert.equal(Object.hasOwn(original, name), false, name);
+  }
+  for (const name of valid) {
+    assert.ok(original[name].equals(files.get(name)), name);
+  }
+  assert.deepEqual(
+    original[binaryPartition],
+    Buffer.from([0, 1, 10, 13, 127, 128, 255]),
+  );
+  assert.equal(original[emptyPartition].length, 0);
+  // An absent valid partition reads as null through the missing-file helper.
+  const absentDynamic = `journey.${syntheticZero}.rev.json`;
+  assert.equal(isAndroidPersistentDynamicFile(absentDynamic), true);
+  assert.equal(readFile(absentDynamic), null);
+  const mutatedName = valid[0];
+  const deletedName = valid[1];
+  const createdName = 'cloud_journey.CaptureCreated-ABCxyz.json';
+  assert.equal(isAndroidPersistentDynamicFile(createdName), true);
+  files.set(mutatedName, Buffer.from('mutated-partition'));
+  files.delete(deletedName);
+  files.set(createdName, Buffer.from('capture-created'));
+  files.set('settings.cfg', Buffer.from('locale=en'));
+  files.set('store_capture_state.json', Buffer.from('mutated-control'));
+  const result = restoreAndroidPersistentSnapshot(original, device);
+  assert.equal(result.mutated, true);
+  assert.deepEqual(result.dynamicFiles, [...valid].sort());
+  for (const name of valid) {
+    assert.ok(files.get(name).equals(original[name]), name);
+  }
+  assert.equal(files.has(createdName), false);
+  assert.equal(
+    files.get('store_capture_state.json').toString(),
+    'mutated-control',
+  );
+  assert.equal(files.get('settings.cfg').toString(), 'locale=ko');
+  const evidence = buildAndroidPersistentEvidence(original, result);
+  assert.equal(evidence.persistent_data_dynamic_mutated_during_capture, true);
+  assert.equal(evidence.persistent_data_mutated_during_capture, true);
+  assert.equal(evidence.persistent_data_dynamic_restored_byte_exact, true);
+  assert.deepEqual(
+    evidence.persistent_data_dynamic_sha256_before,
+    evidence.persistent_data_dynamic_sha256_restored,
+  );
+  assert.ok(Object.hasOwn(
+    evidence.persistent_data_dynamic_sha256_observed,
+    createdName,
+  ));
+  assert.equal(
+    evidence.persistent_data_dynamic_sha256_observed[deletedName],
+    null,
+  );
+  const anchored = buildAndroidPersistenceAnchor(
+    evidence,
+    original,
+    result,
+    { captureId: '5'.repeat(64), path: 'builds/evidence/persistence.json' },
+  );
+  assert.equal(assertAndroidPersistentReportEvidence({
+    ...evidence,
+    persistence_anchor: anchored.anchor,
+  }, { anchorBytes: anchored.bytes }), true);
+});
