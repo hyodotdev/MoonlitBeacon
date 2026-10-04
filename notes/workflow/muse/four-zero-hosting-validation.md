@@ -419,3 +419,74 @@ merge and both 4.0.0 production-review submissions remain unfinished.
 Google's internal-test invitation acceptance and the physical iPad capture
 window are awaiting the pending user responses. No receipt, file timestamp,
 source fingerprint, nonce or signing check was fabricated or bypassed.
+
+## Overnight continuation: strict capture failure and identified prewarming
+
+Fresh store API readback at 2026-10-04 00:10 UTC confirmed Android internal
+4.0.0 (17), production 3.0.0 (16), processed iOS build 12 VALID, and the
+existing App Store 3.0.0 version WAITING_FOR_REVIEW. The ten current IAPs
+are APPROVED; the unused hero bundle remains excluded. No 4.0.0 production
+review submission occurred. The Play local promotion check remains ready
+with the previously applied AAB and manifest; it was not uploaded again.
+
+The fourth normal iPad all-locale capture accepted only three English
+frames, then failed before the barrage handoff. The same capture PID 8702
+was present, plus original production PID 8705. The failure, raw frames
+and exact restoration result are retained under
+`release4-ipad-two-game-processes-at-shot-4/`. Producer cleanup reported
+zero restoration errors and restored the owned keychain search list.
+The three owned Desktop PNGs were compared byte-for-byte to their retained
+native evidence, then moved to recoverable Trash. No canonical publication,
+nonce/timestamp alteration, late-frame acceptance or production-data access
+was performed.
+
+A bounded physical-device unified-log collection identified the second
+process precisely: at 09:19:31 KST, `dasd` requested `DAS Prewarm launch`
+for the original bundle, `launchd` spawned PID 8705, and the device reported
+it running-suspended-NotVisible. This happened after same-PID capture
+reactivation and during the slow runtime-state observations. Proof is
+`release4-ipad-prewarm-cause-proof.json`. This is evidence of OS prewarming;
+no user tap, OAuth callback or separate agent launch is inferred.
+Brief 165 requests a final exact-path production quiescence before the
+native frame window while retaining both broad single-process continuity
+checks. It expressly prohibits sanitizing a competitor after a screenshot.
+The implementer's result still needs independent judgment and a fresh full
+physical capture. The normal App Store preparation check currently fails
+its screenshot validation; it is not ready to submit.
+
+The exact proposed main/feature PR was checked through the repository's
+normal pull-request guard and denied because the human-created
+`.claude/allow-pr` signal is absent. No alternate GitHub route was tried and
+no marker was created by the director. Proposed base `main`, head
+`feat/4-0-0-gate-journey`, title `feat(game): renew moonlit beacon for 4.0.0`;
+reviewable body is `pr-4-0-0-ready-body.md`. Local evidence is
+`release4-night-pr-guard-check.json`. Main has not been merged.
+
+Current 4.0.0 physical iPad login and both-store ten-product purchase/restore
+checks remain incomplete. A specific 4.0.0 waiver question and the human
+PR-marker request are pending. The earlier 3.0.0 purchase-test waiver was
+not silently extended to 4.0.0. The official Android internal-test agreement
+also remains unaccepted pending its separate consent.
+
+Brief 165 round 1 changed only the iOS capture producer, its evidence
+library and registered tests. The director independently ran its focused
+suite (59/59) and read the full producer/library diff and report. The result
+was not accepted: three new helpers described themselves as mirrors and
+were tested, but the production producer never imported or called them.
+Brief 166 requests testing the actual used orchestration instead of unused
+duplicate logic. Both broad continuity guards and mandatory cleanup remain
+required. The game tree and uploaded native build are unchanged.
+
+Brief 166 round 2 connected the tested helpers to the real producer. The
+director read the revised source and report, independently passed 59 iOS
+evidence checks and 242 package checks, removed the final quiescence in the
+actual used helper and observed three failing regressions, then restored
+the exact bytes and returned to 59/59. Normal Muse accept applied only the
+three capture scripts/tests. Full real-tree `pnpm verify` then exited 0:
+662 Node tests across 19 groups, all registered game checks, 165 compiled
+scripts, locales/assets/hygiene and 26 clean docs pages with valid anchors.
+Knight Lv40 peaked at 1197 under the unchanged 1200 budget. Log and summary
+are `release4-prewarm-root-full-verify.log` and its summary JSON. Android
+local promotion readiness remains true with no blockers; native game
+source, build numbers and uploaded binaries were not changed. A fresh
+complete physical iPad capture remains the next independent check.
