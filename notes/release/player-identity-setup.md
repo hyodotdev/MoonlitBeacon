@@ -152,18 +152,37 @@ godot-iap AAR) plus consumer ProGuard rules keeping the bridge entry points.
 
 ## Provider setup checklist (director operations)
 
-Initial baseline: when this standalone-bridge note was written,
+Historical baseline: when this standalone-bridge note was written,
 Firebase Authentication had no enabled providers, and everything
-below was a director operation in a configured copy. Since then,
-Anonymous, Google, and Apple Firebase providers have been enabled
-during the integration; current evidence lives in the [director
-4.0.0 review status note](../workflow/muse/director-four-zero-review-status.md),
-not here. Android Google (debug build) and guest flows have native
-evidence there; still pending are the Android Apple Service ID/key
-completion, actual iPad provider completion, and optional Play
-Games readiness — none of those is claimed as a passed device
-test. Providers gate independently: stage what is ready and the
-app offers exactly that — a missing Google client id never blocks
+below was a director operation in a configured copy.
+
+Current completed setup (server/provisioning, not device login):
+Anonymous, Google, and Apple Firebase providers are enabled; the
+Apple provider carries the Service ID and code-flow team/key/
+private-key configuration, and the signed 4.0.0 build-12 IPA
+carries the Apple sign-in entitlement. Fresh `--check` preflight
+reports iOS Google and Apple READY, and Android Google and Apple
+READY as well. Android Google (debug build) and guest flows have
+native evidence in the director record. Live evidence lives in the
+[director 4.0.0 review status
+note](../workflow/muse/director-four-zero-review-status.md) and
+the final portions of the [4.0.0 hosting validation
+note](../workflow/muse/four-zero-hosting-validation.md), not here.
+Preflight READY and a signed entitlement prove configuration and
+packaging only: they are not native authentication, and no passing
+native Apple sign-in, recovery, cancellation, deletion, purchase,
+or restore test is claimed here.
+
+Still unverified: actual iPad Apple authentication with return to
+gameplay, guest linking, and restart/resume; Android Apple browser
+authentication; optional Play Games, which remains unconfigured.
+Android's aggregate `--check` exit stays NOT READY solely because
+that optional Play Games application ID is absent — ordinary
+Google and Apple readiness pass independently and are not blocked
+by it.
+
+Providers gate independently: stage what is ready and the app
+offers exactly that — a missing Google client id never blocks
 guest or Apple play, and a missing Apple setup never blocks
 Google. `--install` stages partial configs with warnings (the
 provider lines name what is ready); `--check` keeps the strict
@@ -439,8 +458,14 @@ reach the compile command) with `-fmodules -fcxx-modules`.
 ## Readiness checklist for device checks (director runs these)
 
 Source/mock tests ran in the implementer copy (see evidence in the round
-report). Native builds, provider flows, and device behavior belong to the
-director after configuration; nothing below is claimed as passed:
+report). The unchecked boxes below are the standing device-check
+contract: every row stays a requirement and none is promoted to a
+passed test here. An unchecked box is not a live claim that the
+corresponding previously built artifact remains untested — signed
+packaging and preflight evidence recorded in the director notes
+above stands on its own. Native device completion still belongs to
+the director after configuration; nothing below is claimed as
+passed:
 
 - [ ] `--build-android` / `--build-ios` compile from the pinned official
       dependencies; artifact verification passes (AAR manifest registration,
