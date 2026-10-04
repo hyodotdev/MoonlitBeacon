@@ -490,3 +490,15 @@ are `release4-prewarm-root-full-verify.log` and its summary JSON. Android
 local promotion readiness remains true with no blockers; native game
 source, build numbers and uploaded binaries were not changed. A fresh
 complete physical iPad capture remains the next independent check.
+
+The accepted capture-only correction and director evidence were committed
+and pushed at 443973d. Local and remote feature heads matched and the real
+working tree was clean. Before starting a fifth full capture, QuickTime
+reported that the iPad was turned off or disconnected. USB mux no longer
+listed the target; CoreDevice retained a local-network entry, but fresh
+live-details queries timed out at both 12 and 45 seconds. No fifth producer
+was started. Proof is `release4-ipad-fifth-preflight-blocker.json` and the
+Wi-Fi retry JSON/log. USB reconnection and an unlocked landscape device are
+now explicitly requested. The PR marker, current 4.0.0 real-test waiver and
+Google internal-test agreement still have no human response. No PR, main
+merge or 4.0.0 production-review submission is claimed.
