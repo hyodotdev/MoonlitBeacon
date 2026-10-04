@@ -163,23 +163,86 @@ private-key configuration, and the signed 4.0.0 build-12 IPA
 carries the Apple sign-in entitlement. Fresh `--check` preflight
 reports iOS Google and Apple READY, and Android Google and Apple
 READY as well. Android Google (debug build) and guest flows have
-native evidence in the director record. Live evidence lives in the
-[director 4.0.0 review status
+native evidence in the director record. Live provisioning evidence
+lives in the [director 4.0.0 review status
 note](../workflow/muse/director-four-zero-review-status.md) and
 the final portions of the [4.0.0 hosting validation
 note](../workflow/muse/four-zero-hosting-validation.md), not here.
 Preflight READY and a signed entitlement prove configuration and
-packaging only: they are not native authentication, and no passing
-native Apple sign-in, recovery, cancellation, deletion, purchase,
-or restore test is claimed here.
+packaging only: they are not a successful native sign-in.
 
-Still unverified: actual iPad Apple authentication with return to
-gameplay, guest linking, and restart/resume; Android Apple browser
-authentication; optional Play Games, which remains unconfigured.
-Android's aggregate `--check` exit stays NOT READY solely because
-that optional Play Games application ID is absent — ordinary
-Google and Apple readiness pass independently and are not blocked
-by it.
+Live device evidence (separate scopes, 2026-10-05 KST): see the
+[Apple authentication and cold-resume
+validation](../workflow/muse/apple-auth-and-cold-resume-validation.md)
+director record. Completed native authentication, durable save
+preservation, and observed resumed gameplay are distinct claims;
+a successful first-gate return is not every later cycle.
+
+- iPad native Apple sign-in: completed on the connected iPad
+  (installed game 4.0.0 build12). The original local guest public
+  ID is retained after sign-in, the stored binding names Apple and
+  matches the real non-anonymous Firebase user (`apple.com`), and
+  the cloud checkpoint payload equals the parsed local checkpoint
+  exactly with the same original ID on the public Hall entry. The
+  return shows real Warden gameplay with a relic choice. This
+  proves migration of the original local guest public ID. The
+  baseline had no Firebase anonymous binding, so it does not prove
+  linking an already-created anonymous Firebase UID without a UID
+  change.
+- iPad full process exit and cold launch: durable preservation
+  verified. The game process was terminated, the subsequent
+  process list contained no game executable, and a fresh launch
+  rendered the real title. Local identity, Apple binding, and
+  checkpoint bytes before and after the launch are identical
+  (checkpoint1, cycle1, zone0, Warden level1, same journey and
+  seed). The physical title/Continue tap and the automatic native
+  SDK session hydration after that launch are still pending and
+  are not claimed here.
+- Android cold resume (Galaxy Z Flip5, 4.0.0 build17,
+  Google-linked player): the existing first-gate checkpoint
+  reaches real Night Forest combat twice via Resume (never New
+  expedition). The repeat termination removed the game process, a
+  fresh launcher start restored the same ID and Resume menu, and
+  Resume returned to real combat. Identity, binding, and save
+  bytes matched before and immediately after launch; after Resume
+  the identity file's `created_utc` is harmlessly rewritten by
+  `PlayerAccount._save_id`, so only the public ID itself is equal
+  there. Checkpoint, revision, and binding bytes remain equal at
+  all measured boundaries, and journey, route, seed, hero, cycle,
+  zone, and growth match exactly. Repeat checks of the first gate
+  only: not every later cycle/fork, another account, an offline
+  session, or a destructively deleted account.
+- Gate-start save contract: `Journey` and the arena save a
+  segment-entry checkpoint on crossing a moon gate or entering the
+  next cycle after a guardian reward. Continue restores the saved
+  hero, level, relic stacks, missile growth, score bookkeeping,
+  deterministic route, and seed at that gate. The exact last
+  mid-combat position, live enemies, projectiles, cooldowns, combo,
+  and floor loot are transient, and backgrounding does not replace
+  the last valid gate checkpoint. This is the production contract,
+  not exact-frame suspension. The automated journey/cloud
+  regression cases are simulated evidence for later forks, separate
+  from the physical first-gate observations.
+- iOS delete-after-revoke-failure fix (brief168 source change):
+  a missing fresh Apple authorization code or a token-revocation
+  SDK error now stops with one retryable failure, preserves the
+  native session and local binding, and never reaches Firebase
+  user deletion; only successful revocation advances to Auth
+  deletion. A compiled stub probe over the production methods
+  passes its behavioral scenarios, and the previous revision fails
+  the revoke-failure cases. No real account was deleted. Installed
+  build12 and the previously submitted store package do not
+  contain this fix; a new package and store replacement are still
+  pending and will be recorded separately when they complete.
+
+Still unverified: physical iPad Continue tap with resumed gameplay
+and automatic SDK hydration after the cold launch; Android Apple
+browser authentication; optional Play Games, which remains
+unconfigured; round trips beyond the first gate, other accounts,
+offline sessions, and destructive deletion. Android's aggregate
+`--check` exit stays NOT READY solely because that optional Play
+Games application ID is absent — ordinary Google and Apple
+readiness pass independently and are not blocked by it.
 
 Providers gate independently: stage what is ready and the app
 offers exactly that — a missing Google client id never blocks
@@ -436,13 +499,28 @@ reach the compile command) with `-fmodules -fcxx-modules`.
   explicit call.
 - iOS account deletion re-runs the Apple sheet natively for a fresh
   revocation code, then re-authenticates, revokes the grant, and deletes the
-  Firebase user, unless `keep_provider_grant` is set. Android Apple-linked
-  deletion re-runs the browser reauthentication natively, then deletes,
-  unless `keep_provider_grant` is set. Google-linked deletion with a stale
-  session answers `recent_login_required` so the UI re-runs the provider
-  flow and retries. Play Games v2 has no programmatic sign-out; sign-out
-  clears Firebase (plus the Google SDK state on iOS) while the Play
-  profile stays linked at OS level by design.
+  Firebase user, unless `keep_provider_grant` is set. When the fresh code
+  is missing or the revocation reports an error, the chain fails closed:
+  it answers one recoverable `network_error` terminal carrying the re-read
+  cloud session, never invokes Firebase user deletion, and leaves the
+  native account signed in, so the UI retries the whole delete for a new
+  code. Only a successful revocation advances to Firebase deletion, and
+  only a successful deletion emits the local-session terminal. Android
+  Apple-linked deletion re-runs the browser reauthentication natively,
+  then deletes, unless `keep_provider_grant` is set. Google-linked
+  deletion with a stale session answers `recent_login_required` so the UI
+  re-runs the provider flow and retries. Play Games v2 has no
+  programmatic sign-out; sign-out clears Firebase (plus the Google SDK
+  state on iOS) while the Play profile stays linked at OS level by design.
+- Deletion ordering stays fixed by the production host: owned cloud rows
+  are removed before the native Auth deletion runs. A native deletion
+  failure therefore preserves the local slot and binding and supports a
+  retry, but the already-removed cloud rows are not restored — a failed
+  native step is never reported as a successful deletion either way. A
+  real destructive account deletion has not been authorized or performed
+  in this audit; the revoke-failure path is covered by source-contract
+  tests and a compiled behavior probe over the production Objective-C
+  bodies, not by a device deletion.
 - `NativeIdentityAdapter.refresh_native_session()` re-reads the bridge's
   real `get_session` through the normal outcome folding (sync answers
   apply at once, pending ones settle on the signal); `get_session()`
