@@ -147,6 +147,43 @@ token.
 **The TestFlight build must have finished processing** before it can attach
 to a version.
 
+When the user explicitly retains the existing store gallery for a replacement
+build, use `--reuse-committed-gallery` on every App Store invocation. Prepare
+the new manifest before checking it; the previous build's manifest no longer
+matches the new export counters.
+
+```bash
+node scripts/app-store-release.mjs --reuse-committed-gallery
+node scripts/app-store-release.mjs --reuse-committed-gallery --check
+node scripts/app-store-release.mjs --reuse-committed-gallery --check --remote-audit
+node scripts/app-store-release.mjs --reuse-committed-gallery --check --remote-audit \
+  --apply --confirm-remote-apply '<reuse apply token>' \
+  --submit-review --confirm-review-submission '<reuse review token>'
+```
+
+This is retained-gallery evidence, not fresh capture evidence. Local PNG and
+provenance integrity still pass, and GET preflight verifies every remote
+marketing and IAP review image against the retained files. Any image
+difference blocks the apply; this mode refuses all image mutations. Normal
+submission remains strict about capture freshness. A normal-mode token does
+not authorize reuse mode, and vice versa.
+
+For Google Play, retain the already committed upload package and use
+`scripts/apply-play-binary-only-update.mjs` with the new signed AAB and its
+dedicated confirmation token. It verifies the remote ordered gallery and
+updates only the internal-track binary. Production promotion remains a
+separate operation for the exact newly committed versionCode; do not run
+the full image-upload apply to replace only a binary.
+
+After the binary-only apply, use its receipt with
+`--promote-production --confirm-binary-only-promotion '<promotion token>'`.
+Read back the exact replacement version. If promotion returns `IN_REVIEW`
+or `PUBLISHED`, record success and stop. Use
+`--submit-production-review --confirm-binary-only-review '<review token>'`
+only when the replacement still needs review: `NOT_SENT_FOR_REVIEW`, or the
+validated fallback where that version is not yet on production. Do not
+submit an already reviewed or published release again.
+
 ---
 
 ## Where credentials live

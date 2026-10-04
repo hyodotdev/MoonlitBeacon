@@ -238,6 +238,89 @@ the normal procedure of storing the apply receipt separately after remote
 confirmation. Blocking on local-file presence would wrongly stop that flow.
 :::
 
+## Binary-only internal update and its promotion/review path
+
+When only the binary changes and the committed store gallery must stay
+byte-identical, `apply-play-binary-only-update.mjs` uploads just the new AAB
+to `internal`. It reuses the retained `builds/release/google-play-upload`
+package explicitly: the mode, the confirmation token, and the receipt all
+record `REUSED_COMMITTED_GALLERY_NOT_FRESH_CAPTURE`. That reuse is an operator
+decision, not fresh capture evidence, and the normal package freshness
+verifier is not weakened: every retained input outside the new AAB, the
+project/preset identity, and the generator scripts must still match the
+retained manifest exactly.
+
+Local check first (no network):
+
+```bash
+node scripts/apply-play-binary-only-update.mjs --check
+```
+
+When the check is ready, apply the binary with the printed token:
+
+```bash
+node scripts/apply-play-binary-only-update.mjs \
+  --apply \
+  --confirm-binary-only '<binary token>'
+```
+
+Apply re-verifies the committed internal release and every retained listing
+and ordered image hash immediately before mutation, then uploads only the
+AAB, updates only the internal track, validates, and commits with
+`ERROR_IF_IN_REVIEW`. On success the owner-only (`0600`) receipt at
+`builds/release/google-play-binary-only-receipt.json` reads `APPLIED`.
+
+Promotion and review move exactly that applied replacement to production.
+Both rebuild the binary-only plan, require its `APPLIED` receipt, and take
+only their own token, which `--check` prints once the receipt is `APPLIED`:
+
+```bash
+node scripts/apply-play-binary-only-update.mjs --check
+node scripts/apply-play-binary-only-update.mjs \
+  --promote-production \
+  --confirm-binary-only-promotion '<promotion token>'
+```
+
+Promotion prints the production track readback lifecycle. If it is already
+`IN_REVIEW` or `PUBLISHED`, record that state as success and stop: do not
+submit again. The final review command is conditional on the exact
+replacement still needing review — a `NOT_SENT_FOR_REVIEW` readback, or the
+supported fallback where the version is not on production yet:
+
+```bash
+node scripts/apply-play-binary-only-update.mjs \
+  --submit-production-review \
+  --confirm-binary-only-review '<review token>'
+```
+
+Rules:
+
+- The promoted versionCode is always the newly applied one (for example
+  18), with the retained release notes; the retained manifest's old code
+  (for example 17) is never selected.
+- Promotion and review tokens carry distinct
+  `google-play-binary-only-promotion:` /
+  `google-play-binary-only-review:` prefixes bound to the new bundle hash,
+  retained gallery digest, manifest digest, and operation. Full-mode tokens
+  and the binary-upload token cannot authorize them, and they cannot
+  authorize each other.
+- Promotion commits with `ERROR_IF_IN_REVIEW` and only reports success
+  after a production track readback. Review commits with
+  `CANCEL_IN_REVIEW_AND_SUBMIT` and records exactly which in-review releases
+  it cancels. It submits a matching `NOT_SENT_FOR_REVIEW` staged release,
+  or stages the verified internal release when the version is not on
+  production yet; when the exact replacement is already in review or
+  published, it refuses instead of resubmitting it.
+- Promotion and review never upload an AAB and never mutate listings,
+  images, prices, or products. The only image-endpoint traffic in the whole
+  sequence is the GET verification inside binary `--apply`.
+- Promotion and review receipts live at
+  `builds/release/google-play-binary-only-promotion-receipt.json` and
+  `builds/release/google-play-binary-only-review-receipt.json`, both
+  owner-only (`0600`). If any receipt belongs to a previous binary,
+  confirm the remote track state in Play Console and archive it separately;
+  the tools refuse to start and never delete a receipt automatically.
+
 Official contracts:
 
 - [Get started with the Google Play Developer API](https://developers.google.com/android-publisher/getting_started)
