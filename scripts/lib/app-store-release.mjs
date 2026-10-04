@@ -255,6 +255,11 @@ export const SCREENSHOT_TARGETS = Object.freeze([
 export const DEFAULT_APP_STORE_APP_ID = '6796293839';
 export const DEFAULT_MANIFEST_RELATIVE_PATH =
   'builds/release/app-store-release-manifest.json';
+export const APP_STORE_REUSE_COMMITTED_GALLERY_DECISION =
+  'REUSE_COMMITTED_GALLERY';
+export const APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE =
+  'RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE';
+export const APP_STORE_FRESH_CAPTURE_EVIDENCE = 'FRESH_CAPTURE_CHECK_PASSED';
 export const APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH =
   'builds/release/app-store/screenshot-provenance.json';
 export const APP_STORE_CAPTURE_REPORT_RELATIVE_PATH =
@@ -1258,6 +1263,25 @@ export function runAppStoreScreenshotValidation(repoRoot, {
   return true;
 }
 
+export function resolveAppStoreCaptureEvidence({
+  env = process.env,
+  repoRoot,
+  reuseCommittedGallery = false,
+  spawn = spawnSync,
+} = {}) {
+  if (reuseCommittedGallery) {
+    return {
+      evidence: APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
+      freshCapture: false,
+    };
+  }
+  runAppStoreScreenshotValidation(repoRoot, { env, spawn });
+  return {
+    evidence: APP_STORE_FRESH_CAPTURE_EVIDENCE,
+    freshCapture: true,
+  };
+}
+
 export function buildAppStoreReleasePayload({
   repoRoot,
   appId = DEFAULT_APP_STORE_APP_ID,
@@ -1833,6 +1857,7 @@ export function parseAppStoreReleaseArguments(args = []) {
     confirmation: null,
     reviewConfirmation: null,
     remoteAudit: false,
+    reuseCommittedGallery: false,
     submitReview: false,
     json: false,
     help: false,
@@ -1878,6 +1903,14 @@ export function parseAppStoreReleaseArguments(args = []) {
       }
       seen.add(argument);
       result.submitReview = true;
+      continue;
+    }
+    if (argument === '--reuse-committed-gallery') {
+      if (seen.has(argument)) {
+        throw cliError('duplicate --reuse-committed-gallery flag.');
+      }
+      seen.add(argument);
+      result.reuseCommittedGallery = true;
       continue;
     }
     if (argument === '--help' || argument === '-h') {
@@ -2959,10 +2992,12 @@ export function formatAppStoreReleaseReport({
   manifest,
   check,
   remoteAudit = null,
+  reuseCommittedGallery = false,
 }) {
   const summary = localReleaseSummary(manifest);
   const lines = [
-    `App Store release ${check ? 'manifest verification' : 'local-only dry-run'} passed`,
+    `App Store release ${check ? 'manifest verification' : 'local-only dry-run'} passed`
+    + `${reuseCommittedGallery ? ' (reuse committed gallery)' : ''}`,
     `manifest: ${manifestPath}`,
     `version: ${summary.version} / App Apple ID: ${summary.appId}`,
     `payload SHA-256: ${summary.payloadSha256}`,
@@ -2972,6 +3007,10 @@ export function formatAppStoreReleaseReport({
     `assets: screenshots ${summary.counts.screenshots}, `
       + `IAP review ${summary.counts.iapReviewImages}`,
     `contact URLs: ${summary.contactStatus}`,
+    ...(reuseCommittedGallery ? [
+      `capture evidence: ${APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE} `
+      + '(retained existing uploads, not fresh capture)',
+    ] : []),
   ];
   if (!remoteAudit) {
     lines.push('remote requests: 0 (default command is local-only)');
@@ -2991,7 +3030,8 @@ export function formatAppStoreReleaseReport({
       if (entry.action !== 'none') {
         lines.push(
           `- ${entry.action.toUpperCase()} ${entry.target} `
-          + `${entry.identifier}`,
+          + `${entry.identifier}`
+          + `${reuseCommittedGallery && entry.code ? ` ${entry.code}` : ''}`,
         );
       }
     }

@@ -58,6 +58,10 @@ import {
 export const PLAY_BINARY_ONLY_PACKAGE = 'builds/release/google-play-upload';
 export const PLAY_BINARY_ONLY_RECEIPT =
   'builds/release/google-play-binary-only-receipt.json';
+export const PLAY_BINARY_ONLY_PROMOTION_RECEIPT =
+  'builds/release/google-play-binary-only-promotion-receipt.json';
+export const PLAY_BINARY_ONLY_REVIEW_RECEIPT =
+  'builds/release/google-play-binary-only-review-receipt.json';
 export const PLAY_BINARY_ONLY_TRACK = 'internal';
 export const PLAY_BINARY_ONLY_MODE =
   'BINARY_ONLY_INTERNAL_REUSE_COMMITTED_GALLERY';
@@ -166,7 +170,7 @@ function resolveRepoInput(root, relativePath, label, { directory = false } = {})
   return absolutePath;
 }
 
-function resolveRepoOutput(root, relativePath, label) {
+export function resolveRepoOutput(root, relativePath, label) {
   const rootReal = assertRoot(root);
   assertRelativePath(relativePath, label);
   const absolutePath = resolve(rootReal, relativePath);
@@ -693,7 +697,13 @@ export function parsePlayBinaryOnlyArguments(args) {
     help: false,
     json: false,
     package: PLAY_BINARY_ONLY_PACKAGE,
+    promoteProduction: false,
+    promotionConfirmation: null,
+    promotionReceipt: PLAY_BINARY_ONLY_PROMOTION_RECEIPT,
     receipt: PLAY_BINARY_ONLY_RECEIPT,
+    reviewConfirmation: null,
+    reviewReceipt: PLAY_BINARY_ONLY_REVIEW_RECEIPT,
+    submitProductionReview: false,
   };
   const seen = new Set();
   for (let index = 0; index < args.length; index += 1) {
@@ -708,6 +718,10 @@ export function parsePlayBinaryOnlyArguments(args) {
       result.check = true;
     } else if (argument === '--apply') {
       result.apply = true;
+    } else if (argument === '--promote-production') {
+      result.promoteProduction = true;
+    } else if (argument === '--submit-production-review') {
+      result.submitProductionReview = true;
     } else if (argument === '--json') {
       result.json = true;
     } else if (
@@ -722,6 +736,20 @@ export function parsePlayBinaryOnlyArguments(args) {
       }
       result[argument.slice(2)] = value;
       index += 1;
+    } else if (argument === '--promotion-receipt') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error(`${argument} requires a repository-relative path after it.`);
+      }
+      result.promotionReceipt = value;
+      index += 1;
+    } else if (argument === '--review-receipt') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error(`${argument} requires a repository-relative path after it.`);
+      }
+      result.reviewReceipt = value;
+      index += 1;
     } else if (argument === '--confirm-binary-only') {
       const value = args[index + 1];
       if (!value || value.startsWith('--')) {
@@ -729,22 +757,77 @@ export function parsePlayBinaryOnlyArguments(args) {
       }
       result.confirmation = value;
       index += 1;
+    } else if (argument === '--confirm-binary-only-promotion') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error('--confirm-binary-only-promotion requires the token --check printed.');
+      }
+      result.promotionConfirmation = value;
+      index += 1;
+    } else if (argument === '--confirm-binary-only-review') {
+      const value = args[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error('--confirm-binary-only-review requires the token --check printed.');
+      }
+      result.reviewConfirmation = value;
+      index += 1;
     } else {
       throw new Error(`unsupported option: ${argument}`);
     }
   }
   if (result.help) return result;
-  if (result.check && result.apply) {
-    throw new Error('Specify exactly one of --check or --apply.');
+  const modeCount = [
+    result.check,
+    result.apply,
+    result.promoteProduction,
+    result.submitProductionReview,
+  ].filter(Boolean).length;
+  if (modeCount > 1) {
+    throw new Error(
+      'Specify exactly one of --check, --apply, --promote-production, '
+      + 'or --submit-production-review.',
+    );
   }
-  if (!result.check && !result.apply) {
+  if (modeCount === 0) {
     result.check = true;
   }
-  if (result.check && result.confirmation !== null) {
+  if (result.promoteProduction && result.confirmation !== null) {
+    throw new Error('--promote-production uses only the --confirm-binary-only-promotion token.');
+  }
+  if (result.submitProductionReview && result.confirmation !== null) {
+    throw new Error(
+      '--submit-production-review uses only the --confirm-binary-only-review token.',
+    );
+  }
+  if (
+    (result.promoteProduction && result.reviewConfirmation !== null)
+    || (result.submitProductionReview && result.promotionConfirmation !== null)
+  ) {
+    throw new Error('Promotion and review confirmations cannot be combined.');
+  }
+  if (!result.apply && result.confirmation !== null) {
     throw new Error('--confirm-binary-only can only be used with --apply.');
+  }
+  if (!result.promoteProduction && result.promotionConfirmation !== null) {
+    throw new Error('--confirm-binary-only-promotion can only be used with --promote-production.');
+  }
+  if (!result.submitProductionReview && result.reviewConfirmation !== null) {
+    throw new Error(
+      '--confirm-binary-only-review can only be used with --submit-production-review.',
+    );
   }
   if (result.apply && result.confirmation === null) {
     throw new Error('--apply requires --confirm-binary-only with the token --check printed.');
+  }
+  if (result.promoteProduction && result.promotionConfirmation === null) {
+    throw new Error(
+      '--promote-production requires --confirm-binary-only-promotion with the token --check printed.',
+    );
+  }
+  if (result.submitProductionReview && result.reviewConfirmation === null) {
+    throw new Error(
+      '--submit-production-review requires --confirm-binary-only-review with the token --check printed.',
+    );
   }
   return result;
 }

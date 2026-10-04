@@ -21,6 +21,8 @@ import {
   ADOPTABLE_APP_VERSION_STATES,
   APPLE_LOCALES,
   APP_STORE_CAPTURE_REPORT_RELATIVE_PATH,
+  APP_STORE_FRESH_CAPTURE_EVIDENCE,
+  APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
   APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
   DEFAULT_MANIFEST_RELATIVE_PATH,
   APP_AVAILABILITY_REQUIREMENTS,
@@ -42,12 +44,14 @@ import {
   createAppStoreConnectToken,
   createAppStoreReleaseManifest,
   createGetOnlyAppStoreConnectClient,
+  formatAppStoreReleaseReport,
   iapStateReadinessPlan,
   isAdoptableAppVersionState,
   isReadOnlyReviewAppVersionState,
   normalizeAppVersionState,
   parseAppStoreReleaseArguments,
   readAndVerifyAppStoreReleaseManifest,
+  resolveAppStoreCaptureEvidence,
   resolveManifestOutputPath,
   runAppStoreScreenshotValidation,
   selectAppInfoForVersion,
@@ -58,9 +62,14 @@ import {
   writeAppStoreReleaseManifest,
 } from './app-store-release.mjs';
 import {
+  APP_STORE_REUSE_GALLERY_APPLY_PURPOSE,
+  APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS,
+  APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE,
   applyAppStoreConnectRelease,
+  appStoreApplyCheckSummary,
   appStoreConfirmationToken,
   applyPlanEntry,
+  applyReuseCommittedGalleryImageGate,
   assertEditableAppStoreVersionState,
   assertAppStoreApplyAuthorization,
   auditAppAvailability,
@@ -71,6 +80,7 @@ import {
   auditVersionedIapLocalizations,
   createAppStoreConnectMutationClient,
   createRotatingAppStoreConnectTokenProvider,
+  formatAppStoreApplyReport,
   isReviewableIapVersionState,
   pollAppStoreReviewSubmission,
   submitAppStoreConnectReview,
@@ -914,6 +924,7 @@ test('CLI remote apply and review submission each require an explicit confirmati
     confirmation: null,
     reviewConfirmation: null,
     remoteAudit: false,
+    reuseCommittedGallery: false,
     submitReview: false,
     json: false,
     help: false,
@@ -934,6 +945,7 @@ test('CLI remote apply and review submission each require an explicit confirmati
       confirmation: null,
       reviewConfirmation: null,
       remoteAudit: true,
+      reuseCommittedGallery: false,
       submitReview: false,
       json: true,
       help: false,
@@ -946,6 +958,7 @@ test('CLI remote apply and review submission each require an explicit confirmati
     ['--method', 'POST'],
     ['--output'],
     ['--remote-audit', '--remote-audit'],
+    ['--reuse-committed-gallery', '--reuse-committed-gallery'],
   ]) {
     assert.throws(
       () => parseAppStoreReleaseArguments(args),
@@ -970,6 +983,7 @@ test('CLI remote apply and review submission each require an explicit confirmati
     json: false,
     output: DEFAULT_MANIFEST_RELATIVE_PATH,
     remoteAudit: true,
+    reuseCommittedGallery: false,
     reviewConfirmation: 'app-store:review:6796293839:1.0.1:2:digest',
     submitReview: true,
   });
@@ -5163,4 +5177,887 @@ test('review-state mismatch cannot mutate and unsupported/duplicate review state
       entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
       && entry.action === 'unresolved'
     )));
+  }));
+
+function isImageMutationPath(path) {
+  return path.includes('appScreenshot')
+    || path.includes('AppStoreReviewScreenshot');
+}
+
+function recordingMutationClient(calls, { onPatch = null } = {}) {
+  return {
+    async delete(path) {
+      calls.push({ method: 'DELETE', path });
+      throw new Error(`unexpected DELETE ${path}`);
+    },
+    async patch(path, body) {
+      calls.push({ method: 'PATCH', path });
+      if (onPatch) return onPatch(path, body);
+      throw new Error(`unexpected PATCH ${path}`);
+    },
+    async post(path) {
+      calls.push({ method: 'POST', path });
+      throw new Error(`unexpected POST ${path}`);
+    },
+    async uploadOperations() {
+      calls.push({ method: 'PUT', path: 'asset-upload' });
+      throw new Error('unexpected asset upload');
+    },
+  };
+}
+
+test('reuse-committed-gallery flag is explicit at each CLI invocation shape', () => {
+  assert.equal(
+    parseAppStoreReleaseArguments([]).reuseCommittedGallery,
+    false,
+  );
+  for (const args of [
+    ['--reuse-committed-gallery', '--check'],
+    ['--reuse-committed-gallery', '--check', '--remote-audit'],
+    [
+      '--reuse-committed-gallery',
+      '--check',
+      '--remote-audit',
+      '--apply',
+      '--confirm-remote-apply',
+      'app-store:apply-reuse-committed-gallery:6796293839:4.0.0:13:digest',
+    ],
+    [
+      '--reuse-committed-gallery',
+      '--check',
+      '--remote-audit',
+      '--apply',
+      '--confirm-remote-apply',
+      'reuse-apply-token',
+      '--submit-review',
+      '--confirm-review-submission',
+      'reuse-review-token',
+    ],
+  ]) {
+    assert.equal(
+      parseAppStoreReleaseArguments(args).reuseCommittedGallery,
+      true,
+    );
+  }
+  const composed = parseAppStoreReleaseArguments([
+    '--reuse-committed-gallery',
+    '--dry-run',
+    '--json',
+    '--output',
+    'builds/release/reuse.json',
+  ]);
+  assert.equal(composed.reuseCommittedGallery, true);
+  assert.equal(composed.json, true);
+  assert.equal(composed.output, 'builds/release/reuse.json');
+  assert.throws(
+    () => parseAppStoreReleaseArguments([
+      '--reuse-committed-gallery',
+      '--reuse-committed-gallery',
+    ]),
+    (error) => error.exitCode === 2
+      && /duplicate --reuse-committed-gallery/u.test(error.message),
+  );
+});
+
+test('capture evidence stays strict normally and honestly retained in reuse mode', () => {
+  let spawns = 0;
+  const spawn = () => {
+    spawns += 1;
+    return { error: null, status: 0 };
+  };
+  assert.deepEqual(
+    resolveAppStoreCaptureEvidence({ repoRoot: '/fixture', spawn }),
+    { evidence: APP_STORE_FRESH_CAPTURE_EVIDENCE, freshCapture: true },
+  );
+  assert.equal(spawns, 1);
+  assert.throws(
+    () => resolveAppStoreCaptureEvidence({
+      repoRoot: '/fixture',
+      spawn: () => ({ error: null, status: 2 }),
+    }),
+    /screenshot validation failed/u,
+  );
+  assert.deepEqual(
+    resolveAppStoreCaptureEvidence({
+      repoRoot: '/fixture',
+      reuseCommittedGallery: true,
+      spawn,
+    }),
+    {
+      evidence: APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
+      freshCapture: false,
+    },
+  );
+  assert.equal(spawns, 1);
+});
+
+test('reuse mode never relabels stale capture evidence and keeps local integrity checks', () =>
+  withTempRoot((root) => {
+    const payload = fixturePayload(root);
+    const manifest = createAppStoreReleaseManifest(payload);
+    const provenancePath = join(
+      root,
+      APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
+    );
+    const capturePath = join(root, APP_STORE_CAPTURE_REPORT_RELATIVE_PATH);
+    const provenanceBefore = readFileSync(provenancePath);
+    const captureBefore = readFileSync(capturePath);
+    const reusePayload = buildAppStoreReleasePayload({ repoRoot: root });
+    assert.equal(canonicalJson(reusePayload), canonicalJson(payload));
+    assert.equal(
+      canonicalJson(createAppStoreReleaseManifest(reusePayload)),
+      canonicalJson(manifest),
+    );
+    assert.deepEqual(readFileSync(provenancePath), provenanceBefore);
+    assert.deepEqual(readFileSync(capturePath), captureBefore);
+    const report = formatAppStoreReleaseReport({
+      manifestPath: 'builds/release/app-store-release-manifest.json',
+      manifest,
+      check: true,
+      reuseCommittedGallery: true,
+    });
+    assert.match(report, /reuse committed gallery/u);
+    assert.match(
+      report,
+      /RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE/u,
+    );
+    assert.match(report, /retained existing uploads, not fresh capture/u);
+    assert.doesNotMatch(report, /FRESH_CAPTURE_CHECK_PASSED/u);
+    const normalReport = formatAppStoreReleaseReport({
+      manifestPath: 'builds/release/app-store-release-manifest.json',
+      manifest,
+      check: true,
+    });
+    assert.doesNotMatch(
+      normalReport,
+      /RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE/u,
+    );
+    assert.doesNotMatch(normalReport, /reuse committed gallery/u);
+    const first = join(
+      root,
+      'builds/release/app-store/en-US/iphone-6.5',
+      SCREENSHOT_FILE_NAMES[0],
+    );
+    writeFileSync(first, fakeRgbPng(2778, 1284, 4242));
+    assert.throws(
+      () => buildAppStoreReleasePayload({ repoRoot: root }),
+      /output mapping differs from the actual PNG/u,
+    );
+  }));
+
+test('reuse confirmation tokens authorize only reuse mode, in both directions', () =>
+  withTempRoot((root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    const manifest = createAppStoreReleaseManifest(payload);
+    const applyToken = appStoreConfirmationToken(manifest, 'apply');
+    const reviewToken = appStoreConfirmationToken(manifest, 'review');
+    const reuseApply = appStoreConfirmationToken(
+      manifest,
+      APP_STORE_REUSE_GALLERY_APPLY_PURPOSE,
+    );
+    const reuseReview = appStoreConfirmationToken(
+      manifest,
+      APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE,
+    );
+    assert.match(
+      reuseApply,
+      /^app-store:apply-reuse-committed-gallery:6796293839:4\.0\.0:13:/u,
+    );
+    assert.match(
+      reuseReview,
+      /^app-store:review-reuse-committed-gallery:6796293839:4\.0\.0:13:/u,
+    );
+    assert.notEqual(reuseApply, applyToken);
+    assert.notEqual(reuseReview, reviewToken);
+    assert.equal(assertAppStoreApplyAuthorization({
+      confirmation: reuseApply,
+      manifest,
+      payload,
+      reuseCommittedGallery: true,
+      reviewConfirmation: reuseReview,
+      submitReview: true,
+    }), true);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: applyToken,
+      manifest,
+      payload,
+      reuseCommittedGallery: true,
+    }), /ASC_APPLY_CONFIRMATION_MISMATCH/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: reuseApply,
+      manifest,
+      payload,
+    }), /ASC_APPLY_CONFIRMATION_MISMATCH/u);
+    assert.throws(() => assertAppStoreApplyAuthorization({
+      confirmation: reuseApply,
+      manifest,
+      payload,
+      reuseCommittedGallery: true,
+      reviewConfirmation: reviewToken,
+      submitReview: true,
+    }), /ASC_REVIEW_CONFIRMATION_MISMATCH/u);
+    const summary = appStoreApplyCheckSummary(manifest, {
+      reuseCommittedGallery: true,
+    });
+    assert.equal(summary.applyConfirmation, reuseApply);
+    assert.equal(summary.reviewConfirmation, reuseReview);
+    const normal = appStoreApplyCheckSummary(manifest);
+    assert.equal(normal.applyConfirmation, applyToken);
+    assert.equal(normal.reviewConfirmation, reviewToken);
+    assert.throws(
+      () => appStoreConfirmationToken(manifest, 'apply-reuse'),
+      /ASC_CONFIRMATION_PURPOSE_INVALID/u,
+    );
+  }));
+
+test('reuse image gate refuses every non-none image plan and keeps other entries', () => {
+  const plan = [
+    {
+      action: 'none',
+      identifier: 'en-US/APP_IPHONE_65',
+      target: 'appScreenshotSet',
+    },
+    {
+      action: 'replace',
+      identifier: 'ko/APP_IPHONE_65',
+      remoteId: 'set-1',
+      target: 'appScreenshotSet',
+    },
+    {
+      action: 'create',
+      identifier: 'ko/APP_IPAD_PRO_3GEN_129',
+      target: 'appScreenshotSet',
+    },
+    {
+      action: 'none',
+      identifier: 'product.a',
+      target: 'inAppPurchaseReviewImage',
+    },
+    {
+      action: 'replace',
+      identifier: 'product.b',
+      remoteId: 'img-1',
+      target: 'inAppPurchaseReviewImage',
+    },
+    {
+      action: 'unresolved',
+      code: 'SOME_CODE',
+      identifier: 'product.c',
+      target: 'inAppPurchaseReviewImage',
+    },
+    {
+      action: 'update',
+      identifier: '4.0.0/ko',
+      target: 'appStoreVersionLocalization',
+    },
+    {
+      action: 'unresolved',
+      code: 'IAP_REMOTE_STATE_NOT_RELEASE_READY',
+      identifier: 'product.d',
+      target: 'inAppPurchaseReadiness',
+    },
+  ];
+  const gated = applyReuseCommittedGalleryImageGate(plan);
+  assert.equal(gated.verifiedImageTargets, 2);
+  assert.deepEqual(gated.refusedImageTargets, [
+    {
+      identifier: 'ko/APP_IPHONE_65',
+      refusedAction: 'replace',
+      target: 'appScreenshotSet',
+    },
+    {
+      identifier: 'ko/APP_IPAD_PRO_3GEN_129',
+      refusedAction: 'create',
+      target: 'appScreenshotSet',
+    },
+    {
+      identifier: 'product.b',
+      refusedAction: 'replace',
+      target: 'inAppPurchaseReviewImage',
+    },
+    {
+      identifier: 'product.c',
+      refusedAction: 'unresolved',
+      target: 'inAppPurchaseReviewImage',
+    },
+  ]);
+  const converted = gated.plan.filter((entry) => (
+    entry.code === APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS
+  ));
+  assert.equal(converted.length, 3);
+  for (const entry of converted) {
+    assert.equal(entry.action, 'unresolved');
+    assert.equal(entry.remoteMutationPlanned, false);
+    assert.match(
+      entry.reason,
+      /must exactly match the retained manifest uploads/u,
+    );
+  }
+  assert.equal(
+    gated.plan.find((entry) => entry.identifier === 'product.c').code,
+    'SOME_CODE',
+  );
+  assert.equal(
+    gated.plan.find((entry) => entry.identifier === '4.0.0/ko').action,
+    'update',
+  );
+  assert.equal(
+    gated.plan.find((entry) => entry.identifier === 'product.d').code,
+    'IAP_REMOTE_STATE_NOT_RELEASE_READY',
+  );
+  assert.throws(
+    () => applyReuseCommittedGalleryImageGate(null),
+    /remote plan must be an array/u,
+  );
+});
+
+test('reuse preflight verifies the identical retained gallery and reports it honestly', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const reuse = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        versionState: 'DEVELOPER_REJECTED',
+      }),
+      payload,
+      reuseCommittedGallery: true,
+    });
+    assert.equal(reuse.mode, 'GET_ONLY_REMOTE_APPLY_PREFLIGHT');
+    assert.equal(reuse.remote.versionState, 'DEVELOPER_REJECTED');
+    assert.equal(reuse.summary.unresolved, 0);
+    assert.ok(reuse.plan.every((entry) => entry.action === 'none'));
+    assert.deepEqual(reuse.reuse, {
+      decision: 'REUSE_COMMITTED_GALLERY',
+      freshCaptureEvidence: false,
+      galleryEvidence: 'RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE',
+      gallerySource: 'retained-manifest-pinned-uploads',
+      refusedImageTargets: [],
+      verifiedImageTargets: 20,
+    });
+    const normal = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        versionState: 'DEVELOPER_REJECTED',
+      }),
+      payload,
+    });
+    assert.equal(normal.reuse, undefined);
+    assert.equal(normal.summary.unresolved, 0);
+  }));
+
+test('reuse preflight refuses changed, missing, and reordered images as hard blockers', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const normal = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        mismatchScreenshot: true,
+      }),
+      payload,
+    });
+    assert.ok(normal.plan.some((entry) => (
+      entry.target === 'appScreenshotSet' && entry.action === 'replace'
+    )));
+    const changed = await auditAppStoreConnectApplyReadiness({
+      client: createReviewTransitionClient(payload, {
+        mismatchScreenshot: true,
+      }),
+      payload,
+      reuseCommittedGallery: true,
+    });
+    const refusedSets = changed.plan.filter((entry) => (
+      entry.code === APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS
+    ));
+    assert.equal(refusedSets.length, 10);
+    assert.ok(refusedSets.every((entry) => (
+      entry.action === 'unresolved' && entry.refusedAction === 'replace'
+    )));
+    assert.equal(changed.reuse.verifiedImageTargets, 10);
+    assert.equal(changed.reuse.refusedImageTargets.length, 10);
+
+    const base = createReviewTransitionClient(payload);
+    const wrapped = {
+      ...base,
+      requests: base.requests,
+      async get(path) {
+        if (path.includes(
+          '/inAppPurchases/iap-remote-0/appStoreReviewScreenshot',
+        )) {
+          return null;
+        }
+        return base.get(path);
+      },
+      async getAll(path) {
+        const pathname = new URL(path, 'https://example.invalid').pathname;
+        if (pathname
+          === '/v1/appStoreVersionLocalizations/version-loc-1/appScreenshotSets') {
+          const sets = await base.getAll(path);
+          return sets.slice(0, 1);
+        }
+        if (pathname === '/v1/appScreenshotSets/set-2-0/appScreenshots') {
+          const files = await base.getAll(path);
+          return [...files].reverse();
+        }
+        return base.getAll(path);
+      },
+    };
+    const normalWrapped = await auditAppStoreConnectApplyReadiness({
+      client: wrapped,
+      payload,
+    });
+    assert.equal(normalWrapped.plan.find((entry) => (
+      entry.target === 'appScreenshotSet'
+      && entry.identifier === 'ko/APP_IPAD_PRO_3GEN_129'
+    )).action, 'create');
+    assert.equal(normalWrapped.plan.find((entry) => (
+      entry.target === 'appScreenshotSet'
+      && entry.identifier === 'ja/APP_IPHONE_65'
+    )).action, 'replace');
+    const refused = await auditAppStoreConnectApplyReadiness({
+      client: wrapped,
+      payload,
+      reuseCommittedGallery: true,
+    });
+    const refusedEntries = refused.plan.filter((entry) => (
+      entry.code === APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS
+    ));
+    assert.deepEqual(
+      refusedEntries
+        .map((entry) => (
+          `${entry.target} ${entry.identifier} ${entry.refusedAction}`
+        ))
+        .sort(),
+      [
+        'appScreenshotSet ja/APP_IPHONE_65 replace',
+        'appScreenshotSet ko/APP_IPAD_PRO_3GEN_129 create',
+        `inAppPurchaseReviewImage ${IAP_PRODUCT_IDS[0]} create`,
+      ],
+    );
+    assert.ok(refusedEntries.every((entry) => (
+      entry.remoteMutationPlanned === false
+    )));
+    const manifest = createAppStoreReleaseManifest(payload);
+    const report = formatAppStoreReleaseReport({
+      manifestPath: 'builds/release/app-store-release-manifest.json',
+      manifest,
+      check: true,
+      remoteAudit: refused,
+      reuseCommittedGallery: true,
+    });
+    assert.match(
+      report,
+      /UNRESOLVED appScreenshotSet ja\/APP_IPHONE_65 ASC_REUSE_GALLERY_IMAGE_DIFFERS/u,
+    );
+    assert.match(
+      report,
+      /UNRESOLVED inAppPurchaseReviewImage com\.crossplatformkorea\.moonlitbeacon\.supporter ASC_REUSE_GALLERY_IMAGE_DIFFERS/u,
+    );
+  }));
+
+test('reuse apply converges a replacement build with zero image mutations', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const manifest = createAppStoreReleaseManifest(payload);
+    const confirmation = appStoreConfirmationToken(
+      manifest,
+      APP_STORE_REUSE_GALLERY_APPLY_PURPOSE,
+    );
+    const quietMutations = [];
+    const quiet = await applyAppStoreConnectRelease({
+      client: recordingMutationClient(quietMutations),
+      confirmation,
+      getClient: createReviewTransitionClient(payload, {
+        versionState: 'DEVELOPER_REJECTED',
+      }),
+      manifest,
+      payload,
+      repoRoot: root,
+      reuseCommittedGallery: true,
+    });
+    assert.equal(quiet.complete, true);
+    assert.deepEqual(quiet.applied, []);
+    assert.equal(quietMutations.length, 0);
+    assert.equal(
+      quiet.reuse.galleryEvidence,
+      'RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE',
+    );
+    assert.equal(quiet.reuse.verifiedImageTargets, 20);
+    const quietReport = formatAppStoreApplyReport(quiet);
+    assert.match(quietReport, /converged through GET revalidation/u);
+    assert.match(quietReport, /RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE/u);
+
+    let attachedBuildId = 'build-old';
+    const base = createReviewTransitionClient(payload, {
+      versionState: 'DEVELOPER_REJECTED',
+    });
+    const statefulGet = {
+      ...base,
+      requests: base.requests,
+      async get(path) {
+        if (path.includes('/appStoreVersions/version-300/build?')) {
+          base.requests.push({ method: 'GET', path });
+          return {
+            data: resource(attachedBuildId, {
+              version: attachedBuildId === 'build-300-10' ? '13' : '12',
+            }),
+          };
+        }
+        return base.get(path);
+      },
+    };
+    const mutations = [];
+    const result = await applyAppStoreConnectRelease({
+      client: recordingMutationClient(mutations, {
+        onPatch(path, body) {
+          assert.equal(
+            path,
+            '/v1/appStoreVersions/version-300/relationships/build',
+          );
+          attachedBuildId = body.data.id;
+          return { data: {} };
+        },
+      }),
+      confirmation,
+      getClient: statefulGet,
+      manifest,
+      payload,
+      repoRoot: root,
+      reuseCommittedGallery: true,
+    });
+    assert.equal(result.complete, true);
+    assert.deepEqual(result.applied, [{
+      action: 'update',
+      identifier: 'IOS/4.0.0(13)',
+      target: 'buildAssociation',
+    }]);
+    assert.deepEqual(mutations, [{
+      method: 'PATCH',
+      path: '/v1/appStoreVersions/version-300/relationships/build',
+    }]);
+    assert.ok(mutations.every((mutation) => (
+      !isImageMutationPath(mutation.path)
+    )));
+  }));
+
+test('reuse apply aborts before the first mutation when the gallery differs', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const manifest = createAppStoreReleaseManifest(payload);
+    const confirmation = appStoreConfirmationToken(
+      manifest,
+      APP_STORE_REUSE_GALLERY_APPLY_PURPOSE,
+    );
+    const mutations = [];
+    const result = await applyAppStoreConnectRelease({
+      client: recordingMutationClient(mutations),
+      confirmation,
+      getClient: createReviewTransitionClient(payload, {
+        mismatchScreenshot: true,
+        versionState: 'DEVELOPER_REJECTED',
+      }),
+      manifest,
+      payload,
+      repoRoot: root,
+      reuseCommittedGallery: true,
+    });
+    assert.equal(result.complete, false);
+    assert.deepEqual(result.applied, []);
+    assert.equal(mutations.length, 0);
+    assert.equal(result.blockers.filter((blocker) => (
+      blocker.code === APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS
+    )).length, 10);
+    assert.equal(result.reuse.refusedImageTargets.length, 10);
+    const report = formatAppStoreApplyReport(result);
+    assert.match(report, /stopped at a safety gate/u);
+    assert.match(report, /RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE/u);
+  }));
+
+test('reuse apply refuses an image mutation race with zero requests', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    const mutations = [];
+    const client = recordingMutationClient(mutations);
+    const getClient = {
+      async get() {
+        return {};
+      },
+      async getAll() {
+        return [];
+      },
+    };
+    for (const entry of [
+      {
+        action: 'replace',
+        identifier: 'ko/APP_IPHONE_65',
+        remoteFiles: [],
+        remoteId: 'set-1',
+        target: 'appScreenshotSet',
+      },
+      {
+        action: 'create',
+        identifier: 'ko/APP_IPAD_PRO_3GEN_129',
+        parentId: 'loc-1',
+        target: 'appScreenshotSet',
+      },
+      {
+        action: 'replace',
+        identifier: IAP_PRODUCT_IDS[0],
+        parentId: 'iap-0',
+        remoteId: 'img-1',
+        target: 'inAppPurchaseReviewImage',
+      },
+    ]) {
+      await assert.rejects(
+        applyPlanEntry({
+          client,
+          entry,
+          getClient,
+          payload,
+          repoRoot: root,
+          reuseCommittedGallery: true,
+        }),
+        /ASC_REUSE_GALLERY_MUTATION_REFUSED/u,
+      );
+    }
+    assert.equal(mutations.length, 0);
+    await applyPlanEntry({
+      client: {
+        async patch(path) {
+          mutations.push({ method: 'PATCH', path });
+          assert.equal(path, '/v1/appInfoLocalizations/info-1');
+          return {};
+        },
+      },
+      entry: {
+        action: 'update',
+        changes: { subtitle: { current: 'old', desired: 'new' } },
+        identifier: 'ko',
+        remoteId: 'info-1',
+        target: 'appInfoLocalization',
+      },
+      getClient,
+      payload,
+      repoRoot: root,
+      reuseCommittedGallery: true,
+    });
+    assert.deepEqual(mutations, [{
+      method: 'PATCH',
+      path: '/v1/appInfoLocalizations/info-1',
+    }]);
+    await assert.rejects(
+      applyPlanEntry({
+        client,
+        entry: {
+          action: 'none',
+          identifier: 'ko/APP_IPHONE_65',
+          target: 'appScreenshotSet',
+        },
+        getClient,
+        payload,
+        repoRoot: root,
+      }),
+      /ASC_PLAN_ACTION_NOT_MUTABLE/u,
+    );
+  }));
+
+test('reuse apply fails wrong confirmation and artifact drift before any network', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    payload.contact = { status: 'resolved', gates: [] };
+    const manifest = createAppStoreReleaseManifest(payload);
+    const reuseApply = appStoreConfirmationToken(
+      manifest,
+      APP_STORE_REUSE_GALLERY_APPLY_PURPOSE,
+    );
+    const normalApply = appStoreConfirmationToken(manifest, 'apply');
+    let remoteCalls = 0;
+    const failIfCalled = async () => {
+      remoteCalls += 1;
+      throw new Error('must not reach network');
+    };
+    const clients = {
+      client: {
+        delete: failIfCalled,
+        patch: failIfCalled,
+        post: failIfCalled,
+      },
+      getClient: {
+        get: failIfCalled,
+        getAll: failIfCalled,
+      },
+    };
+    await assert.rejects(
+      applyAppStoreConnectRelease({
+        ...clients,
+        confirmation: normalApply,
+        manifest,
+        payload,
+        repoRoot: root,
+        reuseCommittedGallery: true,
+      }),
+      /ASC_APPLY_CONFIRMATION_MISMATCH/u,
+    );
+    const provenancePath = join(
+      root,
+      APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
+    );
+    writeFileSync(
+      provenancePath,
+      `${readFileSync(provenancePath, 'utf8')}\n`,
+    );
+    await assert.rejects(
+      applyAppStoreConnectRelease({
+        ...clients,
+        confirmation: reuseApply,
+        manifest,
+        payload,
+        repoRoot: root,
+        reuseCommittedGallery: true,
+      }),
+      /ASC_ASSET_CHANGED/u,
+    );
+    assert.equal(remoteCalls, 0);
+  }));
+
+test('reuse review submission keeps the 11-target and linked-build readback', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root);
+    payload.release.version = '4.0.0';
+    payload.release.buildNumber = '13';
+    const manifest = createAppStoreReleaseManifest(payload);
+    const iapVersionIds = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId, index) => [productId, `iap-version-${index}`],
+    ));
+    const iapVersionStates = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId) => [productId, 'PREPARE_FOR_SUBMISSION'],
+    ));
+    const audit = {
+      appId: payload.release.appId,
+      mode: 'GET_ONLY_REMOTE_APPLY_PREFLIGHT',
+      plan: [
+        ...IAP_PRODUCT_IDS.map((productId) => ({
+          action: 'none',
+          identifier: productId,
+          remoteState: 'READY_TO_SUBMIT',
+          target: 'inAppPurchase',
+        })),
+        {
+          action: 'none',
+          buildId: 'build-13',
+          identifier: 'IOS/4.0.0(13)',
+          target: 'buildAssociation',
+        },
+      ],
+      remote: {
+        iapVersionIds,
+        iapVersionStates,
+        versionId: 'version-400',
+      },
+    };
+    const items = [];
+    const calls = [];
+    const getClient = {
+      async get(path) {
+        if (path.includes('/reviewSubmissions/submission-1?')) {
+          return {
+            data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }),
+          };
+        }
+        if (path.includes('/appStoreVersions/version-400/build?')) {
+          return { data: resource('build-13', { version: '13' }) };
+        }
+        assert.fail(`unexpected GET: ${path}`);
+      },
+      async getAll(path) {
+        if (path.includes('/reviewSubmissions?')) return [];
+        if (path.includes('/reviewSubmissions/submission-1/items?')) {
+          return items.map((item, index) => ({
+            id: `item-${index}`,
+            relationships: item.relationships,
+          }));
+        }
+        assert.fail(`unexpected GET: ${path}`);
+      },
+    };
+    const client = {
+      async post(path, body) {
+        calls.push({ body, method: 'POST', path });
+        if (path === '/v1/reviewSubmissions') {
+          return {
+            data: resource('submission-1', { state: 'READY_FOR_REVIEW' }),
+          };
+        }
+        items.push(body.data);
+        return { data: resource(`item-${items.length}`, {}) };
+      },
+      async patch(path, body) {
+        calls.push({ body, method: 'PATCH', path });
+        return {
+          data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }),
+        };
+      },
+    };
+    await assert.rejects(
+      submitAppStoreConnectReview({
+        audit,
+        client,
+        getClient,
+        manifest,
+        reuseCommittedGallery: true,
+        reviewConfirmation: appStoreConfirmationToken(manifest, 'review'),
+      }),
+      /ASC_REVIEW_CONFIRMATION_MISMATCH/u,
+    );
+    assert.equal(calls.length, 0);
+    const result = await submitAppStoreConnectReview({
+      audit,
+      client,
+      getClient,
+      manifest,
+      reuseCommittedGallery: true,
+      reviewConfirmation: appStoreConfirmationToken(
+        manifest,
+        APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE,
+      ),
+    });
+    assert.equal(result.submitted, true);
+    assert.equal(result.buildId, 'build-13');
+    assert.equal(result.reviewItemCount, IAP_PRODUCT_IDS.length + 1);
+    assert.equal(items.length, IAP_PRODUCT_IDS.length + 1);
+    assert.ok(calls.every((call) => !isImageMutationPath(call.path)));
+    assert.equal(calls.at(-1).method, 'PATCH');
+    assert.deepEqual(calls.at(-1).body.data.attributes, { submitted: true });
+  }));
+
+test('bare local-only reuse preparation parses and reports zero remote work', () =>
+  withTempRoot((root) => {
+    const options = parseAppStoreReleaseArguments([
+      '--reuse-committed-gallery',
+    ]);
+    assert.equal(options.reuseCommittedGallery, true);
+    assert.equal(options.check, false);
+    assert.equal(options.remoteAudit, false);
+    assert.equal(options.apply, false);
+    assert.equal(options.confirmation, null);
+    const payload = fixturePayload(root, { version: '4.0.0', build: '13' });
+    const manifest = createAppStoreReleaseManifest(payload);
+    const report = formatAppStoreReleaseReport({
+      manifestPath: 'builds/release/app-store-release-manifest.json',
+      manifest,
+      check: false,
+      reuseCommittedGallery: true,
+    });
+    assert.match(
+      report,
+      /local-only dry-run passed \(reuse committed gallery\)/u,
+    );
+    assert.match(
+      report,
+      /RETAINED_EXISTING_UPLOADS_NOT_FRESH_CAPTURE/u,
+    );
+    assert.match(
+      report,
+      /remote requests: 0 \(default command is local-only\)/u,
+    );
   }));
