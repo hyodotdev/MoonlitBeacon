@@ -363,3 +363,59 @@ exact note was saved in Play Console Sign in details and reopened for
 readback. Play confirmed the change was saved in Publishing overview,
 ready to send for review; it has not been sent. Local proof is
 `release4-play-guest-review-entry-saved.png`.
+
+## Native upload, privacy publication and preserved capture failure
+
+The feature branch was pushed with upstream tracking at b5fec29. The
+remote feature head matched the local head and the real working tree was
+clean. This does not mean main was merged or a PR was created.
+
+The third full iPad attempt accepted 16 frames, then the producer refused
+the 17th request because device observations showed both the isolated
+capture app and the original game running. Exact single-process continuity
+is required. The cause of that second launch is not established; no game
+defect or user action is inferred. Normal cleanup restored the keychain
+search list and removed the isolated app. Logs and the later rejected
+frame are preserved in `release4-ipad-two-game-processes-at-shot-17/`.
+No partial set or late screenshot was published as canonical evidence.
+Further full capture awaits an uninterrupted physical-device window.
+
+Owned Desktop captures from the earlier failed attempts (27) and latest
+attempt (17) were moved to a recoverable Trash folder after their bytes
+were matched to retained evidence. Other Desktop files and the existing
+production app data were not touched. The two movement reports are
+`release4-old-ipad-desktop-trash.json` and
+`release4-latest-ipad-desktop-trash.json`.
+
+The normal iOS distribution archive, signed IPA and local validation
+succeeded for 4.0.0 (12), with the normal asset catalog and AppIcon. The
+release-keychain search list was restored. Apple's remote validation and
+TestFlight upload both succeeded without errors; the uploaded IPA was
+86,579,622 bytes. Local logs are
+`release4-final-ios-distribution-build.log`,
+`release4-final-ios-remote-validate.log`, and
+`release4-final-ios-testflight-upload.log`.
+
+App Store Connect subsequently finished processing build 12. The director
+added it to the pre-existing Moonlit Beacon Internal group and read back
+4.0.0 (12) as Ready to Test. That group currently has zero testers; no
+tester invitation or TestFlight device installation is claimed. Proof is
+`release4-testflight-four-zero-internal-ready.png`. This is separate from
+an App Store version or review submission.
+
+The director finished and published the five new Apple privacy types:
+Name, Email Address, Gameplay Content, User ID, and Product Interaction.
+Each is App Functionality, linked to the account, and not used for
+tracking. Existing purchase and diagnostics selections were preserved.
+A fresh page reload showed all eight types and no incomplete-type warning;
+proof is `release4-asc-account-cloud-privacy-published.png`. The five
+Firebase privacy-policy localization addresses remain saved for release
+with the next app version.
+
+Google Play production is still 3.0.0 (16); internal 4.0.0 (17) is already
+published. The App Store's existing 3.0.0 review was not cancelled.
+Final iPad store captures, real native login/purchase checks, PR/CI, main
+merge and both 4.0.0 production-review submissions remain unfinished.
+Google's internal-test invitation acceptance and the physical iPad capture
+window are awaiting the pending user responses. No receipt, file timestamp,
+source fingerprint, nonce or signing check was fabricated or bypassed.
