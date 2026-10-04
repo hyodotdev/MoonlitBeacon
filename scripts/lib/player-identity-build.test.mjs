@@ -58,6 +58,12 @@ import {
   verifyIosExportInputs,
   writeIosStagingImportExclusion,
 } from './player-identity-build.mjs';
+import {
+  IOS_IDENTITY_BRIDGE_PATH,
+  REVOKE_PROBE_SCENARIOS,
+  revokeProbeAvailable,
+  runRevokeProbe,
+} from './player-identity-revoke-probe.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -1905,6 +1911,120 @@ test('objc signs google in through googlesignin with a chaining forwarder', () =
   assert.ok(forwardBody.includes('handleURL:'), 'forwarder offers the url to GoogleSignIn');
   assert.ok(forwardBody.includes('s_originalOpenURL(self, cmd, app, url, options)'),
     'forwarder chains unclaimed urls to the previous implementation');
+});
+
+test('objc apple revoke failure keeps the user and reports a recoverable error', () => {
+  const objc = readFileSync(join(REPO_ROOT, IOS_IDENTITY_BRIDGE_PATH), 'utf8');
+  // The failure helper answers the generic recoverable network error and
+  // merges the re-read session, mirroring the sign-out failure outcome.
+  const helperStart = objc.indexOf('- (NSDictionary *)revokeFailedOutcome:');
+  assert.ok(helperStart > 0, 'objc must define the revoke failure outcome');
+  const helperEnd = objc.indexOf('- (void)revokeAppleGrant:', helperStart);
+  assert.ok(helperEnd > helperStart, 'revoke failure helper body is bounded');
+  const helper = objc.slice(helperStart, helperEnd);
+  for (const required of ['kCodeNetwork', 'retryable:YES', 'sessionOutcome',
+    'outcome[@"kind"]', 'outcome[@"uid"]', 'outcome[@"provider"]']) {
+    assert.ok(helper.includes(required),
+      `revoke failure outcome uses ${required}`);
+  }
+  assert.ok(!helper.includes('localSession'),
+    'revoke failure never declares a guest success');
+  assert.ok(!helper.includes('deleteWithCompletion')
+    && !helper.includes('deleteFirebaseUserAfterReauth'),
+    'revoke failure never deletes the Firebase user');
+  const start = objc.indexOf('- (void)revokeAppleGrant:');
+  assert.ok(start > 0, 'objc must define revokeAppleGrant');
+  const end = objc.indexOf('- (void)deleteFirebaseUserAfterReauth:', start);
+  assert.ok(end > start, 'revokeAppleGrant body is bounded');
+  const body = objc.slice(start, end);
+  // Liveness first: a retired request drops before any SDK call.
+  assert.ok(body.indexOf('isLive:') < body.indexOf('authCode.length'),
+    'revoke checks liveness before touching the auth code');
+  // The missing-code branch fails closed with the session-preserving error.
+  const missingStart = body.indexOf('authCode.length == 0');
+  const revokeCall = body.indexOf('revokeTokenWithAuthorizationCode');
+  assert.ok(missingStart > 0 && revokeCall > missingStart,
+    'revoke keeps the missing-code branch ahead of the SDK call');
+  const missing = body.slice(missingStart, revokeCall);
+  assert.ok(missing.includes('revokeFailedOutcome')
+    && missing.includes('finishRequest:'),
+    'missing code finishes with the recoverable session-preserving error');
+  assert.ok(!missing.includes('deleteFirebaseUserAfterReauth'),
+    'missing code never invokes Firebase user deletion');
+  // The revocation-error branch fails closed; only success advances.
+  const completion = body.slice(revokeCall);
+  assert.ok(completion.includes('isLive:'),
+    'revoke completion re-checks liveness before settling');
+  const deleteCall = completion.indexOf('[self deleteFirebaseUserAfterReauth:');
+  assert.ok(deleteCall > 0,
+    'successful revocation advances to Firebase deletion');
+  const errorBranch = completion.slice(0, deleteCall);
+  assert.ok(errorBranch.includes('if (error != nil)'),
+    'revoke completion branches on the SDK error');
+  assert.ok(errorBranch.includes('revokeFailedOutcome')
+    && errorBranch.includes('finishRequest:'),
+    'revocation error finishes with the recoverable session-preserving error');
+  assert.ok(errorBranch.includes('return;'),
+    'revocation error returns before the delete call');
+  assert.equal(
+    body.split('[self deleteFirebaseUserAfterReauth:').length - 1, 1,
+    'exactly one path — successful revocation — invokes Firebase deletion');
+  // The fresh auth code stays inside the SDK call: diagnostics name the
+  // request id and the error code only.
+  for (const line of body.split('\n')) {
+    if (line.includes('NSLog')) {
+      assert.ok(!line.includes('authCode'),
+        'revoke diagnostics never log the authorization code');
+    }
+  }
+});
+
+test('objc apple revoke success deletes exactly once, delete errors stay errors', () => {
+  const objc = readFileSync(join(REPO_ROOT, IOS_IDENTITY_BRIDGE_PATH), 'utf8');
+  // Only a successful revocation reaches the delete; the delete itself
+  // keeps its truthful terminals — an error on failure, the local session
+  // only on success — and a retired request drops without either.
+  const start = objc.indexOf('- (void)deleteFirebaseUserAfterReauth:');
+  assert.ok(start > 0, 'objc must define deleteFirebaseUserAfterReauth');
+  const end = objc.indexOf('@end', start);
+  assert.ok(end > start, 'deleteFirebaseUserAfterReauth body is bounded');
+  const body = objc.slice(start, end);
+  assert.ok(body.indexOf('isLive:') < body.indexOf('deleteWithCompletion'),
+    'delete checks liveness before touching the Firebase user');
+  assert.ok(body.includes('kCodeNetwork') && body.includes('retryable:YES'),
+    'delete errors stay recoverable errors');
+  assert.ok(body.includes('localSession'),
+    'successful deletion emits the local session');
+  const terminalCount = body.split('finishRequest:').length - 1;
+  assert.equal(terminalCount, 2,
+    'delete settles exactly its error and success terminals');
+  // The explicit grant-kept path is unchanged: grant-kept and non-Apple
+  // deletes run Firebase deletion directly, while only an Apple-linked
+  // delete without the flag re-runs the sheet for a fresh revoke code.
+  const deleteStart = objc.indexOf('- (NSString *)deleteAccount:');
+  assert.ok(deleteStart > 0, 'objc must define deleteAccount');
+  const deleteEnd = objc.indexOf('- (NSString *)deleteFirebaseUser:', deleteStart);
+  assert.ok(deleteEnd > deleteStart, 'deleteAccount body is bounded');
+  const deleteBody = objc.slice(deleteStart, deleteEnd);
+  assert.ok(deleteBody.includes('keepProviderGrant:'),
+    'delete keeps the explicit grant parameter');
+  assert.ok(deleteBody.includes('keepGrant || ![[')
+    && deleteBody.includes('MoonlitApplePurposeDelete'),
+    'only a grant-revoked Apple delete re-runs the sheet');
+});
+
+test('objc apple revoke behavior probe executes the production methods', (t) => {
+  const availability = revokeProbeAvailable();
+  if (!availability.ok) {
+    t.skip(availability.reason);
+    return;
+  }
+  const result = runRevokeProbe({ repoRoot: REPO_ROOT });
+  assert.equal(result.ok, true,
+    `revoke behavior probe passes every scenario:\n${result.output}`);
+  for (const name of REVOKE_PROBE_SCENARIOS) {
+    assert.ok(result.passed.includes(name), `probe covers ${name}`);
+  }
 });
 
 test('redaction masks pasted secrets and public ids alike', () => {

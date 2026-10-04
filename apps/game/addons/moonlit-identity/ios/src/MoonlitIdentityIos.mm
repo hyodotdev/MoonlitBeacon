@@ -1213,6 +1213,21 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 	}];
 }
 
+// A failed Apple grant revocation (missing fresh code or an SDK error)
+// answers a recoverable error carrying the re-read session, like the
+// sign-out failure: the Firebase user is untouched, the native account
+// stays signed in, and the UI retries the whole delete for a fresh code.
+- (NSDictionary *)revokeFailedOutcome:(NSString *)requestId {
+	NSMutableDictionary *outcome = [[self errorOutcome:requestId
+		code:kCodeNetwork
+		retryable:YES] mutableCopy];
+	NSDictionary *session = [self sessionOutcome:requestId];
+	outcome[@"kind"] = session[@"kind"];
+	outcome[@"uid"] = session[@"uid"];
+	outcome[@"provider"] = session[@"provider"];
+	return outcome;
+}
+
 - (void)revokeAppleGrant:(NSString *)requestId
 	user:(FIRUser *)user
 	authCode:(NSString *)authCode {
@@ -1220,10 +1235,13 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 		return;
 	}
 	if (authCode == nil || authCode.length == 0) {
-		// No fresh code (should not happen after a successful sheet): delete
-		// the Firebase user and name the missing revocation explicitly.
-		NSLog(@"[MoonlitIdentity] revoke %@ skipped: no fresh auth code", requestId);
-		[self deleteFirebaseUserAfterReauth:requestId user:user];
+		// No fresh code (should not happen after a successful sheet):
+		// fail closed. The Firebase user is never deleted without a
+		// successful revocation; the terminal keeps the cloud session so
+		// the UI can retry the delete for a fresh code.
+		NSLog(@"[MoonlitIdentity] revoke %@ failed: no fresh auth code", requestId);
+		[self finishRequest:requestId
+			outcome:[self revokeFailedOutcome:requestId]];
 		return;
 	}
 	[[FIRAuth auth] revokeTokenWithAuthorizationCode:authCode
@@ -1234,6 +1252,9 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 		if (error != nil) {
 			NSLog(@"[MoonlitIdentity] revoke %@ failed: %ld", requestId,
 				(long)error.code);
+			[self finishRequest:requestId
+				outcome:[self revokeFailedOutcome:requestId]];
+			return;
 		}
 		[self deleteFirebaseUserAfterReauth:requestId user:user];
 	}];
