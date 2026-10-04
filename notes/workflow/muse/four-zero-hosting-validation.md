@@ -1,7 +1,8 @@
 # 4.0.0 Hosting migration — director validation
 
-Recorded 2026-10-04. Operational evidence is local under `builds/verify/`,
-not a store-submission receipt. This note does not claim 4.0.0 has shipped.
+Recorded 2026-10-04, finalized 2026-10-05 KST. Operational receipts are local
+under `builds/verify/`. Current publication/submission states and the
+remaining native-test limitations are recorded in the final sections.
 
 ## Domain and first public release
 
@@ -502,3 +503,133 @@ Wi-Fi retry JSON/log. USB reconnection and an unlocked landscape device are
 now explicitly requested. The PR marker, current 4.0.0 real-test waiver and
 Google internal-test agreement still have no human response. No PR, main
 merge or 4.0.0 production-review submission is claimed.
+## Explicit 4.0.0 submission instruction and reconnected iPad
+
+After the director distinguished the submitted 3.0.0 release from the
+4.0.0 test distributions and disclosed the remaining native login,
+purchase/restore, capture and PR gaps, the user explicitly instructed:
+"그냥 4.0.0으로 올려버려". The director proceeds with 4.0.0 store
+submission under that instruction; unfinished real-device login and
+purchase checks remain unverified and are not reported as passing.
+
+The user then reported reconnecting the iPad. Fresh CoreDevice details
+confirmed a wired, booted physical device with Developer Mode enabled.
+A new normal complete five-locale capture started with the accepted
+prewarm fix, unchanged single-process and evidence checks, and native
+Xcode screenshot handoffs. Earlier partial attempts are not reused.
+
+The normal Play promotion command moved build 17 onto production.
+The immediate promotion readback was NOT_SENT_FOR_REVIEW; a subsequent
+GET confirmed IN_REVIEW. The separate review command correctly refused
+a duplicate submission because that version was already on production.
+Play Console Publishing overview visibly shows Moonlit Beacon 4.0.0
+under Changes in review and includes the saved sign-in instructions.
+Proof: release4-after-production-stage-audit.json and
+release4-google-production-in-review.png. No duplicate bundle upload,
+receipt deletion, guard bypass or product mutation was performed.
+
+Play's quick checks subsequently completed and Publishing overview
+explicitly displayed "Your changes are now in review" for 4.0.0.
+
+For the user's Apple-login question, a fresh GET-only Firebase readback
+confirmed Apple enabled, its service ID present, and its code-flow team,
+key ID and private key configured. The Apple configuration uses
+appleSignInConfig, not Google's clientSecret field; key material was
+neither printed nor committed. Independent inspection of the exact
+already-uploaded build-12 IPA reconfirmed its pinned SHA-256, 4.0.0/12,
+unchanged bundle ID and signed com.apple.developer.applesignin Default
+entitlement. Proofs: release4-live-firebase-provider-readback.json and
+release4-uploaded12-apple-signin-entitlement-proof.json. These establish
+server configuration and signed capability, not a completed native Apple
+authentication or guest-linking test.
+
+The reconnected-device run completed all 30 frames across five locales.
+The unchanged complete-set publisher passed build, signature, source,
+nonce, state and single-process evidence checks and published the canonical
+iPad set. The separate capture app was removed, the original 4.0.0 (12)
+application identity remained unchanged, and the temporary keychain search
+list was restored. All five six-screen contact boards were visually read;
+no clipped labels, missing glyphs or debug placeholders were observed.
+Proofs: release4-ipad-final-reconnected-capture.log,
+release4-ipad-xcode-capture-result.json and the canonical iPad capture report.
+
+The 30 screenshot files created on Desktop were compared with retained raw
+captures by SHA-256 and moved into a unique recoverable Trash folder. Other
+Desktop files were untouched. The original iPad app was then launched for
+Apple authentication. Xcode captured its actual Korean 4.0.0 title screen;
+QuickTime remained black after reopening and source reselection, so that
+mirror was not treated as successful rendering evidence. The user was
+asked to complete the native Apple authentication on the device while
+store submission work continued. That test remains pending. The one
+additional owned login-start screenshot was also retained and moved to
+recoverable Trash.
+
+Normal App Store image generation and its separate strict validation both
+passed. All five twelve-frame marketing boards and the ten-product review
+board were visually inspected. The 60 marketing files and ten review files
+were synced into stores/app-store with byte checks; generated provenance
+was copied byte-exactly. The old product images show the prior rectangular
+shop panels and pixel hero portraits; the current images show the changed
+decorated shop cards and painted heroes. Their replacement follows the
+user's request for current screenshots of the renewed game, rather than
+being triggered by a build-number or provenance-only difference. The exact
+ten review filenames and before/after SHA-256 values are retained in
+release4-iap-review-visual-change-hashes.json.
+
+The new local App Store manifest passed for version 4.0.0, build 12, five
+localizations, 60 screenshots, ten products, 50 product localizations and
+ten review images. Its payload SHA-256 is
+7b17bccd3334ba980670500dac89d7334d92a0a2935d02c765e1beaca50b9a66.
+Immediately before replacing 3.0.0, a fresh GET reconfirmed the exact
+pending version and its eleven submission items. One authenticated PATCH
+requested cancellation of that known review submission. Subsequent GET
+showed CANCELING and the version moved to DEVELOPER_REJECTED. This is a
+cancellation receipt, not a completed 4.0.0 submission; the normal 4.0.0
+metadata/build/review apply remains the next step. Proofs:
+release4-apple-cancel-three-for-four.json and
+release4-apple-cancellation-convergence.json.
+
+At 2026-10-04 14:50 UTC, a fresh GET showed Google Play production
+4.0.0 (17) as RELEASE_LIFECYCLE_STATE_PUBLISHED, with no remaining old
+production artifact in the returned release. Managed publishing was off,
+so publication followed the completed review automatically. Proof:
+release4-during-ios-apply-store-readback.json. This is the current Android
+publication state; the earlier IN_REVIEW receipt remains historical.
+
+## Final 4.0.0 submission readback
+
+The normal App Store apply finished with exit 0, complete true,
+reviewSubmitted true and no blockers. Twenty-eight metadata/image/build
+changes converged; the final pre-submit GET audit reported 106 unchanged
+targets and zero unresolved targets. All five-language marketing sets and
+ten review images were processed successfully. The submission contains
+exactly one app version plus ten product versions; the unused hero_bundle
+is excluded.
+
+An independent authenticated GET at 2026-10-04 15:00:18 UTC confirmed both
+the 4.0.0 app version and review submission WAITING_FOR_REVIEW, exactly
+eleven expected review targets, and the linked VALID build 12. The review
+submission ID is e53a0810-d622-4708-8958-47cc1ecb3949; its build ID is
+f153c000-e492-4c76-991b-360032a59bd0. The former canceled submission's final
+state is COMPLETE; that is not a 3.0.0 approval claim. The editable version
+was reused and now names 4.0.0. No second IPA upload or duplicate build was
+created. Proofs: release4-final-app-store-submit.json and
+release4-final-apple-review-readback.json.
+
+Google Play Console also visibly confirmed Latest production release
+Moonlit Beacon 4.0.0, rollout 100%, and no unpublished changes. Proof:
+release4-google-production-published.png. Android is publicly distributed;
+iOS 4.0.0 remains in the review queue, rather than being approved or public.
+
+The follow-up physical iPad screenshot still showed the original title
+before authentication. No human Apple-authentication completion was
+received, and neither successful native Apple sign-in nor its guest-link,
+restart and resume sequence is claimed. Both-store real purchase/restore
+tests also remain unverified under the explicit submission instruction.
+The two owned login-observation screenshots were retained and moved to
+recoverable Trash in addition to the thirty store-capture Desktop files.
+
+PR creation remains blocked by the prior guard denial and absent human
+.claude/allow-pr marker. No alternate PR route or direct-main workaround
+was used. The cumulative feature branch and concrete PR body remain ready
+for the authorized review path; CI and main merge are not claimed complete.
