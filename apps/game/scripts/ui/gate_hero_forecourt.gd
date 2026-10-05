@@ -133,11 +133,11 @@ const PAINT_DOWN: Dictionary = {
 	"sage": Rect2i(40, 84, 63, 108),
 }
 const PAINT_LEFT: Dictionary = {
-	"warden": Rect2i(49, 84, 72, 108),
+	"warden": Rect2i(46, 83, 75, 109),
 	"dancer": Rect2i(41, 84, 72, 108),
 	"keeper": Rect2i(33, 84, 75, 108),
-	"knight": Rect2i(52, 84, 72, 108),
-	"eclipse": Rect2i(47, 84, 79, 108),
+	"knight": Rect2i(48, 81, 76, 111),
+	"eclipse": Rect2i(43, 83, 83, 109),
 	"sage": Rect2i(45, 85, 58, 107),
 }
 const PAINT_IDLE_UP: Dictionary = {
@@ -149,11 +149,11 @@ const PAINT_IDLE_UP: Dictionary = {
 	"sage": Rect2i(38, 84, 67, 108),
 }
 const PAINT_IDLE_RIGHT: Dictionary = {
-	"warden": Rect2i(23, 84, 72, 108),
+	"warden": Rect2i(23, 83, 75, 109),
 	"dancer": Rect2i(31, 84, 72, 108),
 	"keeper": Rect2i(36, 84, 75, 108),
-	"knight": Rect2i(20, 84, 72, 108),
-	"eclipse": Rect2i(18, 84, 79, 108),
+	"knight": Rect2i(20, 81, 76, 111),
+	"eclipse": Rect2i(18, 83, 83, 109),
 	"sage": Rect2i(41, 85, 58, 107),
 }
 const PAINT_WALK_DOWN: Dictionary = {
@@ -173,19 +173,19 @@ const PAINT_WALK_UP: Dictionary = {
 	"sage": Rect2i(38, 84, 67, 108),
 }
 const PAINT_WALK_LEFT: Dictionary = {
-	"warden": Rect2i(41, 84, 81, 108),
+	"warden": Rect2i(41, 83, 81, 109),
 	"dancer": Rect2i(34, 84, 79, 108),
 	"keeper": Rect2i(29, 84, 81, 108),
-	"knight": Rect2i(38, 84, 86, 108),
-	"eclipse": Rect2i(38, 84, 90, 108),
+	"knight": Rect2i(38, 81, 86, 111),
+	"eclipse": Rect2i(38, 83, 90, 109),
 	"sage": Rect2i(36, 85, 73, 107),
 }
 const PAINT_WALK_RIGHT: Dictionary = {
-	"warden": Rect2i(22, 84, 81, 108),
+	"warden": Rect2i(22, 83, 81, 109),
 	"dancer": Rect2i(31, 84, 79, 108),
 	"keeper": Rect2i(34, 84, 81, 108),
-	"knight": Rect2i(20, 84, 86, 108),
-	"eclipse": Rect2i(16, 84, 90, 108),
+	"knight": Rect2i(20, 81, 86, 111),
+	"eclipse": Rect2i(16, 83, 90, 109),
 	"sage": Rect2i(35, 85, 73, 107),
 }
 ## The gate mouth in painting pixels, read off the committed master: the

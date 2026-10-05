@@ -45,13 +45,19 @@ const GUTTER_TOP: int = 4
 ## portrait.png file bytes, then the decoded walk down/up columns
 ## (x0-288) RGBA bytes. Minted from the standing-stance bake with one
 ## canonical head per column; any drift in the idle stance, the
-## portrait, the down/up columns or a walk head fails here.
+## portrait, the down/up columns or a walk head fails here. Brief 196
+## re-pinned warden, knight and eclipse for the calibrated side heads
+## (idle side columns only; portraits and down/up bytes unchanged).
+## Brief 197 re-pinned knight again for the healed standing cloak join
+## (idle side columns below the cut only). Brief 199 re-pinned knight once
+## more for the shin/garment split (stale shin gray below row 166 returns
+## to the articulated leg; trim tip and cloak unchanged).
 const PRESERVED: Dictionary = {
-	"warden": "e5f027b553e27a5993e7355b99d11bf4373601864a62027092e3a206093416c0",
+	"warden": "20061f11d4232f2c563c485e0d506c9487a30b36469705871a6480b4be7d1590",
 	"dancer": "21ca3c920ca4d69ce6d7d57abba6e90b54242704d74864f9255598fc63952548",
 	"keeper": "fbd114d28ac86aabdc3e65c0451ce64d2d3ea16535d76b7adbf6763dd3651187",
-	"knight": "93b5232e2494ad96620f16677d941217ecde7184555081bf471cfac21643baaf",
-	"eclipse": "82c4efcf1cf8c2e552ec367d9c92654389a4246719e45bb8e3cd645427011c87",
+	"knight": "e54577ef1c8a9b508ab9a0640250e98d4c48433b69d6e07b93627f9727155342",
+	"eclipse": "871cde863197c806614c268c6b44042fbe3030bc9dfe47d02c5d68541e4f2c1f",
 	"sage": "6db134b10e4b593d122e2c369dcd7986af65779d6d76d826d13d12f698a17932",
 }
 
