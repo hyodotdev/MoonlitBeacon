@@ -42,6 +42,9 @@ OVERLAP = 8
 #   "S": shoulder, "E": elbow, "W": wrist (cell px), "w1": upper width,
 #   "w2": fore width, "pole": elbow-bow direction}}}
 # Sides are viewer-left/right for down/up, near/far for left/right.
+# Side joints are read off the donor-based standing idle (brief 186); right
+# mirrors left exactly (x' = 143 - x) because the idle right column is the
+# left mirror.
 SPEC = {
     "warden": {
         "cutline": 160,
@@ -50,9 +53,9 @@ SPEC = {
                                "w1": 9, "w2": 8, "pole": (1.0, 0.35)}},
             "up": {"right": {"S": (84, 138), "E": (88, 148), "W": (90, 157),
                              "w1": 9, "w2": 8, "pole": (1.0, 0.35)}},
-            "left": {"near": {"S": (60, 134), "E": (55, 142), "W": (50, 150),
+            "left": {"near": {"S": (60, 132), "E": (56, 142), "W": (52, 151),
                               "w1": 9, "w2": 8, "pole": (1.0, 0.35)}},
-            "right": {"near": {"S": (84, 134), "E": (89, 142), "W": (94, 150),
+            "right": {"near": {"S": (83, 132), "E": (87, 142), "W": (91, 151),
                                "w1": 9, "w2": 8, "pole": (-1.0, 0.35)}},
         },
     },
@@ -72,11 +75,11 @@ SPEC = {
                          "w1": 10, "w2": 9, "pole": (-1.0, 0.35)},
             },
             "left": {
-                "near": {"S": (56, 130), "E": (53, 141), "W": (50, 152),
+                "near": {"S": (58, 130), "E": (54, 140), "W": (50, 150),
                          "w1": 10, "w2": 9, "pole": (1.0, 0.35)},
             },
             "right": {
-                "near": {"S": (88, 130), "E": (91, 141), "W": (94, 152),
+                "near": {"S": (85, 130), "E": (89, 140), "W": (93, 150),
                          "w1": 10, "w2": 9, "pole": (-1.0, 0.35)},
             },
         },
@@ -89,9 +92,9 @@ SPEC = {
                                "w1": 13, "w2": 11, "pole": (1.0, 0.35)}},
             "up": {"right": {"S": (100, 128), "E": (104, 143), "W": (102, 158),
                              "w1": 13, "w2": 11, "pole": (1.0, 0.35)}},
-            "left": {"near": {"S": (62, 128), "E": (54, 140), "W": (47, 151),
+            "left": {"near": {"S": (52, 128), "E": (45, 140), "W": (40, 150),
                               "w1": 13, "w2": 11, "pole": (1.0, 0.35)}},
-            "right": {"near": {"S": (82, 128), "E": (90, 140), "W": (97, 151),
+            "right": {"near": {"S": (91, 128), "E": (98, 140), "W": (103, 150),
                                "w1": 13, "w2": 11, "pole": (-1.0, 0.35)}},
         },
     },
@@ -102,9 +105,9 @@ SPEC = {
                                "w1": 9, "w2": 8, "pole": (1.0, 0.35)}},
             "up": {"right": {"S": (80, 140), "E": (82, 150), "W": (83, 159),
                              "w1": 8, "w2": 7, "pole": (1.0, 0.35)}},
-            "left": {"near": {"S": (60, 130), "E": (54, 139), "W": (49, 148),
+            "left": {"near": {"S": (68, 125), "E": (62, 142), "W": (58, 152),
                               "w1": 9, "w2": 8, "pole": (1.0, 0.35)}},
-            "right": {"near": {"S": (84, 130), "E": (90, 139), "W": (95, 148),
+            "right": {"near": {"S": (75, 125), "E": (81, 142), "W": (85, 152),
                                "w1": 9, "w2": 8, "pole": (-1.0, 0.35)}},
         },
     },
@@ -124,11 +127,11 @@ SPEC = {
                          "w1": 7, "w2": 7, "pole": (-1.0, 0.35)},
             },
             "left": {
-                "near": {"S": (58, 132), "E": (54, 142), "W": (51, 152),
+                "near": {"S": (62, 132), "E": (62, 142), "W": (60, 152),
                          "w1": 9, "w2": 8, "pole": (1.0, 0.35)},
             },
             "right": {
-                "near": {"S": (86, 132), "E": (90, 142), "W": (93, 152),
+                "near": {"S": (81, 132), "E": (81, 142), "W": (83, 152),
                          "w1": 9, "w2": 8, "pole": (-1.0, 0.35)},
             },
         },
@@ -140,28 +143,30 @@ SPEC = {
                                "w1": 10, "w2": 9, "pole": (1.0, 0.35)}},
             "up": {"right": {"S": (92, 130), "E": (94, 142), "W": (96, 154),
                              "w1": 10, "w2": 9, "pole": (1.0, 0.35)}},
-            "left": {"near": {"S": (58, 130), "E": (52, 143), "W": (45, 155),
+            "left": {"near": {"S": (62, 130), "E": (59, 142), "W": (56, 152),
                               "w1": 10, "w2": 9, "pole": (1.0, 0.35)}},
-            "right": {"near": {"S": (86, 130), "E": (92, 143), "W": (99, 155),
+            "right": {"near": {"S": (81, 130), "E": (84, 142), "W": (87, 152),
                                "w1": 10, "w2": 9, "pole": (-1.0, 0.35)}},
         },
     },
 }
 
 
-# Static grips: real painted hands that hold a bracing weapon without moving
+# Static grips: hands that hold a bracing weapon without moving
 # (torso space). The torso bake keeps their paint; the runtime seats the fang
-# exactly on them, so hand and grip can never separate.
+# exactly on them, so hand and grip can never separate. In the donor side
+# profile the far hand hides behind the dress, so the grip seats the brace
+# fang on the dress hip where that hand holds it low; right mirrors left.
 STATIC_GRIPS = {
-    "dancer": {"left": {"far": (75, 158)}, "right": {"far": (57, 160)}},
+    "dancer": {"left": {"far": (75, 158)}, "right": {"far": (68, 158)}},
 }
 
 # Mask-only erasures: (x, y, radius) paint removed from the torso bake with
-# no patches cut. Eclipse's side-view far hand leaves its hip for the haft,
-# so the bake clears it and the stacked nub rides the main grip instead.
-ERASE = {
-    "eclipse": {"left": [(80, 157, 6)], "right": [(63, 147, 6)]},
-}
+# no patches cut. The turnaround side profile showed Eclipse's far hand at
+# its hip, which the bake used to clear for the haft; the donor side profile
+# hides that hand, so nothing is erased and the stacked nub rides the main
+# grip alone.
+ERASE: dict = {}
 
 
 def dist(a, b) -> float:

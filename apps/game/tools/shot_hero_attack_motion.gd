@@ -52,6 +52,15 @@ const SHOT_SLIDE: Dictionary = {"keeper": 4.0, "knight": 7.0, "sage": 2.5}
 ## lane bottom (six walkers). Pitches clear full bodies, weapon tips,
 ## wrists, and the Eclipse orbit at every stage; the framing check proves
 ## it. Board matches the locked 1616x720 physical movie output.
+##
+## The movers lane runs a synchronized stop cycle on top of the attack
+## loop: walk, stop, one planted attack, recover, walk again. Stops turn
+## through all four facings across consecutive stops, so the movie holds
+## repeated walk -> stop -> attack -> recovery -> walk per hero with the
+## standing pose, planted feet, and same-face identity inspectable live.
+## Headless validation hand-drives the same chain per mover (travel,
+## stop, an attack in every facing, recovery, departure) with no wall
+## time, and the timed run tallies the states each mover showed.
 const NORMAL_ORIGIN: Vector2 = Vector2(60, 50)
 const NORMAL_CELL: Vector2 = Vector2(120, 100)
 const CLOSE_ORIGIN: Vector2 = Vector2(560, 140)
@@ -72,6 +81,20 @@ const BOARD_SIZE: Vector2i = Vector2i(1616, 720)
 ## Attack loop: a full cycle settles every span (max 0.28s) before the next.
 const CYCLE_SECONDS: float = 0.7
 const ROW_GAP_SECONDS: float = 0.08
+## Stop cycle: only the six movers walk, stop, plant an attack, and
+## recover, turning through all four facings across stops. The 24-cell
+## close block stays planted at 2x and shows attacks and recovery only,
+## so the movie holds repeated walk -> stop -> attack -> recovery -> walk
+## per mover with the standing pose and planted feet inspectable live.
+## Counts below are loop cycles per stop-cycle step.
+const STOP_WALK_CYCLES: int = 3
+const STOP_IDLE_CYCLES: int = 2
+const STOP_ATTACK_CYCLES: int = 1
+const STOP_RECOVER_CYCLES: int = 1
+const STOP_PHASE_WALK: int = 0
+const STOP_PHASE_IDLE: int = 1
+const STOP_PHASE_ATTACK: int = 2
+const STOP_PHASE_RECOVER: int = 3
 
 var _tag: String = "shot"
 var _validate_only: bool = false
@@ -91,6 +114,9 @@ var _mover_last: Dictionary = {}
 var _mover_min_sep: float = 1e9
 var _mover_max_step: float = 0.0
 var _samples: Array = []
+var _stop_phase: int = STOP_PHASE_WALK
+var _stop_tally: Dictionary = {}
+var _mover_stops: Dictionary = {}
 
 
 func _ready() -> void:
@@ -157,6 +183,7 @@ func _run() -> void:
 		_sample_mode(true)
 		_sample_mode(false)
 		_expect_moving_gait()
+		_expect_stop_chain()
 		_write_observations()
 	else:
 		await _run_timed_loop()
@@ -626,28 +653,42 @@ func _run_timed_loop() -> void:
 		_mover_max[hero_id] = (_movers[hero_id] as Player).position.x
 	var elapsed: float = 0.0
 	var cycles: int = 0
+	var loop_count: int = 0
+	var prev_phase: int = -1
 	while elapsed < _duration:
+		_stop_phase = _phase_for_loop(loop_count)
+		if _stop_phase != prev_phase:
+			_enter_stop_phase()
+			prev_phase = _stop_phase
 		for row in HEROES.size():
 			var hero_id: String = HEROES[row]
 			for side in SIDE_ORDER:
 				var key: String = "%s_%s" % [hero_id, side]
 				_attack_cell(_players[key], hero_id, SIDES[side])
 				_attack_cell(_close_players[key], hero_id, SIDES[side])
-			_bounce_mover(hero_id)
+			if _stop_phase == STOP_PHASE_WALK:
+				_bounce_mover(hero_id)
+			else:
+				_hold_mover(hero_id)
 			_sample_poses(poses)
 			_track_movers()
+			_tally_stop_cells()
 			cycles += 1
 			await get_tree().create_timer(
 				ROW_GAP_SECONDS * 0.5, true, false, true).timeout
 			_sample_poses(poses)
 			_track_movers()
+			_tally_stop_cells()
 			await get_tree().create_timer(
 				ROW_GAP_SECONDS * 0.5, true, false, true).timeout
 			_sample_poses(poses)
 			_track_movers()
+			_tally_stop_cells()
 			elapsed += ROW_GAP_SECONDS
 		_sample_poses(poses)
 		_track_movers()
+		_tally_stop_cells()
+		loop_count += 1
 		var rest: float = CYCLE_SECONDS - ROW_GAP_SECONDS * HEROES.size()
 		await get_tree().create_timer(maxf(rest, 0.05), true, false, true).timeout
 		elapsed += maxf(rest, 0.05)
@@ -664,11 +705,21 @@ func _run_timed_loop() -> void:
 			"%s cycles through distinct poses (%d)" % [
 				key, (poses[key] as Dictionary).size()])
 	_expect_movers_traveled()
+	_expect_stop_cycles()
 	var travel: Dictionary = {}
+	var stops: Dictionary = {}
 	for hero_id in _movers:
 		travel[hero_id] = {
 			"px": float(_mover_max[hero_id]) - float(_mover_min[hero_id]),
 			"flips": int(_mover_flips[hero_id]),
+		}
+		var tally: Dictionary = _stop_tally.get(hero_id, {})
+		stops[hero_id] = {
+			"walk": bool(tally.get("walk", false)),
+			"idle": bool(tally.get("idle", false)),
+			"split": bool(tally.get("split", false)),
+			"facings": (tally.get("facings", {}) as Dictionary).keys(),
+			"count": int(_mover_stops.get(hero_id, 0)),
 		}
 	_samples.append({
 		"pose_cells": poses.size(),
@@ -677,9 +728,69 @@ func _run_timed_loop() -> void:
 		"mover_min_sep": _mover_min_sep,
 		"mover_max_step": _mover_max_step,
 		"mover_travel": travel,
+		"mover_stops": stops,
 	})
 	print("motion loop ran %d row attacks over %.1fs (vfx=%s)" % [
 		cycles, elapsed, str(_vfx)])
+
+
+## Stop-cycle stage for one timed-loop pass: walk, stop, plant an
+## attack, recover, then walk again.
+func _phase_for_loop(loop_count: int) -> int:
+	var total: int = STOP_WALK_CYCLES + STOP_IDLE_CYCLES \
+		+ STOP_ATTACK_CYCLES + STOP_RECOVER_CYCLES
+	var tick: int = loop_count % total
+	if tick < STOP_WALK_CYCLES:
+		return STOP_PHASE_WALK
+	tick -= STOP_WALK_CYCLES
+	if tick < STOP_IDLE_CYCLES:
+		return STOP_PHASE_IDLE
+	tick -= STOP_IDLE_CYCLES
+	if tick < STOP_ATTACK_CYCLES:
+		return STOP_PHASE_ATTACK
+	return STOP_PHASE_RECOVER
+
+
+## Stage-entry acts, once per stage: stops turn each mover to its next
+## stop facing (all four across consecutive stops) and plant the attack
+## where it faces; walk and recover need no entry act.
+func _enter_stop_phase() -> void:
+	for hero_id in _movers:
+		var mover: Player = _movers[hero_id] as Player
+		if _stop_phase == STOP_PHASE_IDLE:
+			var stops: int = int(_mover_stops.get(hero_id, 0))
+			mover.face_toward(SIDES[SIDE_ORDER[stops % SIDE_ORDER.size()]])
+			mover.set_move_input(Vector2.ZERO)
+			_mover_stops[hero_id] = stops + 1
+		elif _stop_phase == STOP_PHASE_ATTACK:
+			mover.set_move_input(Vector2.ZERO)
+			_attack_cell(mover, hero_id, mover.facing_vector())
+
+
+## Hold still off the walk stage: arrivals plant, attacks fire from the
+## stop, recoveries settle. Steering stays input-only, like the bounce.
+func _hold_mover(hero_id: String) -> void:
+	(_movers[hero_id] as Player).set_move_input(Vector2.ZERO)
+
+
+## Record what each mover shows per sample: walking, stopped, or split
+## up mid-attack, plus the facings it stops in.
+func _tally_stop_cells() -> void:
+	for hero_id in _movers:
+		var mover: Player = _movers[hero_id] as Player
+		var sprite: AnimatedSprite2D = mover.get_node("Sprite") \
+			as AnimatedSprite2D
+		var tally: Dictionary = _stop_tally.get(hero_id, {
+			"walk": false, "idle": false, "split": false, "facings": {},
+		})
+		if not sprite.visible:
+			tally["split"] = true
+		elif str(sprite.animation).begins_with("walk_"):
+			tally["walk"] = true
+		elif str(sprite.animation).begins_with("idle_"):
+			tally["idle"] = true
+			(tally["facings"] as Dictionary)[int(mover.facing)] = true
+		_stop_tally[hero_id] = tally
 
 
 ## One mover's lane bounce: hold the current direction until an edge, then
@@ -737,6 +848,72 @@ func _track_movers() -> void:
 			var a: Vector2 = (_movers[ids[first]] as Player).position
 			var b: Vector2 = (_movers[ids[second]] as Player).position
 			_mover_min_sep = minf(_mover_min_sep, a.distance_to(b))
+
+
+## Every mover cycled walk, stop, planted attack, and recovery: each
+## state showed on screen and at least one full stop landed.
+func _expect_stop_cycles() -> void:
+	for hero_id in _movers:
+		var tally: Dictionary = _stop_tally.get(hero_id, {})
+		_expect_true(bool(tally.get("walk", false)),
+			"%s mover walks its lane" % hero_id)
+		_expect_true(bool(tally.get("idle", false)),
+			"%s mover stops and stands" % hero_id)
+		_expect_true(bool(tally.get("split", false)),
+			"%s mover plants its attack" % hero_id)
+		_expect_true(int(_mover_stops.get(hero_id, 0)) >= 1,
+			"%s mover lands its stops (%d)" % [
+				hero_id, int(_mover_stops.get(hero_id, 0))])
+
+
+## Hand-driven stop chain per mover: travel, stop, one planted attack in
+## every facing, recovery, and departure. No wall time, no auto clocks.
+func _expect_stop_chain() -> void:
+	for hero_id in _movers:
+		var mover: Player = _movers[hero_id] as Player
+		var rig: WeaponRig = mover.get_node("WeaponRig") as WeaponRig
+		var sprite: AnimatedSprite2D = mover.get_node("Sprite") \
+			as AnimatedSprite2D
+		var torso: Sprite2D = mover.get_node("AttackTorso") as Sprite2D
+		var chain: Dictionary = {
+			"walked_px": 0.0, "stopped": false, "attacks": [],
+			"resumed": false,
+		}
+		var start_x: float = mover.position.x
+		mover.set_move_input(Vector2.LEFT)
+		for step in 30:
+			mover.call("_physics_process", 1.0 / 60.0)
+		chain["walked_px"] = start_x - mover.position.x
+		_expect_true(float(chain["walked_px"]) > 5.0,
+			"%s stop chain travels (%.1fpx)" % [
+				hero_id, float(chain["walked_px"])])
+		_expect_true(str(sprite.animation).begins_with("walk_"),
+			"%s stop chain walks" % hero_id)
+		mover.set_move_input(Vector2.ZERO)
+		for step in 30:
+			mover.call("_physics_process", 1.0 / 60.0)
+		chain["stopped"] = str(sprite.animation).begins_with("idle_")
+		_expect_true(bool(chain["stopped"]),
+			"%s stop chain stops (%s)" % [hero_id, sprite.animation])
+		for side in SIDE_ORDER:
+			mover.face_toward(SIDES[side])
+			_attack_cell(mover, hero_id, SIDES[side])
+			mover.call("_update_attack_pose", 1.0 / 120.0)
+			_expect_true(torso.visible,
+				"%s stop chain plants %s" % [hero_id, side])
+			(chain["attacks"] as Array).append(side)
+			_finish(mover, rig)
+			_expect_true(sprite.visible
+				and str(sprite.animation).begins_with("idle_"),
+				"%s stop chain recovers from %s" % [hero_id, side])
+		mover.set_move_input(Vector2.RIGHT)
+		for step in 30:
+			mover.call("_physics_process", 1.0 / 60.0)
+		chain["resumed"] = str(sprite.animation).begins_with("walk_") \
+			and mover.position.x > start_x - float(chain["walked_px"])
+		_expect_true(bool(chain["resumed"]),
+			"%s stop chain departs" % hero_id)
+		_samples.append({"hero": hero_id, "stop_chain": chain})
 
 
 ## Each mover traveled both ways across its lane, flipped more than once,

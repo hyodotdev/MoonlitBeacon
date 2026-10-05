@@ -23,8 +23,9 @@ renders the same world footprint with smooth filtering:
     props     field.png 240x720, camp.png 1104x432 (Room.PROP_KIND rects x3)
     floors    forest_floor + ground_<biome> 512x512 tileable panels
 
-Single-pose sources (spirits, guardian states, hero idle) get light
-feet-planted breathing baked as frames; nothing here mirrors a front view into
+Single-pose sources (spirits, guardian states) get light feet-planted
+breathing baked as frames; hero idle breathes through the torso band only,
+so its head and soles never move. Nothing here mirrors a front view into
 a back view. The swarm's side columns ship swapped in the master, so the pack
 swaps them back (see SPECIES_SIDES).
 
@@ -40,10 +41,12 @@ Runtime layout contract (world units stay legacy; sheet pixels are x3):
     heroes    columns down/up/left/right, 4 walk-frame rows; solid soles
               planted on the cell bottom edge (y=192), as the legacy 64px
               cells. Walk side columns are donor-registered (left) and its
-              exact mirror (right); idle, portraits and down/up walk stay
-              on the turnaround masters. Player/PlayerPreview read via
-              Hero.cell/visual_scale (tests/test_hero_visuals.gd,
-              test_hero_direction_capture.gd).
+              exact mirror (right); portraits and down/up walk stay on the
+              turnaround masters. Idle shares the walk head per facing:
+              down/up rest on their walk row 0, sides on the donor contact
+              with gathered standing legs (right mirrors left). Player and
+              PlayerPreview read via Hero.cell/visual_scale
+              (tests/test_hero_visuals.gd, test_hero_direction_capture.gd).
     spirits   columns down/up/left/right, 4 breath-frame rows; soles 18px
               above the cell foot. Spirit reads via SpiritKind.cell/
               visual_scale (tests/test_spirit_visuals.gd).
@@ -71,6 +74,8 @@ import sys
 from pathlib import Path
 
 from PIL import Image, ImageEnhance
+
+from pack_attack_rig import SPEC as RIG_SPEC
 
 TOOL_DIR = Path(__file__).resolve().parent
 GAME_ROOT = TOOL_DIR.parent
@@ -183,8 +188,75 @@ GUARDIAN_IDLE_DY = (0, -3, -3, 0, 3, 3)
 ## 150px-tall, 180px-wide box like the legacy footprint.
 OBSTACLE_FEET = 50 * ZOOM
 OBSTACLE_BOX = (60 * ZOOM, 50 * ZOOM)
-## Hero idle breathing: feet-planted scales about the soles, no translation.
-HERO_IDLE_SCALES = (1.0, 1.008, 1.015, 1.008)
+## Hero idle breathing: the torso band alone scales vertically about the
+## hips, so the head and the planted feet stay byte-identical across frames.
+## Whole-body rescale is banned here: it enlarged the face every breath and
+## popped the head at every walk→stop. Necks are the head-bottom rows read
+## off the idle cells (chin/hood/hair end, face safely above); hips reuse the
+## attack rig's own cutlines, the same anatomical line the torso strips use.
+HERO_IDLE_NECK = {
+    "warden": 130, "dancer": 130, "keeper": 128,
+    "knight": 120, "eclipse": 126, "sage": 118,
+}
+HERO_IDLE_HIPS = {hero: RIG_SPEC[hero]["cutline"] for hero in HEROES}
+HERO_IDLE_BREATH = (1.0, 1.02, 1.035, 1.02)
+## Standing-stance surgery for the side idle (brief 186): the idle base is
+## the walk donor's own contact frame, and the two planted legs rotate about
+## near-cut pivots until the feet stand adjacent under the body. Cut rows sit
+## just below the crotch while clearing every hand (keeper's glove hangs to
+## y155, hence 157); the head and upper stay byte-identical to the walk
+## frame, so stopping never changes the face. Right mirrors left exactly,
+## like the walk columns.
+HERO_STANCE_CUT = {
+    "warden": 150, "dancer": 150, "keeper": 157,
+    "knight": 150, "eclipse": 150, "sage": 150,
+}
+## Standing-stance targets: both legs hang vertically beneath the hips,
+## with the feet landing overlapped in profile like real standing feet: the
+## near boot slightly forward of the far boot, both under the torso. Each
+## leg articulates in two rigid segments about its hip: the shin rotates to
+## vertical while the boot below the ankle translates flat, so soles plant
+## level instead of tilting onto their corners. STANCE_HALF is the foot
+## center offset from the fitted cell middle (the stride torso anchor); the
+## upper overlaps the hip joint by STANCE_OVERLAP rows, and shin and boot
+## overlap across the ankle, so both joints hide inside the paint.
+HERO_STANCE_CENTER = 72
+HERO_STANCE_HALF = 5
+HERO_STANCE_PIVOT_UP = 8
+HERO_STANCE_OVERLAP = 6
+HERO_STANCE_ANKLE = 181
+## Front/back standing construction (brief 188): each down/up idle is built
+## from its own walk row-0 leg, mirrored into a symmetric standing pair that
+## descends from the hips with both boots planted. HERO_FRONT_HEM is the cut
+## row per hero and facing (0 down, 1 up): below the garment hem, so the
+## cloak/dress/coat stays intact above while the legs rebuild below. The leg
+## is the planted boot column plus a small margin; everything planted outside
+## the stance band (robe panels, cloak sides) and every lifted prop (hands,
+## tassels, tabard and dress tips) stays where painted. HERO_FRONT_DISCARD
+## names the only paint ever removed: inspected trailing-limb rectangles,
+## clamped to below the hems (a smear-free replacement, not an erasure: a
+## full mirrored leg takes the hidden limb's place).
+HERO_FRONT_HEM = {
+    "warden": {0: 170, 1: 172},
+    "dancer": {0: 160, 1: 160},
+    "keeper": {0: 172, 1: 172},
+    "knight": {0: 172, 1: 172},
+    "eclipse": {0: 178, 1: 178},
+    "sage": {0: 176, 1: 178},
+}
+HERO_FRONT_DISCARD = {
+    ("warden", 0): [(81, 170, 87, 182)],
+    ("keeper", 0): [(54, 172, 71, 190)],
+    ("keeper", 1): [(54, 172, 67, 190)],
+}
+HERO_FRONT_BAND = (52, 92)
+HERO_FRONT_GAP = 4
+HERO_FRONT_OVERLAP = 3
+## Stance middle per cell, defaulting to the fitted cell middle. Warden's
+## back cloak masses left of middle with a fold notch at x80-82, so her
+## boots plant at 67, under the garment instead of the notch. Knight's back
+## legs mass left with the cape split right, so his boots plant at 66.
+HERO_FRONT_CENTER = {("warden", 1): 67, ("knight", 1): 66}
 SPIRIT_BREATHES = (1.0, 1.012, 1.02, 1.012)
 GUARDIAN_IDLE_SCALES = (1.0, 1.008, 1.012, 1.008, 1.0, 0.996)
 GUARDIAN_STATE_SCALES = {
@@ -223,6 +295,20 @@ def _scrub_alpha(art: Image.Image) -> Image.Image:
 def _ink_bbox(art: Image.Image) -> tuple[int, int, int, int] | None:
     alpha = art.getchannel("A").point(lambda v: 255 if v >= INK else 0)
     return alpha.getbbox()
+
+
+def _flat_bytes(art: Image.Image) -> bytes:
+    """RGBA bytes with fully transparent pixels zeroed, for comparison.
+
+    Resizes and composites leave arbitrary RGB under alpha 0 (invisible,
+    but byte-real), so two identical-looking cells compare unequal. Zero
+    the RGB where alpha is 0 first; every visible pixel still compares.
+    """
+    raw = bytearray(art.tobytes())
+    for index in range(3, len(raw), 4):
+        if raw[index] == 0:
+            raw[index - 3] = raw[index - 2] = raw[index - 1] = 0
+    return bytes(raw)
 
 
 def _erase_border_fragments(
@@ -999,7 +1085,7 @@ def _solid_bbox(art: Image.Image) -> tuple[int, int, int, int] | None:
     return solid.getbbox()
 
 
-def _fit_box(
+def _natural_fit_scale(
     art: Image.Image,
     box_w: int,
     box_h: int,
@@ -1007,15 +1093,8 @@ def _fit_box(
     cell_h: int,
     feet_y: int,
     fit_h: int | None = None,
-) -> Image.Image:
-    """Fit a figure from its measured bounds, feet planted at feet_y.
-
-    Scales the solid-mass box to fit_h tall (or the full art into box_w x
-    box_h when fit_h is None), centers horizontally, and plants the solid
-    soles on feet_y. Faint skirts below the soles settle onto the ground;
-    anything above the head or past the sides shrinks the whole placement to
-    fit instead of clipping.
-    """
+) -> float:
+    """The scale _fit_box would place this figure at, without placing it."""
     figure = _scrub_alpha(art)
     full = _ink_bbox(figure)
     if full is None:
@@ -1044,6 +1123,51 @@ def _fit_box(
         if shrink >= 1.0:
             break
         scale *= shrink
+    return scale
+
+
+def _fit_box(
+    art: Image.Image,
+    box_w: int,
+    box_h: int,
+    cell_w: int,
+    cell_h: int,
+    feet_y: int,
+    fit_h: int | None = None,
+    fixed_scale: float | None = None,
+) -> Image.Image:
+    """Fit a figure from its measured bounds, feet planted at feet_y.
+
+    Scales the solid-mass box to fit_h tall (or the full art into box_w x
+    box_h when fit_h is None), centers horizontally, and plants the solid
+    soles on feet_y. Faint skirts below the soles settle onto the ground;
+    anything above the head or past the sides shrinks the whole placement to
+    fit instead of clipping. A fixed scale (one hero column sharing its row-0
+    scale so walk frames differ by translation, never a rescale) is verified
+    against the gutters instead: an overflow raises rather than shrinking
+    one frame behind the others.
+    """
+    figure = _scrub_alpha(art)
+    full = _ink_bbox(figure)
+    if full is None:
+        raise RuntimeError("empty figure")
+    solid = _solid_bbox(figure) or full
+    full_w, full_h = full[2] - full[0], full[3] - full[1]
+    # Solid soles sit this far above the full-art bottom.
+    soles_up = full[3] - solid[3]
+    if fixed_scale is None:
+        scale = _natural_fit_scale(
+            art, box_w, box_h, cell_w, cell_h, feet_y, fit_h)
+    else:
+        scale = fixed_scale
+        placed_w = full_w * scale
+        placed_top = feet_y - (full_h - soles_up) * scale
+        placed_left = (cell_w - placed_w) / 2.0
+        if placed_top < 4.0 or placed_left < 2.0 \
+                or placed_left + placed_w > cell_w - 2.0:
+            raise RuntimeError(
+                f"fixed-scale fit overflows gutters: top={placed_top:.1f} "
+                f"left={placed_left:.1f} w={placed_w:.1f}")
     size = (max(1, round(full_w * scale)), max(1, round(full_h * scale)))
     art = figure.crop(full).resize(size, Image.Resampling.LANCZOS)
     soles = round((full_h - soles_up) * scale)
@@ -1064,6 +1188,371 @@ def _planted_scale(art: Image.Image, scale: float) -> Image.Image:
     cell.alpha_composite(grown, (
         (width - grown.width) // 2, height - grown.height))
     return cell
+
+
+def _sole_feet(
+    cell: Image.Image, x_lo: int = 0, x_hi: int | None = None,
+) -> list[tuple[int, int]]:
+    """The two planted feet as x-ranges, from the sole rows.
+
+    Columns inked in at least two of the bottom eight rows group into runs;
+    the two widest runs at least 4px wide are the feet. A standing cell and
+    a contact cell both qualify; a passing cell with one lifted foot fails
+    loudly instead of gathering half a stance. The optional x window
+    restricts the hunt to the stance band, past robe panels and cloak sides
+    that plant outside it.
+    """
+    width, height = cell.size
+    if x_hi is None:
+        x_hi = width
+    pixels = cell.load()
+    covered = [0] * width
+    for y in range(height - 8, height):
+        for x in range(x_lo, min(x_hi, width)):
+            if pixels[x, y][3] >= INK:
+                covered[x] += 1
+    feet: list[tuple[int, int]] = []
+    start: int | None = None
+    for x in range(x_lo, min(x_hi, width)):
+        if covered[x] >= 2 and start is None:
+            start = x
+        elif covered[x] < 2 and start is not None:
+            if x - start >= 4:
+                feet.append((start, x - 1))
+            start = None
+    if start is not None and min(x_hi, width) - start >= 4:
+        feet.append((start, min(x_hi, width) - 1))
+    feet.sort(key=lambda span: -(span[1] - span[0]))
+    return sorted(feet[:2])
+
+
+def _stance_valley(
+    cell: Image.Image, cut: int, left: tuple[int, int],
+    right: tuple[int, int],
+) -> int:
+    """Background column between the feet: least ink, ties toward left."""
+    pixels = cell.load()
+    best = left[1]
+    best_ink = None
+    for x in range(left[1], right[0] + 1):
+        ink = sum(
+            1 for y in range(cut + 6, cell.height)
+            if pixels[x, y][3] >= INK)
+        if best_ink is None or ink < best_ink:
+            best_ink = ink
+            best = x
+    return best
+
+
+def _below_cut_blobs(
+    cell: Image.Image, cut: int,
+) -> list[dict]:
+    """8-connected ink blobs strictly below the cut row, with extents."""
+    width, height = cell.size
+    pixels = cell.load()
+    seen = bytearray(width * height)
+    blobs: list[dict] = []
+    for sy in range(cut, height):
+        for sx in range(width):
+            if pixels[sx, sy][3] < INK or seen[sy * width + sx]:
+                continue
+            points: list[tuple[int, int]] = []
+            stack = [(sx, sy)]
+            seen[sy * width + sx] = 1
+            while stack:
+                x, y = stack.pop()
+                points.append((x, y))
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        nx, ny = x + dx, y + dy
+                        if nx < 0 or ny < cut \
+                                or nx >= width or ny >= height:
+                            continue
+                        if pixels[nx, ny][3] < INK \
+                                or seen[ny * width + nx]:
+                            continue
+                        seen[ny * width + nx] = 1
+                        stack.append((nx, ny))
+            blobs.append({
+                "points": points,
+                "ymax": max(y for _x, y in points),
+            })
+    return blobs
+
+
+def _gather_stance(
+    base: Image.Image, cut: int, hero: str, neck: int,
+    center: int = HERO_STANCE_CENTER, half: int = HERO_STANCE_HALF,
+    overlap: int = HERO_STANCE_OVERLAP,
+) -> Image.Image:
+    """Stand a contact frame up: vertical shins, level overlapped boots.
+
+    Each leg articulates about its hip: the shin rotates to vertical while
+    the boot below the ankle translates flat to its footing, so the near
+    boot lands slightly forward of the far boot with both soles level on
+    the ground. Cloak tips and sashes (blobs ending above row 178) stay
+    where the wind left them. Rows above the cut plus the overlap come from
+    the base untouched; swung thigh paint never reaches the head rows,
+    which the assert below pins byte-identical.
+    """
+    import math
+    width, height = base.size
+    ankle = HERO_STANCE_ANKLE
+    feet = _sole_feet(base)
+    if len(feet) != 2:
+        raise RuntimeError(f"stance {hero}: want 2 planted feet, got {feet}")
+    (front_lo, front_hi), (rear_lo, rear_hi) = feet
+    valley = _stance_valley(base, cut, feet[0], feet[1])
+    blobs = _below_cut_blobs(base, cut)
+    kept = {point for blob in blobs if blob["ymax"] < 178
+            for point in blob["points"]}
+    front_shin = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    rear_shin = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    front_boot = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    rear_boot = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    still = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    fs_px, rs_px = front_shin.load(), rear_shin.load()
+    fb_px, rb_px = front_boot.load(), rear_boot.load()
+    still_px, base_px = still.load(), base.load()
+    for blob in blobs:
+        for x, y in blob["points"]:
+            if (x, y) in kept:
+                still_px[x, y] = base_px[x, y]
+            elif x < valley:
+                if y < ankle + 5:
+                    fs_px[x, y] = base_px[x, y]
+                if y >= ankle - 5:
+                    fb_px[x, y] = base_px[x, y]
+            else:
+                if y < ankle + 5:
+                    rs_px[x, y] = base_px[x, y]
+                if y >= ankle - 5:
+                    rb_px[x, y] = base_px[x, y]
+    pivot_y = cut - HERO_STANCE_PIVOT_UP
+    lever = float(height - 1 - pivot_y)
+    front_cx = (front_lo + front_hi) / 2.0
+    rear_cx = (rear_lo + rear_hi) / 2.0
+    want_front_cx = float(center - half)
+    want_rear_cx = float(center + half)
+    front_turn = math.degrees(math.atan2(want_front_cx - front_cx, lever))
+    rear_turn = math.degrees(math.atan2(want_rear_cx - rear_cx, lever))
+    ## Swinging inward about the hips dives along the arc, so the rotation
+    ## runs on a padded canvas (else the shins clip) and replants signed.
+    pad = 8
+    front_pad = Image.new("RGBA", (width, height + pad), (0, 0, 0, 0))
+    rear_pad = Image.new("RGBA", (width, height + pad), (0, 0, 0, 0))
+    front_pad.alpha_composite(front_shin, (0, 0))
+    rear_pad.alpha_composite(rear_shin, (0, 0))
+    front_pad = front_pad.rotate(
+        front_turn, resample=Image.Resampling.BICUBIC,
+        center=(want_front_cx, pivot_y))
+    rear_pad = rear_pad.rotate(
+        rear_turn, resample=Image.Resampling.BICUBIC,
+        center=(want_rear_cx, pivot_y))
+    ## The swing dives wide corners past the ankle, so clip the shins at a
+    ## level ankle line: the flat boot tops continue beneath, and no shin
+    ## corner ever reaches the soles.
+    for layer in (front_pad, rear_pad):
+        layer_px = layer.load()
+        for y in range(ankle + 3, height + pad):
+            for x in range(width):
+                layer_px[x, y] = (0, 0, 0, 0)
+
+    def solid_bottom(part: Image.Image, label: str) -> int:
+        solid = part.getchannel("A").point(
+            lambda v: 255 if v >= INK else 0).getbbox()
+        if solid is None:
+            raise RuntimeError(f"stance {hero}: {label} vanished")
+        return solid[3] - 1
+
+    def replanted(part: Image.Image, label: str) -> Image.Image:
+        shift = (ankle + 5 - 1) - solid_bottom(part, label)
+        if not 0 <= shift <= 6:
+            raise RuntimeError(
+                f"stance {hero}: {label} replants {shift}px, want 0..6")
+        out = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        out.alpha_composite(part, (0, shift))
+        return out
+
+    front_shin = replanted(front_pad, "front shin")
+    rear_shin = replanted(rear_pad, "rear shin")
+
+    def planted_boot(part: Image.Image, want_cx: float, label: str,
+                     foot_cx: float) -> Image.Image:
+        bottom = solid_bottom(part, label)
+        if bottom < height - 3:
+            raise RuntimeError(
+                f"stance {hero}: {label} ends at {bottom}, want ~191")
+        out = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        out.alpha_composite(
+            part, (round(want_cx - foot_cx), (height - 1) - bottom))
+        return out
+
+    front_boot = planted_boot(front_boot, want_front_cx, "front boot",
+                              front_cx)
+    rear_boot = planted_boot(rear_boot, want_rear_cx, "rear boot", rear_cx)
+    stood = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    stood.alpha_composite(still, (0, 0))
+    stood.alpha_composite(rear_boot, (0, 0))
+    stood.alpha_composite(front_boot, (0, 0))
+    stood.alpha_composite(rear_shin, (0, 0))
+    stood.alpha_composite(front_shin, (0, 0))
+    stood.alpha_composite(base.crop((0, 0, width, cut + overlap)), (0, 0))
+    stood = _scrub_alpha(stood)
+    if _flat_bytes(stood.crop((0, 0, width, neck))) \
+            != _flat_bytes(base.crop((0, 0, width, neck))):
+        raise RuntimeError(f"stance {hero}: head changed above the neck")
+    landed = _sole_feet(stood, 40, 104)
+    if len(landed) == 2:
+        if landed[1][0] - landed[0][1] > 8:
+            raise RuntimeError(f"stance {hero}: boots split, not standing")
+    elif len(landed) == 1:
+        sole_w = landed[0][1] - landed[0][0]
+        if not 18 <= sole_w <= 54:
+            raise RuntimeError(
+                f"stance {hero}: merged sole {sole_w}px, want 18..54")
+    else:
+        raise RuntimeError(f"stance {hero}: no planted boots found")
+    return stood
+
+
+def _stand_front(
+    base: Image.Image, hero: str, facing: int, hem: int, neck: int,
+    center: int = HERO_STANCE_CENTER, gap: int = HERO_FRONT_GAP,
+    overlap: int = HERO_FRONT_OVERLAP,
+) -> Image.Image:
+    """Stand a front/back stride up: mirror the leg into a planted pair.
+
+    The planted boot column (plus a small margin) is extracted from below
+    the garment hem and seated twice, symmetric about the cell middle with
+    `gap` between the inner boot edges: two relaxed legs descending from
+    the hips, both boots on the soles. Trailing-limb rectangles go first
+    (clamped below the hem); planted paint outside the stance band and all
+    lifted props stay where painted; the upper overlaps the leg tops so the
+    shins tuck under the garment. The head rows never change.
+    """
+    width, height = base.size
+    band_lo, band_hi = HERO_FRONT_BAND
+    work = base.copy()
+    work_px = work.load()
+    for x0, y0, x1, y1 in HERO_FRONT_DISCARD.get((hero, facing), []):
+        for y in range(max(y0, hem), min(y1 + 1, height)):
+            for x in range(max(x0, 0), min(x1 + 1, width)):
+                work_px[x, y] = (0, 0, 0, 0)
+    blobs = _below_cut_blobs(work, hem)
+    soles = _sole_feet(work, band_lo, band_hi)
+    planted = [b for b in blobs
+               if any(y == height - 1 for _x, y in b["points"])]
+    if not soles or not planted:
+        raise RuntimeError(f"front stance {hero}/{facing}: no planted boot")
+    main = max(soles, key=lambda span: span[1] - span[0])
+    sole_lo, sole_hi = main
+    win_lo = max(band_lo, sole_lo - 6)
+    win_hi = min(band_hi, sole_hi + 6)
+    host = None
+    for blob in planted:
+        if any(sole_lo <= x <= sole_hi and y == height - 1
+               for x, y in blob["points"]):
+            host = blob
+            break
+    if host is None:
+        raise RuntimeError(f"front stance {hero}/{facing}: sole has no leg")
+    leg = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    leg_px, work_px = leg.load(), work.load()
+    for x, y in host["points"]:
+        if win_lo <= x <= win_hi:
+            leg_px[x, y] = work_px[x, y]
+    leg_box = leg.getchannel("A").point(
+        lambda v: 255 if v >= INK else 0).getbbox()
+    if leg_box is None:
+        raise RuntimeError(f"front stance {hero}/{facing}: leg window empty")
+    want_left_hi = center - (gap // 2) - 1
+    want_right_lo = center + (gap - gap // 2)
+    sole_w = sole_hi - sole_lo
+    left = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    right = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    left.alpha_composite(leg, (want_left_hi - sole_hi, 0))
+    mirror = leg.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    right.alpha_composite(mirror, (want_right_lo - (width - 1 - sole_hi), 0))
+    kept = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    kept_px = kept.load()
+    host_points = set(host["points"])
+    for blob in blobs:
+        for x, y in blob["points"]:
+            if (x, y) in host_points and win_lo <= x <= win_hi:
+                continue
+            kept_px[x, y] = work_px[x, y]
+    upper = work.crop((0, 0, width, hem + overlap))
+    upper_px = upper.load()
+    for y in range(overlap):
+        for x in range(max(0, win_lo - 2), min(width, win_hi + 3)):
+            upper_px[x, y + hem] = (0, 0, 0, 0)
+    stood = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    stood.alpha_composite(kept, (0, 0))
+    stood.alpha_composite(right, (0, 0))
+    stood.alpha_composite(left, (0, 0))
+    stood.alpha_composite(upper, (0, 0))
+    stood = _scrub_alpha(stood)
+    if _flat_bytes(stood.crop((0, 0, width, neck))) \
+            != _flat_bytes(base.crop((0, 0, width, neck))):
+        raise RuntimeError(f"front stance {hero}/{facing}: head changed")
+    check = _sole_feet(stood, band_lo, band_hi)
+    if len(check) != 2:
+        raise RuntimeError(
+            f"front stance {hero}/{facing}: stands on {len(check)}, want 2")
+    if check[1][0] - check[0][1] > 8:
+        raise RuntimeError(f"front stance {hero}/{facing}: boots split")
+    mid = (check[0][0] + check[1][1]) / 2.0
+    if abs(mid - center) > 6:
+        raise RuntimeError(f"front stance {hero}/{facing}: off middle")
+    stood_px = stood.load()
+    for boot_lo, boot_hi in check:
+        bottom = -1
+        for y in range(height - 1, -1, -1):
+            if stood_px[(boot_lo + boot_hi) // 2, y][3] >= INK:
+                bottom = y
+                break
+        if bottom != height - 1:
+            raise RuntimeError(
+                f"front stance {hero}/{facing}: boot floats at {bottom}")
+    tuck_px = base.load()
+    for slot_cx in (want_left_hi - sole_w / 2.0,
+                    want_right_lo + sole_w / 2.0):
+        if tuck_px[int(slot_cx), hem - 1][3] < 64:
+            raise RuntimeError(
+                f"front stance {hero}/{facing}: leg top floats at {slot_cx}")
+    return stood
+
+
+def _idle_breath(
+    base: Image.Image, neck: int, hips: int, scale: float,
+) -> Image.Image:
+    """One idle frame: the torso band breathes, head and feet never move.
+
+    Rows [0, neck) and [hips, 192) come from the base untouched; the band
+    between scales vertically about the hips, growing upward under the
+    pasted-back head. Scale 1.0 returns the base itself, unresampled. The
+    head and legs paste hard (exact bytes, not a blend), so anti-aliased
+    chin and sole fringes never re-composite against the shifted band.
+    """
+    if scale == 1.0:
+        return base
+    width, height = base.size
+    band = base.crop((0, neck, width, hips))
+    grown_h = max(1, round((hips - neck) * scale))
+    grown = band.resize((width, grown_h), Image.Resampling.BICUBIC)
+    frame = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    frame.alpha_composite(grown, (0, hips - grown_h))
+    frame.paste(base.crop((0, 0, width, neck)), (0, 0))
+    frame.paste(base.crop((0, hips, width, height)), (0, hips))
+    frame = _scrub_alpha(frame)
+    if _flat_bytes(frame.crop((0, 0, width, neck))) \
+            != _flat_bytes(base.crop((0, 0, width, neck))):
+        raise RuntimeError("idle breath moved the head")
+    if _flat_bytes(frame.crop((0, hips, width, height))) \
+            != _flat_bytes(base.crop((0, hips, width, height))):
+        raise RuntimeError("idle breath moved the planted feet")
+    return frame
 
 
 def _tint(art: Image.Image, amount: float) -> Image.Image:
@@ -1245,12 +1734,40 @@ def _tileable(panel: Image.Image) -> Image.Image:
     return _ramp_match(_heal_cut_edges(panel)).convert("RGBA")
 
 
+def _headed(
+    frame: Image.Image, head: Image.Image, neck: int,
+) -> Image.Image:
+    """One walk frame wearing its column's canonical head, pixel-fixed.
+
+    Rows [0, neck) come from the fitted row-0 head band byte-exact (a hard
+    paste, not a blend, so chin and hair fringes never re-composite); rows
+    below keep the frame's own torso, arms and striding legs. The skull,
+    eyes and baseline never move between frames; the neck join is the
+    frame's own collar meeting the canonical chin.
+    """
+    out = frame.copy()
+    out.paste(head, (0, 0))
+    if out.crop((0, 0, out.width, neck)).tobytes() != head.tobytes():
+        raise RuntimeError("canonical head paste is not byte-exact")
+    return out
+
+
 def bake_heroes() -> dict[Path, Image.Image]:
     """Six walk/idle sheet pairs plus full-body portraits.
 
-    Walk side columns come from the registered gait donors (left) and
-    their exact mirrors (right); idle, portraits and down/up walk
-    columns stay byte-identical on the turnaround path.
+    Walk columns share one scale per facing: sides from the registered gait
+    donors (left) and their exact mirrors (right) via _fit_stride, down/up
+    from the turnaround masters fitted at their row-0 scale, so frames
+    differ by translation, never a rescale. Every walk frame wears its
+    fitted row-0 head band pixel-fixed, the same bytes idle shares, so one
+    canonical skull, face and baseline holds through motion; legs, arms
+    and hair below the neck keep their alternating paint. Idle shares the
+    walk head per facing and
+    stands on rebuilt lower bodies: down/up mirror their own walk row-0 leg
+    into a symmetric planted pair, sides gather the donor contact's legs
+    vertically under the hips with overlapped profile feet, right mirroring
+    left. Idle frames breathe through the torso band only; head and planted
+    feet stay byte-identical on every frame.
     """
     out: dict[Path, Image.Image] = {}
     cell_w, cell_h = HERO_CELL
@@ -1258,23 +1775,62 @@ def bake_heroes() -> dict[Path, Image.Image]:
         master = _load_master(f"{hero}-turnaround.png")
         grid = _hero_grid(master)
         stride = _fit_stride(_sidewalk_cells(hero), hero)
+        neck = HERO_IDLE_NECK[hero]
+        side_head = stride[0].crop((0, 0, cell_w, neck))
+        stride = [stride[0]] + [
+            _headed(frame, side_head, neck) for frame in stride[1:]
+        ]
         walk = Image.new("RGBA", (cell_w * 4, cell_h * 4), (0, 0, 0, 0))
         idle = Image.new("RGBA", (cell_w * 4, cell_h * 4), (0, 0, 0, 0))
+        hips = HERO_IDLE_HIPS[hero]
+        stood_left = _gather_stance(
+            stride[0], HERO_STANCE_CUT[hero], hero, neck)
         for direction in range(4):
-            rest = _fit_box(
-                grid[0][direction], cell_w - 12, cell_h - 8,
-                cell_w, cell_h, cell_h, HERO_FIT_H)
+            col_scale: float | None = None
+            front_head = None
+            row0 = None
+            if direction == 2:
+                rest = stood_left
+            elif direction == 3:
+                rest = _mirrored(stood_left)
+            else:
+                front_cx = HERO_FRONT_CENTER.get(
+                    (hero, direction), HERO_STANCE_CENTER)
+                col_scale = _natural_fit_scale(
+                    grid[0][direction], cell_w - 12, cell_h - 8,
+                    cell_w, cell_h, cell_h, HERO_FIT_H)
+                row0 = _fit_box(
+                    grid[0][direction], cell_w - 12, cell_h - 8,
+                    cell_w, cell_h, cell_h, HERO_FIT_H,
+                    fixed_scale=col_scale)
+                front_head = row0.crop((0, 0, cell_w, neck))
+                rest = _stand_front(
+                    row0, hero, direction,
+                    HERO_FRONT_HEM[hero][direction], neck, center=front_cx)
             for frame in range(4):
                 if direction == 2:
                     pose = stride[frame]
                 elif direction == 3:
                     pose = _mirrored(stride[frame])
                 else:
-                    pose = _fit_box(
-                        grid[frame][direction], cell_w - 12, cell_h - 8,
-                        cell_w, cell_h, cell_h, HERO_FIT_H)
+                    assert col_scale is not None
+                    assert front_head is not None
+                    assert row0 is not None
+                    if frame == 0:
+                        pose = row0
+                    else:
+                        try:
+                            pose = _fit_box(
+                                grid[frame][direction], cell_w - 12, cell_h - 8,
+                                cell_w, cell_h, cell_h, HERO_FIT_H,
+                                fixed_scale=col_scale)
+                        except RuntimeError as exc:
+                            raise RuntimeError(
+                                f"walk {hero}/{direction}/{frame}: {exc}"
+                            ) from exc
+                        pose = _headed(pose, front_head, neck)
                 walk.alpha_composite(pose, (direction * cell_w, frame * cell_h))
-                breath = _planted_scale(rest, HERO_IDLE_SCALES[frame])
+                breath = _idle_breath(rest, neck, hips, HERO_IDLE_BREATH[frame])
                 idle.alpha_composite(
                     breath, (direction * cell_w, frame * cell_h))
         out[HERO_ROOT / hero / "walk.png"] = walk
@@ -1791,6 +2347,7 @@ def check_committed(baked: dict[Path, Image.Image] | None = None) -> list[str]:
                     or committed.tobytes() != want.tobytes():
                 problems.append(f"{label} differs from a fresh bake")
     problems.extend(_check_geometry())
+    problems.extend(_check_hero_identity())
     problems.extend(_check_facing_distinctness())
     problems.extend(_check_variant_distinctness())
     problems.extend(_check_scatter_ink())
@@ -1881,6 +2438,98 @@ def _check_geometry() -> list[str]:
                 problems.append(
                     f"{biome}_props.png variant {variant} "
                     f"feet at {bottom}, want 149..170")
+    return problems
+
+
+def _check_hero_identity() -> list[str]:
+    """One head per hero and facing, standing sides, breathing torsos.
+
+    Idle row 0 carries the walk row-0 head byte-identical (both side
+    columns mirror the same way, so right compares directly); idle frames
+    keep the head
+    rows and the below-hips rows identical while the torso band visibly
+    breathes; side idle stands on overlapped profile feet in a narrow
+    stance extent and mirrors left to right exactly. The old mismatched
+    side profile (a
+    turnaround head much wider than the donor), the old whole-body breath
+    (head and soles shifting every frame), and the frozen contact stride
+    (feet split fore and aft) fail here, not silently.
+    """
+    problems: list[str] = []
+    for hero in HEROES:
+        idle_path = HERO_ROOT / hero / "idle.png"
+        walk_path = HERO_ROOT / hero / "walk.png"
+        if not idle_path.is_file() or not walk_path.is_file():
+            continue
+        idle = Image.open(idle_path).convert("RGBA")
+        walk = Image.open(walk_path).convert("RGBA")
+        neck = HERO_IDLE_NECK[hero]
+        hips = HERO_IDLE_HIPS[hero]
+        for direction in range(4):
+            rest = idle.crop((direction * 144, 0,
+                              direction * 144 + 144, 192))
+            reference = walk.crop((direction * 144, 0,
+                                   direction * 144 + 144, 192))
+            if _flat_bytes(rest.crop((0, 0, 144, neck))) \
+                    != _flat_bytes(reference.crop((0, 0, 144, neck))):
+                problems.append(
+                    f"heroes/{hero}/idle.png column {direction} head "
+                    f"differs from its walk frame")
+            for frame in (1, 2, 3):
+                cell = idle.crop((direction * 144, frame * 192,
+                                  direction * 144 + 144, frame * 192 + 192))
+                if _flat_bytes(cell.crop((0, 0, 144, neck))) \
+                        != _flat_bytes(rest.crop((0, 0, 144, neck))):
+                    problems.append(
+                        f"heroes/{hero}/idle.png column {direction} "
+                        f"frame {frame} moves the head")
+                if _flat_bytes(cell.crop((0, hips, 144, 192))) \
+                        != _flat_bytes(rest.crop((0, hips, 144, 192))):
+                    problems.append(
+                        f"heroes/{hero}/idle.png column {direction} "
+                        f"frame {frame} moves the planted feet")
+            peak = idle.crop((direction * 144, 2 * 192,
+                              direction * 144 + 144, 2 * 192 + 192))
+            if _flat_bytes(peak.crop((0, neck, 144, hips))) \
+                    == _flat_bytes(rest.crop((0, neck, 144, hips))):
+                problems.append(
+                    f"heroes/{hero}/idle.png column {direction} "
+                    f"torso never breathes")
+        for direction, label in ((2, "left"), (3, "right")):
+            rest = idle.crop((direction * 144, 0,
+                              direction * 144 + 144, 192))
+            feet = _sole_feet(rest)
+            if not feet:
+                problems.append(
+                    f"heroes/{hero}/idle.png {label} stands on 0 feet")
+                continue
+            extent = feet[-1][1] - feet[0][0] + 1
+            # Profile feet overlap in x with a small near/far offset, so one
+            # merged sole run is the honest shape; a split run pair with a
+            # wide gap is the old contact stride. Contact donors span 56-68px
+            # while gathered stances span 26-38px, so the stance extent must
+            # sit between: narrow enough to reject the stride, wide enough
+            # that a single narrow boot cannot pass (keeper's sparkle fringe
+            # is the documented exception, guarded by the in-bake two-piece
+            # placement asserts and 4x inspection instead).
+            if extent > 46:
+                problems.append(
+                    f"heroes/{hero}/idle.png {label} stance extent "
+                    f"{extent}px, want <= 46")
+            if extent < 20:
+                problems.append(
+                    f"heroes/{hero}/idle.png {label} stance extent "
+                    f"{extent}px, want >= 20")
+            if len(feet) == 2 and feet[1][0] - feet[0][1] > 12:
+                problems.append(
+                    f"heroes/{hero}/idle.png {label} stance gap "
+                    f"{feet[1][0] - feet[0][1]}px, want <= 12")
+        left = idle.crop((2 * 144, 0, 3 * 144, 192 * 4))
+        right = idle.crop((3 * 144, 0, 4 * 144, 192 * 4))
+        mirror = left.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        if mirror.tobytes() != right.tobytes():
+            problems.append(
+                f"heroes/{hero}/idle.png right is not the left mirror")
     return problems
 
 

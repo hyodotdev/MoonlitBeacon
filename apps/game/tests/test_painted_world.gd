@@ -137,7 +137,7 @@ func _test_heroes() -> void:
 				"%s %s sheet size" % [hero_id, state])
 			_test_facing_columns(
 				sheet, HERO_CELL, 4, 4, "%s %s" % [hero_id, state],
-				state == "walk")
+				true)
 
 
 func _test_spirits() -> void:
@@ -267,9 +267,11 @@ func _test_facing_columns(
 				_regions_equal(
 					image, first_frames[first], image, first_frames[second]),
 				"%s directions %d and %d distinct" % [label, first, second])
-	# Columns are down, up, left, right. A mirrored front is not a back view,
-	# and mirrored sides are not true turnarounds either — except the
-	# hero walk stride, whose right column mirrors the left by design.
+	# Columns are down, up, left, right. A mirrored front is not a back
+	# view. Hero sides mirror by design in both states: the walk stride
+	# and the standing idle share one painted side donor per hero, and
+	# the right column is its exact mirror, so the character reads the
+	# same facing left or right. Down/up stay true turnarounds.
 	_expect_false(
 		_regions_equal_flipped(
 			image, first_frames[0], image, first_frames[1]),

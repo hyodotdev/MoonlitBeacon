@@ -58,6 +58,17 @@ const PRODUCTION_SECONDS: float = 10.5
 const PRODUCTION_INTERVAL: float = 0.2
 const FRAMING_SECONDS: float = 3.0
 const FRAMING_INTERVAL: float = 0.3
+## Canonical-head boundary per hero, in cell rows: the walk/idle bake
+## holds rows [0, neck) pixel-fixed across every frame, so locomotion
+## is measured below it, where the legs work. Restates the packer's
+## HERO_IDLE_NECK; the head suite guards the fixed band itself.
+const HERO_NECK: Dictionary = {
+	"warden": 130, "dancer": 130, "keeper": 128,
+	"knight": 120, "eclipse": 126, "sage": 118,
+}
+## Minimum below-neck pixels changing between consecutive walk frames.
+## Measured 2339-4210 across the roster; a frozen walk changes none.
+const MIN_STEP_MOTION: int = 1000
 
 var _failed: int = 0
 var _checked: int = 0
@@ -178,20 +189,20 @@ func _test_paint_tables() -> void:
 				== measured,
 				"paint: %s walk column %d is %s" % [
 					hero_id, facing, measured])
-			# Walk frames must read as locomotion: distinct stride
-			# bounds across the row, every foot landing on the same
-			# ground line the grounding math plants.
-			var downs: Array = []
+			# Walk frames must read as locomotion: the body below the
+			# canonical head repaints every step, and every foot lands
+			# on the same ground line the grounding math plants.
+			# Bounds alone cannot see it: the fixed head dominates the
+			# extremes while the stride works inside them.
+			var neck: int = int(HERO_NECK[hero_id])
 			for frame in 4:
-				downs.append(_measure_frame(walk, facing, frame))
-			var distinct: Dictionary = {}
-			for bounds in downs:
-				distinct[bounds] = true
-			_expect_true(distinct.size() >= 3,
-				"paint: %s walk column %d strides, not a still" % [
-					hero_id, facing])
-			for bounds in downs:
-				_expect_true((bounds as Rect2i).end.y == 192,
+				var moved: int = _step_motion(
+					walk, facing, frame, (frame + 1) % 4, neck)
+				_expect_true(moved >= MIN_STEP_MOTION,
+					"paint: %s walk column %d step %d strides (%dpx)" % [
+						hero_id, facing, frame, moved])
+				_expect_true(
+					_measure_frame(walk, facing, frame).end.y == 192,
 					"paint: %s walk lands its feet" % hero_id)
 
 
@@ -224,6 +235,22 @@ func _measure_frame(image: Image, column: int, frame: int) -> Rect2i:
 				hi.x = maxi(hi.x, x)
 				hi.y = maxi(hi.y, y)
 	return Rect2i(lo, hi - lo + Vector2i(1, 1))
+
+
+## Pixels repainted below the canonical head between two walk frames
+## of one column: the stride's own motion, head excluded.
+func _step_motion(
+	image: Image, column: int, first: int, second: int, neck: int
+) -> int:
+	var a := Vector2i(column * 144, first * 192)
+	var b := Vector2i(column * 144, second * 192)
+	var moved: int = 0
+	for y in range(neck, 192):
+		for x in 144:
+			if image.get_pixel(a.x + x, a.y + y) \
+					!= image.get_pixel(b.x + x, b.y + y):
+				moved += 1
+	return moved
 
 
 ## One long watch of the real title at rest: travel, pace, sheet and
@@ -544,29 +571,27 @@ func _check_grounding(
 
 ## The pinned paint table for one pose, the same lookup the forecourt
 ## grounds itself on.
-func _pose_bounds(hero_id: String, sheet: int, facing: int) -> Rect2i:
-	var table: Dictionary = GateHeroForecourt.PAINT_DOWN
-	if sheet == GateHeroForecourt.SHEET_WALK:
-		match facing:
-			GateHeroForecourt.FACING_UP:
-				table = GateHeroForecourt.PAINT_WALK_UP
-			GateHeroForecourt.FACING_LEFT:
-				table = GateHeroForecourt.PAINT_WALK_LEFT
-			GateHeroForecourt.FACING_RIGHT:
-				table = GateHeroForecourt.PAINT_WALK_RIGHT
-			_:
-				table = GateHeroForecourt.PAINT_WALK_DOWN
-	else:
-		match facing:
-			GateHeroForecourt.FACING_UP:
-				table = GateHeroForecourt.PAINT_IDLE_UP
-			GateHeroForecourt.FACING_LEFT:
-				table = GateHeroForecourt.PAINT_LEFT
-			GateHeroForecourt.FACING_RIGHT:
-				table = GateHeroForecourt.PAINT_IDLE_RIGHT
-			_:
-				table = GateHeroForecourt.PAINT_DOWN
-	return table[hero_id] as Rect2i
+## Expected grounding bounds: the idle|walk union per facing,
+## recomputed from the tables. Stops and same-facing departures share
+## one bounds, so the actor never rescales or lifts mid-transition.
+func _pose_bounds(hero_id: String, _sheet: int, facing: int) -> Rect2i:
+	var idle_table: Dictionary = GateHeroForecourt.PAINT_DOWN
+	var walk_table: Dictionary = GateHeroForecourt.PAINT_WALK_DOWN
+	match facing:
+		GateHeroForecourt.FACING_UP:
+			idle_table = GateHeroForecourt.PAINT_IDLE_UP
+			walk_table = GateHeroForecourt.PAINT_WALK_UP
+		GateHeroForecourt.FACING_LEFT:
+			idle_table = GateHeroForecourt.PAINT_LEFT
+			walk_table = GateHeroForecourt.PAINT_WALK_LEFT
+		GateHeroForecourt.FACING_RIGHT:
+			idle_table = GateHeroForecourt.PAINT_IDLE_RIGHT
+			walk_table = GateHeroForecourt.PAINT_WALK_RIGHT
+	var merged := Rect2(idle_table[hero_id] as Rect2i).merge(
+		Rect2(walk_table[hero_id] as Rect2i))
+	# Both sheets ground on the union: the sheet selects the texture
+	# column elsewhere, never the bounds.
+	return Rect2i(Vector2i(merged.position), Vector2i(merged.size))
 
 
 ## Nearer feet draw over farther ones: the sort key is the ground

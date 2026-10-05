@@ -120,54 +120,57 @@ const FIRST_DWELL_STEP: float = 0.3
 ## Union opaque bounds (alpha >= 32) across the four frames of one
 ## facing column, in cell-local sheet pixels. Measured from the
 ## committed sheets; the state suite re-measures the idle down/left
-## tables and the party suite re-measures the rest.
+## tables and the party suite re-measures the rest. Grounding and scale
+## use the idle|walk union per facing, so a stop or a same-facing
+## departure never rescales or lifts the actor: only the texture column
+## and the frame change, on identical bounds.
 const PAINT_DOWN: Dictionary = {
-	"warden": Rect2i(32, 82, 80, 110),
-	"dancer": Rect2i(34, 82, 75, 110),
-	"keeper": Rect2i(33, 82, 78, 110),
-	"knight": Rect2i(44, 82, 57, 110),
-	"eclipse": Rect2i(31, 82, 82, 110),
-	"sage": Rect2i(39, 82, 65, 110),
+	"warden": Rect2i(32, 83, 79, 109),
+	"dancer": Rect2i(35, 84, 73, 108),
+	"keeper": Rect2i(34, 84, 76, 108),
+	"knight": Rect2i(44, 84, 56, 108),
+	"eclipse": Rect2i(32, 84, 80, 108),
+	"sage": Rect2i(40, 84, 63, 108),
 }
 const PAINT_LEFT: Dictionary = {
-	"warden": Rect2i(34, 82, 77, 110),
-	"dancer": Rect2i(32, 82, 80, 110),
-	"keeper": Rect2i(37, 82, 70, 110),
-	"knight": Rect2i(36, 82, 71, 110),
-	"eclipse": Rect2i(32, 82, 79, 110),
-	"sage": Rect2i(37, 82, 69, 110),
+	"warden": Rect2i(49, 84, 72, 108),
+	"dancer": Rect2i(41, 84, 72, 108),
+	"keeper": Rect2i(33, 84, 75, 108),
+	"knight": Rect2i(52, 84, 72, 108),
+	"eclipse": Rect2i(47, 84, 79, 108),
+	"sage": Rect2i(45, 85, 58, 107),
 }
 const PAINT_IDLE_UP: Dictionary = {
-	"warden": Rect2i(30, 82, 84, 110),
-	"dancer": Rect2i(29, 82, 84, 110),
-	"keeper": Rect2i(34, 82, 76, 110),
-	"knight": Rect2i(38, 82, 67, 110),
-	"eclipse": Rect2i(29, 82, 86, 110),
-	"sage": Rect2i(37, 82, 69, 110),
+	"warden": Rect2i(31, 84, 82, 108),
+	"dancer": Rect2i(30, 83, 83, 109),
+	"keeper": Rect2i(35, 84, 74, 108),
+	"knight": Rect2i(39, 84, 65, 108),
+	"eclipse": Rect2i(30, 84, 84, 108),
+	"sage": Rect2i(38, 84, 67, 108),
 }
 const PAINT_IDLE_RIGHT: Dictionary = {
-	"warden": Rect2i(31, 81, 82, 111),
-	"dancer": Rect2i(32, 82, 79, 110),
-	"keeper": Rect2i(36, 82, 72, 110),
-	"knight": Rect2i(37, 82, 70, 110),
-	"eclipse": Rect2i(32, 82, 80, 110),
-	"sage": Rect2i(38, 82, 68, 110),
+	"warden": Rect2i(23, 84, 72, 108),
+	"dancer": Rect2i(31, 84, 72, 108),
+	"keeper": Rect2i(36, 84, 75, 108),
+	"knight": Rect2i(20, 84, 72, 108),
+	"eclipse": Rect2i(18, 84, 79, 108),
+	"sage": Rect2i(41, 85, 58, 107),
 }
 const PAINT_WALK_DOWN: Dictionary = {
 	"warden": Rect2i(32, 83, 80, 109),
-	"dancer": Rect2i(33, 84, 77, 108),
+	"dancer": Rect2i(35, 84, 73, 108),
 	"keeper": Rect2i(33, 84, 78, 108),
 	"knight": Rect2i(44, 84, 56, 108),
 	"eclipse": Rect2i(30, 84, 83, 108),
 	"sage": Rect2i(40, 84, 63, 108),
 }
 const PAINT_WALK_UP: Dictionary = {
-	"warden": Rect2i(30, 84, 83, 108),
-	"dancer": Rect2i(30, 83, 84, 109),
-	"keeper": Rect2i(35, 84, 74, 108),
-	"knight": Rect2i(39, 84, 65, 108),
+	"warden": Rect2i(30, 84, 84, 108),
+	"dancer": Rect2i(30, 83, 83, 109),
+	"keeper": Rect2i(34, 84, 75, 108),
+	"knight": Rect2i(39, 84, 66, 108),
 	"eclipse": Rect2i(30, 84, 84, 108),
-	"sage": Rect2i(38, 83, 67, 109),
+	"sage": Rect2i(38, 84, 67, 108),
 }
 const PAINT_WALK_LEFT: Dictionary = {
 	"warden": Rect2i(41, 84, 81, 108),
@@ -175,7 +178,7 @@ const PAINT_WALK_LEFT: Dictionary = {
 	"keeper": Rect2i(29, 84, 81, 108),
 	"knight": Rect2i(38, 84, 86, 108),
 	"eclipse": Rect2i(38, 84, 90, 108),
-	"sage": Rect2i(36, 84, 73, 108),
+	"sage": Rect2i(36, 85, 73, 107),
 }
 const PAINT_WALK_RIGHT: Dictionary = {
 	"warden": Rect2i(22, 84, 81, 108),
@@ -183,7 +186,7 @@ const PAINT_WALK_RIGHT: Dictionary = {
 	"keeper": Rect2i(34, 84, 81, 108),
 	"knight": Rect2i(20, 84, 86, 108),
 	"eclipse": Rect2i(16, 84, 90, 108),
-	"sage": Rect2i(35, 84, 73, 108),
+	"sage": Rect2i(35, 85, 73, 107),
 }
 ## The gate mouth in painting pixels, read off the committed master: the
 ## portal glow the party must never cover. Mapped through the same
@@ -383,29 +386,32 @@ func _build_actors() -> void:
 
 func _paint_bounds(hero: Hero, sheet: int, facing: int) -> Rect2i:
 	var hero_id: String = WeaponRig.painted_name(hero.attack_profile)
-	var table: Dictionary
-	if sheet == SHEET_WALK:
-		match facing:
-			FACING_UP:
-				table = PAINT_WALK_UP
-			FACING_LEFT:
-				table = PAINT_WALK_LEFT
-			FACING_RIGHT:
-				table = PAINT_WALK_RIGHT
-			_:
-				table = PAINT_WALK_DOWN
-	else:
-		match facing:
-			FACING_UP:
-				table = PAINT_IDLE_UP
-			FACING_LEFT:
-				table = PAINT_LEFT
-			FACING_RIGHT:
-				table = PAINT_IDLE_RIGHT
-			_:
-				table = PAINT_DOWN
-	if table.has(hero_id):
-		return table[hero_id] as Rect2i
+	var idle_table: Dictionary
+	var walk_table: Dictionary
+	match facing:
+		FACING_UP:
+			idle_table = PAINT_IDLE_UP
+			walk_table = PAINT_WALK_UP
+		FACING_LEFT:
+			idle_table = PAINT_LEFT
+			walk_table = PAINT_WALK_LEFT
+		FACING_RIGHT:
+			idle_table = PAINT_IDLE_RIGHT
+			walk_table = PAINT_WALK_RIGHT
+		_:
+			idle_table = PAINT_DOWN
+			walk_table = PAINT_WALK_DOWN
+	if idle_table.has(hero_id) and walk_table.has(hero_id):
+		# One bounds per facing for both sheets: arrivals and departures
+		# keep their scale, feet and hold. The sheet argument only selects
+		# the texture column and frame row elsewhere.
+		var merged := Rect2(idle_table[hero_id] as Rect2i).merge(
+			Rect2(walk_table[hero_id] as Rect2i))
+		return Rect2i(Vector2i(merged.position), Vector2i(merged.size))
+	if sheet == SHEET_WALK and walk_table.has(hero_id):
+		return walk_table[hero_id] as Rect2i
+	if sheet != SHEET_WALK and idle_table.has(hero_id):
+		return idle_table[hero_id] as Rect2i
 	return Rect2i(Vector2i.ZERO, hero.sprite_cell)
 
 

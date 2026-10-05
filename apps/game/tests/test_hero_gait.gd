@@ -8,9 +8,11 @@ extends SceneTree
 ## contact rows plant two feet wide apart with the near (lighter) boot
 ## trading sides between rows 0 and 2, recover rows narrow onto one
 ## support, heads and torsos hold still, no side cell clips its gutters,
-## and idle, portraits and down/up walk columns keep their old bytes.
-## Thresholds come from the baked sheets with room to spare; see
-## notes/workflow/muse/gait-131-implementation.md for the measurements.
+## and the idle, portrait and down/up walk bytes keep their committed
+## hash. Brief 186 rebuilt the idle stance (standing, not striding) and
+## fitted each down/up column at one scale, so the hash locks the new
+## standing art. Thresholds come from the baked sheets with room to
+## spare; see notes/workflow/muse/gait-131-implementation.md.
 ##
 ## Direct-callable: `pnpm godot:isolated --script res://tests/test_hero_gait.gd`.
 
@@ -39,17 +41,18 @@ const TORSO_W_WOBBLE: int = 6
 ## Frame-contract gutters: side cells keep 4px left/right/top clear.
 const GUTTER_SIDE: int = 4
 const GUTTER_TOP: int = 4
-## Preserved bytes per hero: SHA-256 over idle.png file bytes, then
+## Committed bytes per hero: SHA-256 over idle.png file bytes, then
 ## portrait.png file bytes, then the decoded walk down/up columns
-## (x0-288) RGBA bytes. The side columns are the only walk bytes this
-## round may change.
+## (x0-288) RGBA bytes. Minted from the standing-stance bake with one
+## canonical head per column; any drift in the idle stance, the
+## portrait, the down/up columns or a walk head fails here.
 const PRESERVED: Dictionary = {
-	"warden": "3fd4c26096ab16ac4d99b7f83d8575b10e8be5c596dd5701219705cedb324935",
-	"dancer": "defa47492b1f9be98207b23c0dcfa7c6ffafb281387b2f9ca04d05857f41f06d",
-	"keeper": "d6c81c4aa7abadc0476455540fa952347bca1408e64d34c45641efebf612e32c",
-	"knight": "87d600b130fb805a58baa0b50be681f12b364b9539f205c58a551bd2b71bb4ff",
-	"eclipse": "433010be1a948002954d854f7eb8f5cc688714c6915d18f1ff0215fa018bdd0b",
-	"sage": "2c3f0f78f3e67cdfafbdb867dc33a7ad4c7e36a5dc0a6c2d4c250a5c5307c681",
+	"warden": "e5f027b553e27a5993e7355b99d11bf4373601864a62027092e3a206093416c0",
+	"dancer": "21ca3c920ca4d69ce6d7d57abba6e90b54242704d74864f9255598fc63952548",
+	"keeper": "fbd114d28ac86aabdc3e65c0451ce64d2d3ea16535d76b7adbf6763dd3651187",
+	"knight": "93b5232e2494ad96620f16677d941217ecde7184555081bf471cfac21643baaf",
+	"eclipse": "82c4efcf1cf8c2e552ec367d9c92654389a4246719e45bb8e3cd645427011c87",
+	"sage": "6db134b10e4b593d122e2c369dcd7986af65779d6d76d826d13d12f698a17932",
 }
 
 var _failed: int = 0
@@ -270,8 +273,8 @@ func _is_mirror(left: PackedByteArray, right: PackedByteArray) -> bool:
 	return true
 
 
-## Idle, portraits and down/up walk columns keep their old bytes: the
-## side columns are the only walk bytes this round may change.
+## Idle, portraits and down/up walk columns keep their committed bytes:
+## the stance bake minted them, and any drift fails here.
 func _test_preserved(hero_id: String) -> void:
 	var root: String = "res://assets/custom/actors/heroes/%s" % hero_id
 	var idle: PackedByteArray = FileAccess.get_file_as_bytes(

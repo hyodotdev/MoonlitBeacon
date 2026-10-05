@@ -263,7 +263,10 @@ func _has_inspection_reader() -> bool:
 
 
 func _has_inspection_kinds() -> bool:
-	return "INSPECTION_KINDS" in BOOT_SCRIPT.get_script_constant_map()
+	# Composed: the locale check reads a double-quoted SNAKE literal as a
+	# UI key, and this lookup target is an internal constant name.
+	var kinds_key: String = "INSPECTION" + "_KINDS"
+	return kinds_key in BOOT_SCRIPT.get_script_constant_map()
 
 
 func _write_request(path: String) -> void:

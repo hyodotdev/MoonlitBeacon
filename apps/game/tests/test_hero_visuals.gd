@@ -52,6 +52,40 @@ const PAID_HEROES: Array[String] = [
 ]
 const UI_LOCALES: Array[String] = ["en", "ko", "ja", "zh_CN", "zh_TW"]
 const MAX_HEALTH_LIMIT: int = 8
+## Canonical-head boundary per hero, in cell rows. Restates the packer's
+## HERO_IDLE_NECK; rows [0, neck) stay pixel-fixed through walk, idle
+## and the attack torso.
+const HERO_NECK: Dictionary = {
+	"warden": 130, "dancer": 130, "keeper": 128,
+	"knight": 120, "eclipse": 126, "sage": 118,
+}
+## Alpha floor for the head-identity box, 0-1. Matches the bake audit.
+const HEAD_INK: float = 64.0 / 255.0
+## Alpha floor for sole runs, 0-1. Matches the packer's stance audit.
+const SOLE_INK: float = 8.0 / 255.0
+## Head-band rows dropped from the attack-torso comparison: the torso
+## bake cuts the arms out of the shoulder rows, so the torso guards
+## the face, skull and crown while walk/idle guard the chin baseline.
+const TORSO_FACE_DROP: int = 10
+## Side-stance sole extent bounds, cell px. Gathered profile feet span
+## 26-38 while the old contact stride spans 56-68; a single narrow
+## boot spans under 20.
+const STANCE_EXTENT_MIN: int = 20
+const STANCE_EXTENT_MAX: int = 46
+## Front/back stance: two sole runs with at most this gap between the
+## inner edges, centered on the stance middle within FRONT_MID_TOL.
+const FRONT_BOOT_GAP: int = 8
+const FRONT_MID_TOL: float = 6.0
+const FRONT_CENTER_DEFAULT: int = 72
+const FRONT_CENTER: Dictionary = {
+	"warden_up": 67, "knight_up": 66,
+}
+const FACING_NAMES: Array[String] = ["down", "up", "left", "right"]
+const FACING_AIMS: Array[Vector2] = [
+	Vector2.DOWN, Vector2.UP, Vector2.LEFT, Vector2.RIGHT]
+## Heroes whose primary attack is the melee swing (the split shows
+## straight from attack()); ranged primaries fire through the cast.
+const MELEE_IDS: Array[String] = ["warden", "dancer", "eclipse"]
 
 var _failed: int = 0
 var _checked: int = 0
@@ -85,6 +119,8 @@ func _run() -> void:
 	_test_paid_hero_descriptions()
 	_test_moonlight_cast(player)
 	_test_weapon_rig(player)
+	_test_canonical_heads(player, sprite)
+	_test_standing_stances()
 
 	player.queue_free()
 	await process_frame
@@ -183,6 +219,260 @@ func _test_applied_hero(
 						CELL.x,
 						CELL.y),
 					"%s %s[%d]" % [hero_id, animation, frame_index])
+
+
+## One canonical head per hero and facing through every walk frame,
+## every idle frame and the attack torso: the skull, face and baseline
+## never move while the legs work. Reads the production PNGs and the
+## runtime atlas assemblies alike, so a sheet swap or a mis-seated
+## torso fails here, not silently.
+func _test_canonical_heads(player: Player, sprite: AnimatedSprite2D) -> void:
+	for hero_case in HERO_CASES:
+		var hero_id: String = str(hero_case["id"])
+		var neck: int = int(HERO_NECK[hero_id])
+		var walk: Image = Image.load_from_file(
+			"res://assets/custom/actors/heroes/%s/walk.png" % hero_id)
+		var idle: Image = Image.load_from_file(
+			"res://assets/custom/actors/heroes/%s/idle.png" % hero_id)
+		_expect_true(walk != null and idle != null,
+			"%s stance sheets load" % hero_id)
+		if walk == null or idle == null:
+			continue
+		for facing in 4:
+			var tag: String = "%s %s" % [hero_id, FACING_NAMES[facing]]
+			var canon: PackedByteArray = _band_bytes(
+				walk, facing, 0, neck)
+			var canon_box: Rect2i = _head_box(walk, facing, 0, neck)
+			for frame in range(1, 4):
+				_expect_bands_equal(
+					_band_bytes(walk, facing, frame, neck), canon,
+					"%s walk frame %d keeps its head" % [tag, frame])
+				_expect_equal(
+					_head_box(walk, facing, frame, neck), canon_box,
+					"%s walk frame %d holds its head box" % [tag, frame])
+			for frame in 4:
+				_expect_bands_equal(
+					_band_bytes(idle, facing, frame, neck), canon,
+					"%s idle frame %d shares the walk head" % [tag, frame])
+				_expect_equal(
+					_head_box(idle, facing, frame, neck), canon_box,
+					"%s idle frame %d holds its head box" % [tag, frame])
+			var torso: Image = Image.load_from_file(
+				"res://assets/custom/actors/heroes/%s/rig/torso_%s.png"
+				% [hero_id, FACING_NAMES[facing]])
+			_expect_true(torso != null,
+				"%s attack torso loads" % tag)
+			if torso != null:
+				var face: int = neck - TORSO_FACE_DROP
+				_expect_bands_equal(
+					torso.get_region(
+						Rect2i(0, 0, CELL.x, face)).get_data(),
+					_band_bytes(walk, facing, 0, face),
+					"%s attack torso wears the walk face" % tag)
+	_test_runtime_heads(player, sprite)
+
+
+## The runtime assemblies share heads too: walk frame 0 and idle frame
+## 0 draw the same head bytes per facing, and the live attack torso
+## wears them while the split shows.
+func _test_runtime_heads(player: Player, sprite: AnimatedSprite2D) -> void:
+	for hero_case in HERO_CASES:
+		var hero_id: String = str(hero_case["id"])
+		var hero: Hero = load(str(hero_case["resource"])) as Hero
+		if hero == null:
+			continue
+		player.apply_hero_visual(hero)
+		var neck: int = int(HERO_NECK[hero_id])
+		var frames: SpriteFrames = sprite.sprite_frames
+		if frames == null:
+			continue
+		for facing in 4:
+			var direction: StringName = DIRECTIONS[facing]
+			var walk_tex: AtlasTexture = frames.get_frame_texture(
+				StringName("walk_%s" % direction), 0) as AtlasTexture
+			var idle_tex: AtlasTexture = frames.get_frame_texture(
+				StringName("idle_%s" % direction), 0) as AtlasTexture
+			_expect_true(walk_tex != null and idle_tex != null,
+				"%s %s runtime frames hang" % [hero_id, direction])
+			if walk_tex == null or idle_tex == null:
+				continue
+			_expect_bands_equal(
+				_atlas_band(walk_tex, neck), _atlas_band(idle_tex, neck),
+				"%s %s stop keeps the moving head" % [hero_id, direction])
+		_test_attack_heads(player, hero_id, neck)
+
+
+func _test_attack_heads(
+	player: Player, hero_id: String, neck: int
+) -> void:
+	var torso_node: Sprite2D = player.get_node("AttackTorso") as Sprite2D
+	_expect_true(torso_node != null, "%s attack torso node" % hero_id)
+	if torso_node == null:
+		return
+	for facing in 4:
+		if hero_id in MELEE_IDS:
+			player.set("_attack_cooldown", 0.0)
+			player.attack(FACING_AIMS[facing])
+		else:
+			player.play_moonlight_cast(FACING_AIMS[facing], 1)
+		player.call("_update_attack_pose", 1.0 / 120.0)
+		var tag: String = "%s %s" % [hero_id, FACING_NAMES[facing]]
+		_expect_true(torso_node.visible, "%s torso shows" % tag)
+		var worn: Texture2D = torso_node.texture
+		_expect_true(worn != null, "%s torso wears paint" % tag)
+		if worn == null:
+			continue
+		var paint: Image = worn.get_image()
+		_expect_true(paint != null, "%s torso paint reads" % tag)
+		if paint == null:
+			continue
+		# Geometry, not bytes: the import pipeline owns the texture
+		# encoding, while the file check above locks the exact face.
+		var file_torso: Image = Image.load_from_file(
+			"res://assets/custom/actors/heroes/%s/rig/torso_%s.png"
+			% [hero_id, FACING_NAMES[facing]])
+		_expect_true(file_torso != null, "%s torso file reads" % tag)
+		if file_torso == null:
+			continue
+		_expect_equal(_flat_head_box(paint, neck),
+			_flat_head_box(file_torso, neck),
+			"%s attack keeps the walk face box" % tag)
+
+
+## Every idle facing stands: front/back plant two boots with a small
+## gap under the garment middle, sides gather overlapped profile feet
+## in a narrow extent. Reads idle row 0, the pose stops land on.
+func _test_standing_stances() -> void:
+	for hero_case in HERO_CASES:
+		var hero_id: String = str(hero_case["id"])
+		var idle: Image = Image.load_from_file(
+			"res://assets/custom/actors/heroes/%s/idle.png" % hero_id)
+		_expect_true(idle != null, "%s idle loads" % hero_id)
+		if idle == null:
+			continue
+		for facing in [0, 1]:
+			var tag: String = "%s %s" % [hero_id, FACING_NAMES[facing]]
+			var feet: Array = _sole_runs(idle, facing)
+			_expect_equal(feet.size(), 2,
+				"%s stands on two boots (%d)" % [tag, feet.size()])
+			if feet.size() != 2:
+				continue
+			var gap: int = int((feet[1] as Vector2i).x) \
+				- int((feet[0] as Vector2i).y)
+			_expect_true(gap <= FRONT_BOOT_GAP,
+				"%s boots stand together (%dpx)" % [tag, gap])
+			var middle: float = (
+				float((feet[0] as Vector2i).x) \
+				+ float((feet[1] as Vector2i).y)) * 0.5
+			var want: float = float(FRONT_CENTER.get(
+				"%s_%s" % [hero_id, FACING_NAMES[facing]],
+				FRONT_CENTER_DEFAULT))
+			_expect_true(absf(middle - want) <= FRONT_MID_TOL,
+				"%s boots plant under the middle (%.1f)" % [tag, middle])
+		for facing in [2, 3]:
+			var tag: String = "%s %s" % [hero_id, FACING_NAMES[facing]]
+			var feet: Array = _sole_runs(idle, facing)
+			_expect_true(feet.size() >= 1,
+				"%s plants its feet" % tag)
+			if feet.is_empty():
+				continue
+			var extent: int = int((feet[feet.size() - 1] as Vector2i).y) \
+				- int((feet[0] as Vector2i).x) + 1
+			_expect_true(extent >= STANCE_EXTENT_MIN \
+				and extent <= STANCE_EXTENT_MAX,
+				"%s stance gathers (%dpx)" % [tag, extent])
+
+
+## Two head bands match when no byte differs; the failure names the
+## count, not the arrays, so a mismatch stays one readable line.
+func _expect_bands_equal(
+	actual: PackedByteArray, expected: PackedByteArray, label: String
+) -> void:
+	_checked += 1
+	if actual.size() != expected.size():
+		_failed += 1
+		printerr("  FAIL ", label, " — size ", actual.size(),
+			" vs ", expected.size())
+		return
+	var differ: int = 0
+	for index in actual.size():
+		if actual[index] != expected[index]:
+			differ += 1
+	if differ > 0:
+		_failed += 1
+		printerr("  FAIL ", label, " — ", differ, " bytes differ")
+
+
+## Raw bytes of one cell's head band, rows [0, neck).
+func _band_bytes(image: Image, column: int, row: int, neck: int) -> PackedByteArray:
+	return image.get_region(Rect2i(
+		column * CELL.x, row * CELL.y, CELL.x, neck)).get_data()
+
+
+## Head-ink box above the neck at the audit alpha: position and size
+## both fixed when the head never moves.
+func _head_box(image: Image, column: int, row: int, neck: int) -> Rect2i:
+	var origin := Vector2i(column * CELL.x, row * CELL.y)
+	var lo := Vector2i(CELL.x, neck)
+	var hi := Vector2i(-1, -1)
+	for y in neck:
+		for x in CELL.x:
+			if image.get_pixel(origin.x + x, origin.y + y).a >= HEAD_INK:
+				lo.x = mini(lo.x, x)
+				lo.y = mini(lo.y, y)
+				hi.x = maxi(hi.x, x)
+				hi.y = maxi(hi.y, y)
+	return Rect2i(lo, hi - lo + Vector2i(1, 1))
+
+
+## Head-ink box over a single flat image (a torso strip), rows
+## [0, neck): the runtime import owns encodings, geometry must hold.
+func _flat_head_box(image: Image, neck: int) -> Rect2i:
+	var lo := Vector2i(image.get_width(), neck)
+	var hi := Vector2i(-1, -1)
+	for y in mini(neck, image.get_height()):
+		for x in image.get_width():
+			if image.get_pixel(x, y).a >= HEAD_INK:
+				lo.x = mini(lo.x, x)
+				lo.y = mini(lo.y, y)
+				hi.x = maxi(hi.x, x)
+				hi.y = maxi(hi.y, y)
+	return Rect2i(lo, hi - lo + Vector2i(1, 1))
+
+
+## Head band through a runtime atlas frame: the full sheet image cut
+## to the frame's own region, head rows only.
+func _atlas_band(atlas_texture: AtlasTexture, neck: int) -> PackedByteArray:
+	var sheet: Image = atlas_texture.atlas.get_image()
+	var region: Rect2 = atlas_texture.region
+	return sheet.get_region(Rect2i(
+		int(region.position.x), int(region.position.y),
+		CELL.x, neck)).get_data()
+
+
+## Planted feet as x-runs: columns inked in at least two of the
+## bottom eight rows group into runs; runs under 4px wide are fringe.
+func _sole_runs(image: Image, column: int) -> Array:
+	var origin := Vector2i(column * CELL.x, 0)
+	var covered: Array[int] = []
+	covered.resize(CELL.x)
+	covered.fill(0)
+	for y in range(CELL.y - 8, CELL.y):
+		for x in CELL.x:
+			if image.get_pixel(origin.x + x, y).a >= SOLE_INK:
+				covered[x] += 1
+	var feet: Array = []
+	var start: int = -1
+	for x in CELL.x:
+		if covered[x] >= 2 and start < 0:
+			start = x
+		elif covered[x] < 2 and start >= 0:
+			if x - start >= 4:
+				feet.append(Vector2i(start, x - 1))
+			start = -1
+	if start >= 0 and CELL.x - start >= 4:
+		feet.append(Vector2i(start, CELL.x - 1))
+	return feet
 
 
 func _test_distinct_accents() -> void:
