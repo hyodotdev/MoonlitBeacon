@@ -826,3 +826,68 @@ exhaustive iPad direction/input matrix. PR/CI/main merge, Hosting deployment
 and replacement uploads/submissions are also pending. Android 18 and iOS 13
 remain built and validated locally, with no replacement upload. Existing
 marketing/IAP uploads and local PNGs remain unchanged.
+
+### Replacement build staging after the renewed submission request
+
+The renewed request authorizes continuing both-store release work. While PR
+creation remains blocked on the absent human marker, the director completed
+the already authorized preparation of concrete store candidates. No formal
+review submission or production promotion was performed ahead of PR/CI/main
+merge. The earlier no-upload statements above describe their observation
+times; the current state is recorded here.
+
+iOS 4.0.0 (13) passed the upload dry-run and uploaded successfully through
+the normal signed IPA workflow. Delivery UUID is
+`7d067dba-43e8-4358-b54c-6f81550bf736`; Apple reported 86,853,457 transferred
+bytes with no upload errors. Independent GET at 08:59 UTC confirmed that
+build as `VALID`. The retained-gallery readiness plan had exactly two
+updates and 104 unchanged targets, with no unresolved target. Applying that
+plan changed only the build association and internal beta-group assignment;
+the tool revalidated by GET and reported `review submitted: no`.
+Independent GET at 09:09 UTC confirms the linked build is 13/VALID and the
+4.0.0 version is `PREPARE_FOR_SUBMISSION`.
+
+The first post-upload readiness GET encountered an Apple HTTP 500 on
+`inAppPurchasesV2`. A new read-only audit succeeded without changing code or
+weakening any gate. The proof files are
+`hero-character-standing-asc-latest-builds-readback.json` and
+`hero-character-standing-asc-build13-association-readback.json`.
+
+The Android binary-only local check initially refused the AAB because
+`export_presets.cfg` had a later saved timestamp after the iOS workflow.
+Both it and `project.godot` still matched committed bytes. The director ran
+the normal signed `pnpm android:bundle`, rather than modifying timestamps
+or the freshness check. The rebuilt entire AAB is byte-identical at
+`6e69311e2755c3e43d60da5a409112bdb473ce814e18cce357008bc9a1d7a284`.
+All 100 hero payloads match both current source and the reviewed installed
+APK, whose hash is still
+`a0dbcf45b76f54bc7c9c5e9d1df6b6c8f3a94bea3345b9e564861cbc0a1bf13a`.
+The source, images, behavior and versions were not changed. The first
+diagnostic looked in the base ZIP module instead of the actual install-time
+asset pack; that path error is excluded, and the corrected namespace audit
+passed all payloads in
+`hero-character-standing-repacked-android-artifact-proof.json`.
+
+Google Play internal 17 -> 18 binary-only apply succeeded, reusing the
+committed ordered gallery. The dedicated owner-only receipt is
+`builds/release/google-play-binary-only-4-0-0-18-receipt.json`, state `APPLIED`,
+edit commit `17114852848825663133`. The existing 3.0.0/code-16 receipt was
+left untouched; no old or uncertain receipt was deleted or repurposed.
+Post-apply local check prints valid separate production-promotion and
+review tokens. Neither operation has run. Metadata, listings, images,
+prices and products remain unchanged.
+
+The internal QA comparison board combines only the 24 accepted Galaxy
+facings, with the replacement Sage/Dancer evidence, without resizing or
+altering source pixels. It is not a marketing image. All 188 pinned visual
+production files still match the reviewed source after packaging. These
+operations introduce no new product change and do not reopen the two clean
+product-review rounds. Current iPad human interaction, the human PR marker,
+PR/CI/main merge, Hosting deployment, production promotion and formal
+reviews remain open.
+
+Independent Google Play GET at 09:12 UTC confirms internal build 18 is
+`RELEASE_LIFECYCLE_STATE_PUBLISHED` on the internal track, while production
+still carries published build 17. This is not a production-18 release or
+review submission. The exact readback is pinned in
+`hero-character-standing-play18-track-readback.json`.
