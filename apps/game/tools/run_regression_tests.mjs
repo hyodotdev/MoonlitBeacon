@@ -102,6 +102,7 @@ const checks = [
   ['Production title capture forwards real title proof', ['res://tests/test_production_title_capture.tscn'], true, false],
   ['Store capture title-ready boot marker', ['res://tests/test_store_capture_title_ready.tscn'], true, false],
   ['Direct-distribution probe resolves the embedded title', ['res://tests/test_direct_distribution_title.tscn'], true, false],
+  ['Production title music detached lifecycle', ['res://tests/test_production_title_music.tscn'], true, false],
   ['Store capture hides debug UI', ['--script', 'res://tests/test_store_capture_clean_ui.gd'], true, false],
   ['Pixel 10 hero-direction capture board', ['res://tests/test_hero_direction_capture.tscn'], true, false],
   ['Result screen five-language layout', ['res://tests/test_result_layout.tscn'], true, false],

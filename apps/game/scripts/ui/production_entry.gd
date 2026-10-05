@@ -55,6 +55,7 @@ var _guest_chosen: bool = false
 var _confirm_card: PanelContainer = null
 var _hall_seq: int = 0
 var _hall_live_seq: int = 0
+var _music_seq: int = 0
 
 
 ## Tests and the exercise tool drive the entry against an injected host.
@@ -898,10 +899,21 @@ func _on_confirm_keep() -> void:
 	_confirm_card.visible = false
 
 
+## Title music intents are monotonic like the Hall ones: a start mints
+## its intent before the audible delay, a stop mints its own, and a
+## delayed or tweened landing older than the latest intent does nothing.
+## A start or stop that arrives detached is a silent no-op: there is no
+## tree for its timer or tween, and the players stay untouched.
 func _fade_in_music() -> void:
+	if not is_inside_tree():
+		return
+	_music_seq += 1
+	var intent: int = _music_seq
 	_bgm.volume_db = BGM_SILENCE_DB
 	await get_tree().create_timer(BGM_START_DELAY_SECONDS).timeout
 	if not is_inside_tree():
+		return
+	if intent != _music_seq:
 		return
 	_bgm.play()
 	var fade: Tween = create_tween()
@@ -909,10 +921,16 @@ func _fade_in_music() -> void:
 
 
 func _fade_out_music() -> void:
+	if not is_inside_tree():
+		return
+	_music_seq += 1
+	var intent: int = _music_seq
 	var fade: Tween = create_tween()
 	fade.tween_property(_bgm, "volume_db", BGM_SILENCE_DB, BGM_FADE_OUT_SECONDS)
 	await fade.finished
 	if not is_inside_tree():
+		return
+	if intent != _music_seq:
 		return
 	_bgm.release()
 	_sfx.release()
