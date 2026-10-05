@@ -3702,7 +3702,7 @@
       "width": 144,
       "height": 168,
       "alpha_mode": "graded",
-      "max_visible_rgb_colors": 3618,
+      "max_visible_rgb_colors": 3956,
       "max_alpha_levels": 220,
       "frame_grid": {
         "columns": 1,
@@ -3720,7 +3720,7 @@
       "width": 144,
       "height": 168,
       "alpha_mode": "graded",
-      "max_visible_rgb_colors": 3616,
+      "max_visible_rgb_colors": 3954,
       "max_alpha_levels": 224,
       "frame_grid": {
         "columns": 1,
@@ -4134,8 +4134,8 @@
       "width": 144,
       "height": 166,
       "alpha_mode": "graded",
-      "max_visible_rgb_colors": 2738,
-      "max_alpha_levels": 189,
+      "max_visible_rgb_colors": 2838,
+      "max_alpha_levels": 208,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
@@ -4152,8 +4152,8 @@
       "width": 144,
       "height": 166,
       "alpha_mode": "graded",
-      "max_visible_rgb_colors": 2830,
-      "max_alpha_levels": 190,
+      "max_visible_rgb_colors": 2837,
+      "max_alpha_levels": 209,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
@@ -4567,7 +4567,7 @@
       "height": 168,
       "alpha_mode": "graded",
       "max_visible_rgb_colors": 3384,
-      "max_alpha_levels": 198,
+      "max_alpha_levels": 203,
       "frame_grid": {
         "columns": 1,
         "rows": 1,
@@ -4585,7 +4585,7 @@
       "height": 168,
       "alpha_mode": "graded",
       "max_visible_rgb_colors": 3415,
-      "max_alpha_levels": 197,
+      "max_alpha_levels": 204,
       "frame_grid": {
         "columns": 1,
         "rows": 1,

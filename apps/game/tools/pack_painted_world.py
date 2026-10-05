@@ -258,6 +258,94 @@ HERO_FRONT_OVERLAP = 3
 ## boots plant at 67, under the garment instead of the notch. Knight's back
 ## legs mass left with the cape split right, so his boots plant at 66.
 HERO_FRONT_CENTER = {("warden", 1): 67, ("knight", 1): 66}
+## Static-garment keep for the side stance (brief 197): below-cut paint
+## that hangs while the legs gather must not rotate with the shins.
+## Knight's trailing cloak keeps per row right of its leg edge (row bands
+## to keep-from x); the gathered legs articulate beneath the hanging
+## cloth. Rows below the cloak tip keep nothing, so both boots always
+## plant from moved paint. Heroes without an entry keep the old behavior
+## byte-exact.
+HERO_STANCE_KEEP = {
+    "knight": ((156, 160, 80), (161, 165, 82), (166, 170, 84),
+               (171, 175, 90), (176, 177, 96)),
+}
+## Shin/garment split inside the staircase (brief 199): the knight's rear
+## shin crosses the lower staircase in cool neutral gray, while the only
+## cloth paint that low is the warm gold trim tip. Rows at or below the
+## split row keep only warm donor paint (red minus blue at least the
+## bias); rows above keep every blob pixel as before. Heroes without an
+## entry keep the old behavior byte-exact.
+HERO_STANCE_KEEP_SPLIT = {
+    "knight": (166, 18),
+}
+## Cross-facing head calibration (brief 196): the side-walk donors painted
+## the warden, knight and eclipse side heads about 15% smaller than their
+## frontal heads (face height 0.60-0.86 of front, skull width 0.74-0.89),
+## so turning visibly shrank the face. Each listed side head band scales
+## uniformly about its anchor (factor, anchor_x, anchor_y, head_bottom):
+## the face shape is preserved (no per-axis stretch, no frontal stamp)
+## and the grown head composites over the donor collar. Rows below the
+## scaled head and every arm-capsule row keep their exact bytes. Dancer,
+## keeper and sage already match across facings and have no entry here,
+## so their bytes never change.
+HERO_SIDE_HEAD_CAL = {
+    "warden": (1.18, 72, 84, 119),
+    "knight": (1.17, 73, 100, 115),
+    "eclipse": (1.19, 66, 84, 118),
+}
+## Audited face-core windows per hero and facing (down, side), in cell
+## pixels: skin only, clear of hairlines, hood trim, ears and neck. The
+## side windows fit the calibrated heads; the old smaller side faces sit
+## inside them and read short, which is what the check below catches.
+## Keeper has no face window: the beard mass runs continuous past the
+## neck with no measurable chin, so the skull width alone is pinned.
+HERO_FACE_CORE = {
+    "warden": {0: (62, 106, 88, 126), 2: (50, 100, 76, 123)},
+    "dancer": {0: (62, 104, 84, 122), 2: (50, 102, 62, 122)},
+    "knight": {0: (63, 102, 82, 118), 2: (55, 94, 74, 118)},
+    "eclipse": {0: (62, 107, 82, 121), 2: (52, 101, 70, 123)},
+    "sage": {0: (62, 107, 80, 117), 2: (54, 104, 70, 115)},
+}
+## A core row counts toward the face when it holds this many skin pixels.
+HERO_FACE_ROW_INK = 6
+## Minimum side/down visible-face-height ratio per hero. A profile never
+## foreshortens vertically, so calibrated sides read at or above their
+## frontal height; narrow profile faces taper, so fewer rows qualify and
+## each bound sits between the old defective ratio and the corrected one
+## with room on both sides (warden 0.80/1.15, knight 0.60/1.00, eclipse
+## 0.86/1.00). Side-swept hair covers the sage profile forehead, hence
+## the lower bound at the audited 0.80.
+HERO_FACE_MIN = {
+    "warden": 0.95, "dancer": 0.85, "knight": 0.80,
+    "eclipse": 0.93, "sage": 0.72,
+}
+## Skull-width sample: x window (tails and pigtails excluded; the keeper
+## window keeps the whole head-plus-beard mass as one stable span) and
+## eye/temple-level rows whose median opaque span is the skull.
+HERO_SKULL_X = {
+    "warden": {0: (45, 105), 2: (44, 102)},
+    "dancer": {0: (46, 98), 2: (42, 90)},
+    "keeper": {0: (36, 108), 2: (36, 108)},
+    "knight": {0: (48, 96), 2: (46, 96)},
+    "eclipse": {0: (44, 102), 2: (42, 92)},
+    "sage": {0: (50, 90), 2: (42, 82)},
+}
+HERO_SKULL_ROWS = {
+    "warden": {0: (114, 122), 2: (105, 113)},
+    "dancer": {0: (109, 117), 2: (106, 114)},
+    "keeper": {0: (108, 114), 2: (108, 114)},
+    "knight": {0: (104, 112), 2: (99, 107)},
+    "eclipse": {0: (108, 116), 2: (104, 112)},
+    "sage": {0: (106, 114), 2: (103, 111)},
+}
+## Minimum side/down skull-width ratio per hero. Chibi skulls read near
+## spherical, so the profile skull keeps most of the frontal width; each
+## corrected hero sits between the old defective ratio and the corrected
+## one (warden 0.74/0.91, knight 0.89/1.05, eclipse 0.88/0.96).
+HERO_SKULL_MIN = {
+    "warden": 0.85, "dancer": 0.90, "keeper": 0.90,
+    "knight": 0.95, "eclipse": 0.92, "sage": 0.90,
+}
 SPIRIT_BREATHES = (1.0, 1.012, 1.02, 1.012)
 GUARDIAN_IDLE_SCALES = (1.0, 1.008, 1.012, 1.008, 1.0, 0.996)
 GUARDIAN_STATE_SCALES = {
@@ -1292,9 +1380,11 @@ def _gather_stance(
     the boot below the ankle translates flat to its footing, so the near
     boot lands slightly forward of the far boot with both soles level on
     the ground. Cloak tips and sashes (blobs ending above row 178) stay
-    where the wind left them. Rows above the cut plus the overlap come from
-    the base untouched; swung thigh paint never reaches the head rows,
-    which the assert below pins byte-identical.
+    where the wind left them, and HERO_STANCE_KEEP garment rows paste back
+    over the shins, so hanging cloth keeps its donor paint in front of
+    the gathered legs. Rows above the cut plus the overlap come from the
+    base untouched; swung thigh paint never reaches the head rows, which
+    the assert below pins byte-identical.
     """
     import math
     width, height = base.size
@@ -1307,17 +1397,36 @@ def _gather_stance(
     blobs = _below_cut_blobs(base, cut)
     kept = {point for blob in blobs if blob["ymax"] < 178
             for point in blob["points"]}
+    garment: set[tuple[int, int]] = set()
+    keep = HERO_STANCE_KEEP.get(hero)
+    split = HERO_STANCE_KEEP_SPLIT.get(hero)
+    if keep is not None:
+        base_px = base.load()
+        for blob in blobs:
+            for x, y in blob["points"]:
+                for lo, hi, edge in keep:
+                    if not lo <= y <= hi or x < edge:
+                        continue
+                    if split is not None and y >= split[0]:
+                        red, _green, blue, _alpha = base_px[x, y]
+                        if red - blue < split[1]:
+                            break
+                    garment.add((x, y))
+                    break
     front_shin = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     rear_shin = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     front_boot = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     rear_boot = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     still = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    cloth = Image.new("RGBA", (width, height), (0, 0, 0, 0))
     fs_px, rs_px = front_shin.load(), rear_shin.load()
     fb_px, rb_px = front_boot.load(), rear_boot.load()
-    still_px, base_px = still.load(), base.load()
+    still_px, cloth_px, base_px = still.load(), cloth.load(), base.load()
     for blob in blobs:
         for x, y in blob["points"]:
-            if (x, y) in kept:
+            if (x, y) in garment:
+                cloth_px[x, y] = base_px[x, y]
+            elif (x, y) in kept:
                 still_px[x, y] = base_px[x, y]
             elif x < valley:
                 if y < ankle + 5:
@@ -1398,6 +1507,8 @@ def _gather_stance(
     stood.alpha_composite(front_boot, (0, 0))
     stood.alpha_composite(rear_shin, (0, 0))
     stood.alpha_composite(front_shin, (0, 0))
+    if garment:
+        stood.alpha_composite(cloth, (0, 0))
     stood.alpha_composite(base.crop((0, 0, width, cut + overlap)), (0, 0))
     stood = _scrub_alpha(stood)
     if _flat_bytes(stood.crop((0, 0, width, neck))) \
@@ -1783,6 +1894,44 @@ def _tileable(panel: Image.Image) -> Image.Image:
     return _ramp_match(_heal_cut_edges(panel)).convert("RGBA")
 
 
+def _calibrate_side_head(cell: Image.Image, hero: str, neck: int) -> Image.Image:
+    """Grow one undersized donor side head to its frontal proportion.
+
+    Rows [0, head_bottom) scale uniformly about the anchor and composite
+    over the donor collar, so the skull, face and eye read at the same
+    scale as the front while the chin keeps its clean collar join. Rows
+    below the scaled head keep their exact bytes, every attack-rig arm
+    capsule starts below the scaled head, and the grown head keeps the
+    frame-contract gutters.
+    """
+    factor, anchor_x, anchor_y, head_bottom = HERO_SIDE_HEAD_CAL[hero]
+    width = cell.width
+    head = cell.crop((0, 0, width, head_bottom))
+    grown = head.resize((round(width * factor), round(head_bottom * factor)),
+                        Image.Resampling.LANCZOS)
+    at_x = round(anchor_x - anchor_x * factor)
+    at_y = round(anchor_y - anchor_y * factor)
+    out = cell.copy()
+    out.alpha_composite(grown, (at_x, at_y))
+    out = _scrub_alpha(out)
+    bottom = at_y + grown.height
+    if _flat_bytes(out.crop((0, bottom, width, neck))) \
+            != _flat_bytes(cell.crop((0, bottom, width, neck))):
+        raise RuntimeError(f"head calibration {hero}: rows below {bottom} moved")
+    capsule_top = min(
+        arm["S"][1] - (arm["w1"] / 2.0 + 1.0)
+        for arm in RIG_SPEC[hero]["arms"]["left"].values())
+    if bottom > int(capsule_top):
+        raise RuntimeError(
+            f"head calibration {hero}: head reaches {bottom}, "
+            f"arm capsules start at {capsule_top:.1f}")
+    box = out.getchannel("A").point(
+        lambda v: 255 if v >= INK else 0).getbbox()
+    if box is None or box[0] < 4 or box[1] < 4 or box[2] > width - 4:
+        raise RuntimeError(f"head calibration {hero}: breaks its gutters")
+    return out
+
+
 def _headed(
     frame: Image.Image, head: Image.Image, neck: int,
 ) -> Image.Image:
@@ -1807,7 +1956,9 @@ def bake_heroes() -> dict[Path, Image.Image]:
     Walk columns share one scale per facing: sides from the registered gait
     donors (left) and their exact mirrors (right) via _fit_stride, down/up
     from the turnaround masters fitted at their row-0 scale, so frames
-    differ by translation, never a rescale. Every walk frame wears its
+    differ by translation, never a rescale. Undersized donor side heads
+    grow to their frontal proportion first (HERO_SIDE_HEAD_CAL), so the
+    canonical head below is already the corrected one. Every walk frame wears its
     fitted row-0 head band pixel-fixed, the same bytes idle shares, so one
     canonical skull, face and baseline holds through motion; legs, arms
     and hair below the neck keep their alternating paint. Idle shares the
@@ -1825,6 +1976,8 @@ def bake_heroes() -> dict[Path, Image.Image]:
         grid = _hero_grid(master)
         stride = _fit_stride(_sidewalk_cells(hero), hero)
         neck = HERO_IDLE_NECK[hero]
+        if hero in HERO_SIDE_HEAD_CAL:
+            stride[0] = _calibrate_side_head(stride[0], hero, neck)
         side_head = stride[0].crop((0, 0, cell_w, neck))
         stride = [stride[0]] + [
             _headed(frame, side_head, neck) for frame in stride[1:]
@@ -2397,6 +2550,8 @@ def check_committed(baked: dict[Path, Image.Image] | None = None) -> list[str]:
                 problems.append(f"{label} differs from a fresh bake")
     problems.extend(_check_geometry())
     problems.extend(_check_hero_identity())
+    problems.extend(_check_face_proportions())
+    problems.extend(_check_cloak_continuity())
     problems.extend(_check_facing_distinctness())
     problems.extend(_check_variant_distinctness())
     problems.extend(_check_scatter_ink())
@@ -2580,6 +2735,172 @@ def _check_hero_identity() -> list[str]:
             problems.append(
                 f"heroes/{hero}/idle.png right is not the left mirror")
     return problems
+
+
+def _face_skin(hero: str, red: int, green: int, blue: int) -> bool:
+    """Warm skin at one opaque pixel, plus the keeper beard mass."""
+    if hero == "keeper":
+        if red >= 150 and green >= 100 and red - green >= 15 \
+                and green >= blue - 5:
+            return True
+        return red >= 120 and green >= 70 and blue >= 40 \
+            and red - green >= 25 and green - blue >= 10
+    return red >= 170 and green >= 130 and blue >= 110 \
+        and red - blue >= 12 and red >= green - 5 and green >= blue - 12
+
+
+def _face_height(cell: Image.Image, hero: str, facing: int) -> int:
+    """Visible-face rows in the audited core window, first to last."""
+    x0, y0, x1, y1 = HERO_FACE_CORE[hero][facing]
+    pixels = cell.load()
+    rows = []
+    for y in range(y0, y1):
+        ink = 0
+        for x in range(x0, x1):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha >= 64 and _face_skin(hero, red, green, blue):
+                ink += 1
+        if ink >= HERO_FACE_ROW_INK:
+            rows.append(y)
+    return rows[-1] - rows[0] + 1 if rows else 0
+
+
+def _skull_width(cell: Image.Image, hero: str, facing: int) -> int:
+    """Median opaque span over the calibrated skull rows."""
+    x0, x1 = HERO_SKULL_X[hero][facing]
+    row0, row1 = HERO_SKULL_ROWS[hero][facing]
+    pixels = cell.load()
+    spans = []
+    for y in range(row0, row1 + 1):
+        xs = [x for x in range(x0, x1) if pixels[x, y][3] >= 64]
+        if xs:
+            spans.append(max(xs) - min(xs) + 1)
+    spans.sort()
+    return spans[len(spans) // 2] if spans else 0
+
+
+def _check_face_proportions() -> list[str]:
+    """Side heads keep their frontal face and skull: no shrunken profile.
+
+    Turning must read as the same character, so the side visible-face
+    height and skull width keep most of the frontal measure in every
+    state. Both read off calibrated face/skull landmarks (audited core
+    windows and skull rows), never off atlas cells or the neck band. The
+    old warden, knight and eclipse side heads (face 0.60-0.86 of front,
+    skull 0.74-0.89) fail here even pasted identically into walk, idle
+    and the attack torso; dancer, keeper and sage already match and pin
+    their audited ratios instead.
+    """
+    problems: list[str] = []
+    for hero in HEROES:
+        for sheet in ("walk", "idle"):
+            path = HERO_ROOT / hero / f"{sheet}.png"
+            if not path.is_file():
+                continue
+            image = Image.open(path).convert("RGBA")
+            problems.extend(_face_problems_for(hero, sheet, image))
+    return problems
+
+
+def _face_problems_for(
+    hero: str, sheet: str, image: Image.Image,
+) -> list[str]:
+    """Cross-facing proportion problems in one sheet's row-0 heads."""
+    problems: list[str] = []
+    front = image.crop((0, 0, 144, 192))
+    side = image.crop((2 * 144, 0, 3 * 144, 192))
+    label = f"heroes/{hero}/{sheet}.png"
+    if hero in HERO_FACE_CORE:
+        down_h = _face_height(front, hero, 0)
+        side_h = _face_height(side, hero, 2)
+        if not down_h or not side_h:
+            problems.append(
+                f"{label} face core sees no face "
+                f"(down {down_h}, side {side_h})")
+        elif side_h / down_h < HERO_FACE_MIN[hero]:
+            problems.append(
+                f"{label} side face {side_h}px keeps "
+                f"{side_h / down_h:.2f} of the {down_h}px front, "
+                f"want >= {HERO_FACE_MIN[hero]:.2f}")
+    down_w = _skull_width(front, hero, 0)
+    side_w = _skull_width(side, hero, 2)
+    if not down_w or not side_w:
+        problems.append(
+            f"{label} skull rows see no head "
+            f"(down {down_w}, side {side_w})")
+    elif side_w / down_w < HERO_SKULL_MIN[hero]:
+        problems.append(
+            f"{label} side skull {side_w}px keeps "
+            f"{side_w / down_w:.2f} of the {down_w}px front, "
+            f"want >= {HERO_SKULL_MIN[hero]:.2f}")
+    return problems
+
+
+def _check_cloak_continuity() -> list[str]:
+    """Standing garments keep donor paint: no stance-cut tear.
+
+    The side stance gathers the legs under hanging cloth; paint the
+    HERO_STANCE_KEEP staircase keeps must read the donor bytes in the
+    idle sheet, so the cloth connects across the cut instead of tearing
+    where the shin layers rotated away. Knight's trailing cloak tore
+    exactly this way (transparent notch right of the trim, displaced
+    tip); the check pins the kept bands against the walk donor on every
+    idle frame and mirror.
+    """
+    problems: list[str] = []
+    hero = "knight"
+    walk = Image.open(HERO_ROOT / hero / "walk.png").convert("RGBA")
+    idle = Image.open(HERO_ROOT / hero / "idle.png").convert("RGBA")
+    hips = HERO_IDLE_HIPS[hero]
+    for facing in (2, 3):
+        side = "right" if facing == 3 else "left"
+        for frame in range(4):
+            oy = frame * 192
+            if not _cloak_bands_match(walk, idle, facing, oy, hips):
+                problems.append(
+                    f"heroes/{hero}/idle.png {side} frame {frame}: "
+                    f"standing cloak differs from the donor")
+    return problems
+
+
+def _cloak_bands_match(walk: Image.Image, idle: Image.Image,
+                       facing: int, oy: int, hips: int) -> bool:
+    """Opaque kept cloth keeps donor paint and opacity (mirrored right).
+
+    Pixels the donor paints nearly opaque cannot shift under the keep:
+    antialiased edges may blend where layers meet, but cloth interiors
+    read the donor RGB at donor opacity. Displaced paint (the old tear
+    moved hundreds of these pixels far from the donor) fails, and so
+    does a transparent interior even when its hidden RGB never changed;
+    the kept cloak reads zero drift at full opacity. Cool paint below
+    the shin/garment split is stale shin that articulates away, so only
+    warm kept cloth is pinned there.
+    """
+    donor = walk.load()
+    stood = idle.load()
+    split = HERO_STANCE_KEEP_SPLIT["knight"]
+    for lo, hi, edge in HERO_STANCE_KEEP["knight"]:
+        for y in range(lo, hi + 1):
+            if y < hips and oy > 0:
+                continue
+            if facing == 2:
+                xs = range(edge, 131)
+            else:
+                xs = range(144 - 131, 144 - edge)
+            for x in xs:
+                want = donor[facing * 144 + x, y]
+                if want[3] < 200:
+                    continue
+                if y >= split[0] and want[0] - want[2] < split[1]:
+                    continue
+                got = stood[facing * 144 + x, oy + y]
+                if got[3] < 200:
+                    return False
+                drift = max(abs(want[channel] - got[channel])
+                            for channel in (0, 1, 2))
+                if drift > 40:
+                    return False
+    return True
 
 
 def _check_facing_distinctness() -> list[str]:
