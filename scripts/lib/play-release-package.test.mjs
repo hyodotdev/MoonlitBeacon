@@ -52,7 +52,14 @@ import {
   readPlayBinaryOnlyReceipt,
 } from './play-binary-only-update.mjs';
 import {
+  createPlayBinaryOnlyPostApplyPlan,
+  promotePlayBinaryOnlyReleaseToProduction,
+  submitPlayBinaryOnlyProductionReview,
+} from './play-binary-only-promotion.mjs';
+import {
   createGooglePlayPublisherClient,
+  readGooglePlayPromotionReceipt,
+  readGooglePlayReviewReceipt,
 } from './google-play-publisher-apply.mjs';
 
 const OLD_TIME = new Date('2026-01-01T00:00:00.000Z');
@@ -2427,7 +2434,7 @@ test('binary-only arguments default to a local check and reject mixed modes', ()
   );
   assert.throws(
     () => parsePlayBinaryOnlyArguments(['--check', '--apply', '--confirm-binary-only', 'x']),
-    /exactly one of --check or --apply/,
+    /exactly one of --check, --apply/,
   );
   assert.throws(
     () => parsePlayBinaryOnlyArguments(['--check', '--confirm-binary-only', 'x']),
@@ -2439,6 +2446,10 @@ test('binary-only arguments default to a local check and reject mixed modes', ()
   );
   assert.throws(
     () => parsePlayBinaryOnlyArguments(['--promote-production']),
+    /requires --confirm-binary-only-promotion/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--promote']),
     /unsupported option/,
   );
 });
@@ -2567,4 +2578,699 @@ test('binary-only apply refuses malformed remote version codes', async () => {
       rmSync(root, { force: true, recursive: true });
     }
   }
+});
+
+function binaryOnlyRootAt({ newCode = 2, retainedCode = 1, version = '1.0.0' } = {}) {
+  const root = fixture();
+  const retainedInspection = {
+    ...bundleInspection(),
+    manifest: {
+      packageName: PLAY_PACKAGE_NAME,
+      versionCode: retainedCode,
+      versionName: version,
+    },
+  };
+  if (version !== '1.0.0') {
+    write(
+      root,
+      'apps/game/project.godot',
+      projectGodot({}).replace('config/version="1.0.0"', `config/version="${version}"`),
+      NEW_TIME,
+    );
+  }
+  write(
+    root,
+    'apps/game/export_presets.cfg',
+    binaryOnlyPresets(retainedCode, version),
+    NEW_TIME,
+  );
+  prepare(root, { inspectBundle: () => retainedInspection });
+  write(root, 'builds/android/MoonlitBeacon.aab', `signed-aab-code-${newCode}`, NEW_TIME);
+  write(
+    root,
+    'apps/game/export_presets.cfg',
+    binaryOnlyPresets(newCode, version),
+    NEW_TIME,
+  );
+  write(
+    root,
+    'notes/release/google-play-remote-apply.json',
+    `${JSON.stringify(binaryOnlyConfig(), null, 2)}\n`,
+    NEW_TIME,
+  );
+  return { retainedInspection, root };
+}
+
+function binaryOnlyPlanAt(root, retainedInspection, inspection) {
+  return binaryOnlyPlan(root, {
+    inspection,
+    verifyPackage: (outputPath) => verify(root, outputPath, {
+      inspectBundle: () => retainedInspection,
+    }),
+  });
+}
+
+async function applyBinaryOnlyToApplied(plan) {
+  const fake = binaryOnlyFake(plan);
+  promoteFakeToNewRelease(plan, fake);
+  const result = await applyPlayBinaryOnlyUpdatePlan(plan, {
+    client: fake.client,
+    confirmation: plan.confirmationToken,
+    now: () => new Date('2026-10-02T00:00:00.000Z'),
+  });
+  assert.equal(result.applied, true);
+  return fake;
+}
+
+function networkSpy() {
+  const touches = [];
+  const client = new Proxy({}, {
+    get(_target, prop) {
+      if (typeof prop === 'symbol') return undefined;
+      touches.push(String(prop));
+      return undefined;
+    },
+  });
+  return { client, touches };
+}
+
+// Promotion and review must never invoke AAB upload, listing or image
+// mutation, price conversion, or product endpoints. Reads stay allowed: the
+// binary apply gates already use GET verification, and track GETs drive the
+// identity checks below.
+const POST_APPLY_FORBIDDEN_METHODS = new Set([
+  'batchGetOneTimeProducts',
+  'batchUpdateOneTimeProducts',
+  'batchUpdatePurchaseOptionStates',
+  'convertRegionPrices',
+  'deleteAllImages',
+  'listOneTimeProducts',
+  'updateListing',
+  'uploadBundle',
+  'uploadImage',
+]);
+
+function postApplyFake(plan, {
+  internalReleases,
+  productionBefore = [],
+  productionAfter = null,
+} = {}) {
+  const calls = [];
+  const committedRelease = {
+    activeArtifacts: [{ versionCode: plan.release.versionCode }],
+    releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+    releaseName: plan.release.name,
+    track: 'internal',
+  };
+  const state = {
+    commitReviews: [],
+    internalReleases: internalReleases ?? [committedRelease],
+    productionAfter: productionAfter ?? [{
+      ...committedRelease,
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_IN_REVIEW',
+      track: 'production',
+    }],
+    productionBefore,
+    trackBodies: [],
+  };
+  let committed = false;
+  const target = {
+    async commitEdit(packageName, editId, review) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`commitEdit ${editId} ${review?.changesInReviewBehavior}`);
+      state.commitReviews.push(review);
+      committed = true;
+      return { id: editId };
+    },
+    async discardEdit(packageName, editId) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`discardEdit ${editId}`);
+      return {};
+    },
+    async insertEdit(packageName) {
+      assert.equal(packageName, plan.packageName);
+      calls.push('insertEdit edit-1');
+      return { id: 'edit-1' };
+    },
+    async listTrackReleases(packageName, track) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`listTrackReleases ${track}`);
+      if (track === 'internal') return { releases: state.internalReleases };
+      return { releases: committed ? state.productionAfter : state.productionBefore };
+    },
+    async updateTrack(packageName, editId, track, body) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`updateTrack ${editId} ${track}`);
+      state.trackBodies.push(body);
+      return {
+        releases: [{
+          status: plan.release.status,
+          versionCodes: [plan.release.versionCode],
+        }],
+        track,
+      };
+    },
+    async validateEdit(packageName, editId) {
+      assert.equal(packageName, plan.packageName);
+      calls.push(`validateEdit ${editId}`);
+      return { id: editId };
+    },
+  };
+  const client = new Proxy(target, {
+    get(obj, prop) {
+      if (typeof prop === 'symbol') return obj[prop];
+      if (POST_APPLY_FORBIDDEN_METHODS.has(prop)) {
+        throw new Error(`forbidden Publisher call: ${String(prop)}`);
+      }
+      return obj[prop];
+    },
+  });
+  return { calls, client, state };
+}
+
+function postApplyShell(plan) {
+  return {
+    ...plan,
+    binaryOnly: {
+      appliedReceipt: null,
+      galleryEvidence: PLAY_BINARY_ONLY_GALLERY_EVIDENCE,
+      mode: PLAY_BINARY_ONLY_MODE,
+      receiptPath: plan.receiptPath,
+    },
+  };
+}
+
+test('binary-only post-apply plan requires the APPLIED update receipt with zero network', async () => {
+  const missingRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(missingRoot);
+    assert.throws(
+      () => createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan }),
+      /need the APPLIED update receipt/,
+    );
+    const spy = networkSpy();
+    await assert.rejects(
+      () => promotePlayBinaryOnlyReleaseToProduction(postApplyShell(plan), {
+        client: spy.client,
+        confirmation: 'unused',
+      }),
+      /APPLIED receipt is missing/,
+    );
+    assert.deepEqual(spy.touches, []);
+  } finally {
+    rmSync(missingRoot, { force: true, recursive: true });
+  }
+
+  const committingRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(committingRoot);
+    const fake = binaryOnlyFake(plan);
+    fake.state.validateBehavior.id = 'edit-999';
+    await applyError(plan, fake.client, plan.confirmationToken);
+    assert.equal(readPlayBinaryOnlyReceipt(plan).update.state, 'COMMITTING');
+    assert.throws(
+      () => createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan }),
+      /is COMMITTING, not APPLIED/,
+    );
+    const spy = networkSpy();
+    await assert.rejects(
+      () => submitPlayBinaryOnlyProductionReview(postApplyShell(plan), {
+        client: spy.client,
+        confirmation: 'unused',
+      }),
+      /is COMMITTING, not APPLIED/,
+    );
+    assert.deepEqual(spy.touches, []);
+  } finally {
+    rmSync(committingRoot, { force: true, recursive: true });
+  }
+
+  const staleRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(staleRoot);
+    await applyBinaryOnlyToApplied(plan);
+    write(staleRoot, 'builds/android/MoonlitBeacon.aab', 'signed-aab-code-3', NEW_TIME);
+    write(staleRoot, 'apps/game/export_presets.cfg', binaryOnlyPresets(3), NEW_TIME);
+    const rebuilt = binaryOnlyPlan(staleRoot, { inspection: { code: 3 } });
+    assert.throws(
+      () => createPlayBinaryOnlyPostApplyPlan({ binaryPlan: rebuilt }),
+      /differs from the current binary and retained gallery/,
+    );
+    assert.throws(
+      () => createPlayBinaryOnlyPostApplyPlan({ binaryPlan: rebuilt }),
+      /archive the receipt separately/,
+    );
+    const spy = networkSpy();
+    await assert.rejects(
+      () => promotePlayBinaryOnlyReleaseToProduction(postApplyShell(rebuilt), {
+        client: spy.client,
+        confirmation: 'unused',
+      }),
+      /differs from the current binary and retained gallery/,
+    );
+    assert.deepEqual(spy.touches, []);
+  } finally {
+    rmSync(staleRoot, { force: true, recursive: true });
+  }
+
+  const modeRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(modeRoot);
+    await applyBinaryOnlyToApplied(plan);
+    chmodSync(plan.receiptPath, 0o644);
+    assert.throws(
+      () => createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan }),
+      /owner-only regular file/,
+    );
+    const spy = networkSpy();
+    await assert.rejects(
+      () => submitPlayBinaryOnlyProductionReview(postApplyShell(plan), {
+        client: spy.client,
+        confirmation: 'unused',
+      }),
+      /owner-only regular file/,
+    );
+    assert.deepEqual(spy.touches, []);
+    chmodSync(plan.receiptPath, 0o600);
+  } finally {
+    rmSync(modeRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only promotion and review tokens are bound to the new binary and operation', async () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    assert.equal(postApply.release.versionCode, '2');
+    assert.equal(postApply.retained.versionCode, '1');
+    assert.equal(postApply.reuse.galleryEvidence, PLAY_BINARY_ONLY_GALLERY_EVIDENCE);
+    assert.equal(postApply.binaryOnly.galleryEvidence, PLAY_BINARY_ONLY_GALLERY_EVIDENCE);
+    assert.equal(postApply.binaryOnly.mode, PLAY_BINARY_ONLY_MODE);
+    assert.equal(postApply.manifestDigest, plan.manifestDigest);
+    assert.match(
+      postApply.promotion.confirmationToken,
+      new RegExp(
+        `^google-play-binary-only-promotion:${PLAY_PACKAGE_NAME}:2:production:[0-9a-f]{16}$`,
+        'u',
+      ),
+    );
+    assert.match(
+      postApply.reviewSubmission.confirmationToken,
+      new RegExp(
+        `^google-play-binary-only-review:${PLAY_PACKAGE_NAME}:2:production:[0-9a-f]{16}$`,
+        'u',
+      ),
+    );
+    assert.notEqual(
+      postApply.promotion.confirmationToken,
+      postApply.reviewSubmission.confirmationToken,
+    );
+    assert.notEqual(postApply.promotion.confirmationToken, plan.confirmationToken);
+    assert.notEqual(postApply.reviewSubmission.confirmationToken, plan.confirmationToken);
+
+    const cases = [
+      ['upload token as promotion', promotePlayBinaryOnlyReleaseToProduction, plan.confirmationToken],
+      ['review token as promotion', promotePlayBinaryOnlyReleaseToProduction, postApply.reviewSubmission.confirmationToken],
+      ['full-mode promotion token', promotePlayBinaryOnlyReleaseToProduction, `google-play-promotion:${PLAY_PACKAGE_NAME}:2:production:0123456789abcdef`],
+      ['full-mode apply token as promotion', promotePlayBinaryOnlyReleaseToProduction, `google-play:${PLAY_PACKAGE_NAME}:2:internal:0123456789abcdef`],
+      ['promotion token as review', submitPlayBinaryOnlyProductionReview, postApply.promotion.confirmationToken],
+      ['upload token as review', submitPlayBinaryOnlyProductionReview, plan.confirmationToken],
+      ['full-mode review token', submitPlayBinaryOnlyProductionReview, `google-play-review:${PLAY_PACKAGE_NAME}:2:production:0123456789abcdef`],
+    ];
+    for (const [label, operation, confirmation] of cases) {
+      const spy = networkSpy();
+      await assert.rejects(
+        () => operation(postApply, { client: spy.client, confirmation }),
+        /confirmation token differs/,
+        label,
+      );
+      assert.deepEqual(spy.touches, [], `${label} touches no client method`);
+    }
+    assert.equal(existsSync(postApply.promotion.receiptPath), false);
+    assert.equal(existsSync(postApply.reviewSubmission.receiptPath), false);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only promotion passes the exact 18 replacement with the retained gallery marker', async () => {
+  const { retainedInspection, root } = binaryOnlyRootAt({
+    newCode: 18,
+    retainedCode: 17,
+    version: '4.0.0',
+  });
+  try {
+    const plan = binaryOnlyPlanAt(root, retainedInspection, { code: 18, version: '4.0.0' });
+    assert.equal(plan.release.versionCode, '18');
+    assert.equal(plan.retained.versionCode, '17');
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    assert.equal(postApply.release.versionCode, '18');
+    assert.equal(postApply.retained.versionCode, '17');
+    assert.equal(postApply.binaryOnly.appliedReceipt.versionCode, '18');
+    assert.match(postApply.promotion.confirmationToken, /:18:production:/u);
+    const fake = postApplyFake(postApply);
+    const result = await promotePlayBinaryOnlyReleaseToProduction(postApply, {
+      client: fake.client,
+      confirmation: postApply.promotion.confirmationToken,
+    });
+    assert.deepEqual(result, {
+      editId: 'edit-1',
+      lifecycleState: 'RELEASE_LIFECYCLE_STATE_IN_REVIEW',
+      packageName: PLAY_PACKAGE_NAME,
+      promoted: true,
+      sourceTrack: 'internal',
+      targetTrack: 'production',
+      versionCode: '18',
+    });
+    assert.deepEqual(fake.state.trackBodies, [{
+      releases: [{
+        name: postApply.release.name,
+        releaseNotes: postApply.release.releaseNotes,
+        status: 'completed',
+        versionCodes: ['18'],
+      }],
+      track: 'production',
+    }]);
+    assert.deepEqual(fake.calls, [
+      'listTrackReleases internal',
+      'listTrackReleases production',
+      'insertEdit edit-1',
+      'updateTrack edit-1 production',
+      'validateEdit edit-1',
+      'commitEdit edit-1 ERROR_IF_IN_REVIEW',
+      'listTrackReleases production',
+    ]);
+    assert.deepEqual(fake.state.commitReviews, [{
+      changesInReviewBehavior: 'ERROR_IF_IN_REVIEW',
+      changesNotSentForReview: false,
+    }]);
+    for (const forbidden of [
+      'uploadBundle',
+      'updateListing',
+      'deleteAllImages',
+      'uploadImage',
+      'convertRegionPrices',
+      'listOneTimeProducts',
+      'batchGetOneTimeProducts',
+      'batchUpdateOneTimeProducts',
+      'batchUpdatePurchaseOptionStates',
+    ]) {
+      assert.throws(() => fake.client[forbidden], /forbidden Publisher call/, forbidden);
+    }
+    const receipt = readGooglePlayPromotionReceipt(postApply);
+    assert.equal(receipt.versionCode, '18');
+    assert.equal(receipt.manifestDigest, postApply.manifestDigest);
+    assert.equal(receipt.promotion.state, 'APPLIED');
+    assert.equal(receipt.promotion.proof, 'TRACK_RELEASE');
+    assert.equal((lstatSync(postApply.promotion.receiptPath).mode & 0o077), 0);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only promotion preserves receipt-race refusal and readback failure', async () => {
+  const raceRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(raceRoot);
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    const first = postApplyFake(postApply);
+    await promotePlayBinaryOnlyReleaseToProduction(postApply, {
+      client: first.client,
+      confirmation: postApply.promotion.confirmationToken,
+    });
+    const second = postApplyFake(postApply);
+    await assert.rejects(
+      () => promotePlayBinaryOnlyReleaseToProduction(postApply, {
+        client: second.client,
+        confirmation: postApply.promotion.confirmationToken,
+      }),
+      /promotion receipt already exists\. Promotion for this version is already APPLIED/,
+    );
+    assert.deepEqual(second.calls, []);
+  } finally {
+    rmSync(raceRoot, { force: true, recursive: true });
+  }
+
+  const staleRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(staleRoot);
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    writeFileSync(postApply.promotion.receiptPath, `${JSON.stringify({
+      manifestDigest: 'a'.repeat(64),
+      packageName: PLAY_PACKAGE_NAME,
+      promotion: {
+        appliedAt: '2026-08-01T00:00:00.000Z',
+        committedAt: '2026-08-01T00:00:00.000Z',
+        editId: 'edit-old',
+        intentCreatedAt: '2026-08-01T00:00:00.000Z',
+        proof: 'TRACK_RELEASE',
+        state: 'APPLIED',
+      },
+      schemaVersion: 1,
+      sourceTrack: 'internal',
+      targetTrack: 'production',
+      versionCode: '1',
+    }, null, 2)}\n`);
+    chmodSync(postApply.promotion.receiptPath, 0o600);
+    const fake = postApplyFake(postApply);
+    await assert.rejects(
+      () => promotePlayBinaryOnlyReleaseToProduction(postApply, {
+        client: fake.client,
+        confirmation: postApply.promotion.confirmationToken,
+      }),
+      /If it is a previous-version receipt, confirm remote state and archive it separately/,
+    );
+    assert.deepEqual(fake.calls, []);
+  } finally {
+    rmSync(staleRoot, { force: true, recursive: true });
+  }
+
+  const readbackRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(readbackRoot);
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    const fake = postApplyFake(postApply, { productionAfter: [] });
+    await assert.rejects(
+      () => promotePlayBinaryOnlyReleaseToProduction(postApply, {
+        client: fake.client,
+        confirmation: postApply.promotion.confirmationToken,
+      }),
+      /promotion commit succeeded=true, versionCode=2\. Google Play production versionCode 2 committed release could not be re-verified/,
+    );
+    const receipt = readGooglePlayPromotionReceipt(postApply);
+    assert.equal(receipt.promotion.state, 'COMMITTED');
+    assert.equal(receipt.promotion.proof, 'COMMIT_RESPONSE');
+  } finally {
+    rmSync(readbackRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only review submits the applied replacement and keeps published/in-review guards', async () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    const staged = {
+      activeArtifacts: [{ versionCode: '2' }],
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_NOT_SENT_FOR_REVIEW',
+      releaseName: postApply.release.name,
+      track: 'production',
+    };
+    const fake = postApplyFake(postApply, {
+      productionAfter: [{
+        ...staged,
+        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_IN_REVIEW',
+      }],
+      productionBefore: [staged, {
+        activeArtifacts: [{ versionCode: '1' }],
+        releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_IN_REVIEW',
+        releaseName: 'Moonlit Beacon 1.0.0',
+        track: 'production',
+      }],
+    });
+    const result = await submitPlayBinaryOnlyProductionReview(postApply, {
+      client: fake.client,
+      confirmation: postApply.reviewSubmission.confirmationToken,
+    });
+    assert.equal(result.submitted, true);
+    assert.equal(result.versionCode, '2');
+    assert.equal(result.track, 'production');
+    assert.deepEqual(result.cancelledReleases, [
+      { releaseName: 'Moonlit Beacon 1.0.0', versionCodes: ['1'] },
+    ]);
+    assert.deepEqual(fake.state.commitReviews, [{
+      changesInReviewBehavior: 'CANCEL_IN_REVIEW_AND_SUBMIT',
+      changesNotSentForReview: false,
+    }]);
+    assert.deepEqual(fake.state.trackBodies, [{
+      releases: [{
+        name: postApply.release.name,
+        releaseNotes: postApply.release.releaseNotes,
+        status: 'completed',
+        versionCodes: ['2'],
+      }],
+      track: 'production',
+    }]);
+    const receipt = readGooglePlayReviewReceipt(postApply);
+    assert.equal(receipt.review.state, 'APPLIED');
+    assert.equal(receipt.review.proof, 'TRACK_RELEASE');
+    assert.deepEqual(receipt.cancelledReleases, result.cancelledReleases);
+    assert.equal((lstatSync(postApply.reviewSubmission.receiptPath).mode & 0o077), 0);
+    assert.throws(() => fake.client.updateListing, /forbidden Publisher call/);
+    assert.throws(() => fake.client.uploadBundle, /forbidden Publisher call/);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+
+  for (const lifecycle of [
+    'RELEASE_LIFECYCLE_STATE_IN_REVIEW',
+    'RELEASE_LIFECYCLE_STATE_PUBLISHED',
+  ]) {
+    const guardRoot = binaryOnlyRoot();
+    try {
+      const plan = binaryOnlyPlan(guardRoot);
+      await applyBinaryOnlyToApplied(plan);
+      const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+      const fake = postApplyFake(postApply, {
+        productionBefore: [{
+          activeArtifacts: [{ versionCode: '2' }],
+          releaseLifecycleState: lifecycle,
+          releaseName: postApply.release.name,
+          track: 'production',
+        }],
+      });
+      await assert.rejects(
+        () => submitPlayBinaryOnlyProductionReview(postApply, {
+          client: fake.client,
+          confirmation: postApply.reviewSubmission.confirmationToken,
+        }),
+        /already has versionCode 2\. Not attempting a duplicate review submission/,
+        lifecycle,
+      );
+      assert.deepEqual(fake.calls, ['listTrackReleases production'], lifecycle);
+      assert.equal(existsSync(postApply.reviewSubmission.receiptPath), false, lifecycle);
+    } finally {
+      rmSync(guardRoot, { force: true, recursive: true });
+    }
+  }
+
+  const readbackRoot = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(readbackRoot);
+    await applyBinaryOnlyToApplied(plan);
+    const postApply = createPlayBinaryOnlyPostApplyPlan({ binaryPlan: plan });
+    const staged = {
+      activeArtifacts: [{ versionCode: '2' }],
+      releaseLifecycleState: 'RELEASE_LIFECYCLE_STATE_NOT_SENT_FOR_REVIEW',
+      releaseName: postApply.release.name,
+      track: 'production',
+    };
+    const fake = postApplyFake(postApply, {
+      productionAfter: [staged],
+      productionBefore: [staged],
+    });
+    await assert.rejects(
+      () => submitPlayBinaryOnlyProductionReview(postApply, {
+        client: fake.client,
+        confirmation: postApply.reviewSubmission.confirmationToken,
+        readbackAttempts: 2,
+        readbackDelayMs: 0,
+        sleepImpl: async () => {},
+      }),
+      /review submission commit succeeded=true, versionCode=2.*did not see an IN_REVIEW release/,
+    );
+    const receipt = readGooglePlayReviewReceipt(postApply);
+    assert.equal(receipt.review.state, 'COMMITTED');
+  } finally {
+    rmSync(readbackRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only arguments cover promotion and review modes with paired tokens', () => {
+  const promote = parsePlayBinaryOnlyArguments([
+    '--promote-production',
+    '--confirm-binary-only-promotion',
+    'promo-token',
+  ]);
+  assert.equal(promote.promoteProduction, true);
+  assert.equal(promote.promotionConfirmation, 'promo-token');
+  assert.equal(
+    promote.promotionReceipt,
+    'builds/release/google-play-binary-only-promotion-receipt.json',
+  );
+  const review = parsePlayBinaryOnlyArguments([
+    '--submit-production-review',
+    '--confirm-binary-only-review',
+    'review-token',
+    '--review-receipt',
+    'builds/release/custom-review.json',
+  ]);
+  assert.equal(review.submitProductionReview, true);
+  assert.equal(review.reviewConfirmation, 'review-token');
+  assert.equal(review.reviewReceipt, 'builds/release/custom-review.json');
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--submit-production-review']),
+    /requires --confirm-binary-only-review/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments([
+      '--check',
+      '--promote-production',
+      '--confirm-binary-only-promotion',
+      'x',
+    ]),
+    /exactly one of/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments([
+      '--apply',
+      '--confirm-binary-only',
+      'x',
+      '--promote-production',
+      '--confirm-binary-only-promotion',
+      'y',
+    ]),
+    /exactly one of/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments([
+      '--promote-production',
+      '--confirm-binary-only-promotion',
+      'x',
+      '--confirm-binary-only',
+      'y',
+    ]),
+    /uses only the --confirm-binary-only-promotion token/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments([
+      '--submit-production-review',
+      '--confirm-binary-only-review',
+      'x',
+      '--confirm-binary-only-promotion',
+      'y',
+    ]),
+    /cannot be combined/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments(['--check', '--confirm-binary-only-review', 'x']),
+    /only be used with --submit-production-review/,
+  );
+  assert.throws(
+    () => parsePlayBinaryOnlyArguments([
+      '--apply',
+      '--confirm-binary-only',
+      'x',
+      '--confirm-binary-only-promotion',
+      'y',
+    ]),
+    /only be used with --promote-production/,
+  );
 });

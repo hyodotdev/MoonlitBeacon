@@ -2,12 +2,12 @@
 
 `apps/game/addons/godot-iap/` is the official
 [`godot-iap-3.6.1`](https://github.com/hyodotdev/openiap/releases/tag/godot-iap-3.6.1)
-release plus two small patches.
+release plus three small patches.
 
 - upstream tag commit: `c1a3658e12a0bb7de6fdcfb40f0d82df9f68a653`
 - official release ZIP SHA-256: `6aa51a9c4d195e9537b42ec4f4ecbbf637e254442aa2641d415246f3e8dc7cf9`
 - Moonlit patch: [`0001-moonlit-integration.patch`](0001-moonlit-integration.patch)
-- patch SHA-256: `84839a7e1141dbf2b163c2b197c5e9c2f868ffacdecef4347c59c8666874c667`
+- patch SHA-256: `f83b01ff8eba05de4873c3c50fb81b2ffeb53892f1111df834ce465f9e10cedd`
 
 To check a zip before vendoring it, compare its SHA-256 with the release asset
 digest and verify the build attestation:
@@ -22,7 +22,7 @@ gh attestation verify godot-iap-3.6.1.zip --repo hyodotdev/openiap
 | File | Official 3.6.1 SHA-256 | Moonlit SHA-256 |
 | --- | --- | --- |
 | `godot_iap.gd` | `2bf54bbf119886a607ea1deb2897e9d28de27ca01c7b4f7ca6daebe3a1188bfe` | `e31fdf59e230b7f677c2513a8f6323240a794382ddedf92cde771a93cf3c899d` |
-| `godot_iap_plugin.gd` | `31500d82ee2ed4b78e42fcbc1dd8c28ad5d97419df18b29a72b08bd83bea9ab8` | `47ec04b62c99d99addd6e76636143007edd944cc3a6229dd416c92993b9899a6` |
+| `godot_iap_plugin.gd` | `31500d82ee2ed4b78e42fcbc1dd8c28ad5d97419df18b29a72b08bd83bea9ab8` | `052e86d6a4a688ecb93e6d9f385014a985ac892685fb9c4e1fbfa2da850c6110` |
 
 Every other file is the official file, unmodified:
 
@@ -51,6 +51,10 @@ game's shop autoload is `Shop`.
   so a live copy under `res://` makes every editor and headless run log
   `No GDExtension library found for current OS and architecture`, and
   `pnpm game:check` must stay error-free.
+- **Shared iOS extension list** (`godot_iap_plugin.gd`): the `extension_list.cfg`
+  write goes through the MoonlitIdentity `ExtensionListComposer`, so the
+  purchase extension stays registered alongside the identity extension no
+  matter which export plugin writes last. Nothing else in that file changed.
 
 ## Patches dropped
 

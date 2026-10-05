@@ -14,6 +14,7 @@ const BOARD_FONT: Font = preload(
 	"res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres"
 )
 
+@onready var _card: Panel = $Card
 @onready var _title: Label = $Center/Rows/Title
 @onready var _pending_summary: Label = $Center/Rows/Pending
 @onready var _entry: HBoxContainer = $Center/Rows/Entry
@@ -89,6 +90,7 @@ func view() -> void:
 
 
 func _show() -> void:
+	WorldChrome.ensure_tab(_card, "gate")
 	visible = true
 	modulate.a = 0.0
 	create_tween().tween_property(self, "modulate:a", 1.0, 0.22)

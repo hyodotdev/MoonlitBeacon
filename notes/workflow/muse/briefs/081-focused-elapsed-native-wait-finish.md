@@ -1,0 +1,7 @@
+# Brief 081: finish only the two elapsed native wait loops
+
+The previous round stalled after a read-only tool proposal with no subsequent result or source edit for over fifteen minutes. No permission refusal or rejection was reported. The director stopped that own hung CLI child normally; no runner state was edited and nothing incomplete was accepted. Keep all completed Round 2 work unchanged. This is the same source copy and normal approval/sandbox configuration.
+
+Finish the concrete correction in Brief 080: `_wait_for_deletion` nominally 30 seconds currently times out at 4190ms; `_wait_for_token` nominally 15 seconds at 2073ms. Both increment 0.05 per process frame. Replace frame-count elapsed time with a monotonic deadline. Add narrow tests through the existing test seam to prove many frames before the elapsed deadline are harmless, elapsed expiry terminates, and a timely genuine terminal result succeeds. Keep account/ticket/data preservation, SDK draining and late-result ownership behavior intact. No broad search, no service redesign, no new native adapter or SDK change.
+
+Read only the two wait functions and their existing focused host tests as necessary; change the host and focused test/log/contract paths owned by 065/073/080. Run the focused host suite, not another full fifty-suite batch. Restore a meaningful negative control. The director will run the true wall-clock 30+15-second probe and full integrated checks. No art, shared runners, preset, ledger, cloud helper, network, store, git or real user-data action.

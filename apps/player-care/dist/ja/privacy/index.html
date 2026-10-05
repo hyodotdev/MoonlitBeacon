@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プライバシーポリシー — 月明かりの烽火</title>
+<meta name="description" content="この方針は、Hyo Devの月明かりの烽火が集める情報とその取扱いを説明します。">
+<link rel="canonical" href="https://moonlitbeacon.hyo.dev/ja/privacy">
+<link rel="alternate" hreflang="en" href="https://moonlitbeacon.hyo.dev/en/privacy">
+<link rel="alternate" hreflang="ko" href="https://moonlitbeacon.hyo.dev/ko/privacy">
+<link rel="alternate" hreflang="ja" href="https://moonlitbeacon.hyo.dev/ja/privacy">
+<link rel="alternate" hreflang="zh-Hans" href="https://moonlitbeacon.hyo.dev/zh-Hans/privacy">
+<link rel="alternate" hreflang="zh-Hant" href="https://moonlitbeacon.hyo.dev/zh-Hant/privacy">
+<link rel="alternate" hreflang="x-default" href="https://moonlitbeacon.hyo.dev/privacy">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">本文へ進む</a>
+<div class="wrap">
+<header class="site-head">
+<a class="brand" href="/ja/"><span class="brand-mark" aria-hidden="true"></span><span><span class="brand-name">月明かりの烽火</span><span class="brand-sub">プレイヤー案内</span></span></a>
+<nav aria-label="頁"><ul>
+<li><a href="/ja/">最初</a></li>
+<li><a href="/ja/privacy" aria-current="page">プライバシーポリシー</a></li>
+<li><a href="/ja/terms">利用規約</a></li>
+<li><a href="/ja/support">サポート</a></li>
+<li><a href="/MoonlitBeacon/">講座・ドキュメント</a></li>
+</ul></nav>
+<nav class="lang-nav" aria-label="言語"><p>言語</p><ul>
+<li><a href="/en/privacy" hreflang="en">English</a></li>
+<li><a href="/ko/privacy" hreflang="ko">한국어</a></li>
+<li><a href="/ja/privacy" aria-current="page" hreflang="ja">日本語</a></li>
+<li><a href="/zh-Hans/privacy" hreflang="zh-Hans">简体中文</a></li>
+<li><a href="/zh-Hant/privacy" hreflang="zh-Hant">繁體中文</a></li>
+</ul></nav>
+</header>
+<main id="main">
+<h1>プライバシーポリシー — 月明かりの烽火</h1>
+<p class="lede">この方針は、Hyo Devの月明かりの烽火が集める情報とその取扱いを説明します。</p>
+<p class="updated">バージョン4.0.0時点の内容です。</p>
+<section aria-labelledby="sign-in"><h2 id="sign-in"><span class="num" aria-hidden="true">1</span>ログイン方法</h2>
+<ul class="tight">
+<li>ゲスト入場に加え、設定済みのビルドではGoogle・Appleログインを提供します。</li>
+<li>ゲスト入場は対応端末では匿名の認証IDを作ります。</li>
+<li>GoogleとAppleは別のログインIDで、Playゲームプロフィールは別のAndroid専用選択肢として今回のビルドでは提供しません。</li>
+</ul></section>
+<section aria-labelledby="sign-in-data"><h2 id="sign-in-data"><span class="num" aria-hidden="true">2</span>ログイン処理の範囲</h2>
+<ul class="tight">
+<li>Firebaseと選んだGoogle・Apple提供者は、認証と回復のため識別子、ログイン・セッション資格、同意と提供者設定で開かれたプロフィール情報を処理します。</li>
+<li>ゲームは公開プレイヤーID、ログイン済みアカウントとIDの非公開の紐付け、チェックポイント保存を別に保ちます。</li>
+<li>サーバー側のアカウント参照をハッシュで置くのは端末内のゲームのアカウント一覧だけで、サーバー側の記録は原文の参照を持ち自分のアカウントに非公開のままです。</li>
+<li>ゲーム自体は自分の記録に届く間だけログイントークンをメモリに置きます。ゲームプレイの保存ファイルにログイントークンは入らず、公開順位にも載せません。起動をまたいで入ったままにするのはFirebase・提供者のSDKが別に担い、SDKとOSの保存場所に自らのセッション情報を置きます。</li>
+<li>メールとプロフィール情報は公開の殿堂記録に表示しません。提供者側の取扱いは各提供者の方針に従います: <a href="https://firebase.google.com/support/privacy">Firebase</a>、<a href="https://policies.google.com/privacy">Google</a>、<a href="https://www.apple.com/legal/privacy/">Apple</a>。</li>
+</ul></section>
+<section aria-labelledby="player-id"><h2 id="player-id"><span class="num" aria-hidden="true">3</span>プレイヤーID</h2>
+<ul class="tight">
+<li>初回プレイ前に<code>MB-</code>+16進32文字の恒久的な公開IDを発行します。</li>
+<li>保存した関門と殿堂の記録の名になり、連携しても維持されます。元のゲストにGoogleを連携しても同じIDと同じチェックポイントの所有権が引き継がれます。</li>
+<li>ログアウトすると端末に新しいゲストIDが始まり以前のIDと保存は保管され、同じ提供者で入り直すとそのアカウントのIDと保管された保存に戻ります。そのため一つの導入に複数のIDが残ることがあります。</li>
+<li>サポートに連絡するときはゲームのアカウント画面に表示されるプレイヤーIDを添えてください。</li>
+</ul></section>
+<section aria-labelledby="cloud-saves"><h2 id="cloud-saves"><span class="num" aria-hidden="true">4</span>クラウド保存</h2>
+<ul class="tight">
+<li>ログイン済みアカウントは進行状況(巡回、英雄、遺物、成長、スコア)を持つ非公開の版付き保存を一つ持ちます。</li>
+<li>保存は端末が先で、送信は後から追います。</li>
+<li>保存に購入・残高の記録は入りません。</li>
+<li>受信は十分に検査してから入り、異なるクラウド写しはどちらを残すか選択を待ちます。</li>
+</ul></section>
+<section aria-labelledby="hall"><h2 id="hall"><span class="num" aria-hidden="true">5</span>殿堂</h2>
+<ul class="tight">
+<li>殿堂はプレイヤーIDごとに最良記録一つ(プレイヤーID、英雄、スコア、進行度、アプリ版、更新時刻)を保ちます。</li>
+<li>読み取りは公開で、書き込みは所有アカウントのみ、スコアは上がる一方で、順位はスコアから求めるため同点は同順位になります。</li>
+<li>殿堂の記録に名前、メール、アカウント参照、トークン、保存は入りません。</li>
+</ul></section>
+<section aria-labelledby="deletion"><h2 id="deletion"><span class="num" aria-hidden="true">6</span>削除</h2>
+<ul class="tight">
+<li>クラウドアカウントはゲームのアカウント設定から消します。削除は殿堂記録、クラウド保存、予約、プロフィールを一つの検証済み手順で先にまとめて消し、その確認後にログイン自体を消します。</li>
+<li>iOSでApple連携のアカウントを消すときはAppleログイン画面での再確認を求めることがあります。</li>
+<li>出るとログインの続きは終わり新しいゲストIDに替わります。端末とクラウドのどちらからも何も消しません。</li>
+<li>クラウドアカウントを消すとクラウドの記録とログインに加え、そのアカウントのローカルな旅の保存と端末内のアカウントの結び付けも消えます。他のアカウントのローカル保存や購入・Vault・設定などの別の端末内ファイルは残ります。</li>
+<li>アカウント・チェックポイント・殿堂の記録に、自動で消える期限はありません。アカウントを消すまで残ります。</li>
+<li><a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a>へのメールでも自分の情報の開示・訂正・削除を求められます。プレイヤーIDを添えてください。</li>
+<li>問合せはプレイヤーIDで記録と照らします。購入記録にかかる削除の求めは購入確認サービスへ渡します。</li>
+</ul></section>
+<section aria-labelledby="guests"><h2 id="guests"><span class="num" aria-hidden="true">7</span>ゲストとオフライン</h2>
+<ul class="tight">
+<li>ゲストプレイは端末専用ゲストとしてオフラインでも動き、クラウド登録済みとして表示されません。</li>
+<li>裏側の加入に失敗しても、ログイン設定のないビルドでも、プレイは続きます。ログイン設定のないビルドは登録を試みず、誤りも出しません。</li>
+<li>ログイン、クラウド保存、殿堂、ストア、購入確認にはインターネット接続が必要です。</li>
+</ul></section>
+<section aria-labelledby="analytics"><h2 id="analytics"><span class="num" aria-hidden="true">8</span>分析</h2>
+<p>任意のゲームプレイ分析は、出荷ビルドの書出し設定と初期停止の設定明示同意の両方がそろわない限り停止のままです。</p></section>
+<section aria-labelledby="purchases"><h2 id="purchases"><span class="num" aria-hidden="true">9</span>購入</h2>
+<ul class="tight">
+<li>ストアの領収書は<a href="https://kit.openiap.dev/docs/api">IAPKit購入確認サービス</a>で確かめます。確認のためストア・商品情報と領収書またはトークン(Apple署名JWSまたはGoogle購入トークン)を送ります。</li>
+<li>確認記録には取引・注文の識別子、ストア応答、要求元IP、確認結果、処理時間が残ることがあります。処理は権利の付与・復元・取消、返金、不正・重複防止、診断、サービス統計に使います。</li>
+<li>サービス統計のためIAPKitがプロジェクト初回有効領収書イベントとストア種別をMixpanelに送ることがあります。その出来事に購入トークン、取引ID、IPは入りません。IAPKitの基盤はConvexが担います。各方針: <a href="https://kit.openiap.dev/privacy-policy">IAPKit</a>、<a href="https://www.convex.dev/legal/privacy">Convex</a>、<a href="https://mixpanel.com/legal/privacy-policy/">Mixpanel</a>。この第三者サービス統計はゲームの任意のゲームプレイ分析とは別で、分析は設定で有効にして初めて動きます。</li>
+<li>アプリと開発者はカード情報やストアのパスワードを受け取りません。鍵・署名・購入トークンはログや誤り表示に残しません。</li>
+<li>ストア側の購入処理は各ストアの方針に従います: <a href="https://www.apple.com/legal/privacy/">Apple</a>、<a href="https://policies.google.com/privacy">Google</a>。</li>
+</ul></section>
+<section aria-labelledby="support-requests"><h2 id="support-requests"><span class="num" aria-hidden="true">10</span>問合せの取扱い</h2>
+<ul class="tight">
+<li>サポートへメールすると解決のためメールアドレス、文面、選んだ添付をメールサービス提供者とともに処理します。</li>
+<li>問合せは解決と法令対応に要る間だけ置きます。</li>
+<li>購入がかかるときは記録を探す最小限の注文情報だけを尋ねます。領収書全体、パスワード、確認コードは尋ねません。</li>
+<li>提供者は復元・返金・不正防止・統計・経理・法令対応に要る限り確認記録を置きます。一律の消去期限はありません。</li>
+<li>法が置かせる記録は残ることがあり、処理者の持つ記録への求めは処理者へ渡せます。</li>
+<li>問合せと上記の確認処理はあなたの国の外で行われることがあります。</li>
+</ul></section>
+<section aria-labelledby="changes"><h2 id="changes"><span class="num" aria-hidden="true">11</span>方針の変更</h2>
+<p>情報の取扱いが変わるときはこの頁を新しい版とともに直します。この版は4.0.0を扱います。</p></section>
+</main>
+<footer><p>問合せ: <a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a></p><p>© 2026 Hyo Jang. Hyo Devの月明かりの烽火。</p></footer>
+</div>
+</body>
+</html>

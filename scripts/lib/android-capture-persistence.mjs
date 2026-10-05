@@ -14,8 +14,20 @@ export const ANDROID_CAPTURE_PERSISTENT_FILES = Object.freeze([
   'iap_entitlements.cfg.bak',
   'iap_entitlements.cfg.bak.tmp',
   'iap_entitlements.cfg.tmp',
+  'journey.json',
+  'journey.json.bak',
+  'journey.json.bak.tmp',
+  'journey.json.tmp',
   'ladder.json',
   'ladder.json.tmp',
+  'onboarding.json',
+  'onboarding.json.tmp',
+  'player_bindings.cfg',
+  'player_bindings.cfg.bak',
+  'player_bindings.cfg.tmp',
+  'player_identity.cfg',
+  'player_identity.cfg.bak',
+  'player_identity.cfg.tmp',
   'records.cfg',
   'records.cfg.tmp',
   'settings.cfg',
@@ -27,11 +39,49 @@ export const ANDROID_CAPTURE_PERSISTENT_FILES = Object.freeze([
   'vault.cfg.tmp',
 ]);
 
+/**
+ * Validated pattern for account-partitioned persistent files, whose names
+ * carry the account token: `journey.<token>.json` (+ `.bak`/`.tmp`),
+ * `journey.<token>.rev.json` (+ `.tmp`, the durable cloud sync baseline),
+ * `journey.<token>.rejected-local|remote.json` (+ `.tmp`), and
+ * `cloud_journey.<token>.json` (+ `.tmp`). The token alphabet is exactly
+ * what `Journey.safe_account_token` / `CloudLocalStore.safe_uid_token`
+ * emit: alphanumerics, `-`, `_` (public `MB-` IDs and Firebase UIDs pass
+ * through; anything else becomes `h_` + 32 hex). A prefix alone is never
+ * a file: every enumerated name must full-match this pattern. The same
+ * source string is mirrored in Python
+ * (`ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN`) and pinned
+ * character-identical by the store-graphics boundary test.
+ *
+ * Native SDK preferences and Keychain items also hold identity material,
+ * but they are never captured or reset here: container file backups do
+ * not protect Keychain entries, and credentials must never travel as
+ * marketing-capture fixtures.
+ */
+export const ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN =
+  '^(?:journey\\.[A-Za-z0-9_-]{1,64}\\.(?:json(?:\\.bak)?(?:\\.tmp)?|rev\\.json(?:\\.tmp)?|rejected-(?:local|remote)\\.json(?:\\.tmp)?)|cloud_journey\\.[A-Za-z0-9_-]{1,64}\\.json(?:\\.tmp)?)$';
+const DYNAMIC_FILE_PATTERN = new RegExp(
+  ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN,
+);
+const FIXED_FILE_SET = new Set(ANDROID_CAPTURE_PERSISTENT_FILES);
+
+export function isAndroidPersistentDynamicFile(name) {
+  return typeof name === 'string'
+    && !FIXED_FILE_SET.has(name)
+    && DYNAMIC_FILE_PATTERN.test(name);
+}
+
 function fail(message) {
   throw new Error(message);
 }
 
 function assertFileName(name) {
+  // Account partitions carry uppercase `MB-` IDs and mixed-case Firebase
+  // UIDs; accept them only by the anchored full-match dynamic pattern.
+  // Lowercase control/fixed files keep the historical charset contract.
+  if (typeof name === 'string' && isAndroidPersistentDynamicFile(name)) {
+    return name;
+  }
   if (typeof name !== 'string' || !/^[a-z0-9._-]+$/u.test(name)) {
     fail(`Unsafe Android persistent filename: ${String(name)}`);
   }
@@ -78,24 +128,85 @@ function assertSnapshotShape(snapshot, label) {
   if (snapshot === null || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     fail(`${label} Android persistent file snapshot is not an object.`);
   }
-  const actual = Object.keys(snapshot).sort();
-  const expected = [...ANDROID_CAPTURE_PERSISTENT_FILES].sort();
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-    fail(`${label} Android persistent file snapshot list does not match the fixed contract.`);
+  for (const name of ANDROID_CAPTURE_PERSISTENT_FILES) {
+    if (!Object.hasOwn(snapshot, name)) {
+      fail(`${label} Android persistent file snapshot is missing ${name}.`);
+    }
   }
-  for (const name of ANDROID_CAPTURE_PERSISTENT_FILES) snapshotValue(snapshot, name);
+  for (const name of Object.keys(snapshot)) {
+    if (!FIXED_FILE_SET.has(name) && !isAndroidPersistentDynamicFile(name)) {
+      fail(`${label} Android persistent file snapshot has an unlisted file: ${name}.`);
+    }
+  }
+  for (const name of Object.keys(snapshot)) snapshotValue(snapshot, name);
   return snapshot;
 }
 
-export function captureAndroidPersistentSnapshot(readFile) {
+function dynamicSnapshotKeys(snapshot) {
+  return Object.keys(snapshot).filter((name) => !FIXED_FILE_SET.has(name)).sort();
+}
+
+/** Sorted account-partitioned names carried by one snapshot (may be empty). */
+export function androidPersistentDynamicFiles(snapshot) {
+  assertSnapshotShape(snapshot, 'dynamic files');
+  return dynamicSnapshotKeys(snapshot);
+}
+
+export function androidPersistentDynamicHashes(snapshot) {
+  assertSnapshotShape(snapshot, 'dynamic hash');
+  return Object.fromEntries(dynamicSnapshotKeys(snapshot).map((name) => {
+    const value = snapshotValue(snapshot, name);
+    return [
+      name,
+      value === null ? null : createHash('sha256').update(value).digest('hex'),
+    ];
+  }));
+}
+
+function enumeratedDynamicNames(listed) {
+  if (!Array.isArray(listed)) {
+    fail('Android persistent file lister did not return an array.');
+  }
+  const names = [];
+  const seen = new Set();
+  for (const name of listed) {
+    if (typeof name !== 'string') {
+      fail('Android persistent file lister returned a non-string entry.');
+    }
+    // Fixed files are read directly whether or not the listing holds them;
+    // control and handshake files are skipped: only pattern-matched
+    // account partitions join the protected universe.
+    if (FIXED_FILE_SET.has(name) || seen.has(name)) continue;
+    seen.add(name);
+    if (isAndroidPersistentDynamicFile(name)) names.push(name);
+  }
+  return names.sort();
+}
+
+export function captureAndroidPersistentSnapshot(readFile, { listFiles } = {}) {
   if (typeof readFile !== 'function') fail('Android persistent file reader is missing.');
-  return Object.fromEntries(ANDROID_CAPTURE_PERSISTENT_FILES.map((name) => {
+  if (listFiles !== undefined && typeof listFiles !== 'function') {
+    fail('Android persistent file lister is not a function.');
+  }
+  const snapshot = Object.fromEntries(ANDROID_CAPTURE_PERSISTENT_FILES.map((name) => {
     const value = readFile(assertFileName(name));
     if (value !== null && !Buffer.isBuffer(value)) {
       fail(`Android persistent file reader did not return Buffer/null: ${name}`);
     }
     return [name, value === null ? null : Buffer.from(value)];
   }));
+  if (listFiles !== undefined) {
+    // Dynamic names carry uppercase account tokens, so they validate by
+    // the full-match pattern instead of the lowercase fixed-file charset.
+    for (const name of enumeratedDynamicNames(listFiles())) {
+      const value = readFile(name);
+      if (value !== null && !Buffer.isBuffer(value)) {
+        fail(`Android persistent file reader did not return Buffer/null: ${name}`);
+      }
+      snapshot[name] = value === null ? null : Buffer.from(value);
+    }
+  }
+  return snapshot;
 }
 
 export function androidPersistentHashes(snapshot) {
@@ -112,9 +223,13 @@ export function androidPersistentHashes(snapshot) {
 export function androidPersistentSnapshotsEqual(left, right) {
   assertSnapshotShape(left, 'left');
   assertSnapshotShape(right, 'right');
-  return ANDROID_CAPTURE_PERSISTENT_FILES.every((name) => {
-    const leftValue = snapshotValue(left, name);
-    const rightValue = snapshotValue(right, name);
+  const names = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return [...names].every((name) => {
+    // Fixed names are present on both sides (the shape check proved it);
+    // a dynamic name on one side only reads as absent there, so a
+    // capture-created partition compares unequal until it is removed.
+    const leftValue = Object.hasOwn(left, name) ? snapshotValue(left, name) : null;
+    const rightValue = Object.hasOwn(right, name) ? snapshotValue(right, name) : null;
     if (leftValue === null || rightValue === null) return leftValue === rightValue;
     return leftValue.equals(rightValue);
   });
@@ -122,7 +237,7 @@ export function androidPersistentSnapshotsEqual(left, right) {
 
 export function restoreAndroidPersistentSnapshot(
   original,
-  { readFile, writeFile, removeFile },
+  { readFile, writeFile, removeFile, listFiles },
 ) {
   if (
     typeof readFile !== 'function'
@@ -131,20 +246,33 @@ export function restoreAndroidPersistentSnapshot(
   ) {
     fail('Android persistent file restore callback is incomplete.');
   }
+  if (listFiles !== undefined && typeof listFiles !== 'function') {
+    fail('Android persistent file lister is not a function.');
+  }
   // Validate the entire source snapshot before changing any device file.
-  const originalValues = new Map(ANDROID_CAPTURE_PERSISTENT_FILES.map((name) => [
-    name,
-    snapshotValue(original, name),
-  ]));
+  assertSnapshotShape(original, 'original');
+  const captureOptions = listFiles === undefined ? {} : { listFiles };
   const errors = [];
   let observed = null;
   try {
-    observed = captureAndroidPersistentSnapshot(readFile);
+    observed = captureAndroidPersistentSnapshot(readFile, captureOptions);
   } catch (error) {
     errors.push(new Error(`pre-restore state check failed: ${error.message}`));
   }
+  // The restore universe is the fixed set plus every dynamic name either
+  // side holds: capture-created partitions (observed only) restore to
+  // absent, exactly like capture-created fixed files.
+  const universe = new Set([
+    ...ANDROID_CAPTURE_PERSISTENT_FILES,
+    ...dynamicSnapshotKeys(original),
+    ...(observed === null ? [] : dynamicSnapshotKeys(observed)),
+  ]);
+  const originalValues = new Map([...universe].map((name) => [
+    name,
+    Object.hasOwn(original, name) ? snapshotValue(original, name) : null,
+  ]));
   // A failure on one replica must not strand every later Vault/settings file in
-  // its capture-mutated state. Attempt every fixed target, then verify and fail.
+  // its capture-mutated state. Attempt every universe target, then verify and fail.
   for (const [name, value] of originalValues) {
     try {
       if (value === null) removeFile(name);
@@ -155,7 +283,7 @@ export function restoreAndroidPersistentSnapshot(
   }
   let restored = null;
   try {
-    restored = captureAndroidPersistentSnapshot(readFile);
+    restored = captureAndroidPersistentSnapshot(readFile, captureOptions);
     if (!androidPersistentSnapshotsEqual(original, restored)) {
       errors.push(new Error('post-restore byte-exact verification mismatch'));
     }
@@ -170,6 +298,7 @@ export function restoreAndroidPersistentSnapshot(
   }
   return Object.freeze({
     files: [...ANDROID_CAPTURE_PERSISTENT_FILES],
+    dynamicFiles: dynamicSnapshotKeys(original),
     observed,
     restored,
     mutated: !androidPersistentSnapshotsEqual(original, observed),
@@ -210,26 +339,61 @@ export function buildAndroidPersistentEvidence(original, restoreResult) {
   ) {
     fail('Android persistent file restore result file list does not match the fixed contract.');
   }
+  const originalDynamic = dynamicSnapshotKeys(original);
+  if (
+    !Array.isArray(restoreResult.dynamicFiles)
+    || JSON.stringify(restoreResult.dynamicFiles) !== JSON.stringify(originalDynamic)
+  ) {
+    fail('Android persistent file restore result dynamic file list does not match the original.');
+  }
   assertSnapshotShape(restoreResult.observed, 'observed');
   assertSnapshotShape(restoreResult.restored, 'restored');
   if (!androidPersistentSnapshotsEqual(original, restoreResult.restored)) {
     fail('Android persistent file before/restored bytes do not match.');
   }
+  if (
+    JSON.stringify(dynamicSnapshotKeys(restoreResult.restored))
+    !== JSON.stringify(originalDynamic)
+  ) {
+    fail('Android persistent file restored dynamic file list does not match the original.');
+  }
   const before = androidPersistentHashes(original);
   const observed = androidPersistentHashes(restoreResult.observed);
   const restored = androidPersistentHashes(restoreResult.restored);
-  const mutated = !androidPersistentSnapshotsEqual(original, restoreResult.observed);
+  const dynamicBefore = androidPersistentDynamicHashes(original);
+  const observedDynamicMap = androidPersistentDynamicHashes(restoreResult.observed);
+  // A partition deleted during capture vanishes from the observed
+  // enumeration; report it as an explicit null like the fixed maps do,
+  // keeping capture-created extras alongside.
+  const dynamicObserved = Object.fromEntries(
+    [...new Set([...originalDynamic, ...Object.keys(observedDynamicMap)])]
+      .sort()
+      .map((name) => [
+        name,
+        Object.hasOwn(observedDynamicMap, name) ? observedDynamicMap[name] : null,
+      ]),
+  );
+  const dynamicRestored = androidPersistentDynamicHashes(restoreResult.restored);
+  const fixedMutated = JSON.stringify(before) !== JSON.stringify(observed);
+  const dynamicMutated = JSON.stringify(dynamicBefore) !== JSON.stringify(dynamicObserved);
+  const mutated = fixedMutated || dynamicMutated;
   if (restoreResult.mutated !== mutated) {
     fail('Android persistent file restore mutated value does not match observed bytes.');
   }
   const settingsName = 'settings.cfg';
   const evidence = {
     persistent_data_files: [...ANDROID_CAPTURE_PERSISTENT_FILES],
+    persistent_data_dynamic_files: [...originalDynamic],
     persistent_data_sha256_before: before,
     persistent_data_sha256_observed: observed,
     persistent_data_sha256_restored: restored,
+    persistent_data_dynamic_sha256_before: dynamicBefore,
+    persistent_data_dynamic_sha256_observed: dynamicObserved,
+    persistent_data_dynamic_sha256_restored: dynamicRestored,
     persistent_data_mutated_during_capture: mutated,
+    persistent_data_dynamic_mutated_during_capture: dynamicMutated,
     persistent_data_restored_byte_exact: true,
+    persistent_data_dynamic_restored_byte_exact: true,
     persistent_data_unchanged: true,
     settings_restore: {
       original_present: original[settingsName] !== null,
@@ -308,6 +472,33 @@ function decodeCanonicalAnchorBase64(value, label) {
   return bytes;
 }
 
+function assertDynamicHashMap(value, files, label, { allowObservedExtras = false } = {}) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    fail(`${label} hash map is not an object.`);
+  }
+  const actual = Object.keys(value).sort();
+  if (allowObservedExtras) {
+    const fileSet = new Set(files);
+    if (!files.every((name) => Object.hasOwn(value, name))) {
+      fail(`${label} hash map is missing reported dynamic files.`);
+    }
+    for (const name of actual) {
+      if (!fileSet.has(name) && !isAndroidPersistentDynamicFile(name)) {
+        fail(`${label} hash map has an unlisted file: ${name}.`);
+      }
+    }
+  } else if (JSON.stringify(actual) !== JSON.stringify([...files].sort())) {
+    fail(`${label} hash file list does not match the reported dynamic files.`);
+  }
+  for (const name of actual) {
+    const hash = value[name];
+    if (hash !== null && (typeof hash !== 'string' || !/^[0-9a-f]{64}$/u.test(hash))) {
+      fail(`${label} ${name} SHA-256 is invalid.`);
+    }
+  }
+  return value;
+}
+
 /** Validate serialized persistence evidence before it is written/published. */
 export function assertAndroidPersistentReportEvidence(
   report,
@@ -322,6 +513,15 @@ export function assertAndroidPersistentReportEvidence(
       !== JSON.stringify(ANDROID_CAPTURE_PERSISTENT_FILES)
   ) {
     fail('Android capture report persistent file list does not match the fixed contract.');
+  }
+  const dynamicFiles = report.persistent_data_dynamic_files;
+  if (
+    !Array.isArray(dynamicFiles)
+    || JSON.stringify(dynamicFiles) !== JSON.stringify([...dynamicFiles].sort())
+    || new Set(dynamicFiles).size !== dynamicFiles.length
+    || !dynamicFiles.every(isAndroidPersistentDynamicFile)
+  ) {
+    fail('Android capture report dynamic file list is not sorted unique pattern-matched names.');
   }
   const before = assertHashMap(
     report.persistent_data_sha256_before,
@@ -338,15 +538,40 @@ export function assertAndroidPersistentReportEvidence(
   if (JSON.stringify(before) !== JSON.stringify(restored)) {
     fail('Android capture report before/restored hashes differ.');
   }
+  const dynamicBefore = assertDynamicHashMap(
+    report.persistent_data_dynamic_sha256_before,
+    dynamicFiles,
+    'persistent_data_dynamic_sha256_before',
+  );
+  const dynamicObserved = assertDynamicHashMap(
+    report.persistent_data_dynamic_sha256_observed,
+    dynamicFiles,
+    'persistent_data_dynamic_sha256_observed',
+    { allowObservedExtras: true },
+  );
+  const dynamicRestored = assertDynamicHashMap(
+    report.persistent_data_dynamic_sha256_restored,
+    dynamicFiles,
+    'persistent_data_dynamic_sha256_restored',
+  );
+  if (JSON.stringify(dynamicBefore) !== JSON.stringify(dynamicRestored)) {
+    fail('Android capture report dynamic before/restored hashes differ.');
+  }
+  const fixedMutated = JSON.stringify(before)
+    !== JSON.stringify(report.persistent_data_sha256_observed);
+  const dynamicMutated = JSON.stringify(dynamicBefore) !== JSON.stringify(dynamicObserved);
   if (
-    report.persistent_data_mutated_during_capture
-      !== (JSON.stringify(before) !== JSON.stringify(
-        report.persistent_data_sha256_observed,
-      ))
+    report.persistent_data_mutated_during_capture !== (fixedMutated || dynamicMutated)
     || report.persistent_data_restored_byte_exact !== true
     || report.persistent_data_unchanged !== true
   ) {
     fail('Android capture report byte-exact restore flags are invalid.');
+  }
+  if (
+    report.persistent_data_dynamic_mutated_during_capture !== dynamicMutated
+    || report.persistent_data_dynamic_restored_byte_exact !== true
+  ) {
+    fail('Android capture report dynamic byte-exact restore flags are invalid.');
   }
   const settings = report.settings_restore;
   const expectedSettingsKeys = [

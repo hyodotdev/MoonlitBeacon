@@ -30,6 +30,9 @@ uniform float outline_lit_alpha : hint_range(0.0, 1.0) = 0.5;
 uniform vec4 rim_color : source_color = vec4(0.8, 0.9, 1.0, 1.0);
 uniform float rim_strength : hint_range(0.0, 1.0) = 0.36;
 uniform float glow : hint_range(0.0, 1.0) = 0.5;
+// Neighbour taps, in sheet pixels. The painted 3x sheets keep the same world
+// outline width with a radius of 3.
+uniform float tap_radius : hint_range(1.0, 4.0) = 1.0;
 
 varying vec4 tint;
 
@@ -40,10 +43,11 @@ void vertex() {
 void fragment() {
 	vec2 px = TEXTURE_PIXEL_SIZE;
 	vec4 own = texture(TEXTURE, UV);
-	vec4 up = texture(TEXTURE, UV + vec2(0.0, -px.y));
-	vec4 down = texture(TEXTURE, UV + vec2(0.0, px.y));
-	vec4 left = texture(TEXTURE, UV + vec2(-px.x, 0.0));
-	vec4 right = texture(TEXTURE, UV + vec2(px.x, 0.0));
+	vec2 tap = vec2(px.x * tap_radius, px.y * tap_radius);
+	vec4 up = texture(TEXTURE, UV + vec2(0.0, -tap.y));
+	vec4 down = texture(TEXTURE, UV + vec2(0.0, tap.y));
+	vec4 left = texture(TEXTURE, UV + vec2(-tap.x, 0.0));
+	vec4 right = texture(TEXTURE, UV + vec2(tap.x, 0.0));
 
 	if (own.a < 0.5) {
 		// Beside the art. The light comes from the upper left, so a pixel whose
@@ -65,7 +69,7 @@ void fragment() {
 			COLOR = vec4(deep, outline_alpha * touching * tint.a);
 		}
 	} else {
-		float up_left = texture(TEXTURE, UV + vec2(-px.x, -px.y)).a;
+		float up_left = texture(TEXTURE, UV + vec2(-tap.x, -tap.y)).a;
 		float facing_light = 1.0 - step(0.5, max(max(up.a, left.a), up_left));
 		vec3 body = own.rgb * tint.rgb;
 

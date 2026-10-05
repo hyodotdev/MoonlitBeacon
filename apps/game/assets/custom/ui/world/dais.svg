@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="96" viewBox="0 0 384 96">
+  <!-- Hero stage: a gold-rimmed ellipse of deep ink scattered with moon dust. -->
+  <defs>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9b47a"/>
+      <stop offset="0.5" stop-color="#8a5f1e"/>
+      <stop offset="1" stop-color="#4a340f"/>
+    </linearGradient>
+    <radialGradient id="heart" cx="0.5" cy="0.42" r="0.62">
+      <stop offset="0" stop-color="#1c2249"/>
+      <stop offset="0.65" stop-color="#10142e"/>
+      <stop offset="1" stop-color="#070a1e"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="192" cy="48" rx="188" ry="42" fill="url(#rim)"/>
+  <ellipse cx="192" cy="48" rx="178" ry="37" fill="#070a1e"/>
+  <ellipse cx="192" cy="46" rx="168" ry="32" fill="url(#heart)"/>
+  <path d="M 60 38 A 168 32 0 0 1 324 38" fill="none" stroke="#f2c14e" stroke-width="2.4" opacity="0.55"/>
+  <g fill="#4b7f88">
+    <circle cx="80" cy="44" r="2.4"/>
+    <circle cx="130" cy="58" r="2"/>
+    <circle cx="228" cy="38" r="2.4"/>
+    <circle cx="288" cy="54" r="2"/>
+    <circle cx="192" cy="64" r="2.4"/>
+    <circle cx="250" cy="60" r="1.6"/>
+    <circle cx="110" cy="50" r="1.6"/>
+  </g>
+  <circle cx="192" cy="20" r="3" fill="#f2c14e"/>
+</svg>

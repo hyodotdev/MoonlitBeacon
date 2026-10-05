@@ -21,6 +21,9 @@ extends RefCounted
 ##
 ## Text lives in the translation table as `ACT_<n>_LABEL / _TITLE / _EPIGRAPH`.
 
+## Kept as a literal for callers that iterate boundaries directly. The
+## lookups below resolve through `StoryEpisodes`, which is the one place a
+## future episode is added; a regression pins the two to each other.
 const LIST: Array[Dictionary] = [
 	{"id": "debt", "from": 1, "number": 1},
 	{"id": "hunger", "from": 3, "number": 2},
@@ -34,25 +37,9 @@ const LIST: Array[Dictionary] = [
 ## This is what decides when the title card plays: only on the cycle an act
 ## starts, never on the ones after it.
 static func starting_at(cycle: int) -> Dictionary:
-	for act in LIST:
-		if int(act["from"]) == cycle:
-			return _with_keys(act)
-	return {}
+	return StoryEpisodes.act_starting_at(cycle)
 
 
 ## The act a cycle belongs to. Cycle 0 and below read as Act I.
 static func of_cycle(cycle: int) -> Dictionary:
-	var current: Dictionary = LIST[0]
-	for act in LIST:
-		if cycle >= int(act["from"]):
-			current = act
-	return _with_keys(current)
-
-
-static func _with_keys(act: Dictionary) -> Dictionary:
-	var number: int = int(act["number"])
-	var result: Dictionary = act.duplicate()
-	result["label"] = "ACT_%d_LABEL" % number
-	result["title"] = "ACT_%d_TITLE" % number
-	result["epigraph"] = "ACT_%d_EPIGRAPH" % number
-	return result
+	return StoryEpisodes.act_of_cycle(cycle)

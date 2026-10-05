@@ -1,0 +1,149 @@
+# Rendered to SConstruct by scripts/build-player-identity.mjs --build-ios
+# (template copied verbatim into the iOS build dir next to a copy of src/
+# and include/).
+#
+# Required environment when the director runs the build:
+#   GODOT_CPP         Pinned godot-cpp checkout: tag godot-4.5-stable at
+#                     revision e83fd0904c13356ed1d4c3d09f8bb9132bdc6b77
+#                     (verified with git ls-remote; neither godot-4.7.1-stable
+#                     nor godot-4.7-stable exists). The extension compiles
+#                     against the tag's DEFAULT extension API and runs on the
+#                     4.7.1 engine unchanged. Do NOT pass a custom_api_file
+#                     dumped by 4.7.1: that older generator collides on
+#                     UINT8_MAX/INT8_MIN and other new constants.
+#   GODOT_CPP_LIB     Directory holding the prebuilt godot-cpp iOS archives
+#                     libgodot-cpp.ios.template_<debug|release>.arm64.a.
+#                     Built once per machine with:
+#                       cd $GODOT_CPP
+#                       scons platform=ios arch=arm64 target=template_debug \
+#                         ios_min_version=13.0 -j4
+#                       scons platform=ios arch=arm64 target=template_release \
+#                         ios_min_version=13.0 -j4
+#                     (SCons 4.9.1 measured; both archives required.)
+#   FIREBASE_PODS_DIR The Pods/ directory produced by --fetch-deps. The fetch
+#                     also builds the pods' static frameworks for iphoneos
+#                     arm64 (Debug+Release) and writes a link tree next to
+#                     Pods/: MoonlitLink/firebase-flags.json plus per-config
+#                     Headers/<Pod> and Frameworks/<Pod>.framework symlinks
+#                     into the built products. This file reads that flags
+#                     file and compiles against the discovered layout.
+#
+# FirebaseAuth 11 is Swift-implemented: its ObjC-visible class interfaces
+# and error codes live in FirebaseAuth-Swift.h, which carries @imports
+# (FirebaseAuthInterop, Foundation, UIKit). The compile therefore enables
+# Clang modules (-fmodules plus -fcxx-modules: Apple Clang 21 refuses
+# @import in ObjC++ with -fmodules alone — measured) with -F on the
+# discovered Frameworks dir so every pod module resolves, and -I on the
+# Headers forest for the textual umbrella chain. The module cache stays
+# inside the build dir (.module-cache) so no HOME write is needed.
+#
+# Physical device only (arm64): the simulator cannot run this game, so no
+# simulator slice is built.
+#
+# Outputs (merged with the godot-cpp archive via libtool, so the export
+# links exactly one static library per variant) land in lib/ next to this
+# file; the build script copies them to
+# apps/game/addons/moonlit-identity/bin/ios/libmoonlit_identity.<variant>.a
+# and stages the variant's Firebase frameworks under
+# apps/game/addons/moonlit-identity/bin/ios/frameworks/<variant>/ for the
+# export plugin. Those outputs are director-built artifacts and are never
+# committed by the implementer.
+
+import json
+import os
+
+for name in ["GODOT_CPP", "GODOT_CPP_LIB", "FIREBASE_PODS_DIR"]:
+    if name not in os.environ:
+        raise RuntimeError("Set %s first (see the header of SConstruct)." % name)
+
+link_dir = os.path.join(
+    os.path.dirname(os.environ["FIREBASE_PODS_DIR"]), "MoonlitLink"
+)
+flags_file = os.path.join(link_dir, "firebase-flags.json")
+if not os.path.isfile(flags_file):
+    raise RuntimeError(
+        "Missing Firebase link tree at %s. Run the deps fetch first:\n"
+        "  node scripts/build-player-identity.mjs --fetch-deps --platform ios"
+        % flags_file
+    )
+
+env = SConscript(os.environ["GODOT_CPP"] + "/SConstruct")
+
+variant = "debug" if env["target"] == "template_debug" else "release"
+with open(flags_file, "r", encoding="utf-8") as handle:
+    link_flags = json.load(handle)
+entry = (link_flags.get("variants") or {}).get(variant)
+if not entry or not entry.get("headers") or not entry.get("frameworks"):
+    raise RuntimeError(
+        "Link tree %s has no %s variant; re-run --fetch-deps --platform ios."
+        % (flags_file, variant)
+    )
+for pod in ["FirebaseAuth", "GoogleSignIn"]:
+    if pod not in entry["frameworks"]:
+        raise RuntimeError(
+            "Link tree %s lists no %s framework for %s; re-run --fetch-deps."
+            % (flags_file, pod, variant)
+        )
+headers_dir = entry["headers"]
+frameworks_dir = entry.get("frameworks_dir")
+for pod in ["FirebaseAuth", "GoogleSignIn"]:
+    if not os.path.isdir(os.path.join(headers_dir, pod)):
+        raise RuntimeError(
+            "Missing %s headers under %s; re-run --fetch-deps --platform ios."
+            % (pod, headers_dir)
+        )
+    if not frameworks_dir or not os.path.isdir(
+        os.path.join(frameworks_dir, pod + ".framework")
+    ):
+        raise RuntimeError(
+            "Missing %s.framework under %s; re-run --fetch-deps --platform ios."
+            % (pod, frameworks_dir)
+        )
+print(
+    "MoonlitIdentity: compiling %s against %s (%d frameworks)"
+    % (variant, headers_dir, len(entry["frameworks"]))
+)
+
+module_cache = os.path.join(Dir("#").abspath, ".module-cache")
+env.Append(CPPPATH=["include", headers_dir])
+# NOTE: do not use SCons FRAMEWORKPATH for this. A real device build
+# proved it never reaches the compile command (the @import of
+# FirebaseAuthInterop failed with "module not found" while every
+# CXXFLAGS flag arrived). The -F flag below is one argv item, so paths
+# with spaces stay intact; it is printed with the rest of the compile
+# flags so the build log proves the generated command.
+env.Append(CCFLAGS=["-F" + frameworks_dir])
+env.Append(
+    CXXFLAGS=[
+        "-std=c++17",
+        "-ObjC++",
+        "-fobjc-arc",
+        "-fmodules",
+        "-fcxx-modules",
+        "-fmodules-cache-path=" + module_cache,
+    ]
+)
+print(
+    "MoonlitIdentity: compile flags -F%s -I%s -fmodules -fcxx-modules"
+    % (frameworks_dir, headers_dir)
+)
+env.Append(FRAMEWORKS=["AuthenticationServices", "Security", "UIKit", "Foundation"])
+
+sources = Glob("src/*.mm")
+objects = [env.Object(src) for src in sources]
+
+merged = "lib/libmoonlit_identity.%s.a" % variant
+ours = "lib/.moonlit_identity.%s.objects.a" % variant
+ours_lib = env.StaticLibrary(ours, objects)
+
+godot_cpp_lib = os.environ["GODOT_CPP_LIB"] + (
+    "/libgodot-cpp.ios.template_debug.arm64.a"
+    if variant == "debug"
+    else "/libgodot-cpp.ios.template_release.arm64.a"
+)
+merged_lib = env.Command(
+    merged,
+    [ours_lib, godot_cpp_lib],
+    "libtool -static -o $TARGET $SOURCES",
+)
+Default(merged_lib)

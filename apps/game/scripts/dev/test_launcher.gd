@@ -14,6 +14,13 @@ extends HBoxContainer
 ## Gated with `OS.is_debug_build()` so it cannot leak into a shipping build.
 ## `--export-release` makes this node free itself. Not a check, not a hide —
 ## `queue_free()`. Leave it around and it will show someday.
+##
+## The buttons themselves stay behind `show_developer_controls`, which the
+## production entry turns off: device builds boot into a clean game screen.
+## Hiding never stops the automation hooks below — the capture probe, the
+## clean-UI handshake and the boot request all keep running while hidden.
+## Device developers re-enable with the `dev_launcher` launch argument or
+## the `moonlit_dev_launcher` root meta; the old title keeps its buttons.
 
 ## State each button builds. [level, cycle, label] and, optionally, whether the run counts as
 ## started from the title.
@@ -36,12 +43,28 @@ const PRESETS: Array = [
 ## value can be passed without a new autoload.
 const BOOST_META: String = "moonlit_test_boost"
 const STORE_CAPTURE_TITLE_READY: String = "user://store_capture_title_runtime.ready"
+## Standalone title scene path. The production entry nests that same title
+## under its Title child instead of carrying Ui/Screen itself.
+const STANDALONE_TITLE_PATH: String = "res://scenes/menus/title_menu.tscn"
+## Gate panels that occlude the title when visible. Same set
+## ProductionEntry checks before claiming a clean title.
+const GATE_OCCLUDING_PANELS: Array[String] = [
+	"GateAccountPanel", "GateConflictPanel", "GateHallPanel",
+	"GateExitPanel", "GateTermsPanel",
+]
 const STORE_CAPTURE_CLEAN_UI: Script = preload(
 	"res://scripts/dev/store_capture_clean_ui.gd")
 const STORE_CAPTURE_PROBE: Script = preload(
 	"res://scripts/dev/store_capture_probe.gd")
 const STORE_CAPTURE_BOOT: Script = preload(
 	"res://scripts/dev/store_capture_boot.gd")
+
+## Show the debug jump buttons. Off in the production entry: hidden there
+## by default on every build, while the probe and boot hooks keep working.
+@export var show_developer_controls: bool = true
+## Launch argument or root meta that re-enables hidden buttons for a run.
+const DEV_LAUNCHER_ARG: String = "dev_launcher"
+const DEV_LAUNCHER_META: String = "moonlit_dev_launcher"
 
 
 static func take_boost(tree: SceneTree) -> Array:
@@ -53,10 +76,22 @@ static func take_boost(tree: SceneTree) -> Array:
 	return boost
 
 
+## True while the jump buttons are on screen. Tests read this.
+func are_developer_controls_visible() -> bool:
+	return visible and get_child_count() > 0
+
+
 func _ready() -> void:
 	if not OS.is_debug_build():
 		set_process(false)
 		queue_free()
+		return
+
+	if not show_developer_controls and not _debug_opt_in():
+		# Clean production boot: no buttons, no footprint, hooks alive.
+		visible = false
+		_signal_store_capture_title_ready.call_deferred()
+		_launch_store_capture_boot.call_deferred()
 		return
 
 	add_theme_constant_override("separation", 6)
@@ -104,15 +139,113 @@ func _ready() -> void:
 	_launch_store_capture_boot.call_deferred()
 
 
+## Explicit per-run opt-in for device developers: a launch argument or
+## a root meta set by automation before the scene boots.
+func _debug_opt_in() -> bool:
+	for token in OS.get_cmdline_user_args():
+		if token == DEV_LAUNCHER_ARG or token.begins_with(DEV_LAUNCHER_ARG + "="):
+			return true
+	var tree: SceneTree = get_tree()
+	if tree != null and tree.root != null \
+			and tree.root.has_meta(DEV_LAUNCHER_META):
+		return bool(tree.root.get_meta(DEV_LAUNCHER_META, false))
+	return false
+
+
 func _launch_store_capture_boot() -> void:
 	var request: Dictionary = STORE_CAPTURE_BOOT.read_request()
-	if request.is_empty() or not is_inside_tree():
+	if request.is_empty():
+		_launch_hero_inspection_boot()
+		return
+	if not is_inside_tree():
 		return
 	match str(request["kind"]):
 		"missile_core":
 			_launch(10, 1)
 		"moonlight_barrage", "field_guardian":
 			_launch(20, 3)
+
+
+## Unboosted hero inspection: open the real Arena with no boost meta, no
+## journey arm, and no title-origin plan. The next hero still comes from the
+## existing one-shot `test_hero.request` consumer in the arena, and the
+## nonce-bound hero/direction proof still comes from the separate runtime
+## request. Opening the arena proves nothing; the runtime checks do.
+func _launch_hero_inspection_boot() -> void:
+	var inspection: Dictionary = STORE_CAPTURE_BOOT.read_inspection_request()
+	if inspection.is_empty() or not is_inside_tree():
+		return
+	# Refuse when a real journey is already armed or waiting: the arena
+	# consumes the pending action and the from-title flag on open, and a
+	# fresh/resume entry would clear or rewrite the saved journey. A refused
+	# inspection leaves the request file for a later boot and touches nothing.
+	if Journey.armed or Journey.pending != Journey.Pending.NONE \
+			or RunEntry.from_title:
+		return
+	# Never carry a stale boost into a quiet inspection. `_apply_test_boost`
+	# grants max missile and survived time even at Lv1, so this path sets no
+	# meta at all instead of calling `_launch`.
+	if get_tree().root.has_meta(BOOST_META):
+		get_tree().root.remove_meta(BOOST_META)
+	get_tree().change_scene_to_file("res://scenes/gameplay/arena.tscn")
+
+
+## Resolve the node carrying the original title's Ui/Screen: the Title
+## child under the production entry, the scene root itself for the
+## standalone title, null for any other scene.
+static func resolve_title_root(scene: Node) -> Node:
+	if scene == null:
+		return null
+	if scene is ProductionEntry:
+		return scene.get_node_or_null("Title")
+	if scene.scene_file_path == STANDALONE_TITLE_PATH:
+		return scene
+	return null
+
+
+## True while a gate card, panel, loader or confirm covers the production
+## title. Mirrors the rejection ProductionEntry applies before claiming a
+## clean title capture. Fails closed: a missing gate is not a clean boot.
+static func is_production_title_occluded(entry: Node) -> bool:
+	var gate: GateEntry = entry.get_node_or_null("Gate") as GateEntry
+	if gate == null or not gate.is_title_rest():
+		return true
+	var loader: GateLoadingOverlay = gate.get_loader()
+	var loader_visible: bool = loader != null and loader.visible \
+		and loader.is_visible_in_tree()
+	if loader != null and (loader.is_loading()
+			or loader.is_showing_error()
+			or loader.is_showing_cancelled() or loader_visible):
+		return true
+	for panel_name in GATE_OCCLUDING_PANELS:
+		var panel: Control = gate.get_node_or_null(panel_name) as Control
+		if panel != null and panel.visible:
+			return true
+	var confirm: Control = entry.get_node_or_null(
+		"FreshConfirm") as Control
+	return confirm != null and confirm.visible \
+		and confirm.is_visible_in_tree()
+
+
+## True when the scene is a real title at a clean boot: the original
+## title's screen chrome is visible with the current version, and no
+## gate card, panel, loader or confirm covers it. Debug builds only.
+static func is_clean_title_boot(scene: Node) -> bool:
+	if scene == null or not OS.is_debug_build():
+		return false
+	var title_root: Node = resolve_title_root(scene)
+	if title_root == null:
+		return false
+	if scene is ProductionEntry and is_production_title_occluded(scene):
+		return false
+	var screen: CanvasItem = title_root.get_node_or_null(
+		"Ui/Screen") as CanvasItem
+	var version: Label = title_root.get_node_or_null(
+		"Ui/Screen/Version") as Label
+	var expected_version: String = "v" + str(ProjectSettings.get_setting(
+		"application/config/version", "0.0.0"))
+	return screen != null and screen.is_visible_in_tree() \
+		and version != null and version.text == expected_version
 
 
 func _signal_store_capture_title_ready() -> void:
@@ -130,15 +263,7 @@ func _signal_store_capture_title_ready() -> void:
 		await tree.process_frame
 	if not is_inside_tree():
 		return
-	var scene: Node = get_tree().current_scene
-	var screen: CanvasItem = scene.get_node_or_null("Ui/Screen") as CanvasItem \
-		if scene != null else null
-	var version: Label = scene.get_node_or_null("Ui/Screen/Version") as Label \
-		if scene != null else null
-	var expected_version: String = "v" + str(ProjectSettings.get_setting(
-		"application/config/version", "0.0.0"))
-	if screen == null or not screen.is_visible_in_tree() \
-			or version == null or version.text != expected_version:
+	if not is_clean_title_boot(get_tree().current_scene):
 		return
 	var ready: FileAccess = FileAccess.open(STORE_CAPTURE_TITLE_READY, FileAccess.WRITE)
 	if ready != null:

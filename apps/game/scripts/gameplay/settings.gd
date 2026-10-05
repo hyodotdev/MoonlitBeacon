@@ -35,6 +35,9 @@ const ANALYTICS_RETENTION_ALLOWED_MASK: int = 1 | 2 | 4
 var locale: String = "ko"
 var music: int = 4
 var sfx: int = 4
+## Calm entry surface: no drift, glow travel, or dust. Persisted like the
+## other tastes; the production entry applies it to the moon gate.
+var reduced_motion: bool = false
 var analytics_consent: int = AnalyticsConsent.UNKNOWN
 var analytics_cohort_unix: int = 0
 var analytics_cohort_version: String = ""
@@ -82,6 +85,8 @@ func load_settings() -> void:
 			locale = saved
 		music = clampi(int(cfg.get_value(SECTION, "music", music)), 0, MAX_STEP)
 		sfx = clampi(int(cfg.get_value(SECTION, "sfx", sfx)), 0, MAX_STEP)
+		reduced_motion = bool(cfg.get_value(
+			SECTION, "reduced_motion", reduced_motion))
 		var saved_consent: int = int(cfg.get_value(
 			SECTION, "analytics_consent", AnalyticsConsent.UNKNOWN))
 		analytics_consent = saved_consent if saved_consent in [
@@ -113,6 +118,7 @@ func save_settings() -> Error:
 	cfg.set_value(SECTION, "locale", locale)
 	cfg.set_value(SECTION, "music", music)
 	cfg.set_value(SECTION, "sfx", sfx)
+	cfg.set_value(SECTION, "reduced_motion", reduced_motion)
 	# Do not write UNKNOWN to the file. Keep old-version settings and store
 	# capture's first-run file as-is, while still remembering a real GRANTED
 	# or DENIED choice.

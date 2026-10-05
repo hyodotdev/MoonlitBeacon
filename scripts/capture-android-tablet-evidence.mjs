@@ -47,6 +47,7 @@ import {
   buildAndroidPersistentEvidence,
   captureAndroidPersistentSnapshot,
   decodeAndroidPrivateFileBase64,
+  isAndroidPersistentDynamicFile,
   isAndroidPrivateFileMissingBase64Error,
   restoreAndroidPersistentSnapshot,
 } from './lib/android-capture-persistence.mjs';
@@ -451,8 +452,33 @@ function assertSafeUiGeometry(state, kind) {
 }
 
 function privatePath(name) {
-  if (!/^[a-z0-9._-]+$/u.test(name)) fail(`unsafe private file name: ${name}`);
+  // Lowercase control/fixed files by charset; account partitions (uppercase
+  // `MB-` IDs, mixed-case UIDs) only by the validated dynamic pattern.
+  if (!/^[a-z0-9._-]+$/u.test(name) && !isAndroidPersistentDynamicFile(name)) {
+    fail(`unsafe private file name: ${name}`);
+  }
   return `files/${name}`;
+}
+
+function listPrivateNames() {
+  const result = run(
+    adbPath,
+    ['-s', options.serial, 'shell', 'run-as', PACKAGE, 'ls', '-1', 'files'],
+    { allowFailure: true },
+  );
+  const stderr = String(result.stderr ?? '').trim();
+  if (result.status !== 0 || stderr !== '') {
+    // A fresh install has no files dir yet: empty universe, fixed files
+    // still probe individually. Anything else fails closed.
+    if (result.status === 1 && /No such file or directory/u.test(stderr)) return [];
+    fail(
+      'failed to list debug APK private files. '
+      + `(${stderr || `ls status ${result.status}`})`,
+    );
+  }
+  return String(result.stdout ?? '').split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '');
 }
 
 function writePrivate(name, contents) {
@@ -571,6 +597,7 @@ function capturePersistentFilesBeforeFirstLaunch() {
   adb(['shell', 'am', 'force-stop', PACKAGE]);
   return captureAndroidPersistentSnapshot(
     (name) => readPrivate(name, true),
+    { listFiles: listPrivateNames },
   );
 }
 
@@ -580,6 +607,7 @@ function restorePersistentFiles(original) {
     readFile: (name) => readPrivate(name, true),
     writeFile: (name, value) => writePrivate(name, value),
     removeFile: (name) => removePrivate([name]),
+    listFiles: listPrivateNames,
   });
 }
 

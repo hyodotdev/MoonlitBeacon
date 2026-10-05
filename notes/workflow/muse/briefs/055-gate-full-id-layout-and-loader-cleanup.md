@@ -1,0 +1,12 @@
+# Brief 055: Fit real full IDs and clean cancelled loading
+
+## Confirmed director evidence
+Actual windowed renders look coherent. The director reproduced state 77, layout 6840, loading 35 and caption 71 assertions. However loading prints `WARNING: 35 ObjectDB instances were leaked at exit`. These are new loader scenarios, not a reason to accept the old title's known leak. `test_gate_loading._settle_background` waits for completion without claiming the ResourceLoader result, then another request replaces that completed/unclaimed arena request. The Journey copy fixed the same class of leak by draining completed results. Audit the production cancellation/rebegin/teardown path too: a cancelled worker must be claimed eventually without blocking the UI or delivering a stale transition.
+
+The director rendered a real Hall row on an 808×360 window, locale en, hero `knight.tres`, ID `MB-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`, score 12345. Card rect becomes `(194,95,493,273)`, so its bottom is 368 outside the viewport. Identity minimum width 391 makes the card grow beyond the intended 420; it is then off-center and too tall. The committed fixtures mostly use short `TEST-HALL` IDs and missed the real case. Use actual-shape 35-character IDs in all layout tests/harness states, the longest real hero names, all locales and 1/100 rows. Keep full ID readable or deliberately reveal/copy it; no hidden clipped text. Recenter only after actual child minimum-size changes settle, and bound every card to the viewport. Hero name and ID may use separate lines to keep rows clean.
+
+## Do
+Correct the confirmed full-ID Hall layout and loader lifecycle cleanup. Tests prove no stale completion after cancel/rebegin, cancelled in-flight loads drain safely, and actual full-ID cards fit at every framing with no leak warning. Keep the successful appearance/motion and genuine progress contract. Remove the unauthorized shared regression runner edit: brief 050 explicitly reserved it for integration and the root runner now contains Journey registration. Update the build note to reflect standalone tests and exact cleanup behavior. No other scope growth.
+
+## Judgment
+Director re-runs all entry/loading/layout/caption tests and real windowed long-ID Hall probe, verifies no ERROR/leak lines, checks geometry after multiple frames, and disables one generation guard as a negative control. `pnpm muse accept --check` must apply cleanly after the accepted Journey and cloud foundations. Native/production title/HUD wiring stays for the next task.

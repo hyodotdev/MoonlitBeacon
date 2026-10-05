@@ -164,6 +164,7 @@ var _active_touches: Dictionary = {}
 var _mouse_left_down: bool = false
 var _choice_armed: bool = false
 var _offer_generation: int = 0
+var _beads_hung: bool = false
 
 
 func _ready() -> void:
@@ -172,6 +173,19 @@ func _ready() -> void:
 	visible = false
 	for i in _cards.size():
 		_cards[i].pressed.connect(_on_card_pressed.bind(i))
+
+
+func _flank_bead(anchor: float, from: float, to: float) -> void:
+	var bead: TextureRect = WorldChrome.bead()
+	bead.anchor_left = anchor
+	bead.anchor_top = 0.5
+	bead.anchor_right = anchor
+	bead.anchor_bottom = 0.5
+	bead.offset_left = from
+	bead.offset_top = -6.0
+	bead.offset_right = to
+	bead.offset_bottom = 6.0
+	_title.add_child(bead)
 
 
 func _input(event: InputEvent) -> void:
@@ -212,6 +226,13 @@ func _open_offer(offer: Array[Relic], title: String) -> void:
 		return
 
 	_title.text = title
+	# Moon beads flanking the threshold title; the label hugs its own text,
+	# so they float in the margin and never touch a glyph. Hung on first
+	# offer, never in `_ready` (arena node budget).
+	if not _beads_hung:
+		_beads_hung = true
+		_flank_bead(0.0, -20.0, -8.0)
+		_flank_bead(1.0, 8.0, 20.0)
 	for i in _cards.size():
 		var has: bool = i < _offer.size()
 		_cards[i].visible = has

@@ -110,6 +110,7 @@ func _ready() -> void:
 	await _test_product_artworks()
 	await _test_target_visual_mutations()
 	await _test_offscreen_capture_rejected()
+	_test_world_chrome()
 	_finish()
 
 
@@ -297,7 +298,7 @@ func _test_preview_button(button: TextureButton, path: String) -> void:
 	if atlas != null:
 		_expect_equal(
 			atlas.region,
-			Rect2(12, 32, 24, 24),
+			Rect2(36, 96, 72, 72),
 			"%s IAP first frame excluding transparent padding" % path.get_file())
 	var state: Label = preview.get_node("Frame/Margin/Rows/Header/Copy/State") as Label
 	var description: Label = preview.get_node(
@@ -422,6 +423,21 @@ func _test_product_artworks() -> void:
 		Shop.SUPPORTER, "supporter_app_icon", 1)
 	await _test_artwork_capture_state(
 		Shop.LANTERN_COLORS, "lantern_palette_flames", 4)
+	# Consumable coin cards carry the mint mark beside the price so
+	# currency reads as currency; the art stages, not the copy, sell.
+	var coin: Control = _coins().get_child(0) as Control
+	var mint: Control = coin.get_node_or_null("Rows/Footer/Artwork") as Control
+	_expect_true(mint != null, "coin card carries the mint mark")
+	if mint != null:
+		_expect_equal(
+			str(mint.get_meta(&"artwork_kind", "")),
+			"coin_mint",
+			"coin mint mark kind")
+	var supporter_stage: Control = supporter.get_node_or_null(
+		"Rows/Content/Artwork") as Control
+	_expect_true(supporter_stage != null
+		and supporter_stage.custom_minimum_size == Vector2(56, 56),
+		"supporter artwork is showcase scale")
 
 
 func _test_artwork_capture_state(
@@ -793,6 +809,47 @@ func _test_parent_back_priority(button: TextureButton) -> void:
 	_shop.close()
 	_expect_true(not _shop.visible, "next back closes the IAP shop")
 	_expect_equal(close_count[0], 1, "IAP shop close emitted once")
+
+
+## The relic-and-guardian display paints from the shared world classes:
+## product cards are world chips, buy buttons ember, the coin crest heads the
+## rail, and every ornament ignores the mouse.
+func _test_world_chrome() -> void:
+	var cards := _shop.get_node("Frame/Margin/Rows/CardsScroll/Cards")
+	_expect_true(cards != null and cards.get_child_count() > 0,
+		"shop shows product cards")
+	if cards != null and cards.get_child_count() > 0:
+		var first := cards.get_child(0) as WorldFrame
+		_expect_true(first != null
+			and (first.kind == "chip" or first.kind == "chip_lit"),
+			"product cards are world chips")
+	_expect_true(_walk_buttons(_shop), "shop shows ember buy buttons")
+	var crest := _shop.get_node(
+		"Frame/Margin/Rows/Header/WorldCrest") as TextureRect
+	_expect_true(crest != null
+		and crest.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"coin crest ignores taps")
+	_expect_decor_ignores(_shop)
+
+
+func _walk_buttons(node: Node) -> bool:
+	for child in node.get_children():
+		var button := child as WorldButton
+		if button != null and button.kind == "ember":
+			return true
+		if _walk_buttons(child):
+			return true
+	return false
+
+
+func _expect_decor_ignores(node: Node) -> void:
+	for child in node.get_children():
+		if child is TextureRect and str(child.name).begins_with("World"):
+			_expect_true(
+				(child as TextureRect).mouse_filter
+					== Control.MOUSE_FILTER_IGNORE,
+				"%s ignores the mouse" % child.name)
+		_expect_decor_ignores(child)
 
 
 func _finish() -> void:

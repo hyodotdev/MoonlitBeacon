@@ -1,0 +1,10 @@
+# Brief 103: integrate the confirmed terrain extraction fix on the current tree
+
+## The ask and measured conflict
+The user wants the original intro and its shop/settings controls preserved, with polished painted world art. A completed terrain packet removes real rectangular neighbour foliage fragments. Its normal accept check fails because the current tree now has the original title forest generator check in package.json and a separate accepted VoicePanel author note at the old shared log's end. Do not bypass normal accept. This fresh copy contains the current accepted changes.
+
+## Reuse the completed packet, no redesign
+`notes/workflow/muse/donors/093-terrain-fragments.patch` is the exact secret-free completed implementer patch. Read it. Apply the terrain packer, 9 derived terrain PNGs, two exact measured colour contracts and new focused Python checker from that packet into THIS copy. Do not apply its old package.json or shared author-log hunk. Integrate the new checker into the existing `check:assets` command while preserving every current command, especially `build_title_forest.py --check`, and preserve current `verify`/Gate locale registrations. Put the donor's factual author note in a DISTINCT new `notes/art/painted-terrain-fragments.md`, not the shared build log. The director already has the full report; do not repeat 64 game suites or redesign the already reviewed extraction algorithm.
+
+## Acceptance and boundaries
+The resulting source and 9 PNG bytes must equal the donor packet exactly; all unrelated assets, masters, scenes, services, project, presets, native SDKs, UI, budgets and existing notes remain untouched. The new checker runs all four cases; `pack_painted_world.py --check` and full `check:assets` pass with both terrain and original-title generator checks registered. The director renders terrain and runs the existing painted-world regression. Report a finite diff and these focused results. No network, devices, stores, marketing recapture or protected-path changes. Do not fix unrelated defects or author additional presentation changes.

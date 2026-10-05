@@ -19,8 +19,8 @@ config/name_localized={
 "zh_TW": "月光烽火"
 }
 config/description="봉화를 밝히고 정령의 불씨와 유물로 무기를 키워 끝없는 순환에 도전하는 2D 탑다운 서바이버 액션 게임."
-config/version="3.0.0"
-run/main_scene="res://scenes/menus/title_menu.tscn"
+config/version="4.0.0"
+run/main_scene="res://scenes/menus/production_entry.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.027451, 0.062745, 0.121569, 1)
@@ -28,8 +28,8 @@ boot_splash/stretch_mode=4
 boot_splash/image="res://assets/custom/ui/boot_splash.png"
 config/icon="res://assets/custom/ui/app_icon_master.png"
 boot_splash/minimum_display_time=550
-config/privacy_policy_url="https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/privacy"
-config/support_contact="https://moonlit-beacon-support.hyodev.chatgpt.site/{locale}/support"
+config/privacy_policy_url="https://moonlitbeacon.hyo.dev/{locale}/privacy"
+config/support_contact="https://moonlitbeacon.hyo.dev/{locale}/support"
 
 [autoload]
 
@@ -41,6 +41,8 @@ Vault="*res://scripts/gameplay/vault.gd"
 Ladder="*res://scripts/gameplay/ladder.gd"
 GlobalLadder="*res://scripts/gameplay/global_ladder.gd"
 Shop="*res://scripts/iap/iap_store.gd"
+MoonlitIdentity="*res://addons/moonlit-identity/moonlit_identity.gd"
+ProductionHost="*res://scripts/net/production_host.gd"
 
 [display]
 
@@ -54,7 +56,7 @@ window/handheld/orientation=4
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/godot-iap/plugin.cfg")
+enabled=PackedStringArray("res://addons/godot-iap/plugin.cfg", "res://addons/moonlit-identity/plugin.cfg")
 
 [input_devices]
 
@@ -62,7 +64,7 @@ pointing/emulate_touch_from_mouse=true
 
 [internationalization]
 
-locale/translations=PackedStringArray("res://localization/moonlit.en.translation", "res://localization/moonlit.ja.translation", "res://localization/moonlit.ko.translation", "res://localization/moonlit.zh_CN.translation", "res://localization/moonlit.zh_TW.translation")
+locale/translations=PackedStringArray("res://localization/moonlit.en.translation", "res://localization/moonlit.ja.translation", "res://localization/moonlit.ko.translation", "res://localization/moonlit.zh_CN.translation", "res://localization/moonlit.zh_TW.translation", "res://localization/gate_entry.en.translation", "res://localization/gate_entry.ja.translation", "res://localization/gate_entry.ko.translation", "res://localization/gate_entry.zh_CN.translation", "res://localization/gate_entry.zh_TW.translation")
 
 [physics]
 

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Moonlit Beacon</title>
+<meta name="description" content="This policy explains what Moonlit Beacon by Hyo Dev collects and how it is handled.">
+<link rel="canonical" href="https://moonlitbeacon.hyo.dev/privacy">
+<link rel="alternate" hreflang="en" href="https://moonlitbeacon.hyo.dev/en/privacy">
+<link rel="alternate" hreflang="ko" href="https://moonlitbeacon.hyo.dev/ko/privacy">
+<link rel="alternate" hreflang="ja" href="https://moonlitbeacon.hyo.dev/ja/privacy">
+<link rel="alternate" hreflang="zh-Hans" href="https://moonlitbeacon.hyo.dev/zh-Hans/privacy">
+<link rel="alternate" hreflang="zh-Hant" href="https://moonlitbeacon.hyo.dev/zh-Hant/privacy">
+<link rel="alternate" hreflang="x-default" href="https://moonlitbeacon.hyo.dev/privacy">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header class="site-head">
+<a class="brand" href="/"><span class="brand-mark" aria-hidden="true"></span><span><span class="brand-name">Moonlit Beacon</span><span class="brand-sub">Player Care</span></span></a>
+<nav aria-label="Pages"><ul>
+<li><a href="/">Home</a></li>
+<li><a href="/privacy" aria-current="page">Privacy Policy</a></li>
+<li><a href="/terms">Terms</a></li>
+<li><a href="/support">Support</a></li>
+<li><a href="/MoonlitBeacon/">Course &amp; Docs</a></li>
+</ul></nav>
+<nav class="lang-nav" aria-label="Language"><p>Language</p><ul>
+<li><a href="/en/privacy" aria-current="page" hreflang="en">English</a></li>
+<li><a href="/ko/privacy" hreflang="ko">한국어</a></li>
+<li><a href="/ja/privacy" hreflang="ja">日本語</a></li>
+<li><a href="/zh-Hans/privacy" hreflang="zh-Hans">简体中文</a></li>
+<li><a href="/zh-Hant/privacy" hreflang="zh-Hant">繁體中文</a></li>
+</ul></nav>
+</header>
+<main id="main">
+<h1>Privacy Policy — Moonlit Beacon</h1>
+<p class="lede">This policy explains what Moonlit Beacon by Hyo Dev collects and how it is handled.</p>
+<p class="updated">Updated for version 4.0.0.</p>
+<section aria-labelledby="sign-in"><h2 id="sign-in"><span class="num" aria-hidden="true">1</span>Ways to sign in</h2>
+<ul class="tight">
+<li>Entry offers a guest door plus Google and Apple sign-in where the build configures them.</li>
+<li>Guest entry creates an anonymous sign-in identity where the device supports it.</li>
+<li>Google and Apple are separate sign-in identities. The Play Games gaming profile is a separate Android-only option and is not offered in this build.</li>
+</ul></section>
+<section aria-labelledby="sign-in-data"><h2 id="sign-in-data"><span class="num" aria-hidden="true">2</span>What sign-in handles</h2>
+<ul class="tight">
+<li>Firebase and the Google or Apple provider you choose process identifiers, sign-in and session credentials, and the profile fields your consent and provider settings make available, to authenticate and recover the account.</li>
+<li>The game keeps its own records: your public player ID, the private link between your signed-in account and that ID, and your checkpoint saves.</li>
+<li>Only the game's on-device account list stores the server account reference in hashed form. Account and save records held by the backend carry the raw account reference and stay private to your account.</li>
+<li>The game itself holds sign-in tokens in memory while it reaches your records. Gameplay save files contain no sign-in tokens, and tokens are never placed in public ranking. Staying signed in across launches is handled separately by the Firebase and provider SDKs, which keep their own session data under SDK and OS storage.</li>
+<li>Email and profile information is not shown in public Hall rows. Provider-side profile handling follows that provider's own policy: <a href="https://firebase.google.com/support/privacy">Firebase</a>, <a href="https://policies.google.com/privacy">Google</a>, <a href="https://www.apple.com/legal/privacy/">Apple</a>.</li>
+</ul></section>
+<section aria-labelledby="player-id"><h2 id="player-id"><span class="num" aria-hidden="true">3</span>Your player ID</h2>
+<ul class="tight">
+<li>Each install mints a durable public player ID of the form <code>MB-</code> plus 32 hexadecimal characters before first play.</li>
+<li>It names your saved gate and your Hall rows, and it survives linking: connecting Google to the original guest keeps the same ID and the same checkpoint ownership.</li>
+<li>Signing out starts a fresh guest ID on the device while the previous ID and its saves stay kept. Signing back in with the same provider returns to that account's ID and kept saves. One install can therefore hold more than one ID over time.</li>
+<li>Include your player ID, shown in the game's account panel, when you contact support.</li>
+</ul></section>
+<section aria-labelledby="cloud-saves"><h2 id="cloud-saves"><span class="num" aria-hidden="true">4</span>Cloud saves</h2>
+<ul class="tight">
+<li>A signed-in account owns one private versioned save holding its progress (cycle, hero, relics, growth, scores).</li>
+<li>Saves land on the device first; uploads follow in the background.</li>
+<li>Saves never carry purchase or balance records.</li>
+<li>Downloads are fully checked before install, and a differing cloud copy waits for you to choose which side to keep.</li>
+</ul></section>
+<section aria-labelledby="hall"><h2 id="hall"><span class="num" aria-hidden="true">5</span>Hall board</h2>
+<ul class="tight">
+<li>The Hall keeps one best entry per player ID: player ID, hero, score, progress, app version, and update time.</li>
+<li>Board reads are public; only the owning account may write its entry. Scores only increase, and standing is derived from scores so equal scores share one rank.</li>
+<li>No name, email, account reference, token, or save appears in a Hall entry.</li>
+</ul></section>
+<section aria-labelledby="deletion"><h2 id="deletion"><span class="num" aria-hidden="true">6</span>Deletion</h2>
+<ul class="tight">
+<li>Delete your cloud account from the game's account settings. Deletion first removes its Hall entry, cloud save, reservation, and profile together in one verified step; only after that confirmation is the sign-in itself deleted.</li>
+<li>On iOS, deleting an Apple-linked account may ask you to confirm again through the Apple sign-in sheet.</li>
+<li>Signing out ends the sign-in session and switches to a fresh guest ID; it deletes nothing on the device or in the cloud.</li>
+<li>Deleting your cloud account removes its cloud records and sign-in, its local journey save files, and its on-device account binding; other accounts' local saves and separate on-device files such as purchases, Vault, and settings remain.</li>
+<li>Account, checkpoint, and Hall records have no configured automatic expiry: they remain until the account is deleted.</li>
+<li>You can also request access, correction, or deletion of your data by email at <a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a>. Include your player ID.</li>
+<li>Support requests are matched to your records through your player ID; deletion requests that concern purchase records are forwarded to the purchase-verification processor.</li>
+</ul></section>
+<section aria-labelledby="guests"><h2 id="guests"><span class="num" aria-hidden="true">7</span>Guests and offline play</h2>
+<ul class="tight">
+<li>Guest play works offline as a device-only guest and is never shown as a registered cloud account.</li>
+<li>If background sign-up fails, or the build has no sign-in setup, play continues anyway. Builds without sign-in setup make no registration attempt and show no error.</li>
+<li>Sign-in, cloud saves, the Hall, the store, and purchase verification need an internet connection.</li>
+</ul></section>
+<section aria-labelledby="analytics"><h2 id="analytics"><span class="num" aria-hidden="true">8</span>Analytics</h2>
+<p>Optional gameplay analytics stays off unless two switches agree: the shipped build's export configuration and your explicit consent in Settings, which defaults to off.</p></section>
+<section aria-labelledby="purchases"><h2 id="purchases"><span class="num" aria-hidden="true">9</span>Purchases</h2>
+<ul class="tight">
+<li>Store receipts are verified through the <a href="https://kit.openiap.dev/docs/api">IAPKit purchase-verification service</a>. Store and product plus the receipt or token (Apple's signed JWS or Google's purchase token) are sent for verification.</li>
+<li>Its validation record may retain transaction and order identifiers, store responses, request IP, verification result, and processing duration. Processing serves entitlement grants, restores and revocations, refunds, fraud and duplicate prevention, diagnosis, and service statistics.</li>
+<li>For service statistics, IAPKit may send a project-first-valid-receipt event and the store kind to Mixpanel; that event excludes the purchase token, transaction ID, and IP. Convex provides IAPKit's infrastructure. Their policies: <a href="https://kit.openiap.dev/privacy-policy">IAPKit</a>, <a href="https://www.convex.dev/legal/privacy">Convex</a>, <a href="https://mixpanel.com/legal/privacy-policy/">Mixpanel</a>. These third-party service statistics are separate from the game's optional gameplay analytics, which stays off unless you enable it in Settings.</li>
+<li>Neither the app nor the developer receives your payment-card information or store-account password. Keys, signatures, and purchase tokens are kept out of logs and error messages.</li>
+<li>Store-side purchase processing follows each store's own policy: <a href="https://www.apple.com/legal/privacy/">Apple</a>, <a href="https://policies.google.com/privacy">Google</a>.</li>
+</ul></section>
+<section aria-labelledby="support-requests"><h2 id="support-requests"><span class="num" aria-hidden="true">10</span>Support requests</h2>
+<ul class="tight">
+<li>Emailing support processes your email address, message, and any attachments you choose to send, together with the email service provider, to resolve your request.</li>
+<li>Support keeps your request only while needed to resolve it and to meet legal duties.</li>
+<li>When a purchase is involved, support asks only for the minimum order detail needed to locate the record — never a full receipt, password, or verification code.</li>
+<li>Providers retain validation records as necessary for restoration, refunds, fraud prevention, statistics, accounting, and legal obligations; no uniform expiry is promised.</li>
+<li>Records the law requires to keep can remain, and requests about processor-held records can be relayed to the processor.</li>
+<li>Your support request and the verification above may be processed outside your country.</li>
+</ul></section>
+<section aria-labelledby="changes"><h2 id="changes"><span class="num" aria-hidden="true">11</span>Changes to this policy</h2>
+<p>When the game changes how it handles data, this page is updated with the new version. This edition covers version 4.0.0.</p></section>
+</main>
+<footer><p>Questions: <a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a></p><p>© 2026 Hyo Jang. Moonlit Beacon by Hyo Dev.</p></footer>
+</div>
+</body>
+</html>

@@ -41,6 +41,7 @@ import {
   assertRsdIosDeviceIdentity,
   assertStableIosPersistentSnapshots,
   assertStableIosArenaCaptureState,
+  assertXcodeFrameBroadContinuity,
   coreDeviceRsdPortCandidates,
   createDeferredCancellation,
   ensurePrivateDirectory,
@@ -51,7 +52,9 @@ import {
   IOS_XCODE_HANDOFF_CAPTURE_METHOD,
   IOS_XCODE_IPAD_LANDSCAPE_SIZE,
   pngSize,
+  quiesceExactProductionProcess,
   removeXcodeScreenshotHandoffEntries,
+  runXcodeFrameSequence,
   sealPrivateRegularFile,
   settleWithMandatoryCleanup,
   withEphemeralFilesystemPath,
@@ -509,19 +512,35 @@ function exactExecutableProcesses(executableUrl, label, timeout = 30_000) {
 }
 
 function quiesceProductionApp(app, label) {
-  if (app === null) return;
+  if (app === null) {
+    return {
+      terminatedPid: null,
+      beforePath: null,
+      beforeSha256: null,
+      terminatePath: null,
+      terminateSha256: null,
+      afterPath: null,
+      afterSha256: null,
+    };
+  }
   const executableUrl = installedAppExecutableUrl(app, label);
-  const before = exactExecutableProcesses(executableUrl, `${label}-before`);
-  if (before.processes.length > 1) {
-    fail(`${label} more than one production process is running`);
-  }
-  if (before.processes.length === 1) {
-    terminateGameProcess(before.processes[0].processIdentifier, label);
-  }
-  const after = exactExecutableProcesses(executableUrl, `${label}-after`);
-  if (after.processes.length !== 0) {
-    fail(`${label} could not confirm production process exit`);
-  }
+  const quiesced = quiesceExactProductionProcess(
+    {
+      listExact: (exactUrl, exactLabel) => exactExecutableProcesses(exactUrl, exactLabel),
+      terminate: (pid, terminateLabel) => terminateGameProcess(pid, terminateLabel),
+    },
+    executableUrl,
+    label,
+  );
+  return {
+    terminatedPid: quiesced.terminatedPid,
+    beforePath: quiesced.beforePath,
+    beforeSha256: fileSha256(quiesced.beforePath),
+    terminatePath: quiesced.terminatePath,
+    terminateSha256: quiesced.terminatePath === null ? null : fileSha256(quiesced.terminatePath),
+    afterPath: quiesced.afterPath,
+    afterSha256: fileSha256(quiesced.afterPath),
+  };
 }
 
 function documentFileNames(timeout = 30_000) {
@@ -649,6 +668,8 @@ function persistentSnapshot(appInstalled) {
   // Preserve every pre-existing non-control root file, including future game
   // saves not yet known to this producer. The explicit list above guarantees
   // known files still get an absent-state assertion on a new installation.
+  // Documents files only: native SDK preferences and Keychain entries are
+  // never captured here, and this backup does not protect Keychain items.
   const names = new Set(PERSISTENT_FILES);
   for (const name of documentFileNames()) {
     if (!CONTROL_FILE_SET.has(name)) names.add(name);
@@ -1543,12 +1564,7 @@ function assertXcodeHandoffContinuity(processId, label, timeoutMs = 30_000) {
   // bundles. The exact capture filter used by ordinary state polling must not
   // hide a second MoonlitBeacon that could compete for the framebuffer.
   const processes = allRunningGameProcesses(`${label}-processes`, remainingMs);
-  if (
-    processes.processes.length !== 1
-    || processes.processes[0].processIdentifier !== processId
-  ) {
-    fail(`${label}: foreground game process PID changed`);
-  }
+  assertXcodeFrameBroadContinuity(processes.processes, processId, label);
   return {
     processId,
     deviceDetailsPath: details.path,
@@ -1563,6 +1579,7 @@ async function nativeScreenshot(path, {
   captureName,
   processId,
   activation = null,
+  finalQuiescence = null,
 }) {
   if (captureMethod === IOS_RSD_CAPTURE_METHOD) {
     if (rsd === null) fail('verified RSD endpoint is missing');
@@ -1576,6 +1593,9 @@ async function nativeScreenshot(path, {
   if (xcodeScreenshotInbox === null) fail('verified Xcode screenshot inbox is missing');
   if (activation === null || activation.pid !== processId) {
     fail('missing proof that the capture app was foreground-reactivated before the Xcode screenshot');
+  }
+  if (finalQuiescence === null || typeof finalQuiescence !== 'object') {
+    fail('missing proof of final production quiescence before the Xcode screenshot');
   }
   if (!Number.isSafeInteger(processId) || processId <= 0) {
     fail('Xcode screenshot handoff game process PID is invalid');
@@ -1678,6 +1698,7 @@ async function nativeScreenshot(path, {
         receipt: handoff.receipt,
         receipt_sha256: sha256(handoff.receiptBytes),
         activation,
+        finalQuiescence,
         continuityBefore,
         continuityAfter,
       },
@@ -1713,6 +1734,13 @@ function screenshotTransportEvidence(screenshot) {
       xcode_activation_launch_sha256: null,
       xcode_activation_processes_path: null,
       xcode_activation_processes_sha256: null,
+      xcode_final_quiesce_terminated_pid: null,
+      xcode_final_quiesce_before_path: null,
+      xcode_final_quiesce_before_sha256: null,
+      xcode_final_quiesce_terminate_path: null,
+      xcode_final_quiesce_terminate_sha256: null,
+      xcode_final_quiesce_after_path: null,
+      xcode_final_quiesce_after_sha256: null,
       xcode_handoff_process_id: null,
       xcode_handoff_device_details_before_path: null,
       xcode_handoff_device_details_before_sha256: null,
@@ -1727,6 +1755,10 @@ function screenshotTransportEvidence(screenshot) {
   const handoff = screenshot.handoff;
   if (handoff === null || typeof handoff !== 'object') {
     fail('Xcode screenshot handoff proof is missing');
+  }
+  const finalQuiescence = handoff.finalQuiescence;
+  if (finalQuiescence === null || typeof finalQuiescence !== 'object') {
+    fail('Xcode final production quiescence proof is missing');
   }
   return {
     capture_method: IOS_XCODE_HANDOFF_CAPTURE_METHOD,
@@ -1754,6 +1786,19 @@ function screenshotTransportEvidence(screenshot) {
       handoff.activation.processesPath,
     ),
     xcode_activation_processes_sha256: handoff.activation.processesSha256,
+    xcode_final_quiesce_terminated_pid: finalQuiescence.terminatedPid,
+    xcode_final_quiesce_before_path: finalQuiescence.beforePath === null
+      ? null
+      : relative(REPO_ROOT, finalQuiescence.beforePath),
+    xcode_final_quiesce_before_sha256: finalQuiescence.beforeSha256,
+    xcode_final_quiesce_terminate_path: finalQuiescence.terminatePath === null
+      ? null
+      : relative(REPO_ROOT, finalQuiescence.terminatePath),
+    xcode_final_quiesce_terminate_sha256: finalQuiescence.terminateSha256,
+    xcode_final_quiesce_after_path: finalQuiescence.afterPath === null
+      ? null
+      : relative(REPO_ROOT, finalQuiescence.afterPath),
+    xcode_final_quiesce_after_sha256: finalQuiescence.afterSha256,
     xcode_handoff_process_id: handoff.continuityBefore.processId,
     xcode_handoff_device_details_before_path: relative(
       REPO_ROOT,
@@ -1823,48 +1868,78 @@ async function captureRuntime(
   const path = join(localeRoot, filename);
   const suspendDuringScreenshot = prepared?.suspendDuringScreenshot === true
     || captureMethod === IOS_XCODE_HANDOFF_CAPTURE_METHOD;
-  let activation = null;
+  let screenshot;
   if (captureMethod === IOS_XCODE_HANDOFF_CAPTURE_METHOD) {
-    activation = reactivateCaptureProcess(
-      processBefore[0].processIdentifier,
-      `${name}-foreground`,
-    );
-    const activationBaseline = await waitRuntimeState(
-      nonce,
-      expected,
-      0,
-      processBefore[0].processIdentifier,
-    );
-    const foregroundState = await waitRuntimeState(
-      nonce,
-      expected,
-      activationBaseline.raw.observation,
-      processBefore[0].processIdentifier,
-    );
-    assertStableStoreCaptureState(
-      activationBaseline.raw,
-      foregroundState.raw,
-      expected,
-    );
-    before = foregroundState;
-  }
-  const screenshot = suspendDuringScreenshot
-    ? await withSuspendedGameProcess(
-      processBefore[0].processIdentifier,
-      `${name}-native-screenshot`,
-      async () => nativeScreenshot(path, {
+    // OS prewarming can launch production during the slow state observations.
+    // The shared frame sequence reactivates, observes, quiesces production
+    // once more, then opens the native frame window under SIGSTOP.
+    const frame = await runXcodeFrameSequence({
+      capturePid: processBefore[0].processIdentifier,
+      operations: {
+        reactivate: () => reactivateCaptureProcess(
+          processBefore[0].processIdentifier,
+          `${name}-foreground`,
+        ),
+        observeStates: async () => {
+          const activationBaseline = await waitRuntimeState(
+            nonce,
+            expected,
+            0,
+            processBefore[0].processIdentifier,
+          );
+          const foregroundState = await waitRuntimeState(
+            nonce,
+            expected,
+            activationBaseline.raw.observation,
+            processBefore[0].processIdentifier,
+          );
+          assertStableStoreCaptureState(
+            activationBaseline.raw,
+            foregroundState.raw,
+            expected,
+          );
+          return foregroundState;
+        },
+        quiesceProduction: () => quiesceProductionApp(
+          productionAppForCapture,
+          `${name}-production-final-quiesce`,
+        ),
+        openFrame: ({ activation, finalQuiescence }) => withSuspendedGameProcess(
+          processBefore[0].processIdentifier,
+          `${name}-native-screenshot`,
+          async () => nativeScreenshot(path, {
+            assetLocale: locale.asset,
+            captureName: name,
+            processId: processBefore[0].processIdentifier,
+            activation,
+            finalQuiescence,
+          }),
+        ),
+      },
+    });
+    before = frame.observed;
+    screenshot = frame.screenshot;
+  } else {
+    screenshot = suspendDuringScreenshot
+      ? await withSuspendedGameProcess(
+        processBefore[0].processIdentifier,
+        `${name}-native-screenshot`,
+        async () => nativeScreenshot(path, {
+          assetLocale: locale.asset,
+          captureName: name,
+          processId: processBefore[0].processIdentifier,
+          activation: null,
+          finalQuiescence: null,
+        }),
+      )
+      : await nativeScreenshot(path, {
         assetLocale: locale.asset,
         captureName: name,
         processId: processBefore[0].processIdentifier,
-        activation,
-      }),
-    )
-    : await nativeScreenshot(path, {
-      assetLocale: locale.asset,
-      captureName: name,
-      processId: processBefore[0].processIdentifier,
-      activation,
-    });
+        activation: null,
+        finalQuiescence: null,
+      });
+  }
   const after = await waitRuntimeState(
     nonce,
     expected,
@@ -2040,44 +2115,66 @@ async function captureMissileCore(filename, locale, bootNonce, runtimeNonce) {
   const localeRoot = join(outputRoot, 'captures', locale.asset);
   ensurePrivateDirectory(localeRoot);
   const path = join(localeRoot, filename);
-  let activation = null;
+  let screenshot;
   if (captureMethod === IOS_XCODE_HANDOFF_CAPTURE_METHOD) {
-    activation = reactivateCaptureProcess(
-      processBefore[0].processIdentifier,
-      `${name}-foreground`,
-    );
-    const activationBaseline = await waitRuntimeState(
-      runtimeNonce,
-      runtimeExpected,
-      0,
-      processBefore[0].processIdentifier,
-    );
-    const foregroundState = await waitRuntimeState(
-      runtimeNonce,
-      runtimeExpected,
-      activationBaseline.raw.observation,
-      processBefore[0].processIdentifier,
-    );
-    assertStableIosArenaCaptureState(
-      activationBaseline.raw,
-      foregroundState.raw,
-      runtimeExpected,
-    );
-    runtimeBefore = foregroundState;
+    // OS prewarming can launch production during the slow state observations.
+    // The shared frame sequence reactivates, observes, quiesces production
+    // once more, then opens the native frame window under SIGSTOP.
+    const frame = await runXcodeFrameSequence({
+      capturePid: processBefore[0].processIdentifier,
+      operations: {
+        reactivate: () => reactivateCaptureProcess(
+          processBefore[0].processIdentifier,
+          `${name}-foreground`,
+        ),
+        observeStates: async () => {
+          const activationBaseline = await waitRuntimeState(
+            runtimeNonce,
+            runtimeExpected,
+            0,
+            processBefore[0].processIdentifier,
+          );
+          const foregroundState = await waitRuntimeState(
+            runtimeNonce,
+            runtimeExpected,
+            activationBaseline.raw.observation,
+            processBefore[0].processIdentifier,
+          );
+          assertStableIosArenaCaptureState(
+            activationBaseline.raw,
+            foregroundState.raw,
+            runtimeExpected,
+          );
+          return foregroundState;
+        },
+        quiesceProduction: () => quiesceProductionApp(
+          productionAppForCapture,
+          `${name}-production-final-quiesce`,
+        ),
+        openFrame: ({ activation, finalQuiescence }) => withSuspendedGameProcess(
+          processBefore[0].processIdentifier,
+          `${name}-native-screenshot`,
+          async () => nativeScreenshot(path, {
+            assetLocale: locale.asset,
+            captureName: name,
+            processId: processBefore[0].processIdentifier,
+            activation,
+            finalQuiescence,
+          }),
+        ),
+      },
+    });
+    runtimeBefore = frame.observed;
+    screenshot = frame.screenshot;
+  } else {
+    screenshot = await nativeScreenshot(path, {
+      assetLocale: locale.asset,
+      captureName: name,
+      processId: processBefore[0].processIdentifier,
+      activation: null,
+      finalQuiescence: null,
+    });
   }
-  const screenshotOperation = async () => nativeScreenshot(path, {
-    assetLocale: locale.asset,
-    captureName: name,
-    processId: processBefore[0].processIdentifier,
-    activation,
-  });
-  const screenshot = captureMethod === IOS_XCODE_HANDOFF_CAPTURE_METHOD
-    ? await withSuspendedGameProcess(
-      processBefore[0].processIdentifier,
-      `${name}-native-screenshot`,
-      screenshotOperation,
-    )
-    : await screenshotOperation();
   await assertCleanUi('combat', cleanUiProof);
   const missileAfter = await waitFor(
     ({ remainingMs }) => (

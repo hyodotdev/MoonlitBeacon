@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="RoomKind" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
-[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/nature.png" id="tileset"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/camp_nature.png" id="tileset"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/ground_camp.png" id="floor"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/camp.png" id="camp"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/camp_props.png" id="obstacles"]
@@ -11,6 +11,7 @@ script = ExtResource("script")
 display_name = "버려진 야영지"
 encounter = 2
 tileset = ExtResource("tileset")
+art_zoom = 3.0
 floor_texture = ExtResource("floor")
 tint = Color(0.8, 0.78, 0.84, 1)
 floor_tint = Color(1, 1, 1, 1)
@@ -23,7 +24,7 @@ prop_kinds = PackedStringArray("camp_tent_a", "camp_tent_b", "camp_tent_torn", "
 obstacle_tileset = ExtResource("obstacles")
 obstacle_count = 30
 tree_kinds = PackedStringArray("sm0", "sm1", "sm2", "mid", "log", "stump")
-decor_kinds = PackedStringArray("bush", "twig", "rockS", "branch", "deadstub")
+decor_kinds = PackedStringArray("bush", "twig", "stump2", "branch", "deadstub")
 light_obstacle_variants = PackedInt32Array(3)
 light_prop_kinds = PackedStringArray("camp_barrels_light")
 light_radius = 116.0

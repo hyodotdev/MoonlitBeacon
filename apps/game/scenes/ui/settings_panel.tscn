@@ -1,25 +1,11 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/settings_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
 [ext_resource type="PackedScene" path="res://scenes/ui/analytics_consent_panel.tscn" id="analytics_consent"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="buttons_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="buttons_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="buttons_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="buttons_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="buttons_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="buttons_gold_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="buttons_gold_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="buttons_gold_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="buttons_gold_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="buttons_gold_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/normal.tres" id="buttons_ghost_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/hover.tres" id="buttons_ghost_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/pressed.tres" id="buttons_ghost_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/disabled.tres" id="buttons_ghost_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/focus.tres" id="buttons_ghost_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/banner.tres" id="banner"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_label.gd" id="world_label"]
+[ext_resource type="Script" path="res://scripts/ui/world_panel.gd" id="world_panel"]
 
 [node name="SettingsPanel" type="Control"]
 process_mode = 3
@@ -45,6 +31,8 @@ color = Color(0.02, 0.03, 0.07, 0.78)
 layout_mode = 1
 
 [node name="Card" type="Panel" parent="."]
+script = ExtResource("world_panel")
+kind = "panel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -58,9 +46,10 @@ offset_bottom = 174.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = ExtResource("panel")
 
 [node name="Title" type="Label" parent="."]
+script = ExtResource("world_label")
+kind = "title_plate"
 layout_mode = 1
 anchors_preset = 8
 anchor_top = 0.5
@@ -76,7 +65,6 @@ theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 20
 text = "SETTINGS_TITLE"
 horizontal_alignment = 1
-theme_override_styles/normal = ExtResource("banner")
 anchor_left = 0.5
 offset_left = -70.0
 offset_right = 70.0
@@ -104,6 +92,8 @@ horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="LocaleKo" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -119,15 +109,12 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "한국어"
 
 [node name="LocaleEn" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -143,15 +130,12 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "English"
 
 [node name="LocaleJa" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -167,15 +151,12 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "日本語"
 
 [node name="LocaleZhCn" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -191,15 +172,12 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "简中"
 
 [node name="LocaleZhTw" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -215,11 +193,6 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "繁中"
 
@@ -245,6 +218,8 @@ horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="MusicDown" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -260,11 +235,6 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "-"
 
@@ -285,6 +255,8 @@ mouse_filter = 2
 theme_override_constants/separation = 4
 
 [node name="MusicUp" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -300,11 +272,6 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "+"
 
@@ -330,6 +297,8 @@ horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="SfxDown" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -345,11 +314,6 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "-"
 
@@ -370,6 +334,8 @@ mouse_filter = 2
 theme_override_constants/separation = 4
 
 [node name="SfxUp" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -385,11 +351,6 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "+"
 
@@ -415,6 +376,8 @@ horizontal_alignment = 2
 vertical_alignment = 1
 
 [node name="Analytics" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -430,14 +393,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 text = "SETTINGS_ANALYTICS_UNKNOWN"
 
 [node name="Credits" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -453,14 +413,11 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 text = "SETTINGS_CREDITS"
 
 [node name="Close" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -476,11 +433,6 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("buttons_gold_normal")
-theme_override_styles/hover = ExtResource("buttons_gold_hover")
-theme_override_styles/pressed = ExtResource("buttons_gold_pressed")
-theme_override_styles/disabled = ExtResource("buttons_gold_disabled")
-theme_override_styles/focus = ExtResource("buttons_gold_focus")
 text = "SETTINGS_CLOSE"
 
 [node name="ExternalLinks" type="HBoxContainer" parent="."]
@@ -500,29 +452,23 @@ theme_override_constants/separation = 8
 alignment = 1
 
 [node name="Privacy" type="Button" parent="ExternalLinks"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(174, 36)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("buttons_ghost_normal")
-theme_override_styles/hover = ExtResource("buttons_ghost_hover")
-theme_override_styles/pressed = ExtResource("buttons_ghost_pressed")
-theme_override_styles/disabled = ExtResource("buttons_ghost_disabled")
-theme_override_styles/focus = ExtResource("buttons_ghost_focus")
 text = "SETTINGS_PRIVACY"
 
 [node name="Support" type="Button" parent="ExternalLinks"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(174, 36)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.9, 0.98, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("buttons_ghost_normal")
-theme_override_styles/hover = ExtResource("buttons_ghost_hover")
-theme_override_styles/pressed = ExtResource("buttons_ghost_pressed")
-theme_override_styles/disabled = ExtResource("buttons_ghost_disabled")
-theme_override_styles/focus = ExtResource("buttons_ghost_focus")
 text = "SETTINGS_SUPPORT"
 
 [node name="LinkStatus" type="Label" parent="."]

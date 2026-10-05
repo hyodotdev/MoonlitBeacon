@@ -1,8 +1,8 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/dash_button.gd" id="script"]
-[ext_resource type="Texture2D" path="res://assets/derived/ui/stick_base.png" id="pad"]
-[ext_resource type="Texture2D" path="res://assets/derived/ui/stick_knob.png" id="knob"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/world/dash_base.svg" id="pad"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/world/dash_fill.svg" id="knob"]
 
 [node name="DashButton" type="Control"]
 layout_mode = 3
@@ -28,6 +28,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+texture_filter = 2
 texture = ExtResource("pad")
 expand_mode = 1
 stretch_mode = 5
@@ -47,6 +48,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 modulate = Color(1.5, 1.9, 2.4, 1)
+texture_filter = 2
 texture = ExtResource("knob")
 expand_mode = 1
 stretch_mode = 5

@@ -377,6 +377,24 @@ func ignite() -> void:
 	_flicker.play(&"flicker")
 
 
+## Relight a beacon from a journey checkpoint without side effects.
+##
+## Unlike `ignite()`: no flare tween, no sfx, and no `lit_changed` emission,
+## so restoring completed zones grants no rewards and wakes no guardians.
+func restore_lit() -> void:
+	_awaiting_choice = false
+	_overcharging = false
+	_show_overcharge_visual(false)
+	_charge = 1.0
+	set_block_signals(true)
+	lit = true
+	set_block_signals(false)
+	_reach.set_deferred("monitoring", false)
+	set_process(false)
+	queue_redraw()
+	_apply_lantern_palette()
+
+
 func _set_lit(value: bool) -> void:
 	lit = value
 	if _pit == null:

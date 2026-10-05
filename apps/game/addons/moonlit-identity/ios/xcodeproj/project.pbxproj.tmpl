@@ -1,0 +1,43 @@
+// !$*UTF8*$!
+// Rendered to FirebasePods.xcodeproj/project.pbxproj by
+// scripts/build-player-identity.mjs --fetch-deps --platform ios (template
+// copied verbatim). Exists only so `pod install` has a project to integrate
+// the pinned FirebaseAuth pod into; the target name must match the Podfile.
+//
+// Every key on the PBXProject below is load-bearing: CocoaPods 1.16.2 target
+// inspection joins projectDirPath/projectRoot and crashes with
+// `TypeError - no implicit conversion of nil into String` when they are
+// absent (measured offline with `pod install --no-repo-update` against a
+// local path pod; a Node structural test pins the full key set). Keep the
+// layout identical to what Xcode/xcodeproj generate for a static library:
+// main group with Products/Frameworks children, the product under Products,
+// projectDirPath/projectRoot/compatibilityVersion/developmentRegion/
+// knownRegions/productRefGroup on the project object, TargetAttributes in
+// attributes, and Debug+Release configurations on both lists.
+//
+// Do NOT add OTHER_LDFLAGS here: the generated Pods xcconfig supplies -ObjC
+// through $(inherited), and a target-level value overrides it with a
+// CocoaPods warning.
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+		1A2B3C4D0000000000000001 /* libMoonlitIdentityPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMoonlitIdentityPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A2B3C4D0000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		1A2B3C4D0000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		1A2B3C4D0000000000000004 = {isa = PBXGroup; children = (1A2B3C4D000000000000000D /* Products */, 1A2B3C4D000000000000000E /* Frameworks */); sourceTree = "<group>"; };
+		1A2B3C4D0000000000000005 /* MoonlitIdentityPods */ = {isa = PBXNativeTarget; buildConfigurationList = 1A2B3C4D0000000000000008 /* Build configuration list for PBXNativeTarget "MoonlitIdentityPods" */; buildPhases = (1A2B3C4D0000000000000003 /* Sources */, 1A2B3C4D0000000000000002 /* Frameworks */); buildRules = (); dependencies = (); name = MoonlitIdentityPods; productName = MoonlitIdentityPods; productReference = 1A2B3C4D0000000000000001 /* libMoonlitIdentityPods.a */; productType = "com.apple.product-type.library.static"; };
+		1A2B3C4D0000000000000006 /* Project object */ = {isa = PBXProject; attributes = { LastUpgradeCheck = 1600; TargetAttributes = { 1A2B3C4D0000000000000005 = { CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = 1A2B3C4D0000000000000007 /* Build configuration list for PBXProject "FirebasePods" */; compatibilityVersion = "Xcode 3.2"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 1A2B3C4D0000000000000004; productRefGroup = 1A2B3C4D000000000000000D /* Products */; projectDirPath = ""; projectRoot = ""; targets = (1A2B3C4D0000000000000005 /* MoonlitIdentityPods */); };
+		1A2B3C4D0000000000000007 /* Build configuration list for PBXProject "FirebasePods" */ = {isa = XCConfigurationList; buildConfigurations = (1A2B3C4D0000000000000009 /* Debug */, 1A2B3C4D000000000000000A /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		1A2B3C4D0000000000000008 /* Build configuration list for PBXNativeTarget "MoonlitIdentityPods" */ = {isa = XCConfigurationList; buildConfigurations = (1A2B3C4D000000000000000B /* Debug */, 1A2B3C4D000000000000000C /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		1A2B3C4D0000000000000009 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu11; GCC_OPTIMIZATION_LEVEL = 0; GCC_PREPROCESSOR_DEFINITIONS = ("DEBUG=1", "$(inherited)"); PRODUCT_NAME = "$(TARGET_NAME)"; }; name = Debug; };
+		1A2B3C4D000000000000000A /* Release */ = {isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; ENABLE_NS_ASSERTIONS = NO; GCC_C_LANGUAGE_STANDARD = gnu11; PRODUCT_NAME = "$(TARGET_NAME)"; }; name = Release; };
+		1A2B3C4D000000000000000B /* Debug */ = {isa = XCBuildConfiguration; buildSettings = { IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SKIP_INSTALL = YES; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Debug; };
+		1A2B3C4D000000000000000C /* Release */ = {isa = XCBuildConfiguration; buildSettings = { IPHONEOS_DEPLOYMENT_TARGET = 15.0; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SKIP_INSTALL = YES; TARGETED_DEVICE_FAMILY = "1,2"; }; name = Release; };
+		1A2B3C4D000000000000000D /* Products */ = {isa = PBXGroup; children = (1A2B3C4D0000000000000001 /* libMoonlitIdentityPods.a */); name = Products; sourceTree = "<group>"; };
+		1A2B3C4D000000000000000E /* Frameworks */ = {isa = PBXGroup; children = (); name = Frameworks; sourceTree = "<group>"; };
+	};
+	rootObject = 1A2B3C4D0000000000000006 /* Project object */;
+}

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Focused regressions for the two terrain sheet checks.
+"""Focused regressions for the terrain sheet checks.
 
-`pack_terrain_structures.py --check` and `build_terrain_tilesets.py --check`
-must accept any PNG encoding of the exact baked RGBA pixels (encoders differ
-across machines) while rejecting missing, unreadable, corrupt, non-PNG,
-wrongly shaped or wrongly formatted sheets. Every case writes only to a
-temporary directory; the committed sheets on disk are never touched.
+`terrain_sheet_check.check_sheet()` must accept any PNG encoding of the exact
+baked RGBA pixels (encoders differ across machines) while rejecting missing,
+unreadable, corrupt, non-PNG, wrongly shaped or wrongly formatted sheets.
+Every matrix case writes only to a temporary directory; the committed sheets
+on disk are never touched.
+
+The two retired mains (`pack_terrain_structures.py`, `build_terrain_tilesets.py`)
+delegate --check to the painted pack and refuse to bake; the CLI cases pin that.
 
     node scripts/python.mjs -B apps/game/tools/test_terrain_sheet_checks.py
 """
@@ -204,105 +207,55 @@ MATRIX = [
 ]
 
 
-def _run_main(module, out_attr: str, out_dir: Path, argv0: str) -> int:
-    old_root, old_argv = getattr(module, out_attr), sys.argv
-    setattr(module, out_attr, out_dir)
-    sys.argv = [argv0, "--check"]
+def _runs_delegated_check(module, argv0: str) -> None:
+    # A retired main delegates --check to the painted pack and refuses to
+    # bake, so the pixel comparison it used to do can neither pass stale
+    # art nor clobber the painted outputs.
+    old_argv = sys.argv
     try:
+        sys.argv = [argv0, "--check"]
+        with redirect_stdout(io.StringIO()) as out:
+            code = module.main()
+        assert code == 0, f"--check must pass, got {code}"
+        assert "painted sheets current" in out.getvalue(), (
+            "--check must delegate to the painted pack"
+        )
+        sys.argv = [argv0]
         with redirect_stdout(io.StringIO()):
-            return module.main()
+            code = module.main()
+        assert code == 2, f"bake must refuse, got {code}"
     finally:
-        setattr(module, out_attr, old_root)
         sys.argv = old_argv
 
 
-def _structures_cli(root: Path) -> None:
-    def write_all(out_dir: Path, **options) -> None:
-        for terrain, names in structures.SHEETS.items():
-            _save(structures._bake(names), out_dir / f"{terrain}_props.png", **options)
-
-    def differs(out_dir: Path) -> bool:
-        return any(
-            (out_dir / f"{terrain}_props.png").read_bytes()
-            != structures._png(structures._bake(names))
-            for terrain, names in structures.SHEETS.items()
-        )
-
-    def run(out_dir: Path) -> int:
-        return _run_main(structures, "OUT_ROOT", out_dir, "pack_terrain_structures.py")
-
-    current = root / "current"
-    current.mkdir()
-    write_all(current, compress_level=1)
-    assert differs(current), "alternative encodings came out byte-identical"
-    assert run(current) == 0, "identical pixels in another encoding must pass"
-
-    stale = root / "stale"
-    stale.mkdir()
-    write_all(stale, compress_level=1)
-    _flip_one_pixel(stale / "marsh_props.png")
-    assert run(stale) == 1, "one changed pixel must fail the check"
-
-    corrupt = root / "corrupt"
-    corrupt.mkdir()
-    write_all(corrupt, compress_level=1)
-    (corrupt / "frost_props.png").write_bytes(b"this is not a png file")
-    assert run(corrupt) == 1, "a corrupt sheet must fail the check, not crash it"
-
-    missing = root / "missing"
-    missing.mkdir()
-    write_all(missing, compress_level=1)
-    (missing / "ruins_props.png").unlink()
-    assert run(missing) == 1, "a missing sheet must fail the check"
+def _structures_cli(_root: Path) -> None:
+    _runs_delegated_check(structures, "pack_terrain_structures.py")
 
 
-def _tilesets_cli(root: Path) -> None:
-    with Image.open(tilesets.SOURCE) as source_file:
-        source = source_file.convert("RGBA")
+def _fixture_nature_source() -> Image.Image:
+    # The mechanics under test (encoding tolerance, stale/corrupt/missing
+    # handling) must not depend on production art: production nature.png is
+    # painted since 4.0.0 and holds colours no palette maps. Synthesize a
+    # source from the shared palette keys instead.
+    keys = list(tilesets.PALETTES["frost"].keys())
+    source = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+    pixels = source.load()
+    assert pixels is not None
+    for y in range(64):
+        for x in range(64):
+            if (x + y) % 5 == 0:
+                continue
+            red, green, blue = keys[(x + y * 64) % len(keys)]
+            pixels[x, y] = (red, green, blue, 255)
+    return source
 
-    def write_all(out_dir: Path, **options) -> None:
-        for name, palette in tilesets.PALETTES.items():
-            _save(tilesets._recolour(source, palette),
-                  out_dir / f"{name}_nature.png", **options)
 
-    def differs(out_dir: Path) -> bool:
-        return any(
-            (out_dir / f"{name}_nature.png").read_bytes()
-            != tilesets._png(tilesets._recolour(source, palette))
-            for name, palette in tilesets.PALETTES.items()
-        )
-
-    def run(out_dir: Path) -> int:
-        return _run_main(tilesets, "TERRAIN_DIR", out_dir, "build_terrain_tilesets.py")
-
-    current = root / "current"
-    current.mkdir()
-    write_all(current, compress_level=1)
-    assert differs(current), "alternative encodings came out byte-identical"
-    assert run(current) == 0, "identical pixels in another encoding must pass"
-
-    stale = root / "stale"
-    stale.mkdir()
-    write_all(stale, compress_level=1)
-    _flip_one_pixel(stale / "marsh_nature.png")
-    assert run(stale) == 1, "one changed pixel must fail the check"
-
-    corrupt = root / "corrupt"
-    corrupt.mkdir()
-    write_all(corrupt, compress_level=1)
-    (corrupt / "frost_nature.png").write_bytes(b"this is not a png file")
-    assert run(corrupt) == 1, "a corrupt sheet must fail the check, not crash it"
-
-    missing = root / "missing"
-    missing.mkdir()
-    write_all(missing, compress_level=1)
-    (missing / "ruins_nature.png").unlink()
-    assert run(missing) == 1, "a missing sheet must fail the check"
+def _tilesets_cli(_root: Path) -> None:
+    _runs_delegated_check(tilesets, "build_terrain_tilesets.py")
 
 
 def main() -> int:
-    with Image.open(tilesets.SOURCE) as source_file:
-        nature_source = source_file.convert("RGBA")
+    nature_source = _fixture_nature_source()
     fixtures = [
         Fixture("props", "frost_props.png",
                 structures._bake(structures.SHEETS["frost"]), structures._png),

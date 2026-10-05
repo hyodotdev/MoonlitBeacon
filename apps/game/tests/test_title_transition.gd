@@ -35,6 +35,7 @@ func _ready() -> void:
 	await _test_tap_kicks_worker_load()
 	await _test_warm_cache_load()
 	await _test_wait_boundaries()
+	await _test_standalone_ladder_stays_local()
 	if _failed > 0:
 		printerr("title-transition test failed — ", _failed, "/", _checked, " case(s)")
 		get_tree().quit(1)
@@ -221,6 +222,31 @@ func _await_threaded_load(path: String, deadline_msec: int) -> Dictionary:
 		"elapsed_msec": Time.get_ticks_msec() - start_msec,
 		"progress": final_progress,
 	}
+
+
+func _test_standalone_ladder_stays_local() -> void:
+	var title: Control = TITLE_SCENE.instantiate() as Control
+	add_child(title)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var managed: Array = []
+	title.connect("external_hall_requested",
+		func() -> void: managed.append(true))
+	(title.get_node("Ui/Screen/LadderButton") as Button).pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(managed.is_empty(),
+		"standalone rank never routes to the managed hall")
+	_expect_true((title.get_node("Ui/Ladder") as Control).visible,
+		"standalone rank opens the local ladder")
+	_expect_true(not (title.get_node("Ui/Screen") as Control).visible,
+		"standalone rank parks the screen")
+	(title.get_node("Ui/Ladder") as Control).call("close")
+	await get_tree().process_frame
+	_expect_true((title.get_node("Ui/Screen") as Control).visible,
+		"standalone ladder close restores the screen")
+	title.queue_free()
+	await get_tree().process_frame
 
 
 func _expect_equal(actual: Variant, expected: Variant, label: String) -> void:

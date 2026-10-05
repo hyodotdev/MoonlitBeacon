@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Bake the obstacle sheets of the three later terrains from twelve drawn structures.
 
+Retired since 4.0.0: production obstacle sheets come from the painted masters
+via pack_painted_world.py, and --check delegates there. The layout below stays
+as the record the painted packer follows.
+
 The first three terrains draw their structures in code (`build_terrain_obstacles.py`). Frost
 Pass, Mirewood Marsh and Moonlit Ruins are richer, so their structures are drawn as one
 ChatGPT grid on flat magenta, cut apart by `cut_lineup.py` into `tools/terrain_structures/`
@@ -95,23 +99,27 @@ def main() -> int:
     parser.add_argument("--check", action="store_true",
                         help="fail if the sheets on disk differ from what this tool bakes")
     args = parser.parse_args()
-    problems: list[str] = []
-    for terrain, names in SHEETS.items():
-        baked = _bake(names)
-        target = OUT_ROOT / f"{terrain}_props.png"
-        if args.check:
-            problem = check_sheet(target, baked)
-            if problem is not None:
-                problems.append(problem)
-            continue
-        target.write_bytes(_png(baked))
-        print(f"wrote {target.relative_to(GAME_ROOT)}")
-    if args.check:
-        if problems:
-            print("terrain structure sheets are not what pack_terrain_structures.py bakes:",
-                  *problems, sep="\n  ")
-            return 1
-        print("check: terrain structure sheets are current")
+    # Obstacle sheets come from the painted masters since 4.0.0. Do not bake
+    # them here: writing would clobber the painted pack with pixel art.
+    #
+    # Do not delete `_bake()` and SHEETS above. Structure names, cells and
+    # feet rows are written here, and the painted packer follows that table
+    # as-is.
+    if not args.check:
+        print(
+            "pack_terrain_structures.py no longer bakes obstacle sheets; run "
+            "apps/game/tools/pack_painted_world.py instead",
+            file=sys.stderr,
+        )
+        return 2
+    from pack_painted_world import check_current
+
+    problems = check_current(byte_verify=False)
+    if problems:
+        print("painted obstacle sheets are not current:",
+              *problems, sep="\n  ")
+        return 1
+    print("terrain structures check: painted sheets current")
     return 0
 
 

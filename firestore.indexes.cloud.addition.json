@@ -1,0 +1,20 @@
+{
+  "_note": "4.0.0 owned-cloud index addition. The director merges the entries under indexes/fieldOverrides into firestore.indexes.json alongside the legacy scores/analytics entries, which stay unchanged. Profiles, reservations, and checkpoints are single-document lookups and need no composite index. The global Hall top board orders by score alone (automatic single-field index); the composite below serves release-pinned boards filtered on schema.",
+  "indexes": [
+    {
+      "collectionGroup": "mb_hall_v1",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "schema",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "score",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -22,14 +22,9 @@ const FONT: Font = preload(
 const FONT_BOLD: Font = preload(
 	"res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres"
 )
-## Rows and buttons here are built in code, so they load the same shared styles
-## the scenes point at by path. Changing the look is a change in the UI kit.
-const ROW_STYLE: StyleBox = preload("res://resources/ui/panels/chip.tres")
-const ROW_STYLE_HIGHLIGHT: StyleBox = preload("res://resources/ui/panels/chip_gold.tres")
-const BUTTON_NORMAL: StyleBox = preload("res://resources/ui/buttons_gold/normal.tres")
-const BUTTON_HOVER: StyleBox = preload("res://resources/ui/buttons_gold/hover.tres")
-const BUTTON_PRESSED: StyleBox = preload("res://resources/ui/buttons_gold/pressed.tres")
-const BUTTON_DISABLED: StyleBox = preload("res://resources/ui/buttons_gold/disabled.tres")
+## Rows and buttons here are built in code from the shared world classes;
+## scenes point at the same classes by script. Changing the look is a change
+## in the world art, never in these factories.
 
 const TEXT: Color = Color(0.86, 0.9, 0.98, 1)
 const MUTED: Color = Color(0.55, 0.6, 0.7, 1)
@@ -37,6 +32,7 @@ const SUCCESS: Color = Color(0.72, 1, 0.78, 1)
 const ERROR: Color = Color(1, 0.58, 0.55, 1)
 
 @onready var _shards: Label = $Frame/Margin/Rows/Header/Shards
+@onready var _header: HBoxContainer = $Frame/Margin/Rows/Header
 @onready var _frame: PanelContainer = $Frame
 @onready var _goal: Label = $Frame/Margin/Rows/Header/Goal
 @onready var _heroes_scroll: ScrollContainer = $Frame/Margin/Rows/HeroesScroll
@@ -72,6 +68,13 @@ func _ready() -> void:
 
 
 func open() -> void:
+	# Beacon tab and rail crest, hung on first open, never in `_ready`:
+	# the arena holds this panel closed and hidden decor would spend the
+	# node budget for nothing.
+	WorldChrome.ensure_tab(_frame, "beacon")
+	if _header.get_node_or_null("WorldCrest") == null:
+		_header.add_child(WorldChrome.crest("beacon"))
+		_header.move_child(_header.get_child(-1), 0)
 	_busy = false
 	_feedback_text = ""
 	_feedback_error = false
@@ -191,8 +194,9 @@ func _make_hero_card(hero: Hero, path: String) -> PanelContainer:
 	portrait.focus_mode = Control.FOCUS_NONE
 	portrait.ignore_texture_size = true
 	portrait.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# A 96×96 portrait in a 48 cell shrinks to 0.5× and smears. Hang a 24×24 crop at 2×.
+	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	# The card shows a head close-up, not the full body: hang the 72×72
+	# painted head crop downscaled smooth into the 48 cell.
 	portrait.texture_normal = hero.idle_icon_texture()
 	portrait.tooltip_text = tr("HERO_PREVIEW_VIEW") % tr(hero.display_name)
 	portrait.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -500,9 +504,8 @@ func _price_label(cost: int, centered: bool = false) -> Label:
 ## One list row. The accent used to tint a one-pixel border; the row text is
 ## still coloured by it, so the border only has to say "look here".
 func _card(_accent: Color, highlighted: bool) -> PanelContainer:
-	var panel: PanelContainer = PanelContainer.new()
-	panel.add_theme_stylebox_override(
-		"panel", ROW_STYLE_HIGHLIGHT if highlighted else ROW_STYLE)
+	var panel := WorldFrame.new()
+	panel.kind = "chip_lit" if highlighted else "chip"
 	return panel
 
 
@@ -521,7 +524,8 @@ func _label(
 
 
 func _button(text: String, accent: Color) -> Button:
-	var button: Button = Button.new()
+	var button := WorldButton.new()
+	button.kind = "ember"
 	button.text = text
 	button.custom_minimum_size = Vector2(82, 19)
 	button.focus_mode = Control.FOCUS_NONE
@@ -530,11 +534,6 @@ func _button(text: String, accent: Color) -> Button:
 	button.add_theme_color_override("font_color", accent)
 	button.add_theme_color_override("font_disabled_color", Color(
 		accent.r, accent.g, accent.b, 0.38))
-	button.add_theme_stylebox_override("normal", BUTTON_NORMAL)
-	button.add_theme_stylebox_override("hover", BUTTON_HOVER)
-	button.add_theme_stylebox_override("pressed", BUTTON_PRESSED)
-	button.add_theme_stylebox_override("disabled", BUTTON_DISABLED)
-	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	return button
 
 

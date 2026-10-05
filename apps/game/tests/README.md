@@ -40,6 +40,11 @@ Coverage:
   release languages
 - Title transition veil hidden at rest, and a tap kicking the worker arena
   load without swapping scenes out from under the test
+- Journey checkpoints after a fork and a guardian reward, late-cycle
+  restore past authored episodes, hostile-save refusal, backup recovery,
+  failed-write survival, death/retry/relaunch runs that mint no shards,
+  the fresh-journey confirmation, the unpaused opening contract, and the
+  story episode catalog with its content-extension example
 
 Godot can print a runtime error and still return exit code `0`. The runner
 treats `ERROR:` logs as failure as well as the exit code.

@@ -5,13 +5,17 @@ import {themes as prismThemes} from 'prism-react-renderer';
 const ORG = 'hyodotdev';
 const REPO = 'MoonlitBeacon';
 const EDIT_BASE = `https://github.com/${ORG}/${REPO}/tree/main/apps/docs/`;
+// Public origin of the combined Firebase Hosting site. The base path stays
+// /MoonlitBeacon/ so the GitHub Pages mirror keeps working; only the
+// canonical origin moves here. Player-care pages live at this origin root.
+const CARE_BASE = 'https://moonlitbeacon.hyo.dev';
 
 const config: Config = {
   title: 'Moonlit Beacon',
   tagline: 'Your first 2D game in Godot 4 — from design to an itch.io release',
   favicon: 'img/favicon.png',
 
-  url: `https://${ORG}.github.io`,
+  url: CARE_BASE,
   baseUrl: `/${REPO}/`,
   organizationName: ORG,
   projectName: REPO,
@@ -93,6 +97,21 @@ const config: Config = {
           label: 'Docs',
         },
         {
+          href: `${CARE_BASE}/en/privacy`,
+          label: 'Privacy',
+          position: 'right',
+        },
+        {
+          href: `${CARE_BASE}/en/support`,
+          label: 'Support',
+          position: 'right',
+        },
+        {
+          href: `${CARE_BASE}/en/terms`,
+          label: 'Terms',
+          position: 'right',
+        },
+        {
           href: `https://github.com/${ORG}/${REPO}`,
           label: 'GitHub',
           position: 'right',
@@ -120,6 +139,9 @@ const config: Config = {
         {
           title: 'More',
           items: [
+            {label: 'Privacy Policy', href: `${CARE_BASE}/en/privacy`},
+            {label: 'Support', href: `${CARE_BASE}/en/support`},
+            {label: 'Terms of Use', href: `${CARE_BASE}/en/terms`},
             {label: 'GitHub', href: `https://github.com/${ORG}/${REPO}`},
             {label: 'Godot Engine', href: 'https://godotengine.org'},
           ],

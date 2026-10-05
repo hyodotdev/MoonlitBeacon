@@ -1,10 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/act_card.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="Texture2D" path="res://assets/custom/ui/kit/icon_beacon_on.png" id="beacon"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/banner.tres" id="banner"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/chip.tres" id="chip"]
+[ext_resource type="Texture2D" path="res://assets/custom/ui/world/crest_beacon.svg" id="beacon"]
+[ext_resource type="Script" path="res://scripts/ui/world_label.gd" id="world_label"]
 
 [node name="ActCard" type="Control"]
 process_mode = 3
@@ -49,18 +48,20 @@ custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
+texture_filter = 2
 texture = ExtResource("beacon")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="Label" type="Label" parent="Center/Column"]
+script = ExtResource("world_label")
+kind = "title_plate"
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.94, 0.76, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("banner")
 text = "ACT_1_LABEL"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -80,6 +81,8 @@ text = "ACT_1_TITLE"
 horizontal_alignment = 1
 
 [node name="Epigraph" type="Label" parent="Center/Column"]
+script = ExtResource("world_label")
+kind = "chip"
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 4
@@ -87,7 +90,6 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(0.78, 0.8, 0.96, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 13
-theme_override_styles/normal = ExtResource("chip")
 text = "ACT_1_EPIGRAPH"
 horizontal_alignment = 1
 vertical_alignment = 1

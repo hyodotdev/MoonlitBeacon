@@ -1,13 +1,9 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/credits_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="buttons_gold_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="buttons_gold_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="buttons_gold_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="buttons_gold_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="buttons_gold_focus"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_panel.gd" id="world_panel"]
 
 [node name="CreditsPanel" type="Control"]
 process_mode = 3
@@ -30,6 +26,8 @@ grow_vertical = 2
 color = Color(0.02, 0.03, 0.07, 0.86)
 
 [node name="Card" type="Panel" parent="."]
+script = ExtResource("world_panel")
+kind = "panel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -43,7 +41,6 @@ offset_bottom = 170.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = ExtResource("panel")
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 1
@@ -120,6 +117,8 @@ theme_override_constants/line_spacing = 0
 auto_translate_mode = 2
 
 [node name="Back" type="Button" parent="."]
+script = ExtResource("world_button")
+kind = "steel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -135,9 +134,4 @@ grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = ExtResource("buttons_gold_normal")
-theme_override_styles/hover = ExtResource("buttons_gold_hover")
-theme_override_styles/pressed = ExtResource("buttons_gold_pressed")
-theme_override_styles/disabled = ExtResource("buttons_gold_disabled")
-theme_override_styles/focus = ExtResource("buttons_gold_focus")
 text = "CREDITS_BACK"

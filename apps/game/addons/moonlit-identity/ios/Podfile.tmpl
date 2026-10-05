@@ -1,0 +1,20 @@
+# Rendered next to FirebasePods.xcodeproj by
+# scripts/build-player-identity.mjs --fetch-deps --platform ios (template
+# copied verbatim). The target name must match the target inside the
+# template project, or `pod install` refuses the Podfile.
+#
+# Pins repeated in scripts/lib/player-identity-build.mjs (IDENTITY_PINS);
+# keep all three in agreement. CocoaPods fetches from the official spec repo
+# when the director runs the fetch. Static frameworks (not embedded): the
+# fetch builds them for iphoneos arm64, the bridge compiles against their
+# headers, and the export plugin links them into the game (plus -ObjC).
+
+platform :ios, '15.0'
+project 'FirebasePods.xcodeproj'
+install! 'cocoapods', :warn_for_unused_master_specs_repo => false
+
+target 'MoonlitIdentityPods' do
+  use_frameworks! :linkage => :static
+  pod 'FirebaseAuth', '11.0.0'
+  pod 'GoogleSignIn', '7.1.0'
+end

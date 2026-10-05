@@ -1,0 +1,5 @@
+# Generated native build products. Reproducible via
+# node scripts/build-player-identity.mjs --build-android / --build-ios.
+# Never committed; kept on disk for local tests and exports.
+/android/*.aar
+/bin/

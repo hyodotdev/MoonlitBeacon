@@ -1,13 +1,9 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/relic_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/normal.tres" id="card_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/hover.tres" id="card_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/pressed.tres" id="card_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/disabled.tres" id="card_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/focus.tres" id="card_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/banner.tres" id="banner"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_label.gd" id="world_label"]
 
 [node name="RelicPanel" type="Control"]
 process_mode = 3
@@ -46,13 +42,14 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="Title" type="Label" parent="Center/Rows"]
+script = ExtResource("world_label")
+kind = "title_plate"
 layout_mode = 2
 size_flags_horizontal = 4
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.94, 0.76, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = ExtResource("banner")
 text = "RELIC_PICK"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -63,14 +60,11 @@ theme_override_constants/separation = 10
 alignment = 1
 
 [node name="C0" type="Button" parent="Center/Rows/Cards"]
+script = ExtResource("world_button")
+kind = "card"
 custom_minimum_size = Vector2(176, 148)
 layout_mode = 2
 clip_contents = true
-theme_override_styles/normal = ExtResource("card_normal")
-theme_override_styles/hover = ExtResource("card_hover")
-theme_override_styles/pressed = ExtResource("card_pressed")
-theme_override_styles/disabled = ExtResource("card_disabled")
-theme_override_styles/focus = ExtResource("card_focus")
 icon_alignment = 1
 vertical_icon_alignment = 0
 theme_override_colors/icon_disabled_color = Color(1, 1, 1, 0.8)
@@ -126,14 +120,11 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="C1" type="Button" parent="Center/Rows/Cards"]
+script = ExtResource("world_button")
+kind = "card"
 custom_minimum_size = Vector2(176, 148)
 layout_mode = 2
 clip_contents = true
-theme_override_styles/normal = ExtResource("card_normal")
-theme_override_styles/hover = ExtResource("card_hover")
-theme_override_styles/pressed = ExtResource("card_pressed")
-theme_override_styles/disabled = ExtResource("card_disabled")
-theme_override_styles/focus = ExtResource("card_focus")
 icon_alignment = 1
 vertical_icon_alignment = 0
 theme_override_colors/icon_disabled_color = Color(1, 1, 1, 0.8)
@@ -189,14 +180,11 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="C2" type="Button" parent="Center/Rows/Cards"]
+script = ExtResource("world_button")
+kind = "card"
 custom_minimum_size = Vector2(176, 148)
 layout_mode = 2
 clip_contents = true
-theme_override_styles/normal = ExtResource("card_normal")
-theme_override_styles/hover = ExtResource("card_hover")
-theme_override_styles/pressed = ExtResource("card_pressed")
-theme_override_styles/disabled = ExtResource("card_disabled")
-theme_override_styles/focus = ExtResource("card_focus")
 icon_alignment = 1
 vertical_icon_alignment = 0
 theme_override_colors/icon_disabled_color = Color(1, 1, 1, 0.8)

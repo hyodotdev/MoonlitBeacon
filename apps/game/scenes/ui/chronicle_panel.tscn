@@ -1,14 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/chronicle_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel_tight.tres" id="panel_tight"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/banner.tres" id="banner"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="gold_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="gold_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="gold_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="gold_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="gold_focus"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_frame.gd" id="world_frame"]
 
 [node name="ChroniclePanel" type="Control"]
 process_mode = 3
@@ -32,6 +27,8 @@ mouse_filter = 2
 color = Color(0.015, 0.022, 0.055, 0.9)
 
 [node name="Frame" type="PanelContainer" parent="."]
+script = ExtResource("world_frame")
+kind = "panel_tight"
 layout_mode = 1
 anchors_preset = 14
 anchor_top = 0.5
@@ -43,7 +40,6 @@ offset_right = -60.0
 offset_bottom = 164.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("panel_tight")
 
 [node name="Margin" type="MarginContainer" parent="Frame"]
 layout_mode = 2
@@ -86,16 +82,81 @@ theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 9
 text = "CHRONICLE_HINT"
 
-[node name="Scroll" type="ScrollContainer" parent="Frame/Margin/Rows"]
+[node name="Book" type="HBoxContainer" parent="Frame/Margin/Rows"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="IndexScroll" type="ScrollContainer" parent="Frame/Margin/Rows/Book"]
+custom_minimum_size = Vector2(296, 0)
+layout_mode = 2
+size_flags_horizontal = 3
 follow_focus = true
 horizontal_scroll_mode = 0
 
-[node name="List" type="VBoxContainer" parent="Frame/Margin/Rows/Scroll"]
+[node name="IndexList" type="VBoxContainer" parent="Frame/Margin/Rows/Book/IndexScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 3
+
+[node name="Page" type="PanelContainer" parent="Frame/Margin/Rows/Book"]
+script = ExtResource("world_frame")
+kind = "card"
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="PageMargin" type="MarginContainer" parent="Frame/Margin/Rows/Book/Page"]
+layout_mode = 2
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
+
+[node name="PageRows" type="VBoxContainer" parent="Frame/Margin/Rows/Book/Page/PageMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PageSection" type="Label" parent="Frame/Margin/Rows/Book/Page/PageMargin/PageRows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.5, 0.54, 0.7, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 10
+text_overrun_behavior = 3
+
+[node name="PageTitle" type="Label" parent="Frame/Margin/Rows/Book/Page/PageMargin/PageRows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.87, 0.6, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 16
+text_overrun_behavior = 3
+
+[node name="PageRule" type="ColorRect" parent="Frame/Margin/Rows/Book/Page/PageMargin/PageRows"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.79, 0.63, 0.37, 0.85)
+
+[node name="PageScroll" type="ScrollContainer" parent="Frame/Margin/Rows/Book/Page/PageMargin/PageRows"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="PageBody" type="VBoxContainer" parent="Frame/Margin/Rows/Book/Page/PageMargin/PageRows/PageScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 3
+
+[node name="PageState" type="Label" parent="Frame/Margin/Rows/Book/Page/PageMargin/PageRows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.72, 0.78, 0.96, 1)
+theme_override_fonts/font = ExtResource("font")
+theme_override_font_sizes/font_size = 10
+text_overrun_behavior = 3
+horizontal_alignment = 2
 
 [node name="Footer" type="HBoxContainer" parent="Frame/Margin/Rows"]
 custom_minimum_size = Vector2(0, 23)
@@ -103,14 +164,11 @@ layout_mode = 2
 alignment = 1
 
 [node name="Close" type="Button" parent="Frame/Margin/Rows/Footer"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(126, 23)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("gold_normal")
-theme_override_styles/hover = ExtResource("gold_hover")
-theme_override_styles/pressed = ExtResource("gold_pressed")
-theme_override_styles/disabled = ExtResource("gold_disabled")
-theme_override_styles/focus = ExtResource("gold_focus")
 text = "CHRONICLE_CLOSE"

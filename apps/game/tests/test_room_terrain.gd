@@ -166,16 +166,24 @@ func _test_visual_collision_contract(
 		structures.get_child_count(),
 		expected_count,
 		"%s art and collision structure count 1:1" % display_name)
+	var zoom: float = room.kind.art_zoom
 	var aligned: bool = true
 	for index in obstacles.size():
 		var structure: Node2D = structures.get_child(index) as Node2D
 		var sprite: Sprite2D = structure.get_child(0) as Sprite2D
 		var variant: int = int(obstacles[index]["variant"])
+		var world: Rect2 = Room.OBSTACLE_REGIONS[variant]
+		# World rects map to sheet rects at art_zoom and draw back down, so
+		# the pivot and the collision circle never move with the art.
+		var want_region := Rect2(
+			world.position * zoom, world.size * zoom)
 		aligned = aligned \
 			and structure.position.is_equal_approx(obstacles[index]["at"]) \
 			and sprite.texture == room.kind.obstacle_tileset \
 			and sprite.region_enabled \
-			and sprite.region_rect == Room.OBSTACLE_REGIONS[variant] \
+			and sprite.region_rect == want_region \
+			and sprite.scale.is_equal_approx(Vector2.ONE / zoom) \
+			and sprite.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR \
 			and sprite.position == Room.OBSTACLE_SPRITE_OFFSET
 	_expect_true(aligned, "%s art pivot matches collision circle" % display_name)
 
@@ -211,18 +219,23 @@ func _test_view_density(
 
 
 ## Live PNG silhouette bounds excluding the cell's transparent padding.
+##
+## Scans sheet pixels (world rects times art_zoom) and returns world rects, so
+## the density math below stays in world units whatever the art zoom.
 func _obstacle_alpha_bounds(room: Room) -> Array[Rect2]:
 	var image: Image = room.kind.obstacle_tileset.get_image()
+	var zoom: float = room.kind.art_zoom
 	var result: Array[Rect2] = []
 	for region in Room.OBSTACLE_REGIONS:
-		var min_x: int = int(region.size.x)
-		var min_y: int = int(region.size.y)
+		var sheet_size: Vector2i = Vector2i(region.size * zoom)
+		var sheet_origin: Vector2i = Vector2i(region.position * zoom)
+		var min_x: int = sheet_size.x
+		var min_y: int = sheet_size.y
 		var max_x: int = -1
 		var max_y: int = -1
-		for local_y in int(region.size.y):
-			for local_x in int(region.size.x):
-				var source: Vector2i = Vector2i(region.position) \
-					+ Vector2i(local_x, local_y)
+		for local_y in sheet_size.y:
+			for local_x in sheet_size.x:
+				var source: Vector2i = sheet_origin + Vector2i(local_x, local_y)
 				if image.get_pixelv(source).a <= 0.0:
 					continue
 				min_x = mini(min_x, local_x)
@@ -231,8 +244,8 @@ func _obstacle_alpha_bounds(room: Room) -> Array[Rect2]:
 				max_y = maxi(max_y, local_y)
 		_expect_true(max_x >= min_x and max_y >= min_y, "structure variant alpha silhouette exists")
 		result.append(Rect2(
-			Vector2(min_x, min_y),
-			Vector2(max_x - min_x + 1, max_y - min_y + 1)))
+			Vector2(min_x, min_y) / zoom,
+			Vector2(max_x - min_x + 1, max_y - min_y + 1) / zoom))
 	return result
 
 

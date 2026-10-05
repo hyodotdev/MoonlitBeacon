@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Deterministically draw the three terrains' structures.
 
+Retired since 4.0.0: production obstacle sheets come from the painted masters
+via pack_painted_world.py, and --check delegates there. The layout below stays
+as the record the painted packer follows.
+
 Unlike decorative free tiles, structures made here pair with `Room`'s real movement-block circles.
 Put four 64×64 structures on the first row of each 256×256 sheet, using only transparent pixels and
 a fixed palette so they stay sharp under mobile nearest filter.
@@ -265,20 +269,30 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    stale: list[Path] = []
-    for path, payload in expected_outputs().items():
-        if args.check:
-            if not path.exists() or path.read_bytes() != payload:
-                stale.append(path)
-            continue
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(payload)
-        print(path.relative_to(GAME_ROOT))
+    # Obstacle sheets come from the painted masters since 4.0.0. Do not bake
+    # them here: writing would clobber the painted pack with pixel art.
+    #
+    # Do not delete `expected_outputs()` and the drawers above. Cell size,
+    # feet rows and collision radii are written here, and the painted packer
+    # follows that table as-is.
+    if not args.check:
+        print(
+            "build_terrain_obstacles.py no longer bakes obstacle sheets; run "
+            "apps/game/tools/pack_painted_world.py instead",
+            file=sys.stderr,
+        )
+        return 2
+    from pack_painted_world import check_current
 
-    if stale:
-        for path in stale:
-            print(f"stale terrain asset: {path.relative_to(GAME_ROOT)}")
+    problems = check_current(byte_verify=False)
+    if problems:
+        print(
+            "painted obstacle sheets are not current:",
+            *problems,
+            sep="\n  ",
+        )
         return 1
+    print("terrain obstacles check: painted sheets current")
     return 0
 
 

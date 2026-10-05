@@ -71,7 +71,7 @@ func _test_hero_visual_assets() -> void:
 			continue
 		var hero_id: String = path.get_file().get_basename()
 		var custom_root: String = "res://assets/custom/actors/heroes/" + hero_id + "/"
-		_expect_equal(hero.sprite_cell, Vector2i(48, 64), hero_id + " cell spec")
+		_expect_equal(hero.sprite_cell, Vector2i(144, 192), hero_id + " cell spec")
 		_expect_equal(hero.walk_frames, 4, hero_id + " walk frames")
 		_expect_equal(hero.idle_frames, 4, hero_id + " idle frames")
 		_expect_true(hero.walk_sheet != null, hero_id + " walk sheet")

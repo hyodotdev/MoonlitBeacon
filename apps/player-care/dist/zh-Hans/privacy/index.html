@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隐私政策 — 月光烽火</title>
+<meta name="description" content="本政策说明 Hyo Dev 出品的月光烽火收集哪些信息，以及如何处理。">
+<link rel="canonical" href="https://moonlitbeacon.hyo.dev/zh-Hans/privacy">
+<link rel="alternate" hreflang="en" href="https://moonlitbeacon.hyo.dev/en/privacy">
+<link rel="alternate" hreflang="ko" href="https://moonlitbeacon.hyo.dev/ko/privacy">
+<link rel="alternate" hreflang="ja" href="https://moonlitbeacon.hyo.dev/ja/privacy">
+<link rel="alternate" hreflang="zh-Hans" href="https://moonlitbeacon.hyo.dev/zh-Hans/privacy">
+<link rel="alternate" hreflang="zh-Hant" href="https://moonlitbeacon.hyo.dev/zh-Hant/privacy">
+<link rel="alternate" hreflang="x-default" href="https://moonlitbeacon.hyo.dev/privacy">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+<div class="wrap">
+<header class="site-head">
+<a class="brand" href="/zh-Hans/"><span class="brand-mark" aria-hidden="true"></span><span><span class="brand-name">月光烽火</span><span class="brand-sub">玩家服务</span></span></a>
+<nav aria-label="页面"><ul>
+<li><a href="/zh-Hans/">首页</a></li>
+<li><a href="/zh-Hans/privacy" aria-current="page">隐私政策</a></li>
+<li><a href="/zh-Hans/terms">使用条款</a></li>
+<li><a href="/zh-Hans/support">支持</a></li>
+<li><a href="/MoonlitBeacon/">课程与文档</a></li>
+</ul></nav>
+<nav class="lang-nav" aria-label="语言"><p>语言</p><ul>
+<li><a href="/en/privacy" hreflang="en">English</a></li>
+<li><a href="/ko/privacy" hreflang="ko">한국어</a></li>
+<li><a href="/ja/privacy" hreflang="ja">日本語</a></li>
+<li><a href="/zh-Hans/privacy" aria-current="page" hreflang="zh-Hans">简体中文</a></li>
+<li><a href="/zh-Hant/privacy" hreflang="zh-Hant">繁體中文</a></li>
+</ul></nav>
+</header>
+<main id="main">
+<h1>隐私政策 — 月光烽火</h1>
+<p class="lede">本政策说明 Hyo Dev 出品的月光烽火收集哪些信息，以及如何处理。</p>
+<p class="updated">内容对应 4.0.0 版本。</p>
+<section aria-labelledby="sign-in"><h2 id="sign-in"><span class="num" aria-hidden="true">1</span>登录方式</h2>
+<ul class="tight">
+<li>游客入口之外，已配置的版本提供 Google/Apple 登录。</li>
+<li>游客入口在受支持设备上创建匿名认证身份。</li>
+<li>Google 与 Apple 是不同的登录身份；Play 游戏资料是另一个仅限 Android 的选项，本版本不提供。</li>
+</ul></section>
+<section aria-labelledby="sign-in-data"><h2 id="sign-in-data"><span class="num" aria-hidden="true">2</span>登录处理的范围</h2>
+<ul class="tight">
+<li>为完成认证与找回，Firebase 与所选 Google/Apple 提供方会处理标识符、登录与会话凭证，以及按同意和提供方设置开放的资料字段。</li>
+<li>游戏另存自己的记录：公开玩家 ID、登录账号与该 ID 的非公开关联、检查点存档。</li>
+<li>只有设备上游戏自带的账号列表以哈希形式存放服务端账号引用；后端保存的账号与存档记录携带原始引用，仅对本账号保密。</li>
+<li>游戏本体的登录令牌只在访问本人记录期间留在内存中。玩法存档文件不含登录令牌，令牌也绝不放入公开排行。跨启动保持登录由 Firebase 与提供方 SDK 另行处理，它们在 SDK 与系统存储中保留自己的会话数据。</li>
+<li>邮箱与资料信息不在公开殿堂记录中显示。提供方侧的资料处理遵循各提供方自己的政策：<a href="https://firebase.google.com/support/privacy">Firebase</a>、<a href="https://policies.google.com/privacy">Google</a>、<a href="https://www.apple.com/legal/privacy/">Apple</a>。</li>
+</ul></section>
+<section aria-labelledby="player-id"><h2 id="player-id"><span class="num" aria-hidden="true">3</span>玩家 ID</h2>
+<ul class="tight">
+<li>首次游玩前签发 <code>MB-</code> 加 32 位十六进制字符的持久公开 ID，作为已保存月之门与殿堂记录的名称。</li>
+<li>关联后保持不变：原游客关联 Google 后，同一 ID 与同一检查点归属继续有效。</li>
+<li>退出登录会在设备上启用全新游客 ID，原 ID 与存档继续保留；用同一提供方重新登录则回到该账号的 ID 与保留的存档。因此一次安装随时间可能留下多个 ID。</li>
+<li>联系支持时，请附上游戏账号画面中显示的玩家 ID。</li>
+</ul></section>
+<section aria-labelledby="cloud-saves"><h2 id="cloud-saves"><span class="num" aria-hidden="true">4</span>云存档</h2>
+<ul class="tight">
+<li>已登录账号拥有一个带版本号的非公开存档，保存其进度(轮次、英雄、遗物、成长、分数)。</li>
+<li>先落盘再后台上传。</li>
+<li>存档不含购买或余额记录。</li>
+<li>下载须通过完整检查才会安装；不一致的云端副本等待玩家选择保留哪一侧。</li>
+</ul></section>
+<section aria-labelledby="hall"><h2 id="hall"><span class="num" aria-hidden="true">5</span>殿堂榜</h2>
+<ul class="tight">
+<li>殿堂按玩家 ID 保存一条最佳记录(玩家 ID、英雄、分数、进度、应用版本、更新时间)。</li>
+<li>读取公开，仅归属账号可写，分数只增不减，名次由分数推导，同分同名次。</li>
+<li>殿堂记录不含姓名、邮箱、账号引用、令牌或存档。</li>
+</ul></section>
+<section aria-labelledby="deletion"><h2 id="deletion"><span class="num" aria-hidden="true">6</span>删除</h2>
+<ul class="tight">
+<li>在游戏的账号设置中删除云账号。删除先以一次已验证的步骤同时清除殿堂记录、云存档、预留与资料；确认后再删除登录本身。</li>
+<li>iOS 上删除 Apple 关联账号时，可能要求重开 Apple 登录页重新确认。</li>
+<li>退出登录会结束登录会话并切换到全新游客 ID；在设备或云端都不删除任何内容。</li>
+<li>删除云账号会清除其云端记录与登录，以及其本地旅程存档文件和设备上的账号绑定；其他账号的本地存档，以及购买、Vault、设置等单独的设备文件会继续保留。</li>
+<li>账号、检查点与殿堂记录没有预设的自动到期：保留至账号删除为止。</li>
+<li>也可以发邮件到 <a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a>，请求查阅、更正或删除本人信息。请附上玩家 ID。</li>
+<li>支持请求经玩家 ID 与记录核对；涉及购买记录的删除请求会转交给购买验证处理方。</li>
+</ul></section>
+<section aria-labelledby="guests"><h2 id="guests"><span class="num" aria-hidden="true">7</span>游客与离线</h2>
+<ul class="tight">
+<li>游客可离线以纯本机游客游玩，不会显示为已注册云账号。</li>
+<li>后台注册失败或版本未配置登录，游玩都会继续。未配置登录的版本不尝试注册，也不报错。</li>
+<li>登录、云存档、殿堂、商店与购买验证需要网络连接。</li>
+</ul></section>
+<section aria-labelledby="analytics"><h2 id="analytics"><span class="num" aria-hidden="true">8</span>分析</h2>
+<p>可选的玩法分析须同时满足出货版本的导出配置与默认关闭的设置明示同意才会启用，否则保持关闭。</p></section>
+<section aria-labelledby="purchases"><h2 id="purchases"><span class="num" aria-hidden="true">9</span>购买</h2>
+<ul class="tight">
+<li>商店收据经 <a href="https://kit.openiap.dev/docs/api">IAPKit 购买验证服务</a>核验。核验会发送商店与商品信息，以及收据或令牌(Apple 签名 JWS 或 Google 购买令牌)。</li>
+<li>其验证记录可能保留交易与订单标识符、商店响应、请求 IP、验证结果与处理时长。处理用于权益授予、恢复与撤销、退款、防欺诈与去重、诊断及服务统计。</li>
+<li>为服务统计，IAPKit 可能向 Mixpanel 发送项目首次有效收据事件与商店种类；该事件不含购买令牌、交易 ID 与 IP。Convex 提供 IAPKit 的基础设施。相关政策：<a href="https://kit.openiap.dev/privacy-policy">IAPKit</a>、<a href="https://www.convex.dev/legal/privacy">Convex</a>、<a href="https://mixpanel.com/legal/privacy-policy/">Mixpanel</a>。上述第三方服务统计独立于游戏的可选玩法分析；后者须在设置中启用才会运行。</li>
+<li>应用与开发者不会收到付款卡信息或商店账号密码。密钥、签名与购买令牌不出现在日志或错误信息中。</li>
+<li>商店侧的购买处理遵循各商店自己的政策：<a href="https://www.apple.com/legal/privacy/">Apple</a>、<a href="https://policies.google.com/privacy">Google</a>。</li>
+</ul></section>
+<section aria-labelledby="support-requests"><h2 id="support-requests"><span class="num" aria-hidden="true">10</span>支持请求的处理</h2>
+<ul class="tight">
+<li>发邮件联系支持时，为解决请求，会与邮件服务提供方共同处理您的邮箱地址、留言内容及您主动添加的附件。</li>
+<li>支持请求仅在解决请求与履行法定义务所需期间保留。</li>
+<li>涉及购买时，支持只索取定位记录所需的最少订单信息，从不索取完整收据、密码或验证码。</li>
+<li>提供方为恢复、退款、防欺诈、统计、会计与法定义务，在必要范围内保留验证记录；不承诺统一的到期删除。</li>
+<li>法律要求保留的记录可以继续保留；涉及处理方所持记录的请求可以转交处理方。</li>
+<li>支持请求与上述核验可能在您所在国家之外处理。</li>
+</ul></section>
+<section aria-labelledby="changes"><h2 id="changes"><span class="num" aria-hidden="true">11</span>政策变更</h2>
+<p>信息处理方式变化时，本页随新版本更新。本版对应 4.0.0。</p></section>
+</main>
+<footer><p>联系: <a href="mailto:hyo@hyo.dev">hyo@hyo.dev</a></p><p>© 2026 Hyo Jang。Hyo Dev 出品的月光烽火。</p></footer>
+</div>
+</body>
+</html>

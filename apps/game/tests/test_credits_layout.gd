@@ -71,6 +71,9 @@ func _check_locale(credits: Control, locale: String) -> void:
 		back_rect.end.y <= panel_rect.end.y - SAFE_GAP,
 		"%s Back stays on screen (%s / %s)" % [
 			locale, back_rect, panel_rect])
+	var back_world: WorldButton = back as WorldButton
+	_expect_true(back_world != null and back_world.kind == "steel",
+		"%s Back takes the steel road" % locale)
 
 
 func _expect_true(value: bool, label: String) -> void:

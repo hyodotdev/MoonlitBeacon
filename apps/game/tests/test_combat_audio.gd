@@ -48,6 +48,10 @@ const WEAPON_CUE: Dictionary = {
 	"knight": "weapon_cannon.wav",
 	"eclipse": "weapon_scythe.wav",
 }
+const TITLE_THEME: String = \
+	"res://assets/third_party/ninja_adventure/audio/music/title_theme.ogg"
+const MUSIC_WRAPPER: Script = preload("res://scripts/audio/music_player.gd")
+const SFX_WRAPPER: Script = preload("res://scripts/audio/sfx_player_2d.gd")
 const HERO_IDS: Array[String] = [
 	"warden", "dancer", "keeper", "knight", "eclipse", "sage",
 ]
@@ -106,6 +110,9 @@ func _run() -> void:
 	await _test_playback_runs_past_seconds()
 	await _test_release_silences_all()
 	await _test_bounds_and_mute()
+	await _test_immediate_play_release()
+	await _test_immediate_play_free()
+	await _test_release_replay()
 	if _failed > 0:
 		printerr("combat-audio test failed — ", _failed, "/", _checked, " case(s)")
 		get_tree().quit(1)
@@ -701,6 +708,147 @@ func _test_bounds_and_mute() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_expect_true(not is_instance_valid(arena), "arena frees after release")
+	await get_tree().create_timer(0.25, true).timeout
+
+
+## Same-frame play/release on the real wrappers with the real title theme:
+## a cue started after the watcher's last frame must still stop.
+func _test_immediate_play_release() -> void:
+	var theme: AudioStream = load(TITLE_THEME) as AudioStream
+	_expect_true(theme != null, "immediate release uses the real title theme")
+	if theme == null:
+		return
+	var music: AudioStreamPlayer = MUSIC_WRAPPER.new() as AudioStreamPlayer
+	music.stream = theme
+	music.bus = &"Music"
+	add_child(music)
+	music.play()
+	_expect_true(music.playing, "music is playing before same-frame release")
+	_expect_true(not bool(music.get("_needs_flush")),
+		"music release runs before the watcher observes")
+	music.release()
+	_expect_true(not music.playing, "music stops on same-frame release")
+	_expect_true(not bool(music.get("_needs_flush")),
+		"music release clears its flush flag")
+	music.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(not is_instance_valid(music), "music frees after same-frame release")
+	var sfx: AudioStreamPlayer2D = SFX_WRAPPER.new() as AudioStreamPlayer2D
+	sfx.stream = theme
+	sfx.bus = &"Sfx"
+	add_child(sfx)
+	sfx.play()
+	_expect_true(sfx.playing, "sfx is playing before same-frame release")
+	_expect_true(not bool(sfx.get("_needs_flush")),
+		"sfx release runs before the watcher observes")
+	sfx.release()
+	_expect_true(not sfx.playing, "sfx stops on same-frame release")
+	_expect_true(not bool(sfx.get("_needs_flush")),
+		"sfx release clears its flush flag")
+	sfx.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(not is_instance_valid(sfx), "sfx frees after same-frame release")
+
+
+## Same-frame play/teardown without a prior release: the exit fallback must
+## still stop the playback and drop it. A synchronous remove_child runs the
+## same `_exit_tree` as a free, so the stopped state is assertable here; the
+## node is then freed, and the clean shutdown log is the wait's evidence.
+func _test_immediate_play_free() -> void:
+	var theme: AudioStream = load(TITLE_THEME) as AudioStream
+	_expect_true(theme != null, "immediate free uses the real title theme")
+	if theme == null:
+		return
+	var music: AudioStreamPlayer = MUSIC_WRAPPER.new() as AudioStreamPlayer
+	music.stream = theme
+	music.bus = &"Music"
+	add_child(music)
+	music.play()
+	_expect_true(music.playing, "music is playing before same-frame teardown")
+	_expect_true(not bool(music.get("_needs_flush")),
+		"music teardown runs before the watcher observes")
+	remove_child(music)
+	_expect_true(not music.playing, "music stops on same-frame teardown")
+	_expect_true(not music.has_stream_playback(),
+		"music drops its playback on teardown")
+	music.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(not is_instance_valid(music), "music frees after teardown")
+	var sfx: AudioStreamPlayer2D = SFX_WRAPPER.new() as AudioStreamPlayer2D
+	sfx.stream = theme
+	sfx.bus = &"Sfx"
+	add_child(sfx)
+	sfx.play()
+	_expect_true(sfx.playing, "sfx is playing before same-frame teardown")
+	_expect_true(not bool(sfx.get("_needs_flush")),
+		"sfx teardown runs before the watcher observes")
+	remove_child(sfx)
+	_expect_true(not sfx.playing, "sfx stops on same-frame teardown")
+	_expect_true(not sfx.has_stream_playback(),
+		"sfx drops its playback on teardown")
+	sfx.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(not is_instance_valid(sfx), "sfx frees after teardown")
+
+
+## Release/replay: the watcher must re-arm after a release so a second play
+## is observed and a second release stops it.
+func _test_release_replay() -> void:
+	var theme: AudioStream = load(TITLE_THEME) as AudioStream
+	_expect_true(theme != null, "replay uses the real title theme")
+	if theme == null:
+		return
+	var music: AudioStreamPlayer = MUSIC_WRAPPER.new() as AudioStreamPlayer
+	music.stream = theme
+	music.bus = &"Music"
+	add_child(music)
+	music.play()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(bool(music.get("_needs_flush")), "music observes its first play")
+	music.release()
+	_expect_true(not music.playing, "music stops on its first release")
+	_expect_true(music.is_processing(), "music re-arms its watcher after release")
+	music.play()
+	_expect_true(music.playing, "music replays after release")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(bool(music.get("_needs_flush")), "music observes its replay")
+	music.release()
+	_expect_true(not music.playing, "music stops on its second release")
+	music.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(not is_instance_valid(music), "music frees after replay")
+	var sfx: AudioStreamPlayer2D = SFX_WRAPPER.new() as AudioStreamPlayer2D
+	sfx.stream = theme
+	sfx.bus = &"Sfx"
+	add_child(sfx)
+	sfx.play()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(bool(sfx.get("_needs_flush")), "sfx observes its first play")
+	sfx.release()
+	_expect_true(not sfx.playing, "sfx stops on its first release")
+	_expect_true(sfx.is_processing(), "sfx re-arms its watcher after release")
+	sfx.play()
+	_expect_true(sfx.playing, "sfx replays after release")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(bool(sfx.get("_needs_flush")), "sfx observes its replay")
+	sfx.release()
+	_expect_true(not sfx.playing, "sfx stops on its second release")
+	sfx.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(not is_instance_valid(sfx), "sfx frees after replay")
+	# Drain the audio thread before the quit below: stopped Ogg playbacks
+	# free on the next mix, and two frames are shorter than the headless
+	# period, the same race `_test_bounds_and_mute` already waits out.
 	await get_tree().create_timer(0.25, true).timeout
 
 

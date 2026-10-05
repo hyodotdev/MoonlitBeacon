@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Assemble chibi hero sources into 48×64 hero sheets.
 
+Retired since 4.0.0: production hero sheets come from the painted masters via
+pack_painted_world.py, and --check delegates there. The layout below (sources
+in tools/hero_maple/<id>/, feet-first fit, right flipped from left) stays as
+the record the painted packer follows.
+
 Sources are tools/hero_maple/<id>/{front,back,left}.png, transparent PNGs cut out of a
 ChatGPT lineup by tools/cut_lineup.py (see hero_maple/README.md), plus optional
 walk_<front|back|left>_<0..3>.png frames. Older alpha .webp and magenta .jpg sources
@@ -380,32 +385,24 @@ def _png_bytes(image: Image.Image) -> bytes:
 
 
 def pack_all(*, check: bool) -> None:
-    REVIEW_DIR.mkdir(parents=True, exist_ok=True)
-    for name in HEROES:
-        packed = pack_hero(name)
-        dest = HERO_ROOT / name
-        dest.mkdir(parents=True, exist_ok=True)
-        for key, image in packed.items():
-            path = dest / f"{key}.png"
-            if check:
-                # PNG encoding bytes differ by Pillow version. The check's point is
-                # "is the committed output the same picture as the packed result", so compare pixels.
-                if not path.is_file():
-                    raise RuntimeError(f"production hero PNG is missing: {path}")
-                committed = Image.open(path).convert("RGBA")
-                if committed.size != image.size \
-                        or committed.tobytes() != image.convert("RGBA").tobytes():
-                    raise RuntimeError(
-                        f"production hero PNG differs from the Maple sheet pack: {path}"
-                    )
-            else:
-                path.write_bytes(_png_bytes(image))
-        if not check:
-            preview = Image.new("RGBA", (CELL_W * 4 * 3, CELL_H * 4 * 2 + PORTRAIT + 16))
-            preview.paste(packed["idle"], (0, 0))
-            preview.paste(packed["walk"], (0, CELL_H * 4 + 8))
-            preview.paste(packed["portrait"], (8, CELL_H * 8 + 16))
-            preview.save(REVIEW_DIR / f"{name}-maple-preview.png")
+    # Hero sheets come from the painted masters since 4.0.0. Do not bake them
+    # here: writing would clobber the painted pack with pixel art.
+    #
+    # Do not delete `pack_hero()` and the cell layout above. Directions,
+    # frame counts and the portrait size are written here, and the painted
+    # packer follows that table as-is.
+    if not check:
+        raise SystemExit(
+            "pack_maple_heroes.py no longer bakes hero sheets; run "
+            "apps/game/tools/pack_painted_world.py instead"
+        )
+    from pack_painted_world import check_current
+
+    problems = check_current(byte_verify=False)
+    if problems:
+        raise RuntimeError(
+            "painted hero sheets are not current:\n  " + "\n  ".join(problems)
+        )
 
 
 def main() -> int:
@@ -413,7 +410,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     pack_all(check=args.check)
-    print("maple heroes packed")
+    print("maple heroes check: painted sheets current")
     return 0
 
 

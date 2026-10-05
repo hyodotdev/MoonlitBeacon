@@ -47,6 +47,12 @@ import {
 } from './lib/android-build.mjs';
 import { ensureGodotAgpCompatibleAndroidx } from './lib/android-gradle-compat.mjs';
 import { resolveAndroidReleaseSigning } from './lib/android-release-signing.mjs';
+import {
+  cleanupIdentityExport,
+  identityNativeArtifactStatus,
+  prepareIdentityExport,
+} from './lib/identity-export.mjs';
+import { redactIdentitySecrets } from './lib/player-identity-build.mjs';
 import { runGodotExportPreflight } from './lib/godot-export-preflight.mjs';
 import { credentialFreeChildEnvironment } from './lib/release-environment.mjs';
 
@@ -233,6 +239,7 @@ function acquireBuildLock() {
       recoverDirectIapKitConfig(root);
       cleanupStaleGeneratedIapKitConfig(root);
       cleanupGradleIapKitConfig();
+      cleanupIdentityExport({ root });
       if (existsSync(iapIosStage)) {
         rmSync(iapIosStage, { recursive: true, force: true });
       }
@@ -274,6 +281,7 @@ godotArgs.push(
 let stagedDirectPlugin = false;
 let stagedDirectIapKitConfig = false;
 let stagedStoreIapKitConfig = false;
+let stagedIdentityConfig = false;
 let result = { status: 1 };
 acquireBuildLock();
 try {
@@ -329,6 +337,32 @@ try {
     root,
     env: buildEnv,
   });
+  {
+    // Identity preflight is diagnostics plus staging, never a gate: a
+    // missing provider setup stages partial (or no) config and the export
+    // still runs honest local guest play.
+    const identityExport = prepareIdentityExport({
+      root,
+      platform: 'android',
+      env: process.env,
+    });
+    console.log(redactIdentitySecrets(identityExport.report).trimEnd());
+    for (const artifact of identityNativeArtifactStatus({
+      root,
+      platform: 'android',
+      variant: exportMode === '--export-release' ? 'release' : 'debug',
+    })) {
+      console.log(
+        `identity artifact ${artifact.label}: ${artifact.present ? 'present' : 'missing'}`,
+      );
+    }
+    if (identityExport.installed) {
+      stagedIdentityConfig = true;
+      console.log('Staged public identity config for one export; removed after.');
+    } else {
+      console.log('No public identity config to stage; the export runs guest-only.');
+    }
+  }
   if (bundle) {
     stageIapKitConfigForStore(root);
     stagedStoreIapKitConfig = true;
@@ -442,6 +476,11 @@ try {
   }
   try {
     if (stagedDirectIapKitConfig) restoreIapKitConfigAfterDirect(root);
+  } catch (error) {
+    cleanupError ??= error;
+  }
+  try {
+    if (stagedIdentityConfig) cleanupIdentityExport({ root });
   } catch (error) {
     cleanupError ??= error;
   }

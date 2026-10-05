@@ -1,0 +1,14 @@
+# Brief 077: prevent retired rank owners from restoring stale standing
+
+## Director evidence
+Round 2 focused suites pass independently: Hall 207 and Coordinator 1072, clean engine exit. The original three-simultaneous probe now measures one owned GET, one aggregation POST, and three identical results, so preserve that correction.
+
+A new clean probe using your actual CloudHall/CloudSchema exposes the remaining stale-owner bug. Account A starts a delayed Knight-100 read, switches A→B→A before its reply, and completes a fresh Dancer-600 refresh. When the old owner eventually returns, its ticket was retired but its `_read_own_row`, `fetch_rank`, and final snapshot still write caches. The next refresh returns Knight 100. Measured output: `ABA_LATE_REPLY fresh_score=600 old_status=ok cached_score=100 cached_hero=res://resources/heroes/knight.tres`. Probe and log are staged under `builds/director-inputs/hall-stale-probe/`.
+
+## Correct
+A retired refresh must never update any owned-row cache, count cache, throttle timestamp, or last self-rank snapshot, start a later count query, or release a newer ticket. Ticket/account generation validity must be checked before and after every awaited step and before every mutation. Same-account invalidation after a best submission and A→B→A must preserve the newer measured pair. Return a truthful cancelled/stale result from the old caller too, rather than allowing Coordinator to publish the obsolete result. Keep legacy no-generation standalone fetch_rank/fetch_own callers compatible, and preserve owned-best identity, missing-row unranked semantics, bounds, timestamps, transport caps, and waiter fan-out.
+
+Add bounded overlap tests where the fresh newer result completes BEFORE the retired old result (not the current serial A→B then old completion then B→A). Cover retirement during own read and during count, same-account invalidation with a new best, and a late older completion while a newer ticket is still pending. The current test explicitly permits an invalidated owner to return ok and only re-reads past TTL; replace that new expectation with the actual freshness contract. Do not weaken any pre-existing service/combat/ledger assertion. Coordinator must also never publish old results after Hall invalidation. No unrelated audit.
+
+## Scope and acceptance
+Continue 070/072's six service/test/contract/log files only. No host, UI, native, persistence, shared runners, rules, art or credentials. Run focused Hall/Coordinator suites and affected cloud/Journey regressions, restore a meaningful negative control, report exact counts. Director will independently rerun the concurrent probe and overlap probe: one GET/POST in the first, fresh score 600 still cached after old completion in the second, old status cancelled. No marketing capture or public action.

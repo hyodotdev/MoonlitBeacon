@@ -14,10 +14,19 @@ index 6c63de9..521e5d4 100644
  
  # Platform detection
 diff --git a/apps/game/addons/godot-iap/godot_iap_plugin.gd b/apps/game/addons/godot-iap/godot_iap_plugin.gd
-index f6bae9e..9e06100 100644
+index f6bae9e..1750f6f 100644
 --- a/apps/game/addons/godot-iap/godot_iap_plugin.gd
 +++ b/apps/game/addons/godot-iap/godot_iap_plugin.gd
-@@ -40,6 +40,10 @@ class GodotIapExportPlugin extends EditorExportPlugin:
+@@ -29,6 +29,8 @@ func _exit_tree() -> void:
+ 
+ class GodotIapExportPlugin extends EditorExportPlugin:
+ 	const PLUGIN_NAME = "GodotIap"
++	const ExtensionListComposer = preload(
++		"res://addons/moonlit-identity/extension_list_composer.gd")
+ 	const ANDROID_GDAP_PATH = "res://addons/godot-iap/android/GodotIap.gdap"
+ 	# Untracked developer settings. The example includes it so a debug export can
+ 	# reach a local IAPKit server; a release export must never carry the key.
+@@ -40,6 +42,10 @@ class GodotIapExportPlugin extends EditorExportPlugin:
  		"res://addons/godot-iap/bin/ios/GodotIap.framework",
  		"res://addons/godot-iap/bin/ios/SwiftGodotRuntime.framework",
  	]
@@ -28,7 +37,7 @@ index f6bae9e..9e06100 100644
  
  	func _get_name() -> String:
  		return PLUGIN_NAME
-@@ -59,6 +63,22 @@ class GodotIapExportPlugin extends EditorExportPlugin:
+@@ -59,6 +65,25 @@ class GodotIapExportPlugin extends EditorExportPlugin:
  		if not _is_ios_export(features):
  			return
  
@@ -39,9 +48,12 @@ index f6bae9e..9e06100 100644
 +				IOS_GDEXTENSION_EXPORT,
 +				FileAccess.get_file_as_bytes(IOS_GDEXTENSION_SOURCE),
 +				false)
++			# One composed list shared with the MoonlitIdentity export
++			# plugin: writing only this entry here would drop the other
++			# extension whenever this writer runs last.
 +			add_file(
-+				"res://.godot/extension_list.cfg",
-+				(IOS_GDEXTENSION_EXPORT + "\n").to_utf8_buffer(),
++				ExtensionListComposer.extension_list_path(),
++				ExtensionListComposer.compose().to_utf8_buffer(),
 +				false)
 +		else:
 +			push_warning(

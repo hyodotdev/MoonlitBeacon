@@ -7,11 +7,7 @@ Keep the same frame grid, but redraw pixels from scratch in the Moonlit Beacon p
 
 Output contract:
 
-    world/terrain/nature.png       384x336, keep existing KIND coords
-    world/terrain/forest_floor.png 256x256, tileable opaque floor
     world/terrain/floor.png        352x417, keep (176,304,80,16)
-    world/terrain/field.png         80x240, keep floor and grass-island coords
-    world/terrain/camp.png         368x144, keep camp prop and brazier coords
     world/atmosphere/raylight.png  216x102, three 72x102 frames
     world/atmosphere/night_mist.png 1024x420, keep horizontal tile and drift
     world/beacon/clearing.png       288x160, keep beacon-floor canvas
@@ -801,12 +797,13 @@ def heart_sheet() -> Canvas:
 
 
 def expected_outputs() -> dict[Path, bytes]:
+    # nature.png, forest_floor.png, field.png and camp.png come from the
+    # painted masters since 4.0.0 (pack_painted_world.py). Do not bake them
+    # here, and do not delete their drawers above: KIND/prop coords, feet
+    # rows and the pit canvas are written there, and the painted packer
+    # follows that table as-is.
     return {
-        CUSTOM_ROOT / "world/terrain/nature.png": nature_sheet().to_png(),
-        CUSTOM_ROOT / "world/terrain/forest_floor.png": forest_floor().to_png(),
         CUSTOM_ROOT / "world/terrain/floor.png": generic_floor_sheet().to_png(),
-        CUSTOM_ROOT / "world/terrain/field.png": field_sheet().to_png(),
-        CUSTOM_ROOT / "world/terrain/camp.png": camp_sheet().to_png(),
         CUSTOM_ROOT / "world/atmosphere/raylight.png": raylight_sheet().to_png(),
         CUSTOM_ROOT / "world/atmosphere/night_mist.png": night_mist().to_png(),
         CUSTOM_ROOT / "world/beacon/clearing.png": beacon_clearing().to_png(),
@@ -847,11 +844,7 @@ def _validate_repeat_region(
 
 def validate_contracts(outputs: dict[Path, bytes]) -> None:
     expected_sizes = {
-        "nature.png": (384, 336),
-        "forest_floor.png": (256, 256),
         "floor.png": (352, 417),
-        "field.png": (80, 240),
-        "camp.png": (368, 144),
         "raylight.png": (216, 102),
         "night_mist.png": (1024, 420),
         "clearing.png": (288, 160),
@@ -861,11 +854,7 @@ def validate_contracts(outputs: dict[Path, bytes]) -> None:
         "heart.png": (80, 16),
     }
     canvases = {
-        "nature.png": nature_sheet(),
-        "forest_floor.png": forest_floor(),
         "floor.png": generic_floor_sheet(),
-        "field.png": field_sheet(),
-        "camp.png": camp_sheet(),
         "raylight.png": raylight_sheet(),
         "night_mist.png": night_mist(),
         "clearing.png": beacon_clearing(),
@@ -892,10 +881,6 @@ def validate_contracts(outputs: dict[Path, bytes]) -> None:
         canvas = canvases[name]
         if (canvas.width, canvas.height) != size:
             raise RuntimeError(f"{name}: canvas {(canvas.width, canvas.height)} != {size}")
-    opaque_floor = canvases["forest_floor.png"]
-    if any(opaque_floor.get(x, y)[3] != 255 for y in range(256) for x in range(256)):
-        raise RuntimeError("forest_floor.png: tiling floor has transparent pixels")
-    _validate_repeat_region("field.png", canvases["field.png"], (16, 64, 16, 16))
     _validate_repeat_region("floor.png", canvases["floor.png"], (176, 304, 80, 16))
 
     # Particle frames are independent 32px cells. Using the edge blends the next frame or
@@ -914,25 +899,7 @@ def validate_contracts(outputs: dict[Path, bytes]) -> None:
             raise RuntimeError(f"smoke.png: frame {frame} touches the cell edge")
     # No frame or region a live consumer crops may be empty.
     required_regions: dict[str, list[tuple[int, int, int, int]]] = {
-        "nature.png": [
-            (0, 0, 32, 32), (32, 0, 32, 32), (64, 0, 32, 32),
-            (96, 0, 32, 32), (256, 0, 32, 32), (288, 0, 32, 32),
-            (0, 32, 64, 48), (64, 32, 64, 48), (256, 32, 64, 48),
-            (320, 32, 64, 48), (0, 80, 64, 48), (96, 128, 32, 32),
-            (0, 128, 32, 32), (32, 128, 32, 32), (64, 128, 16, 16),
-            (80, 128, 16, 16), (64, 144, 16, 16), (80, 144, 16, 16),
-            (208, 128, 32, 32), (256, 128, 32, 32),
-            (240, 144, 16, 16), (288, 144, 16, 16), (192, 144, 16, 16),
-            *[(index * 16, 160, 16, 16) for index in range(11)],
-        ],
         "floor.png": [(176, 304, 80, 16)],
-        "field.png": [(16, 64, 16, 16), (0, 48, 48, 48), (0, 96, 48, 48)],
-        "camp.png": [
-            (64, 0, 48, 48), (112, 0, 48, 48), (160, 0, 48, 48),
-            (48, 16, 16, 32), (48, 48, 16, 32), (64, 96, 32, 32),
-            (0, 112, 48, 16), (48, 112, 16, 16), (112, 128, 16, 16),
-            (192, 80, 32, 30),
-        ],
         "raylight.png": [(index * 72, 0, 72, 102) for index in range(3)],
         "night_mist.png": [(0, 0, 1024, 420)],
         "clearing.png": [(0, 0, 288, 160)],

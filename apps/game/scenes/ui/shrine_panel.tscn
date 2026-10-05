@@ -1,16 +1,12 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/shrine_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Multilingual.tres" id="font"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font_bold"]
 [ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="confirm"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hero_preview_panel.tscn" id="hero_preview"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="buttons_gold_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="buttons_gold_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="buttons_gold_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="buttons_gold_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="buttons_gold_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel_tight.tres" id="panel_tight"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_frame.gd" id="world_frame"]
 
 [node name="ShrinePanel" type="Control"]
 process_mode = 3
@@ -34,6 +30,8 @@ mouse_filter = 2
 color = Color(0.015, 0.022, 0.055, 0.88)
 
 [node name="Frame" type="PanelContainer" parent="."]
+script = ExtResource("world_frame")
+kind = "panel_tight"
 layout_mode = 1
 anchors_preset = 14
 anchor_left = 0.0
@@ -46,7 +44,6 @@ offset_right = -16.0
 offset_bottom = 164.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_styles/panel = ExtResource("panel_tight")
 
 [node name="Margin" type="MarginContainer" parent="Frame"]
 layout_mode = 2
@@ -152,17 +149,14 @@ layout_mode = 2
 alignment = 1
 
 [node name="Close" type="Button" parent="Frame/Margin/Rows/Footer"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(126, 23)
 layout_mode = 2
 focus_mode = 0
 theme_override_colors/font_color = Color(1, 0.92, 0.78, 1)
 theme_override_fonts/font = ExtResource("font_bold")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_gold_normal")
-theme_override_styles/hover = ExtResource("buttons_gold_hover")
-theme_override_styles/pressed = ExtResource("buttons_gold_pressed")
-theme_override_styles/disabled = ExtResource("buttons_gold_disabled")
-theme_override_styles/focus = ExtResource("buttons_gold_focus")
 text = "SETTINGS_CLOSE"
 
 [node name="Sfx" type="AudioStreamPlayer" parent="."]

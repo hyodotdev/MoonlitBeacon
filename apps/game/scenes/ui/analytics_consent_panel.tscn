@@ -1,23 +1,9 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/analytics_consent_panel.gd" id="script"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel_kit"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/normal.tres" id="buttons_ghost_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/hover.tres" id="buttons_ghost_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/pressed.tres" id="buttons_ghost_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/disabled.tres" id="buttons_ghost_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_ghost/focus.tres" id="buttons_ghost_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/normal.tres" id="buttons_gold_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/hover.tres" id="buttons_gold_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/pressed.tres" id="buttons_gold_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/disabled.tres" id="buttons_gold_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons_gold/focus.tres" id="buttons_gold_focus"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/normal.tres" id="buttons_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/hover.tres" id="buttons_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/pressed.tres" id="buttons_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/disabled.tres" id="buttons_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/buttons/focus.tres" id="buttons_focus"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_frame.gd" id="world_frame"]
 
 [node name="AnalyticsConsentPanel" type="Control"]
 process_mode = 3
@@ -52,10 +38,11 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Frame" type="PanelContainer" parent="Center"]
+script = ExtResource("world_frame")
+kind = "panel"
 custom_minimum_size = Vector2(620, 250)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = ExtResource("panel_kit")
 
 [node name="Content" type="MarginContainer" parent="Center/Frame"]
 layout_mode = 2
@@ -99,17 +86,14 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="Privacy" type="Button" parent="Center/Frame/Content/Rows"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 disabled = true
 theme_override_colors/font_color = Color(0.78, 0.84, 1, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 11
-theme_override_styles/normal = ExtResource("buttons_ghost_normal")
-theme_override_styles/hover = ExtResource("buttons_ghost_hover")
-theme_override_styles/pressed = ExtResource("buttons_ghost_pressed")
-theme_override_styles/disabled = ExtResource("buttons_ghost_disabled")
-theme_override_styles/focus = ExtResource("buttons_ghost_focus")
 auto_translate_mode = 2
 text = "ANALYTICS_CONSENT_PRIVACY"
 
@@ -132,6 +116,8 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="Share" type="Button" parent="Center/Frame/Content/Rows/Actions"]
+script = ExtResource("world_button")
+kind = "ember"
 custom_minimum_size = Vector2(274, 50)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -139,15 +125,12 @@ disabled = true
 theme_override_colors/font_color = Color(1, 0.89, 0.61, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("buttons_gold_normal")
-theme_override_styles/hover = ExtResource("buttons_gold_hover")
-theme_override_styles/pressed = ExtResource("buttons_gold_pressed")
-theme_override_styles/disabled = ExtResource("buttons_gold_disabled")
-theme_override_styles/focus = ExtResource("buttons_gold_focus")
 auto_translate_mode = 2
 text = "ANALYTICS_CONSENT_SHARE"
 
 [node name="NotNow" type="Button" parent="Center/Frame/Content/Rows/Actions"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(274, 50)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -155,10 +138,5 @@ disabled = true
 theme_override_colors/font_color = Color(0.78, 0.84, 1, 1)
 theme_override_fonts/font = ExtResource("font")
 theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = ExtResource("buttons_normal")
-theme_override_styles/hover = ExtResource("buttons_hover")
-theme_override_styles/pressed = ExtResource("buttons_pressed")
-theme_override_styles/disabled = ExtResource("buttons_disabled")
-theme_override_styles/focus = ExtResource("buttons_focus")
 auto_translate_mode = 2
 text = "ANALYTICS_CONSENT_NOT_NOW"

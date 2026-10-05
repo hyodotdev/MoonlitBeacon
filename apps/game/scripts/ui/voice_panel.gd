@@ -13,7 +13,7 @@ extends Control
 ## the game and waits for a tap. This **does not pause.** It appears, fades on
 ## its own, and swaps in place when a new line arrives.
 
-const BOX_STYLE: StyleBoxTexture = preload("res://resources/ui/panels/chip.tres")
+## The strip paints from the shared world classes; see `_ready`.
 const PANEL_HEIGHT: float = 34.0
 const PORTRAIT: float = 24.0
 const MARGIN_X: float = 5.0
@@ -41,20 +41,15 @@ func _ready() -> void:
 	modulate.a = 0.0
 	visible = false
 
-	var panel := PanelContainer.new()
+	var panel := WorldFrame.new()
 	panel.name = &"Box"
+	panel.kind = "chip"
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# The shared kit chip, slightly translucent so the field behind it does not go
-	# fully dead. Duplicated, so this strip can carry its own padding without
-	# touching the style the HUD uses.
-	var style: StyleBoxTexture = BOX_STYLE.duplicate() as StyleBoxTexture
-	style.modulate_color = Color(1, 1, 1, 0.94)
-	style.content_margin_left = 6.0
-	style.content_margin_top = 3.0
-	style.content_margin_right = 6.0
-	style.content_margin_bottom = 3.0
-	panel.add_theme_stylebox_override("panel", style)
+	# Slightly translucent so the field behind it does not go fully dead, with
+	# this strip's own padding.
+	panel.face_tint = Color(1, 1, 1, 0.94)
+	panel.pad = Vector4(6, 3, 6, 3)
 	add_child(panel)
 
 	var row := HBoxContainer.new()
@@ -66,8 +61,15 @@ func _ready() -> void:
 	_icon = TextureRect.new()
 	_icon.name = &"Portrait"
 	_icon.custom_minimum_size = Vector2(PORTRAIT, PORTRAIT)
+	# Without this the 72x72 crop keeps its native minimum and pushes the
+	# strip out of the viewport; the cell, not the texture, sets the size.
+	_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	# The row is taller than the cell (the 13px line sets its height); hold
+	# the portrait at 24x24 centered instead of stretching with the row.
+	_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# The 72×72 painted head crop lands in a 24 cell; smooth the downscale.
+	_icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_icon)
 

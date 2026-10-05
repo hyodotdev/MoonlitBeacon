@@ -10,6 +10,7 @@ script = ExtResource("script")
 display_name = "밤 숲"
 encounter = 0
 tileset = ExtResource("tileset")
+art_zoom = 3.0
 floor_texture = ExtResource("floor")
 tint = Color(0.68, 0.72, 0.8, 1)
 floor_tint = Color(1.08, 1.03, 0.94, 1)

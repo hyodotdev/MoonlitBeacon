@@ -2154,8 +2154,8 @@ test('capture and derived generator bind Android debug APK build inputs together
   );
   assert.equal(
     [...captureSource.matchAll(/env: CAPTURE_CHILD_ENV/g)].length,
-    5,
-    'the shared run and all four direct adb spawns must use a credential-free environment',
+    6,
+    'the shared run and all five direct adb spawns must use a credential-free environment',
   );
   assert.equal(
     captureSource.includes('env: process.env'),
@@ -2291,8 +2291,9 @@ test('title ready is judged by live UI runtime proof, not PNG size', () => {
   );
   const treeLifetimeGuard = launcherSource.indexOf('if tree == null:', treeSnapshot);
   const frameWait = launcherSource.indexOf('await tree.process_frame', treeLifetimeGuard);
-  const screenCheck = launcherSource.indexOf('screen.is_visible_in_tree()', frameLoop);
-  const versionCheck = launcherSource.indexOf('version.text != expected_version', frameLoop);
+  const predicateGuard = launcherSource.indexOf(
+    'is_clean_title_boot(get_tree().current_scene)', frameWait,
+  );
   const proofWrite = launcherSource.indexOf('ready.store_string("title-ready\\n")');
   assert.ok(
     frameLoop >= 0
@@ -2300,11 +2301,20 @@ test('title ready is judged by live UI runtime proof, not PNG size', () => {
       && treeSnapshot > insideTreeGuard
       && treeLifetimeGuard > treeSnapshot
       && frameWait > treeLifetimeGuard
-      && screenCheck > frameLoop
-      && versionCheck > screenCheck
-      && proofWrite > versionCheck,
+      && predicateGuard > frameWait
+      && proofWrite > predicateGuard,
     'must confirm live title UI and version after four game-loop frames',
   );
+  const predicateStart = launcherSource.indexOf('static func is_clean_title_boot(');
+  const predicateEnd = launcherSource.indexOf(
+    'func _signal_store_capture_title_ready()', predicateStart,
+  );
+  const predicateSource = launcherSource.slice(predicateStart, predicateEnd);
+  assert.match(predicateSource, /OS\.is_debug_build\(\)/u);
+  assert.match(predicateSource, /resolve_title_root\(scene\)/u);
+  assert.match(predicateSource, /is_production_title_occluded\(scene\)/u);
+  assert.match(predicateSource, /screen\.is_visible_in_tree\(\)/u);
+  assert.match(predicateSource, /version\.text == expected_version/u);
   assert.equal(
     launcherSource.includes('await RenderingServer.frame_post_draw'),
     false,

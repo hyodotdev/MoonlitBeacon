@@ -3,6 +3,8 @@ import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import {
   APP_STORE_CAPTURE_REPORT_RELATIVE_PATH,
+  APP_STORE_REUSE_COMMITTED_GALLERY_DECISION,
+  APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
   APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
   IAP_PRODUCT_IDS,
   auditAppStoreConnectRelease,
@@ -394,9 +396,25 @@ export function createRotatingAppStoreConnectTokenProvider({
   };
 }
 
+export const APP_STORE_REUSE_GALLERY_APPLY_PURPOSE =
+  'apply-reuse-committed-gallery';
+export const APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE =
+  'review-reuse-committed-gallery';
+export const APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS =
+  'ASC_REUSE_GALLERY_IMAGE_DIFFERS';
+const REUSE_GALLERY_IMAGE_TARGETS = new Set([
+  'appScreenshotSet',
+  'inAppPurchaseReviewImage',
+]);
+
 export function appStoreConfirmationToken(manifest, purpose = 'apply') {
   verifyAppStoreReleaseManifest(manifest);
-  if (!['apply', 'review'].includes(purpose)) {
+  if (![
+    'apply',
+    'review',
+    APP_STORE_REUSE_GALLERY_APPLY_PURPOSE,
+    APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE,
+  ].includes(purpose)) {
     throw fail('ASC_CONFIRMATION_PURPOSE_INVALID', 'confirmation token purpose is invalid.');
   }
   const release = manifest.payload.release;
@@ -435,6 +453,7 @@ export function assertAppStoreApplyAuthorization({
   manifest,
   payload,
   reviewConfirmation = null,
+  reuseCommittedGallery = false,
   submitReview = false,
 } = {}) {
   verifyAppStoreReleaseManifest(manifest, payload);
@@ -443,17 +462,62 @@ export function assertAppStoreApplyAuthorization({
   // this binds authorization to that freshly verified current pair plus the
   // exact manifest-bound confirmation below — never to a pinned past release.
   assertSensibleReleaseTarget(payload?.release);
-  if (confirmation !== appStoreConfirmationToken(manifest, 'apply')) {
+  const applyPurpose = reuseCommittedGallery
+    ? APP_STORE_REUSE_GALLERY_APPLY_PURPOSE
+    : 'apply';
+  const reviewPurpose = reuseCommittedGallery
+    ? APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE
+    : 'review';
+  if (confirmation !== appStoreConfirmationToken(manifest, applyPurpose)) {
     throw fail('ASC_APPLY_CONFIRMATION_MISMATCH', 'remote-apply token bound to the manifest differs.');
   }
   if (submitReview) {
-    if (reviewConfirmation !== appStoreConfirmationToken(manifest, 'review')) {
+    if (reviewConfirmation !== appStoreConfirmationToken(manifest, reviewPurpose)) {
       throw fail('ASC_REVIEW_CONFIRMATION_MISMATCH', 'review-submission-only confirmation token differs.');
     }
   } else if (reviewConfirmation !== null) {
     throw fail('ASC_REVIEW_CONFIRMATION_WITHOUT_FLAG', 'cannot use a review confirmation token without submitting for review.');
   }
   return true;
+}
+
+export function applyReuseCommittedGalleryImageGate(plan) {
+  if (!Array.isArray(plan)) {
+    throw new TypeError('remote plan must be an array.');
+  }
+  // Order, count, and completion are already inside the remote comparison
+  // contracts: any reorder, size/hash drift, missing asset, or unfinished
+  // upload plans create/replace instead of none, so refusing every non-none
+  // image plan refuses every gallery difference.
+  let verifiedImageTargets = 0;
+  const refusedImageTargets = [];
+  const gated = plan.map((entry) => {
+    if (!REUSE_GALLERY_IMAGE_TARGETS.has(entry?.target)) return entry;
+    if (entry.action === 'none') {
+      verifiedImageTargets += 1;
+      return entry;
+    }
+    refusedImageTargets.push({
+      identifier: entry.identifier,
+      refusedAction: entry.action,
+      target: entry.target,
+    });
+    if (entry.action === 'unresolved') return entry;
+    return {
+      action: 'unresolved',
+      code: APP_STORE_REUSE_GALLERY_IMAGE_DIFFERS,
+      identifier: entry.identifier,
+      reason:
+        `reuse-committed-gallery refuses ${entry.action} ${entry.target} `
+        + `${entry.identifier}: the remote gallery must exactly match the `
+        + 'retained manifest uploads.',
+      refusedAction: entry.action,
+      remoteId: entry.remoteId ?? null,
+      remoteMutationPlanned: false,
+      target: entry.target,
+    };
+  });
+  return { plan: gated, refusedImageTargets, verifiedImageTargets };
 }
 
 function uniqueResource(resources, predicate, label) {
@@ -1068,7 +1132,11 @@ export async function auditAppAvailability(payload, client) {
   };
 }
 
-export async function auditAppStoreConnectApplyReadiness({ payload, client } = {}) {
+export async function auditAppStoreConnectApplyReadiness({
+  payload,
+  client,
+  reuseCommittedGallery = false,
+} = {}) {
   // The deprecated unscoped localizations endpoint returns every version at
   // once, so a mixed APPROVED plus PREPARE history looks duplicated there.
   // The versioned apply path audits only the chosen version scope instead.
@@ -1100,17 +1168,41 @@ export async function auditAppStoreConnectApplyReadiness({ payload, client } = {
     build,
     internalBetaGroup,
   ];
+  if (!reuseCommittedGallery) {
+    return {
+      ...base,
+      mode: 'GET_ONLY_REMOTE_APPLY_PREFLIGHT',
+      plan,
+      remote: {
+        ...base.remote,
+        iapVersionIds: iap.versionIds,
+        iapVersionStates: iap.versionStates,
+      },
+      requests: client.requests,
+      summary: summarizeRemotePlan(plan),
+      remoteMutationImplemented: true,
+    };
+  }
+  const gated = applyReuseCommittedGalleryImageGate(plan);
   return {
     ...base,
     mode: 'GET_ONLY_REMOTE_APPLY_PREFLIGHT',
-    plan,
+    plan: gated.plan,
     remote: {
       ...base.remote,
       iapVersionIds: iap.versionIds,
       iapVersionStates: iap.versionStates,
     },
     requests: client.requests,
-    summary: summarizeRemotePlan(plan),
+    reuse: {
+      decision: APP_STORE_REUSE_COMMITTED_GALLERY_DECISION,
+      freshCaptureEvidence: false,
+      galleryEvidence: APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
+      gallerySource: 'retained-manifest-pinned-uploads',
+      refusedImageTargets: gated.refusedImageTargets,
+      verifiedImageTargets: gated.verifiedImageTargets,
+    },
+    summary: summarizeRemotePlan(gated.plan),
     remoteMutationImplemented: true,
   };
 }
@@ -1379,8 +1471,19 @@ export async function applyPlanEntry({
   getClient,
   payload,
   repoRoot,
+  reuseCommittedGallery = false,
   sleepImpl,
 }) {
+  if (
+    reuseCommittedGallery
+    && REUSE_GALLERY_IMAGE_TARGETS.has(entry?.target)
+  ) {
+    throw fail(
+      'ASC_REUSE_GALLERY_MUTATION_REFUSED',
+      `${entry.target} ${entry.identifier} is refused: reuse-committed-gallery `
+      + 'never uploads, replaces, reorders, or deletes gallery images.',
+    );
+  }
   if (!['create', 'update', 'replace'].includes(entry.action)) {
     throw fail('ASC_PLAN_ACTION_NOT_MUTABLE', `${entry.action} plan cannot be applied.`);
   }
@@ -1779,6 +1882,7 @@ export async function applyAppStoreConnectRelease({
   payload,
   repoRoot,
   reviewConfirmation = null,
+  reuseCommittedGallery = false,
   sleepImpl = (milliseconds) => new Promise((resolvePromise) => {
     setTimeout(resolvePromise, milliseconds);
   }),
@@ -1789,6 +1893,7 @@ export async function applyAppStoreConnectRelease({
     manifest,
     payload,
     reviewConfirmation,
+    reuseCommittedGallery,
     submitReview,
   });
   if (
@@ -1808,7 +1913,11 @@ export async function applyAppStoreConnectRelease({
   const appliedFingerprints = new Set();
   let audit;
   for (let step = 0; step <= maxSteps; step += 1) {
-    audit = await auditAppStoreConnectApplyReadiness({ payload, client: getClient });
+    audit = await auditAppStoreConnectApplyReadiness({
+      client: getClient,
+      payload,
+      reuseCommittedGallery,
+    });
     const hard = hardBlockers(audit);
     if (hard.length > 0) {
       return {
@@ -1816,6 +1925,7 @@ export async function applyAppStoreConnectRelease({
         blockers: hard,
         complete: false,
         finalAudit: audit,
+        ...(reuseCommittedGallery ? { reuse: audit.reuse } : {}),
         reviewSubmitted: false,
       };
     }
@@ -1839,6 +1949,7 @@ export async function applyAppStoreConnectRelease({
         }],
         complete: false,
         finalAudit: audit,
+        ...(reuseCommittedGallery ? { reuse: audit.reuse } : {}),
         reviewSubmitted: false,
       };
     }
@@ -1852,6 +1963,7 @@ export async function applyAppStoreConnectRelease({
       getClient,
       payload,
       repoRoot,
+      reuseCommittedGallery,
       sleepImpl,
     });
     applied.push({
@@ -1868,6 +1980,7 @@ export async function applyAppStoreConnectRelease({
       blockers: unresolved,
       complete: false,
       finalAudit: audit,
+      ...(reuseCommittedGallery ? { reuse: audit.reuse } : {}),
       reviewSubmitted: false,
     };
   }
@@ -1879,6 +1992,7 @@ export async function applyAppStoreConnectRelease({
       client,
       getClient,
       manifest,
+      reuseCommittedGallery,
       reviewConfirmation,
       sleepImpl,
     });
@@ -1888,6 +2002,7 @@ export async function applyAppStoreConnectRelease({
     blockers: [],
     complete: true,
     finalAudit: audit,
+    ...(reuseCommittedGallery ? { reuse: audit.reuse } : {}),
     reviewSubmitted: review?.submitted ?? false,
     review,
   };
@@ -2029,6 +2144,7 @@ export async function submitAppStoreConnectReview({
   client,
   getClient,
   manifest,
+  reuseCommittedGallery = false,
   reviewConfirmation,
   reviewPollAttempts = 30,
   reviewPollDelayMs = 2_000,
@@ -2036,7 +2152,10 @@ export async function submitAppStoreConnectReview({
     setTimeout(resolvePromise, milliseconds);
   }),
 } = {}) {
-  if (reviewConfirmation !== appStoreConfirmationToken(manifest, 'review')) {
+  const reviewPurpose = reuseCommittedGallery
+    ? APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE
+    : 'review';
+  if (reviewConfirmation !== appStoreConfirmationToken(manifest, reviewPurpose)) {
     throw fail('ASC_REVIEW_CONFIRMATION_MISMATCH', 'review-submission-only confirmation token differs.');
   }
   if (
@@ -2197,6 +2316,7 @@ export async function createAuthenticatedAppStoreApply({
   now = Date.now,
   payload,
   repoRoot,
+  reuseCommittedGallery = false,
   reviewConfirmation = null,
   submitReview = false,
 } = {}) {
@@ -2207,6 +2327,7 @@ export async function createAuthenticatedAppStoreApply({
     manifest,
     payload,
     reviewConfirmation,
+    reuseCommittedGallery,
     submitReview,
   });
   const credentials = readAppStoreCredentials({ env, root: resolve(repoRoot) });
@@ -2226,6 +2347,7 @@ export async function createAuthenticatedAppStoreApply({
     manifest,
     payload,
     repoRoot,
+    reuseCommittedGallery,
     reviewConfirmation,
     submitReview,
   });
@@ -2237,6 +2359,7 @@ export async function createAuthenticatedAppStoreApplyAudit({
   now = Date.now,
   payload,
   repoRoot,
+  reuseCommittedGallery = false,
 } = {}) {
   const credentials = readAppStoreCredentials({ env, root: resolve(repoRoot) });
   const clock = typeof now === 'function' ? now : () => now;
@@ -2247,7 +2370,11 @@ export async function createAuthenticatedAppStoreApplyAudit({
     privateKey: readFileSync(credentials.privateKeyPath),
   });
   const client = createGetOnlyAppStoreConnectClient({ fetchImpl, tokenProvider });
-  return auditAppStoreConnectApplyReadiness({ payload, client });
+  return auditAppStoreConnectApplyReadiness({
+    client,
+    payload,
+    reuseCommittedGallery,
+  });
 }
 
 export function formatAppStoreApplyReport(result) {
@@ -2257,6 +2384,10 @@ export function formatAppStoreApplyReport(result) {
       : 'App Store Connect remote apply stopped at a safety gate.',
     `applied mutations: ${result.applied.length}`,
     `review submitted: ${result.reviewSubmitted ? 'yes' : 'no'}`,
+    ...(result.reuse ? [
+      `capture evidence: ${result.reuse.galleryEvidence} `
+      + '(retained existing uploads, not fresh capture)',
+    ] : []),
   ];
   for (const blocker of result.blockers) {
     lines.push(`- ${blocker.code ?? 'UNRESOLVED'} ${blocker.target} ${blocker.identifier}`);
@@ -2264,13 +2395,22 @@ export function formatAppStoreApplyReport(result) {
   return lines.join('\n');
 }
 
-export function appStoreApplyCheckSummary(manifest) {
+export function appStoreApplyCheckSummary(
+  manifest,
+  { reuseCommittedGallery = false } = {},
+) {
   verifyAppStoreReleaseManifest(manifest);
   return {
-    applyConfirmation: appStoreConfirmationToken(manifest, 'apply'),
+    applyConfirmation: appStoreConfirmationToken(
+      manifest,
+      reuseCommittedGallery ? APP_STORE_REUSE_GALLERY_APPLY_PURPOSE : 'apply',
+    ),
     buildNumber: manifest.payload.release.buildNumber,
     manifestSha256: manifest.payloadChecksums.sha256,
-    reviewConfirmation: appStoreConfirmationToken(manifest, 'review'),
+    reviewConfirmation: appStoreConfirmationToken(
+      manifest,
+      reuseCommittedGallery ? APP_STORE_REUSE_GALLERY_REVIEW_PURPOSE : 'review',
+    ),
     version: manifest.payload.release.version,
   };
 }

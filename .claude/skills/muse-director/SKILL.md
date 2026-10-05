@@ -45,4 +45,6 @@ without the user's explicit instruction.
 - Put a secret, token, private path or personal detail in a brief; some implementer models may use what they receive
   to improve the provider's products.
 - Start the implementer with the approval or sandbox settings changed; `scripts/muse.mjs` refuses to, and so do you.
-- Create `.claude/allow-pr` or edit the pull-request guard; the implementer has no remote and cannot open one.
+- Open an unrequested PR without first asking the user and receiving their answer.
+  An already requested PR needs no approval file or repeated confirmation; the
+  implementer still has no remote and cannot open one.

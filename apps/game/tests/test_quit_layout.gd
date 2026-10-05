@@ -92,6 +92,18 @@ func _check_behaviors() -> void:
 	no_button.pressed.emit()
 	_expect_equal(_cancelled, 1, "Cancel emits cancelled")
 	_expect_true(not quit.visible, "Cancel closes the panel")
+	# The gate-return question: safe Cancel on the steel road, painful Quit
+	# on the coral road, the gate sigil floating over the card.
+	var no_world: WorldButton = no_button as WorldButton
+	var yes_world: WorldButton = yes_button as WorldButton
+	_expect_true(no_world != null and no_world.kind == "steel",
+		"Cancel takes the steel road")
+	_expect_true(yes_world != null and yes_world.kind == "coral",
+		"Quit takes the coral road")
+	var tab := quit.get_node("Card/WorldTab") as TextureRect
+	_expect_true(tab != null
+		and tab.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"gate tab ignores taps")
 	quit.queue_free()
 	await get_tree().process_frame
 

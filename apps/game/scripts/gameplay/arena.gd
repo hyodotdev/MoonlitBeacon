@@ -384,8 +384,10 @@ const LEVEL_GROWTH: float = 1.14
 ## Ceiling on kills required per level.
 const LEVEL_CAP: int = 28
 
-## Where back goes while paused.
-const TITLE_SCENE: String = "res://scenes/menus/title_menu.tscn"
+## Where back goes while paused. Since 4.0.0 the production moon gate is
+## the main entry; it honors the same open-shrine/store metas as the old
+## title, which stays for its own suites and capture boards.
+const TITLE_SCENE: String = "res://scenes/menus/production_entry.tscn"
 ## One-shot flag passed to the title when the result screen picks the shrine.
 const OPEN_SHRINE_META: StringName = &"moonlit_open_shrine"
 ## Flag asking the title to open the real-money shop.
@@ -722,6 +724,26 @@ var _analytics_run_end_tracked: bool = false
 ## Shards already paid on the defeat screen. When continue re-settles the same cumulative score,
 ## grant only the delta to the target shard total so one run's score is not rewarded twice.
 var _run_shards_awarded: int = 0
+## Journey persistence. `_journey_action` is the title's pending action consumed in
+## `_ready`; `_journey_snapshot` is the last checkpoint this run restored or wrote.
+## Earned shards settle as Vault receipts keyed by (`_journey_id`, checkpoint);
+## the ledger is the grant authority and `_run_shards_awarded` merely echoes
+## it, so a redelivered receipt pays 0 instead of farming. See `Journey`.
+var _journey_action: int = Journey.Pending.NONE
+var _journey_snapshot: Dictionary = {}
+var _journey_id: Variant = ""
+var _journey_checkpoint_id: int = 0
+var _journey_settled_score: int = 0
+## A receipt whose Vault save failed stays pending (sealed unsettled); any
+## later successful receipt supersedes it, which keeps retries available.
+var _journey_receipt_pending: bool = false
+var _journey_receipt_pending_cid: int = 0
+var _journey_receipt_pending_score: int = 0
+var _journey_resuming: bool = false
+var _journey_resume_failed: bool = false
+var _journey_opening_played: bool = false
+var _journey_last_finish_won: bool = false
+var _journey_opening_strip: Array[String] = []
 ## If result save fails briefly, retry before leaving the run. The side that saved drops out of
 ## pending, so a stuck other side cannot duplicate shards or a new record.
 var _run_settlement_pending: bool = false
@@ -751,6 +773,12 @@ const STORE_CAPTURE_BOOT: Script = preload(
 	"res://scripts/dev/store_capture_boot.gd")
 const ONBOARD_HOLD: float = 3.6
 const BEACON_HINT_RADIUS: float = 104.0
+## Guidance banners that are remembered once learned (`Onboarding`).
+const ONBOARD_JOURNEY_KEYS: Dictionary = {
+	"TUTORIAL_AUTO_ATTACK": "auto",
+	"TUTORIAL_HEART": "heart",
+	"TUTORIAL_CORE": "core",
+}
 var _onboarding: bool = false
 var _onboarded: Dictionary = {}
 ## Single screen-shake state so stacked kills do not each spawn a Tween.
@@ -761,6 +789,18 @@ var _combat_hud_queued: bool = false
 
 
 func _ready() -> void:
+	# The title's journey action is consumed first so the restored hero, seed,
+	# cycle and route are in place before the room, art and boons build below.
+	_journey_action = Journey.consume_pending()
+	if _journey_action == Journey.Pending.RESUME:
+		_journey_snapshot = Journey.read_checkpoint()
+		if _journey_snapshot.is_empty():
+			# Resume asked for a journey that is gone or refused. Fall back
+			# to a fresh run, visibly: the banner says so below.
+			_journey_action = Journey.Pending.FRESH
+			_journey_resume_failed = true
+		else:
+			_journey_resuming = true
 	_camera.zoom = Vector2.ONE * WORLD_CAMERA_ZOOM
 	get_viewport().size_changed.connect(_recenter)
 	_recenter()
@@ -796,13 +836,18 @@ func _ready() -> void:
 		_voice_panel.visibility_changed.connect(_update_duck)
 
 	_capture_run_hero()
+	# A resume overrides the Vault pick with the saved hero, seed, cycle and
+	# route before art, room and analytics build from them below.
+	if _journey_resuming:
+		_journey_apply_early(_journey_snapshot)
 	# Art comes from the same chosen Hero as the stats. Build eight animations from each of the six
 	# heroes' dedicated 48x64 sheets; a bad resource leaves Player's custom Warden.
 	_player.apply_hero_visual(_hero_for_run())
 
 	# The forest changes every run. Until now there was not a single seed line, so
 	# every run was literally identical.
-	_run_seed = randi()
+	if not _journey_resuming:
+		_run_seed = randi()
 	PickupMagnet.scale = 1.0
 	# The small bullets you weave through: one node for all of them, above the actors.
 	_bullets = BulletField.new()
@@ -883,6 +928,7 @@ func _ready() -> void:
 	_apply_boons()
 	_apply_test_boost()
 	_refresh_evolution_hud()
+	_journey_open_run()
 	_tutorial_origin = _player.position
 	_begin_tutorial.call_deferred()
 
@@ -926,6 +972,417 @@ func _hero_path_for_run() -> String:
 	if _run_hero_path.is_empty():
 		_capture_run_hero()
 	return _run_hero_path
+
+
+## Open the run's journey state. A resume rebuilds the saved segment; a fresh
+## human start clears any old save and writes the run-start checkpoint, which
+## settles nothing so starting alone never pays.
+func _journey_open_run() -> void:
+	if _journey_resuming:
+		_journey_restore_segment(true)
+		_hud.announce(
+			tr("JOURNEY_RESUMED") % _cycle, Color(0.72, 0.94, 1.0, 1),
+			ONBOARD_HOLD)
+		return
+	if _journey_action != Journey.Pending.FRESH or not Journey.armed:
+		return
+	if _journey_resume_failed:
+		_hud.announce(
+			tr("JOURNEY_RESUME_FAILED"), Color(1.0, 0.72, 0.62, 1),
+			ONBOARD_HOLD)
+	Journey.clear()
+	# The Vault issues the journey's receipt identity durably, so retries
+	# dedup even across a crash between the Vault save and the journey write.
+	_journey_id = Vault.begin_journey()
+	_journey_checkpoint_id = 0
+	_journey_settled_score = 0
+	_run_shards_awarded = 0
+	_journey_receipt_pending = false
+	_journey_checkpoint(false)
+
+
+## Restore the checkpoint's plain values before the room, art and analytics
+## build from them. Called in `_ready` right after the Vault pick, and again
+## by an in-place gate retry.
+func _journey_apply_early(snapshot: Dictionary) -> void:
+	_run_seed = int(snapshot["run_seed"])
+	_cycle = int(snapshot["cycle"])
+	_zone_index = int(snapshot["zone_index"])
+	var saved_route: Array = snapshot["route"]
+	# Assign in place: replacing the typed array with an untyped one fails.
+	_route[0] = int(saved_route[0])
+	_route[1] = int(saved_route[1])
+	_route[2] = int(saved_route[2])
+	var hero_path: String = str(snapshot["hero_path"])
+	# A refund after the save can lock the saved hero. Fall back to the
+	# default rather than refusing the whole journey.
+	if not Vault.hero_open(hero_path):
+		hero_path = Vault.HEROES[0]
+	_run_hero_path = hero_path
+	_run_hero = load(hero_path) as Hero
+	_level = int(snapshot["level"])
+	_to_next = int(snapshot["to_next"])
+	_level_progress = int(snapshot["level_progress"])
+	_missile_power = int(snapshot["missile_power"])
+	_missile_progress = int(snapshot["missile_progress"])
+	_first_missile_core_collected = bool(snapshot["first_core_collected"])
+	_kills = int(snapshot["kills"])
+	_kill_score = int(snapshot["kill_score"])
+	_survived = float(snapshot["survived"])
+	_lit_count = int(snapshot["lit_count"])
+	_overcharge_successes = int(snapshot["overcharge_successes"])
+	_guardian_meetings.clear()
+	var meetings: Dictionary = snapshot["guardian_meetings"]
+	for key: String in meetings:
+		_guardian_meetings[int(key)] = int(meetings[key])
+	_places_seen_run.clear()
+	for terrain_id: String in snapshot["places_seen"]:
+		_places_seen_run[terrain_id] = true
+	_run_shards_awarded = int(snapshot["shards_awarded"])
+	_journey_settled_score = int(snapshot["settled_score"])
+	# Normalize the identity the Vault ledger compares: int sequences come
+	# back from JSON as integral floats.
+	var saved_journey: Variant = snapshot.get("journey_id", "")
+	if saved_journey is float and saved_journey == floorf(saved_journey):
+		_journey_id = int(saved_journey)
+	elif saved_journey is int:
+		_journey_id = saved_journey
+	else:
+		_journey_id = str(saved_journey)
+	_journey_checkpoint_id = int(snapshot["checkpoint_id"])
+	var direction: Array = snapshot["gate_direction"]
+	_gate_direction = Vector2(float(direction[0]), float(direction[1]))
+	_regular_cores_outstanding = 0
+	_regular_core_progress_escrow = 0
+	_ejected_cores_outstanding = 0
+	_pending_story_cycle = 0
+	_journey_opening_played = bool(snapshot.get("opening_played", true))
+	_tutorial_step = 4
+	_onboarding = false
+
+
+## Rebuild the saved segment through production methods: reset growth to base,
+## feed saved relic stacks through the real pick path, rebuild the
+## deterministic world, quietly relight completed beacons, and reset transient
+## combat state. `world_ready` is true when `_ready` already built the room
+## from restored values.
+func _journey_restore_segment(world_ready: bool) -> void:
+	if not world_ready:
+		_journey_apply_early(_journey_snapshot)
+		_raid_queue.clear()
+		_clear_hostile_projectiles()
+		_clear_friendly_projectiles()
+		for spirit in _spirits:
+			if is_instance_valid(spirit):
+				spirit.retreat()
+		_spirits.clear()
+		_guardian = null
+		_guardian_title = ""
+		_guardian_detail = ""
+		for group in [&"moon_embers", &"power_orbs", &"missile_cores", &"moon_dews"]:
+			for pickup in get_tree().get_nodes_in_group(group):
+				if is_instance_valid(pickup):
+					pickup.queue_free()
+		if _skills != null:
+			_skills.queue_free()
+			_skills = null
+	# The defeated segment grants nothing: banking its embers here would pay twice.
+	_ember_positions.clear()
+	_ember_elites.clear()
+	_pending_embers = 0
+	_taken.clear()
+	_relic.sync_owned(_taken)
+	_recompute()
+	var stacks: Dictionary = _journey_snapshot.get("relic_stacks", {})
+	for relic_path: String in stacks:
+		for i in int(stacks[relic_path]):
+			var item: Relic = _relic.take_named(relic_path)
+			if item != null:
+				_on_relic_picked(item, false, "opening")
+	_settle_rates()
+	_refresh_aux_weapons()
+	# The gate restores you. Health is not stored: retrying a gate saved at
+	# one heart with one heart would be a death loop.
+	_set_health(_max_health)
+	_moonfire_charge = 0.0
+	_end_moonfire()
+	if not world_ready:
+		_change_world(false)
+	# Reset quietly: `reset()` emits `lit_changed(false)` for a lit beacon,
+	# which would uncount the restored beacons below.
+	for beacon in _beacons:
+		beacon.set_block_signals(true)
+		beacon.reset()
+		beacon.set_block_signals(false)
+	for index in _zone_index:
+		_beacons[index].restore_lit()
+	_lit_count = int(_journey_snapshot.get("lit_count", 0))
+	_place_current_beacon()
+	_refresh_beacon_visibility()
+	_hud.set_beacons(_lit_count, _beacons.size())
+	_hud.set_cycle(_cycle)
+	_hud.set_level(_level)
+	_hud.set_level_progress(float(_level_progress) / float(maxi(_to_next, 1)))
+	_hud.set_survived(_survived)
+	_hud.set_relics(_taken)
+	_refresh_missile_hud()
+	_apply_time_tone(false)
+	_player.position = _room.nearest_clear(_zone_entry_position(), 4.0)
+	_player.velocity = Vector2.ZERO
+	_player.reset_physics_interpolation()
+	var camera: Camera2D = _player.get_node("Cam") as Camera2D
+	if camera != null:
+		camera.reset_smoothing()
+	_player.set_charge(0.0)
+	_player.set_charge_overcharge(false)
+	_player.set_move_input(Vector2.ZERO)
+	_player.set_moonfire(false, false)
+	_escape_active = false
+	_transitioning = false
+	_close_fork_gates()
+	_gate.close()
+	_completed_cycle = 0
+	_completed_cycle_overcharges = 0
+	_cycle_reward_pending = false
+	_cycle_reward_queued = false
+	_cycle_decision_queued = false
+	_pending_beacon_choice = null
+	_overcharge_beacon = null
+	_overcharge_progress = 0.0
+	_overcharge_abandon_left = 0.0
+	_overcharge_second_wave_sent = false
+	_beacon_heal = 0
+	_beacon_healed_cycle = 0
+	_owed = 0
+	_last_offer = -99.0
+	_relic_offer_queued = false
+	_combo = 0
+	_combo_left = 0.0
+	_combo_tier = 0
+	_pending_dews = 0
+	_dew_drop_cooldown = 0.0
+	_seen_spirits.clear()
+	_seen_guardians.clear()
+	_guardian_called = false
+	_voice.reset()
+	_say_deferred_line = ""
+	_places_pending.clear()
+	_spawn_timer = 1.2
+	_raid_left = 8.0
+	_invulnerable = 2.0
+	_missile_core_help_shown = true
+	_ember_help_shown = true
+
+
+## Write the current segment entry as the journey checkpoint. `settle`
+## commits the segment's receipt in the Vault first. Only while armed; a
+## failure is announced and never advertised as successful.
+##
+## Receipt first, checkpoint second: when the Vault save commits but the
+## checkpoint write fails, the redelivered receipt reads `DUPLICATE` and
+## pays 0, so the same progress can never bank twice.
+func _journey_checkpoint(settle: bool) -> bool:
+	if not Journey.armed:
+		return false
+	var total: int = _journey_score_total()
+	if settle:
+		# A failed receipt seals the checkpoint unsettled (old echo); the
+		# next seal's cumulative target carries the value.
+		_settle_journey_receipt(_journey_checkpoint_id + 1, total)
+	var snapshot: Dictionary = _journey_snapshot_now(total)
+	if Journey.write_checkpoint(snapshot) != OK:
+		_hud.announce(
+			tr("JOURNEY_SAVE_FAILED"), Color(1.0, 0.62, 0.55, 1),
+			ONBOARD_HOLD)
+		return false
+	_journey_snapshot = snapshot
+	return true
+
+
+## Settle one journey receipt in the Vault's durable ledger and echo the
+## cumulative granted total into `_run_shards_awarded`. Duplicates and
+## retired receipts pay 0. On Vault save failure the receipt stays pending
+## (nothing is echoed) and false returns; any later successful receipt
+## supersedes it.
+func _settle_journey_receipt(checkpoint_id: int, total_score: int) -> bool:
+	var outcome: Dictionary = _vault_settle_journey_receipt(
+		_journey_id, checkpoint_id,
+		Vault.shard_target_for_score(total_score))
+	var status: int = int(outcome.get(
+		"status", Vault.JourneyReceipt.SAVE_FAILED))
+	if status == Vault.JourneyReceipt.SAVE_FAILED:
+		if not _journey_receipt_pending \
+				or checkpoint_id >= _journey_receipt_pending_cid:
+			_journey_receipt_pending_cid = checkpoint_id
+			_journey_receipt_pending_score = total_score
+		_journey_receipt_pending = true
+		return false
+	_run_shards_awarded = maxi(
+		_run_shards_awarded, int(outcome.get("settled_target", 0)))
+	_journey_receipt_pending = false
+	_journey_receipt_pending_cid = 0
+	_journey_receipt_pending_score = 0
+	return true
+
+
+## Small boundary where receipt-settlement regression tests inject failure.
+func _vault_settle_journey_receipt(
+	journey: Variant, checkpoint_id: int, target: int
+) -> Dictionary:
+	return Vault.settle_journey_receipt(journey, checkpoint_id, target)
+
+
+func _journey_snapshot_now(total: int) -> Dictionary:
+	# Fresh starts and resumes always set the id first; this is last resort.
+	if str(_journey_id).is_empty():
+		_journey_id = "r%x" % abs(randi())
+		_journey_checkpoint_id = 0
+	_journey_checkpoint_id += 1
+	_journey_settled_score = total
+	var stacks: Dictionary = {}
+	for item in _taken:
+		if item == null:
+			continue
+		var relic_path: String = str(item.get_meta("path", ""))
+		if relic_path.is_empty():
+			relic_path = (item as Relic).resource_path
+		stacks[relic_path] = int(stacks.get(relic_path, 0)) + 1
+	var meetings: Dictionary = {}
+	for terrain: int in _guardian_meetings:
+		meetings[str(terrain)] = int(_guardian_meetings[terrain])
+	var seen: Array[String] = []
+	for terrain_id: String in _places_seen_run:
+		seen.append(terrain_id)
+	seen.sort()
+	return {
+		"schema_version": Journey.SCHEMA_VERSION,
+		"journey_id": _journey_id,
+		"checkpoint_id": _journey_checkpoint_id,
+		"cycle": _cycle,
+		"zone_index": _zone_index,
+		"route": [_route[0], _route[1], _route[2]],
+		"run_seed": _run_seed,
+		"hero_path": _hero_path_for_run(),
+		"relic_stacks": stacks,
+		"level": _level,
+		"to_next": _to_next,
+		"level_progress": _level_progress,
+		"missile_power": _missile_power,
+		"missile_progress": _missile_progress,
+		"first_core_collected": _first_missile_core_collected,
+		"kills": _kills,
+		"kill_score": _kill_score,
+		"survived": _survived,
+		"lit_count": _lit_count,
+		"overcharge_successes": _overcharge_successes,
+		"guardian_meetings": meetings,
+		"places_seen": seen,
+		"shards_awarded": _run_shards_awarded,
+		"settled_score": _journey_settled_score,
+		"gate_direction": [_gate_direction.x, _gate_direction.y],
+		"opening_played": _journey_opening_played,
+		"saved_at_unix": int(Time.get_unix_time_from_system()),
+	}
+
+
+## The score of the current live state, as the result screen would count it.
+func _journey_score_total() -> int:
+	var score := Score.new()
+	score.cycles = maxi(_cycle - 1, 0)
+	score.beacons = _lit_count
+	score.survived = _survived
+	score.level = _level
+	score.kills = _kill_score
+	return score.total()
+
+
+## A gate retry is possible: a human run holding a checkpoint.
+func _journey_retry_available() -> bool:
+	return Journey.armed and not _journey_snapshot.is_empty()
+
+
+## Count the result from the checkpoint, not the defeated segment. The lost
+## segment's kills, score and rewards grant nothing, so no number of retries,
+## restarts or relaunches can multiply them.
+func _journey_fill_score_from_checkpoint(score: Score) -> void:
+	score.cycles = maxi(int(_journey_snapshot["cycle"]) - 1, 0)
+	score.beacons = int(_journey_snapshot["lit_count"])
+	score.survived = float(_journey_snapshot["survived"])
+	score.level = int(_journey_snapshot["level"])
+	score.kills = int(_journey_snapshot["kill_score"])
+
+
+## Retry the saved segment after death: restore the checkpoint in place and
+## resume the run. Free — no continue coin is spent — and the checkpoint is
+## preserved, so dying again retries the same gate.
+func _retry_from_gate() -> void:
+	if not _over or not _journey_retry_available():
+		return
+	if not _retry_pending_result_persistence():
+		_result.reopen_after_failed_continue()
+		return
+	_over = false
+	_journey_last_finish_won = false
+	_analytics_run_end_reason = ""
+	_analytics_track("gate_retry", {
+		"cycle": int(_journey_snapshot.get("cycle", 1)),
+		"elapsed_ms": _analytics_elapsed_ms(),
+	})
+	_pending_result_action = ResultAction.NONE
+	_result.visible = false
+	_journey_restore_segment(false)
+	_player.resume_after_continue(CONTINUE_CLEAR_RADIUS)
+	_player.set_move_input(Vector2.ZERO)
+	set_process(true)
+	_stick.set_active(true)
+	_pause.set_available(true)
+	_spawn_timer = maxf(_spawn_timer, CONTINUE_CALM)
+	_raid_left = maxf(_raid_left, CONTINUE_CALM)
+	_hud.announce(
+		tr("JOURNEY_RESUMED") % _cycle, Color(0.72, 0.94, 1.0, 1),
+		ONBOARD_HOLD)
+
+
+## Fresh human journey, first seconds: the opening plays as a nonmodal voice
+## strip while combat stays live, instead of the ActCard→Dialogue pause chain
+## that made moving combat read as stuttering. The full text is recorded in
+## the chronicle for rereading.
+func _open_fresh_opening() -> void:
+	Chronicle.mark("story_open")
+	Chronicle.mark("story_1")
+	_journey_opening_played = true
+	_journey_tip_learned("opening")
+	_journey_opening_strip = _story_lines(1)
+	_journey_play_opening_strip()
+
+
+func _journey_play_opening_strip() -> void:
+	var generation: int = _run_generation
+	var hero: Hero = _hero_for_run()
+	for line in _journey_opening_strip:
+		if generation != _run_generation or _over or not is_inside_tree():
+			return
+		if _voice_panel != null and is_instance_valid(_voice_panel):
+			_voice_panel.say(hero, line)
+		await get_tree().create_timer(_journey_strip_hold(line), false).timeout
+	_journey_opening_strip.clear()
+
+
+## How long one strip line stays up: the voice panel's own hold, so the next
+## line arrives as the last one fades.
+func _journey_strip_hold(line: String) -> float:
+	return VoicePanel.HOLD_BASE + VoicePanel.HOLD_PER_CHAR * float(line.length()) + 0.3
+
+
+## A guidance tip shows unless a human run already learned it. Tests and
+## capture always see the old behavior and never write the record.
+func _journey_should_teach(key: String) -> bool:
+	return not Journey.armed or not Onboarding.is_done(key)
+
+
+func _journey_tip_learned(key: String) -> void:
+	if Journey.armed:
+		Onboarding.mark_done(key)
 
 
 func _analytics_begin_run() -> void:
@@ -1172,6 +1629,10 @@ func _apply_boons() -> void:
 	_base_stats()
 	_settle_rates()
 
+	# A resumed journey feeds its saved stacks instead (see `_journey_restore_segment`),
+	# which already include opening and grace relics. Granting here too would double them.
+	if _journey_resuming:
+		return
 	# Start holding the character's fixed relics. **This splits characters the most** —
 	# same map, same spirits, but opening with orbiting orbs versus a spreading ripple is a
 	# different game.
@@ -1312,6 +1773,11 @@ func _finish_result_action() -> void:
 		ResultAction.SHRINE:
 			_return_to_title(true)
 		_:
+			# After a lost run with a checkpoint, Retry means the saved gate,
+			# not a fresh run. The button says so on screen.
+			if _over and not _journey_last_finish_won and _journey_retry_available():
+				_retry_from_gate()
+				return
 			_restart()
 
 
@@ -1319,8 +1785,21 @@ func _finish_result_action() -> void:
 ## successful side committed and leave only the failed side pending.
 func _persist_finished_result(total_score: int, rank: String) -> bool:
 	var record_result: int = _submit_run_record(total_score, rank)
-	_settle_run_reward(total_score)
+	# Journey runs settle through the receipt ledger (exactly once per
+	# checkpoint); every other run keeps the legacy caller-base settlement.
+	if Journey.armed:
+		_settle_journey_receipt(_journey_finish_receipt_cid(), total_score)
+	else:
+		_settle_run_reward(total_score)
 	return record_result == Records.SubmitResult.SAVED
+
+
+## The receipt a terminal settlement submits: the sealed checkpoint's id, or
+## the live counter when no checkpoint write has succeeded yet.
+func _journey_finish_receipt_cid() -> int:
+	if not _journey_snapshot.is_empty():
+		return int(_journey_snapshot.get("checkpoint_id", 0))
+	return _journey_checkpoint_id
 
 
 func _settle_run_reward(total_score: int) -> bool:
@@ -1370,6 +1849,10 @@ func _retry_pending_result_persistence() -> bool:
 	var settlement_ok: bool = true
 	if _run_settlement_pending:
 		settlement_ok = _settle_run_reward(_pending_run_settlement_score)
+	if _journey_receipt_pending:
+		var receipt_ok: bool = _settle_journey_receipt(
+			_journey_receipt_pending_cid, _journey_receipt_pending_score)
+		settlement_ok = settlement_ok and receipt_ok
 
 	var record_ok: bool = true
 	var record_saved: bool = false
@@ -2824,15 +3307,33 @@ func _finish(won: bool) -> void:
 		_ripple.queue_free()
 	_ripple = null
 
+	_journey_last_finish_won = won
 	var score: Score = Score.new()
-	score.cycles = maxi(_cycle - 1, 0)
-	score.beacons = _lit_count
-	score.survived = _survived
-	score.level = _level
-	score.kills = _kill_score
+	if _journey_retry_available():
+		# Count the checkpoint, never the defeated segment: the lost segment
+		# grants nothing, so retries cannot farm it. A cashout wrote its own
+		# checkpoint just above, so this matches the live state there.
+		_journey_fill_score_from_checkpoint(score)
+	else:
+		score.cycles = maxi(_cycle - 1, 0)
+		score.beacons = _lit_count
+		score.survived = _survived
+		score.level = _level
+		score.kills = _kill_score
 	# Both new records and shards confirm a real save. A briefly failed side retries when a result
 	# button is pressed, and until then the run cannot be left.
 	var is_best: bool = _persist_finished_result(score.total(), score.rank())
+	if _journey_retry_available():
+		# The death may have banked the checkpoint's remainder (the run-start
+		# checkpoint settles nothing until now). Rewrite the bookkeeping so a
+		# relaunch cannot grant it again. The gate itself is preserved.
+		_journey_snapshot["shards_awarded"] = _run_shards_awarded
+		_journey_snapshot["settled_score"] = maxi(
+			int(_journey_snapshot.get("settled_score", 0)), score.total())
+		_journey_snapshot["opening_played"] = _journey_opening_played
+		# Best effort: the in-memory checkpoint stays valid for the retry even
+		# if this rewrite fails, and `Journey.last_error` carries the reason.
+		Journey.write_checkpoint(_journey_snapshot)
 	# The result line's "this run" is the cumulative shards actually received in this run, not the
 	# last settlement delta. Pre-continue grants still show as this run's reward.
 	score.shards = _run_shards_awarded
@@ -2850,7 +3351,8 @@ func _finish(won: bool) -> void:
 	_board_cycles = score.cycles
 	_result.show_result(
 		won, score, is_best, Ladder.makes_board(_board_score),
-		_places_seen_run.size())
+		_places_seen_run.size(), not won and _journey_retry_available(),
+		_run_hero_path)
 
 
 func _on_continue_requested() -> void:
@@ -3016,6 +3518,11 @@ func _open_credits() -> void:
 
 
 func _restart() -> void:
+	# A restart is an explicit fresh start: the reloaded scene begins a new
+	# journey as a human run. Gate retry (which preserves the checkpoint)
+	# routes around this through `_retry_from_gate`.
+	Journey.begin_fresh()
+	RunEntry.mark_from_title()
 	_analytics_track_run_end(
 		_analytics_run_end_reason if not _analytics_run_end_reason.is_empty() else "restart")
 	await _release_audio()
@@ -3088,6 +3595,8 @@ func _notification(what: int) -> void:
 
 
 func _return_to_title(open_shrine: bool = false) -> void:
+	# The journey file stays for the title's Continue; writes stop here.
+	Journey.disarm()
 	_leaving_for_title = true
 	_analytics_track_run_end(
 		_analytics_run_end_reason if not _analytics_run_end_reason.is_empty() else "title")
@@ -3294,6 +3803,7 @@ func _flush_cycle_story() -> void:
 ##
 ## Cycle 1 opens the run, so the Warden's debt comes first: who remains and what is
 ## owed. Without it the run starts with instructions and never says why.
+## Beat keys come from `StoryEpisodes`: a future episode adds data there, not here.
 func _story_lines(cycle: int) -> Array[String]:
 	var lines: Array[String] = []
 	if cycle == 1:
@@ -3306,8 +3816,7 @@ func _story_lines(cycle: int) -> Array[String]:
 			var open_line: String = tr(key)
 			if open_line != key:
 				lines.append(open_line)
-	for suffix in ["A", "B"]:
-		var key: String = "STORY_CYCLE_%d_%s" % [cycle, suffix]
+	for key in StoryEpisodes.story_keys(cycle):
 		var line: String = tr(key)
 		if line != key:
 			lines.append(line)
@@ -3789,6 +4298,9 @@ func _on_gate_entered(which: int = 0) -> void:
 	var serial: int = _zone_serial
 	get_tree().create_timer(1.1, false).timeout.connect(
 		_announce_world_rule_if_current.bind(serial))
+	# Safe segment entry: the world, beacons and rewards are all stable, so
+	# the gate is sealed and its score delta banked.
+	_journey_checkpoint(true)
 
 
 func _zone_entry_position() -> Vector2:
@@ -6571,6 +7083,7 @@ func _on_dash_pressed() -> void:
 	if OS.is_debug_build() and _debug_hero_direction_capture_active:
 		return
 	_analytics_tutorial_step("dash")
+	_journey_tip_learned("dash")
 	_advance_beacon_hint()
 	if _skills != null:
 		_skills.on_dash(from, from + direction.normalized() * Player.DASH_SPEED * Player.DASH_SECONDS)
@@ -6624,7 +7137,17 @@ func _begin_tutorial() -> void:
 	_tutorial_step = 1
 	_onboarding = true
 	_open_run_story()
-	_hud.announce(tr("TUTORIAL_MOVE"), Color(0.74, 0.9, 1.0, 1), ONBOARD_HOLD)
+	# Learned tips do not repeat on a later journey: enter at the first
+	# unlearned step instead. Tests and capture always enter at step 1.
+	if _journey_should_teach("move"):
+		_hud.announce(tr("TUTORIAL_MOVE"), Color(0.74, 0.9, 1.0, 1), ONBOARD_HOLD)
+		return
+	_tutorial_step = 2
+	if _journey_should_teach("dash"):
+		_hud.announce(tr("TUTORIAL_DASH"), Color(0.76, 0.88, 1.0, 1), ONBOARD_HOLD)
+		return
+	if not _journey_should_teach("beacon"):
+		_tutorial_step = 4
 
 
 ## Open the first line of a run.
@@ -6655,6 +7178,14 @@ func _open_run_story() -> void:
 		return
 	if not STORE_CAPTURE_BOOT.read_request().is_empty():
 		return
+	# A fresh human journey opens nonmodal: the story strip plays over live
+	# combat instead of the pausing ActCard→Dialogue chain. A resume at cycle
+	# 1 replays neither the strip nor the old modal chain. Later cycles keep
+	# their intentional pauses.
+	if _cycle == 1 and Journey.armed:
+		if not _journey_opening_played:
+			_open_fresh_opening()
+		return
 	_show_cycle_story()
 	_flush_cycle_story()
 
@@ -6667,7 +7198,13 @@ func _onboard(key: String) -> void:
 		return
 	if _onboarded.get(key, false):
 		return
+	var learned_key: String = str(ONBOARD_JOURNEY_KEYS.get(key, ""))
+	if not learned_key.is_empty() and not _journey_should_teach(learned_key):
+		_onboarded[key] = true
+		return
 	_onboarded[key] = true
+	if not learned_key.is_empty():
+		_journey_tip_learned(learned_key)
 	_hud.announce(tr(key), Color(0.82, 0.92, 1.0, 1), ONBOARD_HOLD)
 
 
@@ -6678,7 +7215,8 @@ func _advance_beacon_hint() -> void:
 	_tutorial_step = 3
 	if not _onboarding or _over or _capture_progress_frozen:
 		return
-	_hud.announce(tr("TUTORIAL_BEACON"), Color(1.0, 0.82, 0.48, 1), ONBOARD_HOLD)
+	if _journey_should_teach("beacon"):
+		_hud.announce(tr("TUTORIAL_BEACON"), Color(1.0, 0.82, 0.48, 1), ONBOARD_HOLD)
 
 
 func _tick_tutorial() -> void:
@@ -6704,7 +7242,9 @@ func _tick_tutorial() -> void:
 		return
 	_tutorial_step = 2
 	_analytics_tutorial_step("move")
-	_hud.announce(tr("TUTORIAL_DASH"), Color(0.76, 0.88, 1.0, 1), ONBOARD_HOLD)
+	_journey_tip_learned("move")
+	if _journey_should_teach("dash"):
+		_hud.announce(tr("TUTORIAL_DASH"), Color(0.76, 0.88, 1.0, 1), ONBOARD_HOLD)
 
 
 ## Contact with a spirit. Screen flashes red and one heart drops.
@@ -6818,8 +7358,14 @@ func _on_run_choice_made(
 		"elapsed_ms": _analytics_elapsed_ms(),
 	})
 	if choice == RunChoicePanel.Choice.LEFT:
+		# Cashout banks the completed cycle and seals the next gate, so the
+		# journey continues there. The result below settles nothing twice.
+		_journey_checkpoint(true)
 		_finish(true)
 		return
+	# Carrying on seals the same gate and banks the same delta; only the run
+	# continues instead of ending.
+	_journey_checkpoint(true)
 	_restore_run_controls()
 	_announce_world_rule()
 	_flush_cycle_story.call_deferred()
@@ -7048,6 +7594,7 @@ func _on_beacon_lit_changed(beacon: Node2D, is_lit: bool) -> void:
 			"elapsed_ms": _analytics_elapsed_ms(),
 		})
 		_analytics_tutorial_step("beacon")
+		_journey_tip_learned("beacon")
 		if _tutorial_step < 4:
 			_tutorial_step = 4
 		_try_apply_beacon_heal()

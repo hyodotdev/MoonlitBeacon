@@ -1,0 +1,18 @@
+; MoonlitIdentity iOS GDExtension descriptor. Kept as `.gdextension.ios` so
+; desktop Godot 4.7 logs no errors; the export plugin stages it under the
+; live name for iOS exports (same arrangement as godot-iap).
+;
+; The static libraries below do not exist in the repo. The director builds
+; them from `src/` with the pinned godot-cpp + Firebase SDK (see
+; notes/release/player-identity-setup.md and SConstruct.tmpl next to this
+; file) and places the outputs at exactly these paths.
+
+[configuration]
+
+entry_symbol = "moonlit_identity_ios_entry"
+compatibility_minimum = "4.7"
+
+[libraries]
+
+ios.debug = "res://addons/moonlit-identity/bin/ios/libmoonlit_identity.debug.a"
+ios.release = "res://addons/moonlit-identity/bin/ios/libmoonlit_identity.release.a"

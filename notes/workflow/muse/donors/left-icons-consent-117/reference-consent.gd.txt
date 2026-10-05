@@ -1,0 +1,9 @@
+static func refresh_consent(game) -> void:
+	if game.login_status == null:
+		return
+	if game.login_status.has_meta("showing_consent") and not bool(game.login_status.get_meta("showing_consent")):
+		return
+	var tos := "[url=tos][color=#f0d6a5]%s[/color][/url]" % TranslationServer.translate("LOGIN_TOS")
+	var privacy := "[url=privacy][color=#f0d6a5]%s[/color][/url]" % TranslationServer.translate("LOGIN_PRIVACY")
+	game.login_status.text = TranslationServer.translate("LOGIN_CONSENT") % [tos, privacy]
+	game.login_status.set_meta("showing_consent", true)

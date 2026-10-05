@@ -6,6 +6,12 @@ extends Control
 ## That signal is what goes to the arena.
 
 signal start_requested
+## Tap in external mode: the production entry opens its login selection
+## over this same title instead of the legacy direct arena entry.
+signal external_start_requested
+## Rank door in external mode: the production entry shows the real Hall
+## over this title instead of the legacy local ladder view.
+signal external_hall_requested
 
 ## Where a tap goes next.
 ## One path line here so moving the arena file is one edit.
@@ -86,6 +92,14 @@ const CAPTURE_TITLE_COPY_BY_LOCALE: Dictionary = {
 ## Length of the beacon flare. Matched to the "flare" Animation length.
 const FLARE_SECONDS: float = 0.85
 
+## Bound on a deferred pointer open. A tap releases far sooner; only a
+## lost release waits this out, and opening while held is safe — a held
+## pointer can only release, never press again, so no new door arms.
+const PENDING_POINTER_OPEN_TIMEOUT_SECONDS: float = 1.0
+const PENDING_POINTER_NONE: int = 0
+const PENDING_POINTER_MOUSE: int = 1
+const PENDING_POINTER_TOUCH: int = 2
+
 ## BGM rises from silence. Half a beat of rest so music does not slam in the
 ## instant the screen appears.
 ##
@@ -133,6 +147,31 @@ const VEIL_FADE_SECONDS: float = 0.3
 @onready var _shrine_badge: Label = $Ui/Screen/ShrineButton/PurchaseBadge
 
 var _accepting: bool = true
+## Deferred pointer open: the press spent the arm and played feedback;
+## the login card itself opens on this pointer's release (or the
+## timeout), so the gesture's tail cannot click doors which just
+## appeared. One-shot per tap; the generation retires stale timeouts.
+var _pending_pointer_open: bool = false
+var _pending_pointer_kind: int = PENDING_POINTER_NONE
+var _pending_mouse_button: int = 0
+var _pending_touch_index: int = 0
+var _pending_generation: int = 0
+## External start mode: set by the production entry, which embeds this
+## title as its first paint. A tap then emits `external_start_requested`
+## (login selection over this title) instead of arming a journey and
+## loading the arena directly. Standalone behavior is untouched.
+var _external_start: bool = false
+## Journey Continue UI, built in code so the title scene file stays untouched.
+## Visible only while a valid checkpoint exists; a fresh journey needs the
+## confirm row before it may replace the save.
+var _journey_panel: PanelContainer = null
+var _journey_title: Label = null
+var _journey_detail: Label = null
+var _journey_error: Label = null
+var _journey_buttons: HBoxContainer = null
+var _journey_confirm: VBoxContainer = null
+var _journey_confirm_label: Label = null
+var _journey_force_fresh: bool = false
 var _ready_draw_frame: int = CAPTURE_DRAW_FRAME_UNSET
 ## Store masters must not change with whichever blink brightness the host
 ## stops on. Turn this on only after a debug capture request actually arrives;
@@ -191,6 +230,8 @@ func _ready() -> void:
 	_veil.modulate.a = 0.0
 	_veil.visible = false
 	$Ui.add_child(_veil)
+	_build_journey_ui()
+	_refresh_journey_ui()
 
 
 func _process(_delta: float) -> void:
@@ -198,6 +239,93 @@ func _process(_delta: float) -> void:
 		_debug_hold_title_capture_prompt()
 	if _awaiting_arena:
 		_poll_arena_load()
+
+
+## Opt into production embedding. The host owns music, resume choice and
+## back unwind from here: this title's BGM, journey panel and dev
+## launcher step aside, and taps route to `external_start_requested`.
+func set_external_start(enabled: bool) -> void:
+	_external_start = enabled
+	if not enabled:
+		return
+	_bgm.stop()
+	_journey_force_fresh = false
+	if _journey_panel != null:
+		_journey_panel.visible = false
+	var launcher: TestLauncher = $Ui/Screen/TestLauncher as TestLauncher
+	launcher.show_developer_controls = false
+	launcher.visible = false
+
+
+func is_external_start() -> bool:
+	return _external_start
+
+
+## Park the screen chrome (logo, subtitle, prompt, menu doors) while a
+## managed overlay sits above this title. The diorama and the gate's
+## forecourt stay visible; only the chrome that would paint over the
+## modal or steal its taps steps aside. Restored by the matching
+## cancel/close calls below, never left parked.
+func park_screen_for_overlay() -> void:
+	$Ui/Screen.visible = false
+
+
+## Re-arm the tap after the login selection closes back to this title.
+func cancel_external_start() -> void:
+	$Ui/Screen.visible = true
+	_accepting = true
+
+
+## Restore the title after the managed Hall closes: doors back, tap live.
+func close_external_hall() -> void:
+	$Ui/Screen.visible = true
+	_accepting = true
+
+
+## Production back unwind through the title's own panels. Returns true
+## when a panel was closed; false means the host should carry on to its
+## own exit question.
+func external_go_back() -> bool:
+	if _credits.visible:
+		_credits.close()
+	elif _settings.visible:
+		if not _settings.close_nested_overlay():
+			_settings.close()
+	elif _shrine.visible:
+		_shrine.close()
+	elif _ladder.visible:
+		_ladder.close()
+	elif _chronicle.visible:
+		_chronicle.close()
+	elif _iap_shop.visible:
+		_iap_shop.close()
+	elif _journey_confirm != null \
+			and _journey_confirm.is_visible_in_tree():
+		# In-tree, not the property: with no save the fresh confirm box
+		# reads visible while its panel stays hidden, and that must not
+		# swallow the back. (The legacy handler keeps its own check.)
+		_show_journey_main()
+	else:
+		return false
+	return true
+
+
+## Programmatic doors for host-routed signals. The title's own buttons
+## call the same private openers.
+func open_store() -> void:
+	_open_iap_shop()
+
+
+func open_shrine() -> void:
+	_open_shrine()
+
+
+func open_settings() -> void:
+	_open_settings()
+
+
+func open_chronicle() -> void:
+	_open_chronicle()
 
 
 ## While settings are open, tapping the screen does not start the game.
@@ -221,6 +349,16 @@ func _open_shrine() -> void:
 
 ## View the leaderboard. Same rule as the shrine.
 func _open_ladder() -> void:
+	if _external_start:
+		# Managed ranks: the production entry shows the real Hall over
+		# this title. Mirror the local path (input parked, doors hidden)
+		# so no tap, login or second panel can start while it loads;
+		# the host restores this title when the Hall closes. The button
+		# itself is untouched: same label, texture, path and hitbox.
+		_accepting = false
+		$Ui/Screen.visible = false
+		external_hall_requested.emit()
+		return
 	_accepting = false
 	$Ui/Screen.visible = false
 	_ladder.view()
@@ -922,6 +1060,7 @@ func _on_panel_closed() -> void:
 	$Ui/Screen.visible = true
 	_accepting = true
 	_refresh_shrine_badge()
+	_refresh_journey_ui()
 
 
 ## Show a number on the title shrine button only when something can be bought.
@@ -929,6 +1068,185 @@ func _refresh_shrine_badge() -> void:
 	var count: int = Vault.affordable_purchase_count()
 	_shrine_badge.text = str(count)
 	_shrine_badge.visible = count > 0
+
+
+## Build the journey Continue panel: saved gate and hero, a Continue primary
+## and a New Journey that asks before it replaces the save.
+##
+## Built in code, borrowing the title's own fonts and button styles, so the
+## scene file (and the capture contract pinned to its nodes) stays untouched.
+## The panel itself ignores taps — only its buttons take them — so tapping
+## anywhere else still starts through the normal prompt path.
+func _build_journey_ui() -> void:
+	var screen: Control = $Ui/Screen
+	_journey_panel = PanelContainer.new()
+	_journey_panel.name = &"JourneyPanel"
+	_journey_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_journey_panel.offset_left = -200.0
+	_journey_panel.offset_right = 200.0
+	_journey_panel.offset_top = 2.0
+	_journey_panel.offset_bottom = 110.0
+	_journey_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var frame := StyleBoxFlat.new()
+	frame.bg_color = Color(0.03, 0.05, 0.11, 0.88)
+	frame.set_corner_radius_all(12)
+	frame.set_border_width_all(2)
+	frame.border_color = Color(0.98, 0.75, 0.41, 0.9)
+	frame.content_margin_left = 14.0
+	frame.content_margin_right = 14.0
+	frame.content_margin_top = 8.0
+	frame.content_margin_bottom = 8.0
+	_journey_panel.add_theme_stylebox_override("panel", frame)
+	screen.add_child(_journey_panel)
+
+	var rows := VBoxContainer.new()
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_theme_constant_override("separation", 2)
+	_journey_panel.add_child(rows)
+
+	var font: Font = _prompt.get_theme_font("font")
+	_journey_title = _journey_label(rows, font, 15, Color(1, 0.92, 0.78, 1))
+	_journey_detail = _journey_label(rows, font, 12, Color(0.76, 0.88, 1.0, 1))
+	_journey_error = _journey_label(rows, font, 11, Color(1.0, 0.62, 0.55, 1))
+
+	_journey_buttons = HBoxContainer.new()
+	_journey_buttons.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_journey_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_journey_buttons.add_theme_constant_override("separation", 10)
+	rows.add_child(_journey_buttons)
+	var continue_button := Button.new()
+	continue_button.name = &"JourneyContinue"
+	continue_button.custom_minimum_size = Vector2(150, 30)
+	continue_button.text = tr("JOURNEY_CONTINUE")
+	_journey_style_button(continue_button)
+	continue_button.pressed.connect(request_start)
+	_journey_buttons.add_child(continue_button)
+	var fresh_button := Button.new()
+	fresh_button.name = &"JourneyNew"
+	fresh_button.custom_minimum_size = Vector2(150, 30)
+	fresh_button.text = tr("JOURNEY_NEW")
+	_journey_style_button(fresh_button)
+	fresh_button.pressed.connect(_show_journey_confirm)
+	_journey_buttons.add_child(fresh_button)
+
+	_journey_confirm = VBoxContainer.new()
+	_journey_confirm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_journey_confirm.add_theme_constant_override("separation", 4)
+	rows.add_child(_journey_confirm)
+	_journey_confirm_label = Label.new()
+	_journey_confirm_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_journey_confirm_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_journey_confirm_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_journey_confirm_label.add_theme_font_override("font", font)
+	_journey_confirm_label.add_theme_font_size_override("font_size", 12)
+	_journey_confirm_label.add_theme_color_override(
+		"font_color", Color(1, 0.92, 0.78, 1))
+	_journey_confirm.add_child(_journey_confirm_label)
+	var confirm_row := HBoxContainer.new()
+	confirm_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	confirm_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	confirm_row.add_theme_constant_override("separation", 10)
+	_journey_confirm.add_child(confirm_row)
+	var erase_button := Button.new()
+	erase_button.name = &"JourneyErase"
+	erase_button.custom_minimum_size = Vector2(150, 30)
+	erase_button.text = tr("JOURNEY_CONFIRM_ERASE")
+	_journey_style_button(erase_button)
+	erase_button.pressed.connect(_request_fresh_journey)
+	confirm_row.add_child(erase_button)
+	var keep_button := Button.new()
+	keep_button.name = &"JourneyKeep"
+	keep_button.custom_minimum_size = Vector2(150, 30)
+	keep_button.text = tr("JOURNEY_CONFIRM_KEEP")
+	_journey_style_button(keep_button)
+	keep_button.pressed.connect(_show_journey_main)
+	confirm_row.add_child(keep_button)
+
+
+func _journey_label(
+	parent: Control, font: Font, size: int, color: Color
+) -> Label:
+	var label := Label.new()
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_override("font", font)
+	label.add_theme_font_size_override("font_size", size)
+	label.add_theme_color_override("font_color", color)
+	parent.add_child(label)
+	return label
+
+
+## Dress a journey button in the title's own button style.
+func _journey_style_button(button: Button) -> void:
+	var source: Button = $Ui/Screen/SettingsButton
+	button.add_theme_font_override("font", source.get_theme_font("font"))
+	button.add_theme_font_size_override(
+		"font_size", source.get_theme_font_size("font_size"))
+	button.add_theme_color_override(
+		"font_color", source.get_theme_color("font_color"))
+	for style in ["normal", "hover", "pressed", "disabled", "focus"]:
+		button.add_theme_stylebox_override(
+			style, source.get_theme_stylebox(style))
+
+
+## Show Continue only for a checkpoint that really loads. A save the
+## validator refuses leaves the plain tap-to-start title, never a promise.
+func _refresh_journey_ui() -> void:
+	if _journey_panel == null:
+		return
+	if _external_start:
+		# The host owns resume and the fresh confirm; the title's own
+		# Continue panel would promise a direct entry it cannot give.
+		_journey_panel.visible = false
+		return
+	var prior_error: String = Journey.last_error
+	var data: Dictionary = Journey.read_checkpoint()
+	if data.is_empty():
+		_journey_panel.visible = false
+		return
+	var info: Dictionary = Journey.summary(data)
+	var cycle: int = int(info.get("cycle", 1))
+	var terrain: int = int(info.get("terrain", 0))
+	var step: Dictionary = Expedition.TERRAINS[clampi(
+		terrain, 0, Expedition.TERRAINS.size() - 1)]
+	_journey_title.text = "%s · %s" % [
+		tr("JOURNEY_CONTINUE"), tr("HUD_WAVE") % cycle]
+	var hero: Hero = load(str(info.get("hero_path", ""))) as Hero
+	var hero_name: String = tr(hero.display_name) if hero != null else ""
+	_journey_detail.text = "%s · %s" % [tr(str(step["name"])), hero_name]
+	_journey_error.visible = not prior_error.is_empty()
+	if not prior_error.is_empty():
+		_journey_error.text = tr("JOURNEY_SAVE_FAILED")
+	# Code-built buttons hold translated text, not keys: re-translate on
+	# every refresh so a settings locale switch relabels them too.
+	(_journey_buttons.get_child(0) as Button).text = tr("JOURNEY_CONTINUE")
+	(_journey_buttons.get_child(1) as Button).text = tr("JOURNEY_NEW")
+	var confirm_row: HBoxContainer = _journey_confirm.get_child(1) as HBoxContainer
+	(confirm_row.get_child(0) as Button).text = tr("JOURNEY_CONFIRM_ERASE")
+	(confirm_row.get_child(1) as Button).text = tr("JOURNEY_CONFIRM_KEEP")
+	_show_journey_main()
+	_journey_panel.visible = true
+
+
+## The confirm step of a fresh journey. The save is untouched until Erase.
+func _show_journey_confirm() -> void:
+	_journey_buttons.visible = false
+	_journey_confirm_label.text = "%s\n%s" % [
+		tr("JOURNEY_CONFIRM_TITLE"), tr("JOURNEY_CONFIRM_DESC")]
+	_journey_confirm.visible = true
+
+
+func _show_journey_main() -> void:
+	if _journey_confirm == null:
+		return
+	_journey_confirm.visible = false
+	_journey_buttons.visible = true
+
+
+## The confirmed fresh start: replace the save with a new journey.
+func _request_fresh_journey() -> void:
+	_journey_force_fresh = true
+	request_start()
 
 
 ## A request that survives scene changes is deleted as soon as it is read so
@@ -962,6 +1280,10 @@ func _take_open_shrine_request() -> bool:
 func _notification(what: int) -> void:
 	if what != NOTIFICATION_WM_GO_BACK_REQUEST:
 		return
+	if _external_start:
+		# Production owns the back unwind (selection, loader, panels,
+		# exit); answering here too would stack a second quit dialog.
+		return
 	if _credits.visible:
 		_credits.close()
 	elif _settings.visible:
@@ -982,6 +1304,8 @@ func _notification(what: int) -> void:
 		_chronicle.close()
 	elif _iap_shop.visible:
 		_iap_shop.close()
+	elif _journey_confirm != null and _journey_confirm.visible:
+		_show_journey_main()
 	elif _quit.visible:
 		_quit.close()
 	else:
@@ -1008,7 +1332,7 @@ func _recenter_diorama() -> void:
 func _fade_in_music() -> void:
 	_bgm.volume_db = BGM_SILENCE_DB
 	await get_tree().create_timer(BGM_START_DELAY_SECONDS).timeout
-	if not is_inside_tree():
+	if not is_inside_tree() or _external_start:
 		return
 	_bgm.play()
 	var fade: Tween = create_tween()
@@ -1019,7 +1343,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _accepting:
 		return
 	if _is_start_press(event):
-		request_start()
+		request_start(event)
+
+
+## Release watch for a deferred pointer open. Observe only: this never
+## consumes, so menus and modals keep every event. Idle unless a title
+## tap armed the one-shot below.
+func _input(event: InputEvent) -> void:
+	if not _pending_pointer_open:
+		return
+	if _is_pending_release(event):
+		_open_pending_start()
 
 
 ## Touch, mouse, keyboard, and gamepad all count as start.
@@ -1036,9 +1370,37 @@ func _is_start_press(event: InputEvent) -> bool:
 	return false
 
 
-func request_start() -> void:
+func request_start(opening_event: InputEvent = null) -> void:
 	if not _accepting:
 		return
+	if _external_start:
+		# Tap feedback only, then the host's login selection over this
+		# title: no journey arming, no music fade, no arena preload, and
+		# no legacy direct entry. The blink keeps running for the return.
+		_accepting = false
+		get_viewport().set_input_as_handled()
+		_sfx.play()
+		_beacon_player.play(&"flare")
+		if _is_pointer_press(opening_event):
+			# The card opens on release, not on press. Opening
+			# synchronously lets the gesture's own tail — the release
+			# and its emulated counterpart — land on doors which just
+			# appeared: a title tap opened the Terms sheet this way.
+			# Keys, gamepad and programmatic starts carry no pointer
+			# tail and emit now, as before.
+			_arm_pending_pointer_open(opening_event)
+			return
+		external_start_requested.emit()
+		return
+	# A shown Continue panel means stepping back through the saved gate; a
+	# tap with no save, or the confirmed fresh start, begins a new journey.
+	# Both arm journey writes for the arena that follows.
+	if _journey_panel != null and _journey_panel.visible \
+			and not _journey_force_fresh:
+		Journey.begin_resume()
+	else:
+		Journey.begin_fresh()
+	_journey_force_fresh = false
 	_accepting = false
 	get_viewport().set_input_as_handled()
 
@@ -1068,6 +1430,73 @@ func request_start() -> void:
 	if not is_inside_tree():
 		return
 	start_requested.emit()
+
+
+## True for a pointer press carrying a gesture tail: mouse or touch
+## down. Keys, gamepad, releases and programmatic starts answer false.
+func _is_pointer_press(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		return (event as InputEventMouseButton).pressed
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).pressed
+	return false
+
+
+## Arm the deferred open for this pointer. Feedback already played;
+## the card opens on the matching release, or the timeout when the
+## release is lost.
+func _arm_pending_pointer_open(event: InputEvent) -> void:
+	_pending_pointer_open = true
+	_pending_generation += 1
+	if event is InputEventMouseButton:
+		_pending_pointer_kind = PENDING_POINTER_MOUSE
+		_pending_mouse_button = (event as InputEventMouseButton).button_index
+	else:
+		_pending_pointer_kind = PENDING_POINTER_TOUCH
+		_pending_touch_index = (event as InputEventScreenTouch).index
+	_watch_pending_open(_pending_generation)
+
+
+## True only for the arming pointer's own release: the same mouse
+## button, or the same touch index. Other pointers pass through.
+func _is_pending_release(event: InputEvent) -> bool:
+	if _pending_pointer_kind == PENDING_POINTER_MOUSE:
+		return event is InputEventMouseButton \
+			and not (event as InputEventMouseButton).pressed \
+			and (event as InputEventMouseButton).button_index \
+				== _pending_mouse_button
+	if _pending_pointer_kind == PENDING_POINTER_TOUCH:
+		return event is InputEventScreenTouch \
+			and not (event as InputEventScreenTouch).pressed \
+			and (event as InputEventScreenTouch).index \
+				== _pending_touch_index
+	return false
+
+
+func _watch_pending_open(generation: int) -> void:
+	await get_tree().create_timer(
+		PENDING_POINTER_OPEN_TIMEOUT_SECONDS).timeout
+	if not is_inside_tree():
+		return
+	if _pending_pointer_open and generation == _pending_generation:
+		_open_pending_start()
+
+
+## Open the parked card for a resolved pointer gesture. Only the
+## untouched title still answers: any takeover since the press (a
+## title panel, the production exit question) parks the Screen, and
+## this opening dies with it.
+func _open_pending_start() -> void:
+	if not _pending_pointer_open:
+		return
+	_pending_pointer_open = false
+	_pending_pointer_kind = PENDING_POINTER_NONE
+	_pending_generation += 1
+	if not is_inside_tree():
+		return
+	if not ($Ui/Screen as Control).visible:
+		return
+	external_start_requested.emit()
 
 
 func _fade_out_music() -> void:

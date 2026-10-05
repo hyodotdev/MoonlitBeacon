@@ -36,30 +36,46 @@ static var _loaded: bool = false
 ## entries are the first-sight lines (`HeroVoice`); `epitaph_*` are the three
 ## ways a run can end.
 static func sections() -> Array[Dictionary]:
-	return [
-		_act(1, [
-			_entry("story_open", ["STORY_OPEN_A", "STORY_OPEN_B"]),
-			_story(1), _story(2)]),
-		_act(2, [_story(3), _story(4), _story(5)]),
-		_act(3, [_story(6), _story(7), _story(8)]),
-		_act(4, [_story(9), _story(10), _story(12)]),
+	# Story entries come from the episode catalog, grouped by act, so a
+	# future episode appears here with no edit. Entry ids and keys stay
+	# exactly as they were: old saves outlive this file.
+	var beats_by_act: Dictionary = {}
+	for beat: int in StoryEpisodes.story_beats():
+		var act_number: int = int(StoryEpisodes.act_of_cycle(beat).get("number", 1))
+		if not beats_by_act.has(act_number):
+			beats_by_act[act_number] = []
+		(beats_by_act[act_number] as Array).append(beat)
+	var act_numbers: Array = beats_by_act.keys()
+	act_numbers.sort()
+	var out: Array[Dictionary] = []
+	for act_number: int in act_numbers:
+		var entries: Array = []
+		if act_number == 1:
+			entries.append(_entry("story_open", ["STORY_OPEN_A", "STORY_OPEN_B"]))
+		for act_beat: int in beats_by_act[act_number]:
+			entries.append(_story(act_beat))
+		out.append(_act(act_number, entries))
+	out.append(
 		{"title": "CHRONICLE_PLACES", "label": "", "entries": [
-			_place(0), _place(1), _place(2), _place(3), _place(4), _place(5)]},
+			_place(0), _place(1), _place(2), _place(3), _place(4), _place(5)]})
+	out.append(
 		{"title": "CHRONICLE_SPIRITS", "label": "", "entries": [
 			_meet("drifter"), _meet("ember"), _meet("caster"), _meet("weaver"),
-			_meet("stalker"), _meet("swarm"), _meet("wisp")]},
+			_meet("stalker"), _meet("swarm"), _meet("wisp")]})
+	out.append(
 		{"title": "CHRONICLE_GUARDIANS", "label": "", "entries": [
 			_meet("guardian_forest"), _meet("guardian_field"), _meet("guardian_camp"),
 			_meet("guardian_forest_thorn"), _meet("guardian_field_storm"),
 			_meet("guardian_camp_siege"),
 			_meet("guardian_frost"), _meet("guardian_marsh"), _meet("guardian_ruins"),
 			_meet("guardian_frost_rime"), _meet("guardian_marsh_glow"),
-			_meet("guardian_ruins_halo")]},
+			_meet("guardian_ruins_halo")]})
+	out.append(
 		{"title": "CHRONICLE_ENDINGS", "label": "", "entries": [
 			_ending("win", "STORY_EPITAPH_WIN"),
 			_ending("escape", "STORY_EPITAPH_ESCAPE"),
-			_ending("lose", "STORY_EPITAPH_LOSE")]},
-	]
+			_ending("lose", "STORY_EPITAPH_LOSE")]})
+	return out
 
 
 ## Record that something was seen. Returns true only the first time.

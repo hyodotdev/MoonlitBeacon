@@ -1,0 +1,21 @@
+# Brief 046: Preserve journey and rewards across partial failures
+
+## The ask
+The user wants an endless saved journey for 4.0.0. Continue the local journey implementation, correcting independently reproduced persistence defects before integration.
+
+## Confirmed evidence
+The director ran an isolated foreground-scene probe through the production arena. A fresh saved journey had zero awarded shards. Blocking the checkpoint temp path as a directory, then making progress worth 10000 kill score, caused `_journey_checkpoint(true)` to return false after Vault had already banked 15 shards. After arena destruction/resume, the old checkpoint restored `shards_awarded=0`; repeating exactly that progress and successfully saving banked another 15. Receipt: `bank_before=0`, `bank_after_failed_checkpoint=15`, `bank_after_repeat_progress=30`. Thus caller-only settlement bookkeeping is not crash-safe. This is not fixed by repeating successful death/retry tests.
+
+The same probe set `schema_version=1.5` in a valid checkpoint; `Journey.validate()` accepted it. Both schema checks coerce through `int()`. `_read_candidate()` reads the entire file before measuring size, and `_file_validates()` / backup copying also read without a bound. `write_checkpoint()` ignores backup write failure, then deletes the current main file on any rename failure before retrying; a crash between deletion/retry or another failure can lose the sole valid save. Backup and recovery copying truncate their destination directly.
+
+## Do
+- Make earned journey settlement idempotent in the durable Vault transaction itself, keyed by stable journey/receipt identity and cumulative grant target, or an equivalent proven atomic scheme. A successful Vault save plus failed journey write or a process crash cannot grant the same progress twice. Preserve existing IAP/paid ledgers and legacy result settlement behavior. Settlement failure must not seal a checkpoint as settled; retry must remain available across restart. Keep receipt state bounded without allowing replay of a retired receipt to mint rewards.
+- Strictly validate the schema as an integer with exactly the supported value. Check file length before any full read/parse/copy, use one bounded read, and keep safe integers inside the exactly representable JSON range. Backups/recovery must be validated and atomically installed. Never delete the sole known-good main save based on an unchecked backup claim; failed replacement retains a playable prior save. Include explicit fault injection for backup, replace and settlement writes/crash boundaries rather than relying on happy paths.
+- Check the journey's cycle bound against its endless progression. Cycle 1000 currently cannot validate because `MAX_CYCLE=999`; do not make an arbitrary authored-content/telemetry bound stop continuation. Use a defensible high integer bound and keep score/telemetry caps separate from playable progression. Add a late checkpoint case beyond 1000.
+- Extend registered journey/earned-settlement tests with those cases and update the build note/docs only where the resulting behavior changes. Keep the continuous opening and existing later modal protections.
+
+## Do not
+Do not touch native identity, cloud/rules, painted art, unrelated UI redesign, version/presets, stores, credentials, guards or workflow files. Do not move paid purchase data into Journey. Do not weaken neighboring IAP, result, reward, terrain or story tests. Do not claim success based on tests that only repeat successful saves.
+
+## Acceptance and judgment
+The director repeats a blocked-checkpoint write followed by process-style destruction/resume and identical progress: banked shards increase at most once. Also test Vault save failure followed by restart/retry, crash after a committed payout before checkpoint replacement, valid-backup recovery and replacement failure. All retain valid prior progress/paid state and settle exactly once. Fractional/string/bool schema values and oversized files are refused before allocation/parse. A cycle above 1000 restores. Related suites and script/locale/hygiene checks pass. The director reads the transaction, runs the new tests plus a negative control and inspects the fresh/resume/retry foreground harness before accepting.

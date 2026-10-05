@@ -22,6 +22,7 @@ const RISE_SECONDS: float = 0.5
 ## A card nobody taps still closes, so a forgotten phone is not stuck on it.
 const AUTO_CLOSE_SECONDS: float = 12.0
 
+@onready var _column: VBoxContainer = $Center/Column
 @onready var _beacon: TextureRect = $Center/Column/Beacon
 @onready var _label: Label = $Center/Column/Label
 @onready var _title: Label = $Center/Column/Title
@@ -44,6 +45,12 @@ func play(act: Dictionary) -> void:
 	if act.is_empty():
 		finished.emit()
 		return
+	# A moon-bead rule between the chapter title and its epigraph, hung on
+	# first card, never in `_ready` (arena node budget).
+	if _column.get_node_or_null("WorldDivider") == null:
+		var rule: HBoxContainer = WorldChrome.divider()
+		_column.add_child(rule)
+		_column.move_child(rule, 3)
 	_label.text = tr(str(act["label"]))
 	_title.text = tr(str(act["title"]))
 	_epigraph.text = tr(str(act["epigraph"]))

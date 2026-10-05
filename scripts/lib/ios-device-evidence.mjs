@@ -49,6 +49,13 @@ const XCODE_CAPTURE_ONLY_FIELDS = Object.freeze([
   'xcode_activation_launch_sha256',
   'xcode_activation_processes_path',
   'xcode_activation_processes_sha256',
+  'xcode_final_quiesce_terminated_pid',
+  'xcode_final_quiesce_before_path',
+  'xcode_final_quiesce_before_sha256',
+  'xcode_final_quiesce_terminate_path',
+  'xcode_final_quiesce_terminate_sha256',
+  'xcode_final_quiesce_after_path',
+  'xcode_final_quiesce_after_sha256',
   'xcode_handoff_process_id',
   'xcode_handoff_device_details_before_path',
   'xcode_handoff_device_details_before_sha256',
@@ -83,8 +90,20 @@ export const IOS_CODE_PERSISTENT_FILES = Object.freeze([
   'iap_entitlements.cfg.bak',
   'iap_entitlements.cfg.bak.tmp',
   'iap_entitlements.cfg.tmp',
+  'journey.json',
+  'journey.json.bak',
+  'journey.json.bak.tmp',
+  'journey.json.tmp',
   'ladder.json',
   'ladder.json.tmp',
+  'onboarding.json',
+  'onboarding.json.tmp',
+  'player_bindings.cfg',
+  'player_bindings.cfg.bak',
+  'player_bindings.cfg.tmp',
+  'player_identity.cfg',
+  'player_identity.cfg.bak',
+  'player_identity.cfg.tmp',
   'records.cfg',
   'records.cfg.tmp',
   'settings.cfg',
@@ -1062,6 +1081,138 @@ export async function settleWithMandatoryCleanup(operation, cleanup) {
   return { value, operationFailure, cleanupValue, cleanupFailure };
 }
 
+/**
+ * Broad single-process continuity for one Xcode frame observation, used by the
+ * producer's pre/post-frame check: every same-named game process counts, so a
+ * prewarmed production app or any other competitor fails the frame instead of
+ * being sanitized away.
+ */
+export function assertXcodeFrameBroadContinuity(processes, capturePid, label) {
+  if (!Array.isArray(processes)) {
+    fail(`${label} broad game process list is invalid`);
+  }
+  if (!Number.isSafeInteger(capturePid) || capturePid <= 0) {
+    fail(`${label} capture game process PID is invalid`);
+  }
+  if (
+    processes.length !== 1
+    || processes[0]?.processIdentifier !== capturePid
+  ) {
+    fail(`${label}: foreground game process PID changed`);
+  }
+  return processes[0];
+}
+
+/**
+ * Exact-path production quiescence with injected device operations, used by
+ * the producer's quiesceProductionApp: only the installed production
+ * executable may be terminated, and a surviving process fails the run.
+ * listExact returns the { processes, path } listing and terminate returns the
+ * { path } receipt so the producer can hash the same evidence it always has.
+ */
+export function quiesceExactProductionProcess(
+  operations,
+  productionExecutable,
+  label,
+) {
+  if (typeof label !== 'string' || label.length === 0) {
+    fail('production quiescence label is missing');
+  }
+  if (operations === null || typeof operations !== 'object') {
+    fail(`${label} production quiescence operations are invalid`);
+  }
+  const { listExact, terminate } = operations;
+  if (typeof listExact !== 'function' || typeof terminate !== 'function') {
+    fail(`${label} production quiescence operations are invalid`);
+  }
+  if (productionExecutable === null) {
+    return {
+      terminatedPid: null,
+      beforePath: null,
+      terminatePath: null,
+      afterPath: null,
+    };
+  }
+  if (typeof productionExecutable !== 'string' || productionExecutable.length === 0) {
+    fail(`${label} production executable is invalid`);
+  }
+  const before = listExact(productionExecutable, `${label}-before`);
+  if (!isRecord(before) || !Array.isArray(before.processes) || typeof before.path !== 'string') {
+    fail(`${label} exact production process listing is invalid`);
+  }
+  if (before.processes.length > 1) {
+    fail(`${label} more than one production process is running`);
+  }
+  let terminatedPid = null;
+  let terminatePath = null;
+  if (before.processes.length === 1) {
+    terminatedPid = before.processes[0]?.processIdentifier;
+    if (!Number.isSafeInteger(terminatedPid) || terminatedPid <= 0) {
+      fail(`${label} production processIdentifier is invalid`);
+    }
+    const terminated = terminate(terminatedPid, label);
+    if (!isRecord(terminated) || typeof terminated.path !== 'string') {
+      fail(`${label} production terminate receipt is invalid`);
+    }
+    terminatePath = terminated.path;
+  }
+  const after = listExact(productionExecutable, `${label}-after`);
+  if (!isRecord(after) || !Array.isArray(after.processes) || typeof after.path !== 'string') {
+    fail(`${label} exact production process listing is invalid`);
+  }
+  if (after.processes.length !== 0) {
+    fail(`${label} could not confirm production process exit`);
+  }
+  return {
+    terminatedPid,
+    beforePath: before.path,
+    terminatePath,
+    afterPath: after.path,
+  };
+}
+
+/**
+ * Per-frame Xcode capture order with injected operations, used by the
+ * producer's ordinary and guardian capture paths with real CoreDevice calls.
+ * The broad pre/post-frame checks run inside the reactivate and openFrame
+ * operations; this sequence guarantees the final production quiescence runs
+ * after the slow state observations and before the frame window opens.
+ * Nothing quiesces after the frame: a post-frame competitor must fail the
+ * continuity check inside openFrame.
+ */
+export async function runXcodeFrameSequence({ capturePid, operations }) {
+  if (operations === null || typeof operations !== 'object') {
+    fail('Xcode frame sequence operations are invalid');
+  }
+  const {
+    reactivate,
+    observeStates,
+    quiesceProduction,
+    openFrame,
+  } = operations;
+  for (const [name, operation] of Object.entries({
+    reactivate,
+    observeStates,
+    quiesceProduction,
+    openFrame,
+  })) {
+    if (typeof operation !== 'function') {
+      fail(`Xcode frame sequence operation ${name} is not a function`);
+    }
+  }
+  if (!Number.isSafeInteger(capturePid) || capturePid <= 0) {
+    fail('Xcode frame sequence capture PID is invalid');
+  }
+  const activation = await reactivate();
+  if (activation?.pid !== capturePid) {
+    fail('Xcode frame sequence could not reactivate the capture app on the same PID');
+  }
+  const observed = await observeStates();
+  const finalQuiescence = await quiesceProduction();
+  const screenshot = await openFrame({ activation, observed, finalQuiescence });
+  return { activation, observed, finalQuiescence, screenshot };
+}
+
 export function pngSize(bytes, label = 'iOS screenshot') {
   const value = Buffer.from(bytes);
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -1470,6 +1621,45 @@ export function assertCompleteIosCaptureManifest({
           capture.xcode_activation_processes_path,
         )
         || !SHA256_PATTERN.test(capture.xcode_activation_processes_sha256)
+        || !(
+          capture.xcode_final_quiesce_terminated_pid === null
+          || (
+            Number.isSafeInteger(capture.xcode_final_quiesce_terminated_pid)
+            && capture.xcode_final_quiesce_terminated_pid > 0
+          )
+        )
+        || !(
+          (
+            capture.xcode_final_quiesce_before_path === null
+            && capture.xcode_final_quiesce_before_sha256 === null
+            && capture.xcode_final_quiesce_after_path === null
+            && capture.xcode_final_quiesce_after_sha256 === null
+            && capture.xcode_final_quiesce_terminated_pid === null
+          ) || (
+            IOS_EVIDENCE_JSON_PATH_PATTERN.test(
+              capture.xcode_final_quiesce_before_path,
+            )
+            && SHA256_PATTERN.test(capture.xcode_final_quiesce_before_sha256)
+            && IOS_EVIDENCE_JSON_PATH_PATTERN.test(
+              capture.xcode_final_quiesce_after_path,
+            )
+            && SHA256_PATTERN.test(capture.xcode_final_quiesce_after_sha256)
+          )
+        )
+        || !(
+          (
+            capture.xcode_final_quiesce_terminated_pid === null
+            && capture.xcode_final_quiesce_terminate_path === null
+            && capture.xcode_final_quiesce_terminate_sha256 === null
+          ) || (
+            Number.isSafeInteger(capture.xcode_final_quiesce_terminated_pid)
+            && capture.xcode_final_quiesce_terminated_pid > 0
+            && IOS_EVIDENCE_JSON_PATH_PATTERN.test(
+              capture.xcode_final_quiesce_terminate_path,
+            )
+            && SHA256_PATTERN.test(capture.xcode_final_quiesce_terminate_sha256)
+          )
+        )
         || !IOS_EVIDENCE_JSON_PATH_PATTERN.test(
           capture.xcode_handoff_device_details_before_path,
         )

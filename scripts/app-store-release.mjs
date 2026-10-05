@@ -11,8 +11,8 @@ import {
   formatAppStoreReleaseReport,
   parseAppStoreReleaseArguments,
   readAndVerifyAppStoreReleaseManifest,
+  resolveAppStoreCaptureEvidence,
   resolveManifestOutputPath,
-  runAppStoreScreenshotValidation,
   writeAppStoreReleaseManifest,
 } from './lib/app-store-release.mjs';
 import {
@@ -37,6 +37,7 @@ function usage() {
     '  --confirm-remote-apply TOKEN  apply confirmation token printed by --check',
     '  --submit-review  submit for review after apply converges, with a separate confirmation',
     '  --confirm-review-submission TOKEN  review-submission confirmation token',
+    '  --reuse-committed-gallery  retain the already-uploaded gallery; no fresh capture proof',
     '  --output PATH   manifest JSON path under builds/release',
     '  --json          print the report as JSON',
     '  --help, -h      print this help',
@@ -48,7 +49,33 @@ function usage() {
     '',
     'apply re-runs GET preflight immediately before every change and refreshes the JWT.',
     'Review submission does not succeed until GET readback of status, 11 items, and the linked build.',
+    '',
+    'With --reuse-committed-gallery the strict capture-freshness check is',
+    'skipped and the already-uploaded gallery is retained as-is. Local PNG,',
+    'provenance, and file-integrity checks still run, every remote image',
+    'target is verified by GET to exactly match the retained manifest,',
+    'and no image mutation request is ever sent. Capture evidence is',
+    'reported as retained existing uploads, not fresh capture. The flag',
+    'is required on every invocation, including --apply, and reuse',
+    'confirmation tokens do not authorize a normal apply.',
+    '',
+    'Reuse replacement-build sequence (same 4.0.0 display version, new',
+    'build). The counter bump changes export inputs, so prepare the new',
+    'manifest first over the same retained PNG bytes, then check it:',
+    '  node scripts/app-store-release.mjs --reuse-committed-gallery',
+    '  node scripts/app-store-release.mjs --reuse-committed-gallery --check',
+    '  node scripts/app-store-release.mjs --reuse-committed-gallery --check --remote-audit',
+    '  node scripts/app-store-release.mjs --reuse-committed-gallery --check --remote-audit \\',
+    '    --apply --confirm-remote-apply <reuse token from --check>',
+    '    [--submit-review --confirm-review-submission <reuse review token>]',
   ].join('\n');
+}
+
+function reportMode(options) {
+  const base = options.remoteAudit
+    ? 'GET_ONLY_REMOTE_AUDIT'
+    : options.check ? 'LOCAL_MANIFEST_CHECK' : 'LOCAL_ONLY_DRY_RUN';
+  return options.reuseCommittedGallery ? `${base}_REUSE_COMMITTED_GALLERY` : base;
 }
 
 async function main() {
@@ -63,7 +90,14 @@ async function main() {
   // PNG hashes in the App Store manifest only prove integrity. Hashing a
   // stale capture after game, translation, or hero resources changed is
   // caught only by re-checking the capture report runtime fingerprint.
-  runAppStoreScreenshotValidation(repoRoot, { env: process.env });
+  // Reuse mode skips that freshness re-check by explicit operator decision
+  // and reports retained existing uploads instead of fresh capture proof;
+  // it never rewrites capture reports or provenance to look current.
+  const captureEvidence = resolveAppStoreCaptureEvidence({
+    env: process.env,
+    repoRoot,
+    reuseCommittedGallery: options.reuseCommittedGallery,
+  });
   const payload = buildAppStoreReleasePayload({
     repoRoot,
     appId:
@@ -80,7 +114,9 @@ async function main() {
   }
 
   const applyCheck = options.check
-    ? appStoreApplyCheckSummary(manifest)
+    ? appStoreApplyCheckSummary(manifest, {
+      reuseCommittedGallery: options.reuseCommittedGallery,
+    })
     : null;
   if (options.apply) {
     const result = await createAuthenticatedAppStoreApply({
@@ -88,11 +124,19 @@ async function main() {
       manifest,
       payload,
       repoRoot,
+      reuseCommittedGallery: options.reuseCommittedGallery,
       reviewConfirmation: options.reviewConfirmation,
       submitReview: options.submitReview,
     });
     if (options.json) {
-      console.log(canonicalJson({ mode: 'REMOTE_APPLY', result }).trimEnd());
+      console.log(canonicalJson({
+        captureEvidence: captureEvidence.evidence,
+        freshCaptureEvidence: captureEvidence.freshCapture,
+        mode: options.reuseCommittedGallery
+          ? 'REMOTE_APPLY_REUSE_COMMITTED_GALLERY'
+          : 'REMOTE_APPLY',
+        result,
+      }).trimEnd());
     } else {
       console.log(formatAppStoreApplyReport(result));
     }
@@ -100,14 +144,18 @@ async function main() {
     return;
   }
   const remoteAudit = options.remoteAudit
-    ? await createAuthenticatedAppStoreApplyAudit({ repoRoot, payload })
+    ? await createAuthenticatedAppStoreApplyAudit({
+      repoRoot,
+      payload,
+      reuseCommittedGallery: options.reuseCommittedGallery,
+    })
     : null;
   if (options.json) {
     console.log(canonicalJson({
       applyCheck,
-      mode: options.remoteAudit
-        ? 'GET_ONLY_REMOTE_AUDIT'
-        : options.check ? 'LOCAL_MANIFEST_CHECK' : 'LOCAL_ONLY_DRY_RUN',
+      captureEvidence: captureEvidence.evidence,
+      freshCaptureEvidence: captureEvidence.freshCapture,
+      mode: reportMode(options),
       manifestPath,
       manifest,
       remoteAudit,
@@ -120,6 +168,7 @@ async function main() {
       manifest,
       check: options.check,
       remoteAudit,
+      reuseCommittedGallery: options.reuseCommittedGallery,
     });
     console.log([
       report,

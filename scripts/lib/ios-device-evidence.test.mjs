@@ -32,6 +32,7 @@ import {
   assertRsdIosDeviceIdentity,
   assertStableIosArenaCaptureState,
   assertStableIosPersistentSnapshots,
+  assertXcodeFrameBroadContinuity,
   coreDeviceRsdPortCandidates,
   createDeferredCancellation,
   ensurePrivateDirectory,
@@ -41,7 +42,9 @@ import {
   IOS_XCODE_HANDOFF_CAPTURE_METHOD,
   pngSize,
   publishXcodeScreenshotHandoff,
+  quiesceExactProductionProcess,
   removeXcodeScreenshotHandoffEntries,
+  runXcodeFrameSequence,
   sealPrivateRegularFile,
   settleWithMandatoryCleanup,
   withEphemeralFilesystemPath,
@@ -69,6 +72,13 @@ const RSD_NULL_XCODE_EVIDENCE = Object.freeze(Object.fromEntries([
   'xcode_activation_launch_sha256',
   'xcode_activation_processes_path',
   'xcode_activation_processes_sha256',
+  'xcode_final_quiesce_terminated_pid',
+  'xcode_final_quiesce_before_path',
+  'xcode_final_quiesce_before_sha256',
+  'xcode_final_quiesce_terminate_path',
+  'xcode_final_quiesce_terminate_sha256',
+  'xcode_final_quiesce_after_path',
+  'xcode_final_quiesce_after_sha256',
   'xcode_handoff_process_id',
   'xcode_handoff_device_details_before_path',
   'xcode_handoff_device_details_before_sha256',
@@ -645,7 +655,7 @@ test('iOS missile proof pins the store asset locale to match the report', () => 
   const runtimeBefore = captureSource.indexOf(
     'let runtimeBefore = await waitRuntimeState(',
   );
-  const screenshot = captureSource.indexOf('const screenshot = captureMethod');
+  const screenshot = captureSource.indexOf('await runXcodeFrameSequence({');
   assert.ok(missileReady >= 0);
   assert.ok(cleanUiReady > missileReady);
   assert.ok(runtimeBefore > cleanUiReady);
@@ -766,10 +776,17 @@ test('Xcode capture reactivates the same PID before SIGSTOP and broadly blocks c
   const runtimeStart = source.indexOf('async function captureRuntime(');
   const runtimeEnd = source.indexOf('\nfunction discardUnpublishedCapture(', runtimeStart);
   const runtime = source.slice(runtimeStart, runtimeEnd);
-  const activate = runtime.indexOf('activation = reactivateCaptureProcess(');
-  const advancingFrame = runtime.indexOf('const foregroundState = await waitRuntimeState(');
-  const suspend = runtime.indexOf('await withSuspendedGameProcess(');
-  assert.ok(activate >= 0 && advancingFrame > activate && suspend > advancingFrame);
+  const sequence = runtime.indexOf('await runXcodeFrameSequence({');
+  const reactivateSlot = runtime.indexOf('reactivate: () => reactivateCaptureProcess(', sequence);
+  const observeSlot = runtime.indexOf('observeStates: async () => {', reactivateSlot);
+  const advancingFrame = runtime.indexOf('const foregroundState = await waitRuntimeState(', observeSlot);
+  const quiesceSlot = runtime.indexOf('quiesceProduction: () => quiesceProductionApp(', advancingFrame);
+  const openSlot = runtime.indexOf(
+    'openFrame: ({ activation, finalQuiescence }) => withSuspendedGameProcess(',
+    quiesceSlot,
+  );
+  assert.ok(sequence >= 0 && reactivateSlot > sequence && observeSlot > reactivateSlot);
+  assert.ok(advancingFrame > observeSlot && quiesceSlot > advancingFrame && openSlot > quiesceSlot);
 
   const mainStart = source.indexOf('async function main()');
   const main = source.slice(mainStart);
@@ -907,7 +924,7 @@ test('Xcode handoff request pins the PID between the before proof and after adva
   const runtimeEnd = source.indexOf('\nfunction discardUnpublishedCapture(', runtimeStart);
   const runtime = source.slice(runtimeStart, runtimeEnd);
   const before = runtime.indexOf('before = await waitRuntimeState(');
-  const screenshot = runtime.indexOf('const screenshot = suspendDuringScreenshot');
+  const screenshot = runtime.indexOf('await runXcodeFrameSequence({');
   const after = runtime.indexOf('const after = await waitRuntimeState(');
   assert.ok(before >= 0 && screenshot > before && after > screenshot);
   assert.match(
@@ -1562,8 +1579,20 @@ test('keeps the production user save-file inventory and captures only the isolat
     'iap_entitlements.cfg.bak',
     'iap_entitlements.cfg.bak.tmp',
     'iap_entitlements.cfg.tmp',
+    'journey.json',
+    'journey.json.bak',
+    'journey.json.bak.tmp',
+    'journey.json.tmp',
     'ladder.json',
     'ladder.json.tmp',
+    'onboarding.json',
+    'onboarding.json.tmp',
+    'player_bindings.cfg',
+    'player_bindings.cfg.bak',
+    'player_bindings.cfg.tmp',
+    'player_identity.cfg',
+    'player_identity.cfg.bak',
+    'player_identity.cfg.tmp',
     'records.cfg',
     'records.cfg.tmp',
     'settings.cfg',
@@ -1604,13 +1633,22 @@ test('keeps the production user save-file inventory and captures only the isolat
     'analytics_consent.revoked',
     'chronicle.json',
     'iap_entitlements.cfg',
+    'journey.json',
+    'journey.json.bak',
     'ladder.json',
     'ladder.json.tmp',
+    'onboarding.json',
+    'player_bindings.cfg',
+    'player_identity.cfg',
     'records.cfg',
     'records.cfg.tmp',
     'settings.cfg',
     'settings.cfg.tmp',
     'vault.cfg',
+    // Dynamic path builders emit a prefix plus a validated account token;
+    // the Android dynamic pattern (not a literal) covers every name.
+    'journey.',
+    'cloud_journey.',
   ]);
   assert.deepEqual(
     [...literals].filter((name) => (
@@ -1871,6 +1909,17 @@ test('only a 5-locale x 6 native iPad manifest counts as a complete set', () => 
     filenames,
     artifactSha256,
   }), { capture_count: 30, screenshot_size: '2266x1488' });
+  assert.throws(
+    () => assertCompleteIosCaptureManifest({
+      captures: captures.map((entry, index) => (index === 0
+        ? { ...entry, xcode_final_quiesce_terminated_pid: 42 }
+        : entry)),
+      locales,
+      filenames,
+      artifactSha256,
+    }),
+    /RSD capture transport-only proof is invalid/u,
+  );
   captures[1].sha256 = captures[0].sha256;
   assert.throws(
     () => assertCompleteIosCaptureManifest({
@@ -1930,6 +1979,15 @@ test('Xcode handoff manifest requires exact 2266x1488, nonce, and a fresh timest
     xcode_activation_processes_path:
       'builds/ios-device-evidence/ipad-13/run-id/work/002-reactivate-processes.json',
     xcode_activation_processes_sha256: HASH('activation-processes'),
+    xcode_final_quiesce_terminated_pid: null,
+    xcode_final_quiesce_before_path:
+      'builds/ios-device-evidence/ipad-13/run-id/work/007-final-quiesce-before.json',
+    xcode_final_quiesce_before_sha256: HASH('final-quiesce-before'),
+    xcode_final_quiesce_terminate_path: null,
+    xcode_final_quiesce_terminate_sha256: null,
+    xcode_final_quiesce_after_path:
+      'builds/ios-device-evidence/ipad-13/run-id/work/008-final-quiesce-after.json',
+    xcode_final_quiesce_after_sha256: HASH('final-quiesce-after'),
     xcode_handoff_device_details_before_path:
       'builds/ios-device-evidence/ipad-13/run-id/work/003-details-before.json',
     xcode_handoff_device_details_before_sha256: HASH('details-before'),
@@ -1983,4 +2041,549 @@ test('Xcode handoff manifest requires exact 2266x1488, nonce, and a fresh timest
     }),
     /Xcode screenshot handoff proof is invalid/u,
   );
+  assert.deepEqual(assertCompleteIosCaptureManifest({
+    captures: [{
+      ...capture,
+      xcode_final_quiesce_terminated_pid: 5150,
+      xcode_final_quiesce_terminate_path:
+        'builds/ios-device-evidence/ipad-13/run-id/work/009-final-quiesce-terminate.json',
+      xcode_final_quiesce_terminate_sha256: HASH('final-quiesce-terminate'),
+    }],
+    locales: ['en-US'],
+    filenames: ['01.png'],
+    artifactSha256,
+    captureMethod: IOS_XCODE_HANDOFF_CAPTURE_METHOD,
+  }), { capture_count: 1, screenshot_size: '2266x1488' });
+  assert.deepEqual(assertCompleteIosCaptureManifest({
+    captures: [{
+      ...capture,
+      xcode_final_quiesce_before_path: null,
+      xcode_final_quiesce_before_sha256: null,
+      xcode_final_quiesce_after_path: null,
+      xcode_final_quiesce_after_sha256: null,
+    }],
+    locales: ['en-US'],
+    filenames: ['01.png'],
+    artifactSha256,
+    captureMethod: IOS_XCODE_HANDOFF_CAPTURE_METHOD,
+  }), { capture_count: 1, screenshot_size: '2266x1488' });
+  assert.throws(
+    () => assertCompleteIosCaptureManifest({
+      captures: [{
+        ...capture,
+        xcode_final_quiesce_terminated_pid: 5150,
+      }],
+      locales: ['en-US'],
+      filenames: ['01.png'],
+      artifactSha256,
+      captureMethod: IOS_XCODE_HANDOFF_CAPTURE_METHOD,
+    }),
+    /Xcode screenshot handoff proof is invalid/u,
+  );
+  assert.throws(
+    () => assertCompleteIosCaptureManifest({
+      captures: [{
+        ...capture,
+        xcode_final_quiesce_before_path: undefined,
+      }],
+      locales: ['en-US'],
+      filenames: ['01.png'],
+      artifactSha256,
+      captureMethod: IOS_XCODE_HANDOFF_CAPTURE_METHOD,
+    }),
+    /Xcode screenshot handoff proof is invalid/u,
+  );
+});
+
+const FRAME_CAPTURE_PID = 4242;
+const FRAME_CAPTURE_EXECUTABLE = 'file:///private/var/containers/Bundle/Application/AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA/MoonlitBeacon.app/MoonlitBeacon';
+const FRAME_PRODUCTION_EXECUTABLE = 'file:///private/var/containers/Bundle/Application/BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB/MoonlitBeacon.app/MoonlitBeacon';
+const FRAME_COMPETITOR_EXECUTABLE = 'file:///private/var/containers/Bundle/Application/CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC/MoonlitBeacon.app/MoonlitBeacon';
+
+function fakeFrameDevice() {
+  const processes = new Map([[FRAME_CAPTURE_PID, FRAME_CAPTURE_EXECUTABLE]]);
+  let sequence = 0;
+  const evidencePath = (label) => `work/fake-${String(sequence += 1).padStart(4, '0')}-${label}.json`;
+  return {
+    launch(pid, executable) {
+      processes.set(pid, executable);
+    },
+    exit(pid) {
+      processes.delete(pid);
+    },
+    has(pid) {
+      return processes.has(pid);
+    },
+    listBroad() {
+      return [...processes.entries()].map(([processIdentifier, executable]) => ({
+        processIdentifier,
+        executable,
+      }));
+    },
+    listExact(executable, label) {
+      return {
+        processes: [...processes.entries()]
+          .filter(([, candidate]) => candidate === executable)
+          .map(([processIdentifier, candidate]) => ({
+            processIdentifier,
+            executable: candidate,
+          })),
+        path: evidencePath(label),
+      };
+    },
+    terminate(pid, label) {
+      processes.delete(pid);
+      return { path: evidencePath(`${label}-${pid}`) };
+    },
+  };
+}
+
+function frameQuiesce(device, productionExecutable = FRAME_PRODUCTION_EXECUTABLE) {
+  return (label) => quiesceExactProductionProcess(
+    {
+      listExact: device.listExact,
+      terminate: device.terminate,
+    },
+    productionExecutable,
+    label,
+  );
+}
+
+function frameOperations(device, { events = null, observe = null, frame = null } = {}) {
+  const record = (event) => {
+    if (events !== null) events.push(event);
+  };
+  return {
+    reactivate: async () => {
+      frameQuiesce(device)('reactivate');
+      record('quiesce:reactivate');
+      assertXcodeFrameBroadContinuity(device.listBroad(), FRAME_CAPTURE_PID, 'reactivate');
+      record('reactivate');
+      return { pid: FRAME_CAPTURE_PID };
+    },
+    observeStates: async () => {
+      record('observe');
+      if (observe !== null) observe();
+      return { observation: 2 };
+    },
+    quiesceProduction: () => {
+      const quiesced = frameQuiesce(device)('final');
+      record('quiesce:final');
+      return quiesced;
+    },
+    openFrame: async ({ activation, finalQuiescence }) => {
+      assert.equal(activation.pid, FRAME_CAPTURE_PID);
+      assertXcodeFrameBroadContinuity(device.listBroad(), FRAME_CAPTURE_PID, 'before');
+      record('frame');
+      if (frame !== null) frame();
+      const screenshot = { sha256: HASH('frame'), quiescence: finalQuiescence };
+      assertXcodeFrameBroadContinuity(device.listBroad(), FRAME_CAPTURE_PID, 'after');
+      return screenshot;
+    },
+  };
+}
+
+test('Xcode frame sequence stops a production prewarm introduced during state waiting', async () => {
+  const device = fakeFrameDevice();
+  const events = [];
+  const result = await runXcodeFrameSequence({
+    capturePid: FRAME_CAPTURE_PID,
+    operations: frameOperations(device, {
+      events,
+      observe: () => device.launch(5150, FRAME_PRODUCTION_EXECUTABLE),
+    }),
+  });
+  assert.deepEqual(events, [
+    'quiesce:reactivate',
+    'reactivate',
+    'observe',
+    'quiesce:final',
+    'frame',
+  ]);
+  assert.equal(result.finalQuiescence.terminatedPid, 5150);
+  assert.equal(result.screenshot.quiescence.terminatedPid, 5150);
+  assert.equal(device.has(5150), false);
+  assert.equal(device.has(FRAME_CAPTURE_PID), true);
+});
+
+test('legacy Xcode frame order without the final quiescence fails the same prewarm', () => {
+  const device = fakeFrameDevice();
+  frameQuiesce(device)('reactivate');
+  assertXcodeFrameBroadContinuity(device.listBroad(), FRAME_CAPTURE_PID, 'reactivate');
+  device.launch(5150, FRAME_PRODUCTION_EXECUTABLE);
+  // The legacy order opens the frame window here without quiescing again.
+  assert.throws(
+    () => assertXcodeFrameBroadContinuity(device.listBroad(), FRAME_CAPTURE_PID, 'before'),
+    /before: foreground game process PID changed/u,
+  );
+  assert.equal(device.has(5150), true);
+});
+
+test('Xcode frame sequence rejects an unrelated game competitor before the frame', async () => {
+  const device = fakeFrameDevice();
+  let framed = false;
+  await assert.rejects(
+    () => runXcodeFrameSequence({
+      capturePid: FRAME_CAPTURE_PID,
+      operations: frameOperations(device, {
+        observe: () => device.launch(9001, FRAME_COMPETITOR_EXECUTABLE),
+        frame: () => {
+          framed = true;
+        },
+      }),
+    }),
+    /before: foreground game process PID changed/u,
+  );
+  assert.equal(framed, false);
+  // Exact-path quiescence must not sanitize the unrelated competitor.
+  assert.equal(device.has(9001), true);
+  assert.equal(device.has(FRAME_CAPTURE_PID), true);
+});
+
+test('Xcode frame sequence rejects a mismatched capture PID', async () => {
+  const device = fakeFrameDevice();
+  const operations = frameOperations(device);
+  operations.reactivate = async () => ({ pid: FRAME_CAPTURE_PID + 1 });
+  await assert.rejects(
+    () => runXcodeFrameSequence({ capturePid: FRAME_CAPTURE_PID, operations }),
+    /could not reactivate the capture app on the same PID/u,
+  );
+  const swapped = fakeFrameDevice();
+  swapped.exit(FRAME_CAPTURE_PID);
+  swapped.launch(7777, FRAME_CAPTURE_EXECUTABLE);
+  await assert.rejects(
+    () => runXcodeFrameSequence({
+      capturePid: FRAME_CAPTURE_PID,
+      operations: frameOperations(swapped),
+    }),
+    /foreground game process PID changed/u,
+  );
+});
+
+test('Xcode frame sequence fails without opening the frame when quiescence fails', async () => {
+  // A production survivor after termination fails the final quiescence.
+  {
+    const device = fakeFrameDevice();
+    let framed = false;
+    const operations = frameOperations(device, {
+      observe: () => device.launch(5150, FRAME_PRODUCTION_EXECUTABLE),
+      frame: () => {
+        framed = true;
+      },
+    });
+    operations.quiesceProduction = () => quiesceExactProductionProcess(
+      {
+        listExact: device.listExact,
+        terminate: () => ({ path: 'work/fake-terminate.json' }),
+      },
+      FRAME_PRODUCTION_EXECUTABLE,
+      'final',
+    );
+    await assert.rejects(
+      () => runXcodeFrameSequence({ capturePid: FRAME_CAPTURE_PID, operations }),
+      /could not confirm production process exit/u,
+    );
+    assert.equal(framed, false);
+  }
+  // More than one production process fails the final quiescence.
+  {
+    const device = fakeFrameDevice();
+    let framed = false;
+    await assert.rejects(
+      () => runXcodeFrameSequence({
+        capturePid: FRAME_CAPTURE_PID,
+        operations: frameOperations(device, {
+          observe: () => {
+            device.launch(5150, FRAME_PRODUCTION_EXECUTABLE);
+            device.launch(5151, FRAME_PRODUCTION_EXECUTABLE);
+          },
+          frame: () => {
+            framed = true;
+          },
+        }),
+      }),
+      /more than one production process is running/u,
+    );
+    assert.equal(framed, false);
+  }
+  // A throwing quiescence operation propagates without opening the frame.
+  {
+    const device = fakeFrameDevice();
+    let framed = false;
+    const operations = frameOperations(device, {
+      frame: () => {
+        framed = true;
+      },
+    });
+    operations.quiesceProduction = () => {
+      throw new Error('final CoreDevice process query timeout');
+    };
+    await assert.rejects(
+      () => runXcodeFrameSequence({ capturePid: FRAME_CAPTURE_PID, operations }),
+      /final CoreDevice process query timeout/u,
+    );
+    assert.equal(framed, false);
+  }
+});
+
+test('Xcode frame sequence never quiesces after the frame and rejects post-frame competitors', async () => {
+  for (const [name, pid, executable] of [
+    ['production', 5150, FRAME_PRODUCTION_EXECUTABLE],
+    ['unknown', 9001, FRAME_COMPETITOR_EXECUTABLE],
+  ]) {
+    const device = fakeFrameDevice();
+    const events = [];
+    await assert.rejects(
+      () => runXcodeFrameSequence({
+        capturePid: FRAME_CAPTURE_PID,
+        operations: frameOperations(device, {
+          events,
+          frame: () => device.launch(pid, executable),
+        }),
+      }),
+      /after: foreground game process PID changed/u,
+      `${name} competitor must fail post-frame continuity`,
+    );
+    assert.deepEqual(events, [
+      'quiesce:reactivate',
+      'reactivate',
+      'observe',
+      'quiesce:final',
+      'frame',
+    ]);
+    assert.equal(device.has(pid), true);
+  }
+});
+
+test('exact production quiescence is a no-op when production is not installed', () => {
+  let calls = 0;
+  assert.deepEqual(
+    quiesceExactProductionProcess(
+      {
+        listExact: () => {
+          calls += 1;
+          return { processes: [], path: 'work/fake.json' };
+        },
+        terminate: () => {
+          calls += 1;
+          return { path: 'work/fake.json' };
+        },
+      },
+      null,
+      'final',
+    ),
+    {
+      terminatedPid: null,
+      beforePath: null,
+      terminatePath: null,
+      afterPath: null,
+    },
+  );
+  assert.equal(calls, 0);
+});
+
+test('ordinary and guardian capture paths run the shared frame sequence with real operations', () => {
+  const source = readFileSync(
+    new URL('../capture-ios-device-evidence.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(source, /\n  assertXcodeFrameBroadContinuity,\n/u);
+  assert.match(source, /\n  quiesceExactProductionProcess,\n/u);
+  assert.match(source, /\n  runXcodeFrameSequence,\n/u);
+  for (const [label, startMarker, endMarker, stableAssert, observedBinding] of [
+    ['captureRuntime', 'async function captureRuntime(', '\nfunction discardUnpublishedCapture(', 'assertStableStoreCaptureState(', 'before = frame.observed;'],
+    ['captureMissileCore', 'async function captureMissileCore(', '\nasync function captureLocale(', 'assertStableIosArenaCaptureState(', 'runtimeBefore = frame.observed;'],
+  ]) {
+    const start = source.indexOf(startMarker);
+    const end = source.indexOf(endMarker, start);
+    assert.ok(start >= 0 && end > start, `${label} source slice is missing`);
+    const body = source.slice(start, end);
+    const sequence = body.indexOf('await runXcodeFrameSequence({');
+    const capturePid = body.indexOf('capturePid: processBefore[0].processIdentifier,', sequence);
+    const reactivateSlot = body.indexOf('reactivate: () => reactivateCaptureProcess(', sequence);
+    const reactivateTarget = body.indexOf('`${name}-foreground`,', reactivateSlot);
+    const observeSlot = body.indexOf('observeStates: async () => {', sequence);
+    const baseline = body.indexOf('const activationBaseline = await waitRuntimeState(', observeSlot);
+    const foreground = body.indexOf('const foregroundState = await waitRuntimeState(', baseline);
+    const stable = body.indexOf(stableAssert, foreground);
+    const quiesceSlot = body.indexOf('quiesceProduction: () => quiesceProductionApp(', sequence);
+    const quiesceApp = body.indexOf('productionAppForCapture,', quiesceSlot);
+    const quiesceLabel = body.indexOf('`${name}-production-final-quiesce`,', quiesceSlot);
+    const openSlot = body.indexOf(
+      'openFrame: ({ activation, finalQuiescence }) => withSuspendedGameProcess(',
+      sequence,
+    );
+    const shot = body.indexOf('nativeScreenshot(path, {', openSlot);
+    const observed = body.indexOf(observedBinding, sequence);
+    const screenshotted = body.indexOf('screenshot = frame.screenshot;', sequence);
+    assert.ok(sequence >= 0, `${label} lost its shared frame sequence`);
+    assert.ok(capturePid > sequence, `${label} lost its capture PID binding`);
+    assert.ok(
+      reactivateSlot > sequence && observeSlot > reactivateSlot
+        && quiesceSlot > observeSlot && openSlot > quiesceSlot,
+      `${label} frame operation order changed`,
+    );
+    assert.ok(
+      reactivateTarget > reactivateSlot && reactivateTarget < observeSlot,
+      `${label} lost its foreground reactivation target`,
+    );
+    assert.ok(
+      baseline > observeSlot && foreground > baseline && stable > foreground && stable < quiesceSlot,
+      `${label} lost its advancing foreground observations`,
+    );
+    assert.ok(
+      quiesceApp > quiesceSlot && quiesceLabel > quiesceSlot
+        && quiesceApp < openSlot && quiesceLabel < openSlot,
+      `${label} lost its final production quiescence wiring`,
+    );
+    assert.ok(shot > openSlot, `${label} lost its suspended native screenshot`);
+    assert.ok(
+      observed > sequence && screenshotted > observed,
+      `${label} lost its observed state and screenshot bindings`,
+    );
+  }
+});
+
+test('Xcode final quiescence observations reach the capture evidence', () => {
+  const source = readFileSync(
+    new URL('../capture-ios-device-evidence.mjs', import.meta.url),
+    'utf8',
+  );
+  const quiesceStart = source.indexOf('function quiesceProductionApp(');
+  const quiesceEnd = source.indexOf('\nfunction documentFileNames(', quiesceStart);
+  assert.ok(quiesceStart >= 0 && quiesceEnd > quiesceStart);
+  const quiesce = source.slice(quiesceStart, quiesceEnd);
+  assert.match(quiesce, /const quiesced = quiesceExactProductionProcess\(/u);
+  assert.match(
+    quiesce,
+    /listExact: \(exactUrl, exactLabel\) => exactExecutableProcesses\(exactUrl, exactLabel\),/u,
+  );
+  assert.match(
+    quiesce,
+    /terminate: \(pid, terminateLabel\) => terminateGameProcess\(pid, terminateLabel\),/u,
+  );
+  assert.match(quiesce, /terminatedPid: quiesced\.terminatedPid,/u);
+  assert.match(quiesce, /beforeSha256: fileSha256\(quiesced\.beforePath\),/u);
+  assert.match(
+    quiesce,
+    /terminateSha256: quiesced\.terminatePath === null \? null : fileSha256\(quiesced\.terminatePath\),/u,
+  );
+  assert.match(quiesce, /afterSha256: fileSha256\(quiesced\.afterPath\),/u);
+
+  const continuityStart = source.indexOf('function assertXcodeHandoffContinuity(');
+  const continuityEnd = source.indexOf('\nasync function nativeScreenshot(', continuityStart);
+  assert.ok(continuityStart >= 0 && continuityEnd > continuityStart);
+  const continuity = source.slice(continuityStart, continuityEnd);
+  assert.match(
+    continuity,
+    /allRunningGameProcesses\(`\$\{label\}-processes`, remainingMs\)/u,
+  );
+  assert.match(
+    continuity,
+    /assertXcodeFrameBroadContinuity\(processes\.processes, processId, label\);/u,
+  );
+
+  const nativeStart = source.indexOf('async function nativeScreenshot(');
+  const nativeEnd = source.indexOf('\nfunction screenshotTransportEvidence(', nativeStart);
+  assert.ok(nativeStart >= 0 && nativeEnd > nativeStart);
+  const nativeSource = source.slice(nativeStart, nativeEnd);
+  assert.match(nativeSource, /finalQuiescence = null,/u);
+  assert.match(
+    nativeSource,
+    /missing proof of final production quiescence before the Xcode screenshot/u,
+  );
+  assert.match(nativeSource, /\n        finalQuiescence,\n/u);
+
+  const transportStart = source.indexOf('function screenshotTransportEvidence(');
+  const transportEnd = source.indexOf('\nasync function captureRuntime(', transportStart);
+  assert.ok(transportStart >= 0 && transportEnd > transportStart);
+  const transport = source.slice(transportStart, transportEnd);
+  assert.match(transport, /Xcode final production quiescence proof is missing/u);
+  for (const field of [
+    'xcode_final_quiesce_terminated_pid',
+    'xcode_final_quiesce_before_path',
+    'xcode_final_quiesce_before_sha256',
+    'xcode_final_quiesce_terminate_path',
+    'xcode_final_quiesce_terminate_sha256',
+    'xcode_final_quiesce_after_path',
+    'xcode_final_quiesce_after_sha256',
+  ]) {
+    assert.match(transport, new RegExp(`${field}: null,`, 'u'));
+  }
+  assert.match(
+    transport,
+    /xcode_final_quiesce_terminated_pid: finalQuiescence\.terminatedPid,/u,
+  );
+  assert.match(
+    transport,
+    /xcode_final_quiesce_before_path: finalQuiescence\.beforePath === null/u,
+  );
+  assert.match(
+    transport,
+    /xcode_final_quiesce_terminate_path: finalQuiescence\.terminatePath === null/u,
+  );
+  assert.match(
+    transport,
+    /xcode_final_quiesce_after_path: finalQuiescence\.afterPath === null/u,
+  );
+});
+
+test('Xcode capture never quiesces after the screenshot', () => {
+  const source = readFileSync(
+    new URL('../capture-ios-device-evidence.mjs', import.meta.url),
+    'utf8',
+  );
+  const bodies = [
+    ['captureRuntime', 'async function captureRuntime(', '\nfunction discardUnpublishedCapture('],
+    ['captureMissileCore', 'async function captureMissileCore(', '\nasync function captureLocale('],
+  ];
+  for (const [label, startMarker, endMarker] of bodies) {
+    const start = source.indexOf(startMarker);
+    const end = source.indexOf(endMarker, start);
+    assert.ok(start >= 0 && end > start, `${label} source slice is missing`);
+    const body = source.slice(start, end);
+    const shot = body.indexOf('nativeScreenshot(path, {');
+    assert.ok(shot >= 0, `${label} lost its native screenshot`);
+    let found = 0;
+    let from = 0;
+    for (;;) {
+      const at = body.indexOf('quiesceProductionApp(', from);
+      if (at < 0) break;
+      found += 1;
+      assert.ok(at < shot, `${label} quiesces after the screenshot`);
+      from = at + 1;
+    }
+    assert.ok(found >= 1, `${label} lost its final quiescence`);
+  }
+  const runtimeStart = source.indexOf('async function captureRuntime(');
+  const runtimeEnd = source.indexOf('\nfunction discardUnpublishedCapture(', runtimeStart);
+  const runtime = source.slice(runtimeStart, runtimeEnd);
+  const runtimeShot = runtime.indexOf('nativeScreenshot(path, {');
+  assert.ok(
+    runtime.indexOf('const after = await waitRuntimeState(', runtimeShot) > runtimeShot,
+  );
+  assert.ok(
+    runtime.indexOf(
+      'fail(`${name} game process PID was not preserved across the screenshot`)',
+      runtimeShot,
+    ) > runtimeShot,
+  );
+  const missileStart = source.indexOf('async function captureMissileCore(');
+  const missileEnd = source.indexOf('\nasync function captureLocale(', missileStart);
+  const missile = source.slice(missileStart, missileEnd);
+  const missileShot = missile.indexOf('nativeScreenshot(path, {');
+  assert.ok(
+    missile.indexOf(
+      "fail('missile_core game process PID was not preserved across the screenshot')",
+      missileShot,
+    ) > missileShot,
+  );
+  const nativeStart = source.indexOf('async function nativeScreenshot(');
+  const nativeEnd = source.indexOf('\nfunction screenshotTransportEvidence(', nativeStart);
+  assert.doesNotMatch(
+    source.slice(nativeStart, nativeEnd),
+    /quiesceProductionApp\(/u,
+  );
+  const main = source.slice(source.indexOf('async function main()'));
+  assert.doesNotMatch(main, /finalQuiescence/u);
 });

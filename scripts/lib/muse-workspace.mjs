@@ -49,7 +49,7 @@ export function isSecretPath(path) {
   if (/service-account.*\.json$/i.test(name)) return true;
   if (name === 'iapkit.cfg' || name === 'firebase.cfg') return true;
   if (path.includes('export_credentials')) return true;
-  if (path === '.claude/allow-pr' || path === '.claude/settings.local.json') return true;
+  if (path === '.claude/settings.local.json') return true;
   return path.split('/').includes('.secrets');
 }
 
@@ -155,16 +155,14 @@ export function createSnapshot({ repoRoot, destination, withDependencies = true 
   return { baseline, files: files.length };
 }
 
-/** Paths the implementer may not change without the director saying so: the rules it works under, the guard that
- * protects the user, secrets, the version lock and what a deploy reads. */
+/** Paths the implementer may not change without the director saying so: the rules it works under,
+ * secrets, the version lock and what a deploy reads. */
 const PROTECTED = [
   [/^(AGENTS|CLAUDE)\.md$/, 'the rules the implementer works under'],
   [/^\.claude\//, 'agent commands, skills and hooks'],
   [/^\.agents\//, 'the skill mirror'],
   [/^\.github\//, 'CI'],
   [/^\.gitignore$/, 'what stays out of the repo'],
-  [/^scripts\/guard-pull-request\.mjs$/, 'the pull-request guard'],
-  [/^scripts\/lib\/pr-guard/, 'the pull-request guard'],
   [/^scripts\/muse/, 'the implementer runner'],
   [/^scripts\/lib\/muse-/, 'the implementer runner'],
   [/^notes\/workflow\/muse\//, 'the standing orders and briefs'],

@@ -31,6 +31,7 @@ func _ready() -> void:
 		panel.call("_skip_reveal")
 		await get_tree().create_timer(0.3).timeout
 		_check_locale(panel, locale)
+		_check_chrome(panel, false, locale)
 		panel.queue_free()
 		await get_tree().process_frame
 
@@ -72,8 +73,12 @@ func _ready() -> void:
 		_expect_true(
 			(legend_panel.get_node("Epitaph") as Label).get_line_count() == 1,
 			"%s cycle-8 settlement keeps one epitaph line" % locale)
+		_check_chrome(legend_panel, true, locale)
 		legend_panel.queue_free()
 		await get_tree().process_frame
+
+	await _check_hero_plate()
+	await _check_seal_lifecycle()
 
 	TranslationServer.set_locale(original_locale)
 	if _failed > 0:
@@ -143,6 +148,112 @@ func _check_locale(panel: Control, locale: String) -> void:
 	_expect_true(
 		actions_rect.end.y <= panel.get_global_rect().end.y - SAFE_GAP,
 		"%s buttons stay on screen" % locale)
+
+
+## The journey record: unbroken gold seal and warm wash on a cleared gate,
+## broken ash seal and cold wash on a defeat, with the primary routes ember
+## and the quiet routes steel.
+## The journey record carries the actual run hero: full body on a dais with
+## the hero's name in its accent. Callers that predate the plate hide it.
+func _check_hero_plate() -> void:
+	var score := Score.new()
+	score.cycles = 8
+	var panel: Control = RESULT_SCENE.instantiate() as Control
+	add_child(panel)
+	panel.show_result(true, score, false, false, 3, false,
+		"res://resources/heroes/keeper.tres")
+	await get_tree().process_frame
+	var body := panel.get_node("HeroBody") as TextureRect
+	var hero_name := panel.get_node("HeroName") as Label
+	_expect_true(body != null and body.visible, "hero plate shows the run hero")
+	if body != null and body.texture != null:
+		_expect_true(
+			body.texture.resource_path
+				== "res://assets/custom/actors/heroes/keeper/portrait.png",
+			"hero plate is the run hero's own body")
+	_expect_true(hero_name != null and hero_name.visible
+		and hero_name.text == tr("HERO_KEEPER_NAME"),
+		"hero plate names the run hero")
+	_expect_true(body != null and body.get_node_or_null("Dais") != null,
+		"hero plate stands on a dais")
+	panel.queue_free()
+	await get_tree().process_frame
+	var bare: Control = RESULT_SCENE.instantiate() as Control
+	add_child(bare)
+	bare.show_result(false, score, false)
+	await get_tree().process_frame
+	_expect_true(not (bare.get_node("HeroBody") as TextureRect).visible
+		and not (bare.get_node("HeroName") as Label).visible,
+		"callers without a hero hide the plate")
+	bare.queue_free()
+	await get_tree().process_frame
+
+
+## The journey seal is lazy: an unopened Result holds no seal node to leak
+## at teardown, and reopening swaps one seal's texture instead of stacking.
+func _check_seal_lifecycle() -> void:
+	var orphans_before: int = int(Performance.get_monitor(
+		Performance.OBJECT_ORPHAN_NODE_COUNT))
+	var bare: Control = RESULT_SCENE.instantiate() as Control
+	add_child(bare)
+	await get_tree().process_frame
+	_expect_true(bare.get("_seal") == null,
+		"unopened result allocates no seal")
+	_expect_true(bare.get_node_or_null("WorldSeal") == null,
+		"unopened result shows no seal")
+	bare.queue_free()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var orphans_after: int = int(Performance.get_monitor(
+		Performance.OBJECT_ORPHAN_NODE_COUNT))
+	_expect_true(orphans_after == orphans_before,
+		"unopened result teardown leaves no orphans")
+	var score := Score.new()
+	score.cycles = 8
+	var panel: Control = RESULT_SCENE.instantiate() as Control
+	add_child(panel)
+	panel.show_result(true, score, false)
+	await get_tree().process_frame
+	panel.call("_skip_reveal")
+	var seal := panel.get_node("WorldSeal") as TextureRect
+	_expect_true(seal != null and seal.texture == WorldChrome.SEAL_WIN,
+		"a cleared gate seals gold")
+	panel.show_result(false, score, false)
+	await get_tree().process_frame
+	panel.call("_skip_reveal")
+	var seals: int = 0
+	for child in panel.get_children():
+		if child is TextureRect and child.name == &"WorldSeal":
+			seals += 1
+	_expect_true(seals == 1, "reopening keeps one seal")
+	seal = panel.get_node("WorldSeal") as TextureRect
+	_expect_true(seal != null and seal.texture == WorldChrome.SEAL_LOSE,
+		"a defeat reseals ash")
+	panel.queue_free()
+	await get_tree().process_frame
+
+
+func _check_chrome(panel: Control, won: bool, locale: String) -> void:
+	var seal := panel.get_node("WorldSeal") as TextureRect
+	_expect_true(seal != null
+		and seal.texture == (WorldChrome.SEAL_WIN if won else WorldChrome.SEAL_LOSE),
+		"%s journey seal matches the outcome" % locale)
+	_expect_true(seal != null
+		and seal.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"%s journey seal ignores taps" % locale)
+	var dim := panel.get_node("Dim") as ColorRect
+	var want_dim := Color(0.10, 0.07, 0.03, 0.86) \
+		if won else Color(0.02, 0.04, 0.09, 0.88)
+	_expect_true(dim.color == want_dim,
+		"%s room wash matches the outcome" % locale)
+	for id in ["Continue", "Retry"]:
+		var road := panel.get_node("Actions/" + id) as WorldButton
+		_expect_true(road != null and road.kind == "ember",
+			"%s %s takes the ember road" % [locale, id])
+	for id in ["Shrine", "Record"]:
+		var road := panel.get_node("Actions/" + id) as WorldButton
+		_expect_true(road != null and road.kind == "steel",
+			"%s %s takes the steel road" % [locale, id])
 
 
 func _expect_fits(control: Control, label: String) -> void:

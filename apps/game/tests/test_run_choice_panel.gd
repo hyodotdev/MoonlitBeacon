@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _test_keyboard_and_gamepad_focus()
 	await _test_double_press()
 	await _test_close_and_pause_restore()
+	await _test_world_draw_scale()
 
 	get_tree().paused = false
 	if _failed > 0:
@@ -304,6 +305,123 @@ func _push_mouse(position: Vector2, pressed: bool) -> void:
 
 func _on_chosen(mode: int, choice: int, context: Variant) -> void:
 	_emissions.append({"mode": mode, "choice": choice, "context": context})
+
+
+## The world kit maps source texels to logical units explicitly: StyleBoxTexture
+## passes margins through as destination edges, so a 48px margin corner would
+## draw 48 logical pixels wide. WorldChrome.slices proves 48 -> 12, 32 -> 8,
+## 56 -> 14 and 16 -> 4 here, and that the custom-drawn controls keep native
+## text, focus, minimum sizes and hitboxes.
+func _test_world_draw_scale() -> void:
+	var panel_slices: Array = WorldChrome.slices(
+		Vector2i(144, 144), Vector2(640, 300), 48.0, 12.0)
+	var corner_dst: Rect2 = panel_slices[0][1]
+	_expect_equal(corner_dst.size, Vector2(12, 12),
+		"panel corner draws 12 logical units")
+	var corner_src: Rect2 = panel_slices[0][0]
+	_expect_equal(corner_src.size, Vector2(48, 48),
+		"panel corner samples 48 source texels")
+	var middle_dst: Rect2 = panel_slices[4][1]
+	_expect_equal(middle_dst, Rect2(12, 12, 616, 276),
+		"panel middle fills between the fixed edges")
+	var button_slices: Array = WorldChrome.slices(
+		Vector2i(80, 80), Vector2(132, 32), 32.0, 8.0)
+	_expect_equal((button_slices[0][0] as Rect2).size, Vector2(32, 32),
+		"button corner samples 32 source texels")
+	_expect_equal((button_slices[0][1] as Rect2).size, Vector2(8, 8),
+		"button corner draws 8 logical units")
+	var card_slices: Array = WorldChrome.slices(
+		Vector2i(176, 176), Vector2(200, 160), 56.0, 14.0)
+	_expect_equal((card_slices[0][1] as Rect2).size, Vector2(14, 14),
+		"card corner draws 14 logical units")
+	var bar_slices: Array = WorldChrome.slices(
+		Vector2i(48, 48), Vector2(300, 10), 16.0, 4.0)
+	_expect_equal((bar_slices[0][1] as Rect2).size, Vector2(4, 4),
+		"bar corner draws 4 logical units")
+	# An undersized control clamps the destination edge instead of inverting
+	# the middle band into negative rects.
+	var tiny: Array = WorldChrome.slices(
+		Vector2i(48, 48), Vector2(6, 10), 16.0, 4.0)
+	_expect_equal((tiny[4][1] as Rect2).size, Vector2(0, 2),
+		"undersized middle clamps instead of inverting")
+	for pair in tiny:
+		_expect_true((pair[1] as Rect2).size.x >= 0.0
+			and (pair[1] as Rect2).size.y >= 0.0,
+			"no inverted destination rect when undersized")
+
+	# The live choice buttons keep native behavior under the custom paint:
+	# text, minimum size, keyboard focus and tap hitboxes are untouched.
+	# Faces exist exactly while drawn, so the panel opens for these asserts.
+	_panel.call("open_cycle", 9)
+	await _settle_layout()
+	var left: WorldButton = _panel.get_node(
+		"Center/Frame/Content/Rows/Choices/Left") as WorldButton
+	var right: WorldButton = _panel.get_node(
+		"Center/Frame/Content/Rows/Choices/Right") as WorldButton
+	_expect_true(left != null and right != null,
+		"choice roads are WorldButtons")
+	_expect_equal(left.kind, "ember",
+		"safe kindle takes the ember road")
+	_expect_equal(right.kind, "steel",
+		"ring trial takes the steel road")
+	_expect_true(left is Button and left.text == ""
+		and left.custom_minimum_size == Vector2(284, 112),
+		"left keeps native text sizing contract")
+	_expect_true(left.focus_mode == Control.FOCUS_ALL
+		and right.focus_mode == Control.FOCUS_ALL,
+		"choice focus contract unchanged")
+	_expect_true(left.mouse_filter == Control.MOUSE_FILTER_STOP
+		and right.mouse_filter == Control.MOUSE_FILTER_STOP,
+		"choice hitboxes still take taps")
+	var frame := _panel.get_node("Center/Frame") as WorldFrame
+	_expect_true(frame != null, "choice frame is a WorldFrame")
+	var box: StyleBox = frame.get_theme_stylebox("panel")
+	_expect_equal(
+		[box.content_margin_left, box.content_margin_top,
+			box.content_margin_right, box.content_margin_bottom],
+		[10.0, 9.0, 10.0, 9.0], "frame keeps the panel content margins")
+	_expect_true(frame.texture_filter == CanvasItem.TEXTURE_FILTER_LINEAR,
+		"frame samples Linear")
+	# The face lives on a backing layer behind native paint, never over it:
+	# owner `_draw` would bury the label, `show_behind_parent` cannot.
+	for road in [left, right]:
+		var face := (road as Button).get_child(0) as WorldFace
+		_expect_true(face != null and face.show_behind_parent,
+			"face paints behind the button")
+		_expect_true(face != null
+			and face.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+			"face never eats taps")
+		var carrier := (road as Button).get_theme_stylebox("normal") \
+			as StyleBoxFlat
+		_expect_true(carrier != null and not carrier.draw_center,
+			"native style is an invisible carrier")
+	var was_disabled: bool = left.disabled
+	left.disabled = false
+	_expect_equal(WorldChrome.button_face_state(left), "normal",
+		"resting button wears normal")
+	left.disabled = true
+	_expect_equal(WorldChrome.button_face_state(left), "disabled",
+		"disabled button wears disabled")
+	left.disabled = was_disabled
+	# Every World* ornament under the panel ignores the mouse.
+	_expect_decor_ignores(_panel)
+	# Closing releases the faces: combat peaks never carry closed panels.
+	_panel.call("close_without_choice")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_expect_true(left.get_node_or_null("WorldFace") == null
+		and right.get_node_or_null("WorldFace") == null,
+		"closing dismisses the button faces")
+
+
+func _expect_decor_ignores(node: Node) -> void:
+	for child in node.get_children():
+		if child is TextureRect and str(child.name).begins_with("World"):
+			_expect_true(
+				(child as TextureRect).mouse_filter
+					== Control.MOUSE_FILTER_IGNORE,
+				"%s ignores the mouse" % child.name)
+		_expect_decor_ignores(child)
 
 
 func _translated_int(key: String, value: int) -> String:

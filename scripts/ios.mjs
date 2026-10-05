@@ -36,7 +36,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -46,6 +46,19 @@ import {
   stageIapKitConfigForStore,
 } from './lib/iapkit-config.mjs';
 import { runGodotExportPreflight } from './lib/godot-export-preflight.mjs';
+import {
+  appleSignInGranted,
+  assertAppleSignInProfileSupport,
+  cleanupIdentityExport,
+  generatedEntitlementsPromiseAppleSignIn,
+  identityNativeArtifactStatus,
+  prepareIdentityExport,
+  recoverStaleAppleEntitlementGrant,
+  restoreTemporaryAppleEntitlement,
+  shouldStageAppleEntitlement,
+  stageTemporaryAppleEntitlement,
+} from './lib/identity-export.mjs';
+import { redactIdentitySecrets } from './lib/player-identity-build.mjs';
 import {
   cleanupIncompleteIosExportDirectory,
   cleanupStaleIosWorkflowExportDirectory,
@@ -79,6 +92,7 @@ import {
   assertDistributionEntitlements,
   assertDistributionProfile,
   assertDistributionSignatureDetails,
+  assertManualAppStoreProfile,
   assertProfileContainsSigningCertificate,
   assertSigningCertificateValid,
   codeSigningCertificateArguments,
@@ -87,13 +101,20 @@ import {
   assertIpaMetadata,
   assertMatchingReleasePayload,
   assertSafeIpaEntries,
+  findInstalledProvisioningProfileByName,
+  IOS_MANUAL_EXPORT_ENV,
   IOS_RELEASE_BUILD_CHAIN_INPUTS,
   iosReleaseExcludedPaths,
+  isProvisioningProfileUuid,
+  listInstalledProvisioningProfileFiles,
+  manualAppStoreExportOptionsPlist,
   parseIosCommandArguments,
   redactSensitiveValues,
   readAppStoreCredentials,
   readIosReleaseMetadata,
   resolveAppleTeamId,
+  resolveInstalledProvisioningProfileUuidPath,
+  resolveManualAppStoreExportConfig,
   runExclusiveIosWorkflow,
   runWithStableReleaseSources,
   xcodebuildAuthenticationArguments,
@@ -298,6 +319,9 @@ function configureAutomaticReleaseSigning() {
 
 let stagedIapIos = false;
 let stagedIapKitConfig = false;
+let stagedIdentityConfig = false;
+let stagedAppleEntitlement = false;
+let stagedAppleEntitlementPrevious = null;
 let ownsIapIosLock = false;
 let ownsIapIosLockGuard = false;
 let ownsIosWorkflowLock = false;
@@ -453,6 +477,14 @@ function acquireIapIosLock() {
       }
       recoverDirectIapKitConfig(ROOT);
       cleanupStaleGeneratedIapKitConfig(ROOT);
+      cleanupIdentityExport({ root: ROOT });
+      {
+        // A killed export may have left the temporary preset grant behind.
+        const stale = recoverStaleAppleEntitlementGrant({ root: ROOT });
+        if (stale.recovered) {
+          console.log(`Recovered stale Apple entitlement staging (${stale.note}).`);
+        }
+      }
       if (existsSync(IAP_IOS_STAGE) && IAP_IOS_STAGE.startsWith(IAP_ADDON + '/')) {
         rmSync(IAP_IOS_STAGE, { recursive: true, force: true });
       }
@@ -494,6 +526,24 @@ function unstageIapIos() {
       cleanupError = error;
     }
   }
+  if (ownsIapIosLock && stagedIdentityConfig) {
+    try {
+      cleanupIdentityExport({ root: ROOT });
+    } catch (error) {
+      cleanupError ??= error;
+    }
+  }
+  if (ownsIapIosLock && stagedAppleEntitlement) {
+    try {
+      restoreTemporaryAppleEntitlement({
+        root: ROOT,
+        presetsPath: join(ROOT, 'apps/game/export_presets.cfg'),
+        previous: stagedAppleEntitlementPrevious,
+      });
+    } catch (error) {
+      cleanupError ??= error;
+    }
+  }
   if (ownsIapIosLock && stagedIapIos && IAP_IOS_STAGE.startsWith(IAP_ADDON + '/')) {
     try {
       rmSync(IAP_IOS_STAGE, { recursive: true, force: true });
@@ -517,6 +567,9 @@ function unstageIapIos() {
   }
   stagedIapIos = false;
   stagedIapKitConfig = false;
+  stagedIdentityConfig = false;
+  stagedAppleEntitlement = false;
+  stagedAppleEntitlementPrevious = null;
   ownsIapIosLock = false;
   if (cleanupError) throw cleanupError;
 }
@@ -569,6 +622,53 @@ function doExport(release = false) {
       env: CHILD_ENV,
     });
     stageIapIos();
+    // Identity preflight is diagnostics plus staging, never a gate: a
+    // missing provider setup stages partial (or no) config and the export
+    // still runs honest local guest play.
+    const identityExport = prepareIdentityExport({
+      root: ROOT,
+      platform: 'ios',
+      env: process.env,
+    });
+    console.log(redactIdentitySecrets(identityExport.report).trimEnd());
+    for (const artifact of identityNativeArtifactStatus({
+      root: ROOT,
+      platform: 'ios',
+      variant: release ? 'release' : 'debug',
+    })) {
+      console.log(
+        `identity artifact ${artifact.label}: ${artifact.present ? 'present' : 'missing'}`,
+      );
+    }
+    if (identityExport.installed) {
+      stagedIdentityConfig = true;
+      console.log('Staged public identity config for one export; removed after.');
+    } else {
+      console.log('No public identity config to stage; the export runs guest-only.');
+    }
+    // The temporary applesignin grant rides the supported
+    // `entitlements/additional` preset hook for exactly this export; the
+    // locked presets are restored byte-exact afterwards.
+    if (shouldStageAppleEntitlement({
+      resolution: identityExport.resolution,
+      exportPresetsSource: readFileSync(
+        join(ROOT, 'apps/game/export_presets.cfg'),
+        'utf8',
+      ),
+    })) {
+      const appleStaged = stageTemporaryAppleEntitlement({ root: ROOT });
+      if (appleStaged.staged) {
+        stagedAppleEntitlement = true;
+        stagedAppleEntitlementPrevious = appleStaged.previous;
+        console.log(
+          'Added the temporary Sign in with Apple grant to the iOS preset extras; restored after.',
+        );
+      } else {
+        console.log(
+          'Sign in with Apple grant already present in the iOS preset extras; leaving it.',
+        );
+      }
+    }
     run('node', [
       'scripts/godot.mjs',
       '--headless',
@@ -634,6 +734,7 @@ function doBuild(udid, bundleIdentifier = BUNDLE) {
     app = iosDebugAppPath(DEV_FALLBACK_DD, SCHEME);
     installIosFallbackIcon(app);
     verifyDebugIosApp(app, 'after successful Debug development build', bundleIdentifier);
+    verifyAppleSignInProfileForApp(app);
     return app;
   }
   const usedFallback = runIosDebugBuildWithFallback(
@@ -684,6 +785,7 @@ function doBuild(udid, bundleIdentifier = BUNDLE) {
     installIosFallbackIcon(app);
   }
   verifyDebugIosApp(app, 'after successful Debug build', bundleIdentifier);
+  verifyAppleSignInProfileForApp(app);
   return app;
 }
 
@@ -976,6 +1078,38 @@ function verifyDistributionArchive() {
   });
 }
 
+function generatedSchemePromisesAppleSignIn() {
+  let names = [];
+  try {
+    names = readdirSync(join(PROJ_DIR, SCHEME), { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.entitlements'))
+      .map((entry) => entry.name);
+  } catch {
+    return false;
+  }
+  return names.some((name) => {
+    try {
+      return generatedEntitlementsPromiseAppleSignIn(
+        readFileSync(join(PROJ_DIR, SCHEME, name), 'utf8'),
+      );
+    } catch {
+      return false;
+    }
+  });
+}
+
+function verifyAppleSignInProfileForApp(app) {
+  if (!generatedSchemePromisesAppleSignIn()) return;
+  const scratch = mkdtempSync(join(tmpdir(), 'moonlit-ios-applesignin-'));
+  try {
+    const profile = readProvisioningProfile(app, scratch);
+    assertAppleSignInProfileSupport(profile.Entitlements, { required: true });
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+  console.log('Sign in with Apple: signing profile grants the staged entitlement.');
+}
+
 function readCodeSigningEntitlements(app, scratch) {
   const result = run(
     'codesign',
@@ -1002,20 +1136,16 @@ function readPlistDataArray(plist, keyPath, label) {
   return extractPlistDataValues(result.stdout, label);
 }
 
-function readProvisioningProfile(app, scratch) {
-  const profile = join(app, 'embedded.mobileprovision');
-  if (!existsSync(profile)) {
-    throw new Error('IPA has no embedded.mobileprovision.');
-  }
+function readDecodedProvisioningProfile(profileFile, scratch, fileName) {
   const result = run(
     'security',
-    ['cms', '-D', '-i', profile],
+    ['cms', '-D', '-i', profileFile],
     {
       captureOutput: true,
       printCapturedOutput: false,
     },
   );
-  const plist = join(scratch, 'distribution-profile.plist');
+  const plist = join(scratch, fileName);
   writeFileSync(plist, result.stdout, { mode: 0o600 });
   const expirationDate = readOptionalPlistValue(
     plist,
@@ -1031,6 +1161,8 @@ function readProvisioningProfile(app, scratch) {
     throw new Error('could not read required distribution provisioning profile values.');
   }
   return {
+    Name: readOptionalPlistValue(plist, 'Name', 'raw'),
+    UUID: readOptionalPlistValue(plist, 'UUID', 'raw'),
     DeveloperCertificates: readPlistDataArray(
       plist,
       'DeveloperCertificates',
@@ -1049,6 +1181,60 @@ function readProvisioningProfile(app, scratch) {
       'json',
     ),
   };
+}
+
+function readProvisioningProfile(app, scratch) {
+  const profile = join(app, 'embedded.mobileprovision');
+  if (!existsSync(profile)) {
+    throw new Error('IPA has no embedded.mobileprovision.');
+  }
+  return readDecodedProvisioningProfile(profile, scratch, 'distribution-profile.plist');
+}
+
+function readInstalledProvisioningProfile(profileFile, scratch) {
+  if (!existsSync(profileFile)) {
+    throw new Error(
+      `${IOS_MANUAL_EXPORT_ENV.profile} does not match an installed provisioning profile.`,
+    );
+  }
+  return readDecodedProvisioningProfile(
+    profileFile,
+    scratch,
+    'manual-distribution-profile.plist',
+  );
+}
+
+function readInstalledProvisioningProfileIdentity(profileFile, scratch) {
+  const result = run(
+    'security',
+    ['cms', '-D', '-i', profileFile],
+    {
+      captureOutput: true,
+      printCapturedOutput: false,
+    },
+  );
+  const plist = join(scratch, 'manual-profile-scan.plist');
+  writeFileSync(plist, result.stdout, { mode: 0o600 });
+  return {
+    name: readOptionalPlistValue(plist, 'Name', 'raw'),
+    uuid: readOptionalPlistValue(plist, 'UUID', 'raw'),
+  };
+}
+
+// Resolve a caller-supplied installed profile name or UUID to its file,
+// searching the modern Xcode directory first with legacy fallback.
+// Errors name the variable, never the value.
+function findInstalledProvisioningProfilePath(profileIdentifier, scratch) {
+  const homeDir = homedir();
+  if (isProvisioningProfileUuid(profileIdentifier)) {
+    return resolveInstalledProvisioningProfileUuidPath(profileIdentifier, {
+      homeDir,
+    });
+  }
+  return findInstalledProvisioningProfileByName(profileIdentifier, {
+    files: listInstalledProvisioningProfileFiles({ homeDir }),
+    readIdentity: (file) => readInstalledProvisioningProfileIdentity(file, scratch),
+  });
 }
 
 function readCodeSigningCertificate(app, scratch) {
@@ -1118,12 +1304,13 @@ function verifyAppStoreIpa() {
       `${signature.stdout ?? ''}\n${signature.stderr ?? ''}`,
       expected,
     );
-    assertDistributionEntitlements(
-      readCodeSigningEntitlements(app, scratch),
-      expected,
-    );
+    const appEntitlements = readCodeSigningEntitlements(app, scratch);
+    assertDistributionEntitlements(appEntitlements, expected);
     const profile = readProvisioningProfile(app, scratch);
     assertDistributionProfile(profile, expected);
+    assertAppleSignInProfileSupport(profile.Entitlements, {
+      required: appleSignInGranted(appEntitlements),
+    });
     const signingCertificate = readCodeSigningCertificate(app, scratch);
     assertSigningCertificateValid(signingCertificate);
     assertProfileContainsSigningCertificate(profile, signingCertificate);
@@ -1141,21 +1328,35 @@ function verifyAppStoreIpa() {
   return expected;
 }
 
-function doExportAppStore() {
-  // After taking the workflow lock, discard any previous IPA first. Even if
-  // archive or credential checks fail, an old success must not look like this export.
-  rmSync(APP_STORE_EXPORT_DIR, { recursive: true, force: true });
-  let exportComplete = false;
+function exportAppStoreIpaWithManualProfile(expected, manualConfig) {
+  const scratch = mkdtempSync(join(tmpdir(), 'moonlit-manual-export-'));
   try {
-    const expected = verifyDistributionArchive();
-    const credentials = readAppStoreCredentials({
-      env: process.env,
-      root: ROOT,
+    const profilePath = findInstalledProvisioningProfilePath(
+      manualConfig.profile,
+      scratch,
+    );
+    const profile = readInstalledProvisioningProfile(profilePath, scratch);
+    const archivedEntitlements = readCodeSigningEntitlements(
+      archivedAppPath(),
+      scratch,
+    );
+    assertManualAppStoreProfile(profile, expected, {
+      profileIdentifier: manualConfig.profile,
+      signingIdentity: manualConfig.signingIdentity,
+      requiredAppleSignIn: appleSignInGranted(archivedEntitlements),
     });
+    if (!isProvisioningProfileUuid(profile.UUID ?? '')) {
+      throw new Error('Manual App Store export profile has no UUID.');
+    }
     mkdirSync(APP_STORE_EXPORT_DIR, { recursive: true });
     writeFileSync(
       APP_STORE_EXPORT_OPTIONS,
-      appStoreExportOptionsPlist(expected),
+      manualAppStoreExportOptionsPlist({
+        bundleId: expected.bundleId,
+        teamId: expected.teamId,
+        profileUuid: profile.UUID,
+        signingCertificate: manualConfig.signingIdentity,
+      }),
       { encoding: 'utf8', mode: 0o600 },
     );
     run('xcodebuild', [
@@ -1163,15 +1364,61 @@ function doExportAppStore() {
       '-archivePath', ARCHIVE,
       '-exportPath', APP_STORE_EXPORT_DIR,
       '-exportOptionsPlist', APP_STORE_EXPORT_OPTIONS,
-      '-allowProvisioningUpdates',
-      ...xcodebuildAuthenticationArguments(credentials),
+      // Manual mode pins the validated installed profile, so it never asks
+      // Xcode to refresh provisioning from App Store Connect.
     ], {
       captureOutput: true,
       isolatedProcessGroup: true,
-      sensitiveValues: Object.values(credentials),
+      sensitiveValues: [],
       timeout: APP_STORE_EXPORT_TIMEOUT_MS,
       killSignal: 'SIGTERM',
     });
+    console.log(
+      'Manual App Store export used the validated installed distribution profile.',
+    );
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
+}
+
+function doExportAppStore() {
+  // After taking the workflow lock, discard any previous IPA first. Even if
+  // archive or credential checks fail, an old success must not look like this export.
+  rmSync(APP_STORE_EXPORT_DIR, { recursive: true, force: true });
+  let exportComplete = false;
+  try {
+    const expected = verifyDistributionArchive();
+    const manualConfig = resolveManualAppStoreExportConfig({
+      env: process.env,
+    });
+    if (manualConfig) {
+      exportAppStoreIpaWithManualProfile(expected, manualConfig);
+    } else {
+      const credentials = readAppStoreCredentials({
+        env: process.env,
+        root: ROOT,
+      });
+      mkdirSync(APP_STORE_EXPORT_DIR, { recursive: true });
+      writeFileSync(
+        APP_STORE_EXPORT_OPTIONS,
+        appStoreExportOptionsPlist(expected),
+        { encoding: 'utf8', mode: 0o600 },
+      );
+      run('xcodebuild', [
+        '-exportArchive',
+        '-archivePath', ARCHIVE,
+        '-exportPath', APP_STORE_EXPORT_DIR,
+        '-exportOptionsPlist', APP_STORE_EXPORT_OPTIONS,
+        '-allowProvisioningUpdates',
+        ...xcodebuildAuthenticationArguments(credentials),
+      ], {
+        captureOutput: true,
+        isolatedProcessGroup: true,
+        sensitiveValues: Object.values(credentials),
+        timeout: APP_STORE_EXPORT_TIMEOUT_MS,
+        killSignal: 'SIGTERM',
+      });
+    }
     if (!existsSync(APP_STORE_IPA)) {
       const ipaNames = readdirSync(APP_STORE_EXPORT_DIR)
         .filter((name) => name.endsWith('.ipa'));

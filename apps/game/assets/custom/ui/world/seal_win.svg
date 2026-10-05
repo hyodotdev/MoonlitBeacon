@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- Journey stamp, gate cleared: unbroken gold rings, a fat crescent, three stars. -->
+  <defs>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.55" stop-color="#070a1e" stop-opacity="0"/>
+      <stop offset="0.8" stop-color="#070a1e" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#070a1e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9b47a"/>
+      <stop offset="0.5" stop-color="#8a6f4d"/>
+      <stop offset="1" stop-color="#4a3a24"/>
+    </linearGradient>
+    <linearGradient id="moon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff3d6"/>
+      <stop offset="0.6" stop-color="#f2c14e"/>
+      <stop offset="1" stop-color="#c99a3e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="126" fill="url(#halo)"/>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#241c0e" stroke-width="15" opacity="0.35"/>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="url(#bronze)" stroke-width="11"/>
+  <circle cx="128" cy="128" r="95" fill="none" stroke="#f2c14e" stroke-width="4" opacity="0.95"/>
+  <circle cx="128" cy="128" r="88" fill="none" stroke="#8a5f1e" stroke-width="1.6" opacity="0.9"/>
+  <path fill-rule="evenodd" fill="url(#moon)" d="M 112 80 A 48 48 0 1 0 112 176 A 48 48 0 1 0 112 80 Z M 134 76 A 40 40 0 1 1 134 156 A 40 40 0 1 1 134 76 Z"/>
+  <g fill="#f4ead2">
+    <path d="M 176 66 Q 177.8 77.2 189 79 Q 177.8 80.8 176 92 Q 174.2 80.8 163 79 Q 174.2 77.2 176 66 Z"/>
+    <path d="M 192 108 Q 193.2 116.8 202 118 Q 193.2 119.2 192 128 Q 190.8 119.2 182 118 Q 190.8 116.8 192 108 Z"/>
+    <path d="M 168 150 Q 169.2 158.8 178 160 Q 169.2 161.2 168 170 Q 166.8 161.2 158 160 Q 166.8 158.8 168 150 Z"/>
+  </g>
+  <g fill="#c99a3e">
+    <circle cx="84" cy="196" r="4"/>
+    <circle cx="104" cy="204" r="4"/>
+    <circle cx="126" cy="207" r="4"/>
+    <circle cx="148" cy="204" r="4"/>
+    <circle cx="168" cy="196" r="4"/>
+  </g>
+</svg>

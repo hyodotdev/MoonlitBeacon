@@ -1,0 +1,19 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://q1cbxp3vyqd"
+
+[deps]
+
+files=["res://localization/gate_entry.ko.translation", "res://localization/gate_entry.en.translation", "res://localization/gate_entry.ja.translation", "res://localization/gate_entry.zh_CN.translation", "res://localization/gate_entry.zh_TW.translation"]
+
+source_file="res://localization/gate_entry.csv"
+dest_files=["res://localization/gate_entry.ko.translation", "res://localization/gate_entry.en.translation", "res://localization/gate_entry.ja.translation", "res://localization/gate_entry.zh_CN.translation", "res://localization/gate_entry.zh_TW.translation"]
+
+[params]
+
+compress=false
+delimiter=0
+unescape_keys=false
+unescape_translations=true

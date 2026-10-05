@@ -28,6 +28,7 @@ y_sort_enabled = true
 script = ExtResource("script")
 
 [node name="Ground" type="Sprite2D" parent="."]
+texture_filter = 2
 z_index = -2
 y_sort_enabled = false
 position = Vector2(-100, -100)

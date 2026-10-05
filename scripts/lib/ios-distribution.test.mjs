@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import {
   chmodSync,
   mkdirSync,
@@ -27,6 +27,7 @@ import {
   assertDistributionSignatureDetails,
   assertIosReleaseMetadata,
   assertIpaMetadata,
+  assertManualAppStoreProfile,
   assertMatchingReleasePayload,
   assertProfileContainsSigningCertificate,
   assertSafeIpaEntries,
@@ -34,14 +35,22 @@ import {
   codeSigningCertificateArguments,
   DEFAULT_APPLE_TEAM_ID,
   extractPlistDataValues,
+  findInstalledProvisioningProfileByName,
+  installedProvisioningProfileDirectories,
   iosCommandNeedsExclusiveWorkflow,
+  IOS_MANUAL_EXPORT_ENV,
   IOS_RELEASE_BUILD_CHAIN_INPUTS,
   iosReleaseExcludedPaths,
+  isProvisioningProfileUuid,
+  listInstalledProvisioningProfileFiles,
+  manualAppStoreExportOptionsPlist,
   parseIosCommandArguments,
   redactSensitiveValues,
   readAppStoreCredentials,
   readIosReleaseMetadata,
   resolveAppleTeamId,
+  resolveInstalledProvisioningProfileUuidPath,
+  resolveManualAppStoreExportConfig,
   runExclusiveIosWorkflow,
   runWithStableReleaseSources,
   xcodebuildAuthenticationArguments,
@@ -869,5 +878,657 @@ test('Apple team comes from MOONLIT_APPLE_TEAM_ID and defaults to the preset tea
   assert.ok(
     presets.includes(`application/app_store_team_id="${DEFAULT_APPLE_TEAM_ID}"`),
     'the iOS preset and DEFAULT_APPLE_TEAM_ID name the same team',
+  );
+});
+
+const MANUAL_PROFILE_UUID = '12345678-9abc-def0-1234-56789abcdef0';
+const MANUAL_SIGNING_IDENTITY = 'Apple Distribution: Example (PRDQGB267K)';
+
+function manualProfileEntitlements(extra = {}) {
+  return {
+    'application-identifier': `${EXPECTED.teamId}.${EXPECTED.bundleId}`,
+    'com.apple.developer.team-identifier': EXPECTED.teamId,
+    'get-task-allow': false,
+    ...extra,
+  };
+}
+
+function manualProfileFixture(overrides = {}) {
+  return {
+    Name: 'Example App Store',
+    UUID: MANUAL_PROFILE_UUID,
+    DeveloperCertificates: [
+      Buffer.from('manual distribution certificate').toString('base64'),
+    ],
+    ExpirationDate: '2030-01-01T00:00:00Z',
+    Entitlements: manualProfileEntitlements(),
+    ...overrides,
+  };
+}
+
+function manualCertificateParser(subject, { validFrom, validTo } = {}) {
+  return () => ({
+    validFrom: validFrom ?? '2026-01-01T00:00:00Z',
+    validTo: validTo ?? '2027-01-01T00:00:00Z',
+    subject,
+  });
+}
+
+test('manual export stays automatic when both pinning variables are unset', () => {
+  assert.equal(resolveManualAppStoreExportConfig({ env: {} }), null);
+  assert.equal(resolveManualAppStoreExportConfig({
+    env: {
+      [IOS_MANUAL_EXPORT_ENV.profile]: '  ',
+      [IOS_MANUAL_EXPORT_ENV.signingIdentity]: '',
+    },
+  }), null);
+
+  const plist = appStoreExportOptionsPlist(EXPECTED);
+  assert.match(plist, /<key>signingStyle<\/key>\s*<string>automatic<\/string>/);
+  assert.doesNotMatch(plist, /provisioningProfiles/);
+  assert.doesNotMatch(plist, /signingCertificate/);
+});
+
+test('manual export generates exactly one bundle mapping with the pinned identity', () => {
+  const config = resolveManualAppStoreExportConfig({
+    env: {
+      [IOS_MANUAL_EXPORT_ENV.profile]: '  Example App Store  ',
+      [IOS_MANUAL_EXPORT_ENV.signingIdentity]: `  ${MANUAL_SIGNING_IDENTITY}  `,
+    },
+  });
+  assert.deepEqual(config, {
+    profile: 'Example App Store',
+    signingIdentity: MANUAL_SIGNING_IDENTITY,
+  });
+
+  const plist = manualAppStoreExportOptionsPlist({
+    bundleId: EXPECTED.bundleId,
+    teamId: EXPECTED.teamId,
+    profileUuid: MANUAL_PROFILE_UUID,
+    signingCertificate: MANUAL_SIGNING_IDENTITY,
+  });
+  assert.match(plist, /<key>signingStyle<\/key>\s*<string>manual<\/string>/);
+  assert.match(plist, /<string>app-store-connect<\/string>/);
+  assert.match(
+    plist,
+    new RegExp(
+      `<key>${EXPECTED.bundleId}<\\/key>\\s*<string>${MANUAL_PROFILE_UUID}<\\/string>`,
+    ),
+  );
+  assert.doesNotMatch(
+    plist,
+    /Example App Store/,
+    'manual bundle mapping pins the verified UUID, never the display name',
+  );
+  assert.match(
+    plist,
+    /<key>signingCertificate<\/key>\s*<string>Apple Distribution: Example \(PRDQGB267K\)<\/string>/,
+  );
+  assert.equal(
+    (plist.match(/<key>com\.crossplatformkorea\.moonlitbeacon<\/key>/g) ?? []).length,
+    1,
+    'manual provisioningProfiles must map exactly the expected bundle ID once',
+  );
+  assert.doesNotMatch(plist, /TESTKEY|PRIVATE KEY|issuer/i);
+
+  assert.equal(
+    assertManualAppStoreProfile(
+      manualProfileFixture(),
+      EXPECTED,
+      {
+        now: new Date('2026-01-01T00:00:00Z'),
+        profileIdentifier: 'Example App Store',
+        signingIdentity: MANUAL_SIGNING_IDENTITY,
+        requiredAppleSignIn: false,
+        parseCertificate: manualCertificateParser(
+          `CN=${MANUAL_SIGNING_IDENTITY}\nOU=Example\nO=Example\nC=US`,
+        ),
+      },
+    ),
+    true,
+  );
+  assert.equal(
+    assertManualAppStoreProfile(
+      manualProfileFixture(),
+      EXPECTED,
+      {
+        now: new Date('2026-01-01T00:00:00Z'),
+        profileIdentifier: MANUAL_PROFILE_UUID.toUpperCase(),
+        signingIdentity: MANUAL_SIGNING_IDENTITY,
+        requiredAppleSignIn: false,
+        parseCertificate: manualCertificateParser(
+          `CN=${MANUAL_SIGNING_IDENTITY}\nOU=Example\nO=Example\nC=US`,
+        ),
+      },
+    ),
+    true,
+    'profile UUID matching is case-insensitive',
+  );
+});
+
+test('manual export rejects partial, malformed, or expired configuration before xcodebuild', () => {
+  assert.throws(
+    () => resolveManualAppStoreExportConfig({
+      env: { [IOS_MANUAL_EXPORT_ENV.profile]: 'Example App Store' },
+    }),
+    (error) => (
+      error.message.includes(IOS_MANUAL_EXPORT_ENV.signingIdentity)
+      && error.message.includes('needs both')
+      && !error.message.includes('Example App Store')
+    ),
+    'partial config must name the missing variable without echoing the value',
+  );
+  assert.throws(
+    () => resolveManualAppStoreExportConfig({
+      env: { [IOS_MANUAL_EXPORT_ENV.signingIdentity]: MANUAL_SIGNING_IDENTITY },
+    }),
+    (error) => (
+      error.message.includes(IOS_MANUAL_EXPORT_ENV.profile)
+      && !error.message.includes(MANUAL_SIGNING_IDENTITY)
+    ),
+  );
+  for (const profile of [
+    '../elsewhere.mobileprovision',
+    'C:\\profiles\\example',
+    '12345678-9abc-def0-1234-56789abcdef00',
+  ]) {
+    assert.throws(
+      () => resolveManualAppStoreExportConfig({
+        env: {
+          [IOS_MANUAL_EXPORT_ENV.profile]: profile,
+          [IOS_MANUAL_EXPORT_ENV.signingIdentity]: MANUAL_SIGNING_IDENTITY,
+        },
+      }),
+      (error) => (
+        error.message.includes(IOS_MANUAL_EXPORT_ENV.profile)
+        && !error.message.includes(profile.slice(0, 8))
+      ),
+      `profile ${profile}`,
+    );
+  }
+  // A bare 40-hex SHA-1 fingerprint is valid (see the fingerprint test);
+  // anything that is not exactly 40 hex characters is rejected here.
+  for (const signingIdentity of [
+    'Apple Development: Example (PRDQGB267K)',
+    'iPhone Developer: Example (PRDQGB267K)',
+    'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b',
+    'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3',
+    'g1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2',
+    'a1:b2:c3:d4:e5:f6:a1:b2:c3:d4:e5:f6:a1:b2:c3:d4:e5:f6:a1:b2',
+    'Apple Distribution:',
+    'random identity',
+  ]) {
+    assert.throws(
+      () => resolveManualAppStoreExportConfig({
+        env: {
+          [IOS_MANUAL_EXPORT_ENV.profile]: 'Example App Store',
+          [IOS_MANUAL_EXPORT_ENV.signingIdentity]: signingIdentity,
+        },
+      }),
+      (error) => (
+        error.message.includes(IOS_MANUAL_EXPORT_ENV.signingIdentity)
+        && !error.message.includes(signingIdentity)
+      ),
+      `identity ${signingIdentity}`,
+    );
+  }
+  assert.equal(isProvisioningProfileUuid(MANUAL_PROFILE_UUID), true);
+  assert.equal(isProvisioningProfileUuid(`  ${MANUAL_PROFILE_UUID}  `), true);
+  assert.equal(isProvisioningProfileUuid('Example App Store'), false);
+  assert.equal(isProvisioningProfileUuid('not-a-uuid'), false);
+
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture({ ExpirationDate: '2025-01-01T00:00:00Z' }),
+      EXPECTED,
+      {
+        now: new Date('2026-01-01T00:00:00Z'),
+        profileIdentifier: 'Example App Store',
+        signingIdentity: MANUAL_SIGNING_IDENTITY,
+        parseCertificate: manualCertificateParser(`CN=${MANUAL_SIGNING_IDENTITY}`),
+      },
+    ),
+    /expired/,
+  );
+  assert.throws(
+    () => manualAppStoreExportOptionsPlist({
+      bundleId: EXPECTED.bundleId,
+      teamId: EXPECTED.teamId,
+      profileUuid: '',
+      signingCertificate: MANUAL_SIGNING_IDENTITY,
+    }),
+    /provisioning profile UUID/,
+  );
+  assert.throws(
+    () => manualAppStoreExportOptionsPlist({
+      bundleId: EXPECTED.bundleId,
+      teamId: EXPECTED.teamId,
+      profileUuid: 'Example App Store',
+      signingCertificate: MANUAL_SIGNING_IDENTITY,
+    }),
+    /provisioning profile UUID/,
+    'a display name must not reach the bundle mapping',
+  );
+});
+
+test('manual export rejects a profile or certificate that does not match the pin', () => {
+  const options = {
+    now: new Date('2026-01-01T00:00:00Z'),
+    signingIdentity: MANUAL_SIGNING_IDENTITY,
+    parseCertificate: manualCertificateParser(`CN=${MANUAL_SIGNING_IDENTITY}`),
+  };
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture({ Name: 'Other App Store' }),
+      EXPECTED,
+      { ...options, profileIdentifier: 'Example App Store' },
+    ),
+    (error) => (
+      error.message.includes(IOS_MANUAL_EXPORT_ENV.profile)
+      && !error.message.includes('Other App Store')
+    ),
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture({ UUID: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' }),
+      EXPECTED,
+      { ...options, profileIdentifier: MANUAL_PROFILE_UUID },
+    ),
+    /does not match the installed profile/,
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture({
+        Entitlements: manualProfileEntitlements({
+          'application-identifier': `${EXPECTED.teamId}.wrong.bundle`,
+        }),
+      }),
+      EXPECTED,
+      { ...options, profileIdentifier: 'Example App Store' },
+    ),
+    /Team identifier differs|app or Team/,
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture({
+        Entitlements: manualProfileEntitlements({ 'get-task-allow': true }),
+      }),
+      EXPECTED,
+      { ...options, profileIdentifier: 'Example App Store' },
+    ),
+    /debugging/,
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture({ ProvisionedDevices: ['device-udid'] }),
+      EXPECTED,
+      { ...options, profileIdentifier: 'Example App Store' },
+    ),
+    /device\/enterprise distribution/,
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture(),
+      EXPECTED,
+      {
+        ...options,
+        profileIdentifier: 'Example App Store',
+        signingIdentity: 'Apple Distribution: Other (PRDQGB267K)',
+      },
+    ),
+    (error) => (
+      error.message.includes(IOS_MANUAL_EXPORT_ENV.signingIdentity)
+      && error.message.includes('not included')
+    ),
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture(),
+      EXPECTED,
+      {
+        ...options,
+        profileIdentifier: 'Example App Store',
+        parseCertificate: manualCertificateParser(
+          'CN=Apple Development: Example (PRDQGB267K)',
+        ),
+      },
+    ),
+    /no valid Apple Distribution/,
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture(),
+      EXPECTED,
+      {
+        ...options,
+        profileIdentifier: 'Example App Store',
+        parseCertificate: manualCertificateParser(
+          `CN=${MANUAL_SIGNING_IDENTITY}`,
+          { validFrom: '2024-01-01T00:00:00Z', validTo: '2025-01-01T00:00:00Z' },
+        ),
+      },
+    ),
+    /no valid Apple Distribution/,
+    'an expired pinned certificate must not validate even when the name matches',
+  );
+});
+
+test('manual export requires the archive Apple sign-in grant in the pinned profile', () => {
+  const appleProfile = manualProfileFixture({
+    Entitlements: manualProfileEntitlements({
+      'com.apple.developer.applesignin': ['Default'],
+    }),
+  });
+  assert.equal(
+    assertManualAppStoreProfile(appleProfile, EXPECTED, {
+      now: new Date('2026-01-01T00:00:00Z'),
+      profileIdentifier: 'Example App Store',
+      signingIdentity: MANUAL_SIGNING_IDENTITY,
+      requiredAppleSignIn: true,
+      parseCertificate: manualCertificateParser(`CN=${MANUAL_SIGNING_IDENTITY}`),
+    }),
+    true,
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(
+      manualProfileFixture(),
+      EXPECTED,
+      {
+        now: new Date('2026-01-01T00:00:00Z'),
+        profileIdentifier: 'Example App Store',
+        signingIdentity: MANUAL_SIGNING_IDENTITY,
+        requiredAppleSignIn: true,
+        parseCertificate: manualCertificateParser(`CN=${MANUAL_SIGNING_IDENTITY}`),
+      },
+    ),
+    /applesignin/,
+  );
+  assert.equal(
+    assertManualAppStoreProfile(manualProfileFixture(), EXPECTED, {
+      now: new Date('2026-01-01T00:00:00Z'),
+      profileIdentifier: 'Example App Store',
+      signingIdentity: MANUAL_SIGNING_IDENTITY,
+      requiredAppleSignIn: false,
+      parseCertificate: manualCertificateParser(`CN=${MANUAL_SIGNING_IDENTITY}`),
+    }),
+    true,
+    'profiles without the grant stay valid when the archive does not require it',
+  );
+});
+
+function writeInstalledProfileFixture(homeDir, directory, fileName) {
+  const [modernDir, legacyDir] = installedProvisioningProfileDirectories(homeDir);
+  const dir = directory === 'modern' ? modernDir : legacyDir;
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, fileName);
+  writeFileSync(file, 'fixture profile');
+  return file;
+}
+
+test('installed profile UUID resolves from the modern directory with legacy fallback', () => {
+  withTempRoot((home) => {
+    const [modernDir, legacyDir] = installedProvisioningProfileDirectories(home);
+    assert.ok(
+      modernDir.endsWith(join('Library', 'Developer', 'Xcode', 'UserData', 'Provisioning Profiles')),
+      'modern Xcode directory is searched first',
+    );
+    assert.ok(
+      legacyDir.endsWith(join('Library', 'MobileDevice', 'Provisioning Profiles')),
+      'legacy directory stays as fallback',
+    );
+
+    const modernOnly = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    const legacyOnly = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
+    const bothUuid = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+    const mixedUuid = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
+    const mixedFileName = 'dddddddd-DDDD-DDDD-DDDD-dddddddddddd.mobileprovision';
+    const modernFile = writeInstalledProfileFixture(home, 'modern', `${modernOnly}.mobileprovision`);
+    const legacyFile = writeInstalledProfileFixture(home, 'legacy', `${legacyOnly}.mobileprovision`);
+    const modernBoth = writeInstalledProfileFixture(home, 'modern', `${bothUuid}.mobileprovision`);
+    writeInstalledProfileFixture(home, 'legacy', `${bothUuid}.mobileprovision`);
+    const mixedFile = writeInstalledProfileFixture(home, 'legacy', mixedFileName);
+    writeInstalledProfileFixture(home, 'modern', 'notes.txt');
+
+    assert.equal(
+      resolveInstalledProvisioningProfileUuidPath(modernOnly, { homeDir: home }),
+      modernFile,
+    );
+    assert.equal(
+      resolveInstalledProvisioningProfileUuidPath(legacyOnly, { homeDir: home }),
+      legacyFile,
+    );
+    assert.equal(
+      resolveInstalledProvisioningProfileUuidPath(bothUuid, { homeDir: home }),
+      modernBoth,
+      'the same profile in both directories resolves to the modern file',
+    );
+    assert.equal(
+      resolveInstalledProvisioningProfileUuidPath(mixedUuid, { homeDir: home }),
+      mixedFile,
+      'UUID filenames scan case-insensitively',
+    );
+    assert.equal(
+      resolveInstalledProvisioningProfileUuidPath(mixedUuid.toUpperCase(), { homeDir: home }),
+      mixedFile,
+    );
+    assert.throws(
+      () => resolveInstalledProvisioningProfileUuidPath(
+        'eeeeeeee-ffff-0000-1111-222222222222',
+        { homeDir: home },
+      ),
+      /does not match an installed provisioning profile/,
+    );
+
+    assert.deepEqual(
+      listInstalledProvisioningProfileFiles({ homeDir: home }),
+      [
+        join(modernDir, `${modernOnly}.mobileprovision`),
+        join(modernDir, `${bothUuid}.mobileprovision`),
+        join(legacyDir, `${bothUuid}.mobileprovision`),
+        join(legacyDir, `${legacyOnly}.mobileprovision`),
+        join(legacyDir, mixedFileName),
+      ],
+      'modern files first sorted by name, then legacy files, ignoring other files',
+    );
+  });
+
+  withTempRoot((home) => {
+    assert.deepEqual(listInstalledProvisioningProfileFiles({ homeDir: home }), []);
+    assert.throws(
+      () => resolveInstalledProvisioningProfileUuidPath(MANUAL_PROFILE_UUID, {
+        homeDir: home,
+      }),
+      /does not match an installed provisioning profile/,
+    );
+  });
+});
+
+test('installed profile name lookup is deterministic and rejects ambiguous names', () => {
+  const byIdentity = (identities) => (file) => {
+    if (!Object.hasOwn(identities, file)) throw new Error('unreadable fixture');
+    return identities[file];
+  };
+
+  assert.equal(
+    findInstalledProvisioningProfileByName('Example App Store', {
+      files: ['/profiles/other.mobileprovision', '/profiles/match.mobileprovision'],
+      readIdentity: byIdentity({
+        '/profiles/other.mobileprovision': { name: 'Other', uuid: MANUAL_PROFILE_UUID },
+        '/profiles/match.mobileprovision': { name: 'Example App Store', uuid: MANUAL_PROFILE_UUID },
+      }),
+    }),
+    '/profiles/match.mobileprovision',
+  );
+  assert.equal(
+    findInstalledProvisioningProfileByName('Example App Store', {
+      files: ['/profiles/modern.mobileprovision', '/profiles/legacy.mobileprovision'],
+      readIdentity: byIdentity({
+        '/profiles/modern.mobileprovision': { name: 'Example App Store', uuid: MANUAL_PROFILE_UUID },
+        '/profiles/legacy.mobileprovision': { name: 'Example App Store', uuid: MANUAL_PROFILE_UUID },
+      }),
+    }),
+    '/profiles/modern.mobileprovision',
+    'the same profile duplicated across directories resolves to the first candidate',
+  );
+  assert.throws(
+    () => findInstalledProvisioningProfileByName('Shared Name', {
+      files: ['/profiles/first.mobileprovision', '/profiles/second.mobileprovision'],
+      readIdentity: byIdentity({
+        '/profiles/first.mobileprovision': { name: 'Shared Name', uuid: MANUAL_PROFILE_UUID },
+        '/profiles/second.mobileprovision': {
+          name: 'Shared Name',
+          uuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+        },
+      }),
+    }),
+    (error) => (
+      error.message.includes(IOS_MANUAL_EXPORT_ENV.profile)
+      && error.message.includes('more than one')
+      && error.message.includes('UUID')
+      && !error.message.includes('Shared Name')
+    ),
+    'different profiles under one name are rejected without echoing the name',
+  );
+  assert.throws(
+    () => findInstalledProvisioningProfileByName('Shared Name', {
+      files: ['/profiles/first.mobileprovision', '/profiles/second.mobileprovision'],
+      readIdentity: byIdentity({
+        '/profiles/first.mobileprovision': { name: 'Shared Name', uuid: undefined },
+        '/profiles/second.mobileprovision': { name: 'Shared Name', uuid: undefined },
+      }),
+    }),
+    /more than one/,
+    'name matches without a readable UUID fail closed as ambiguous',
+  );
+  assert.throws(
+    () => findInstalledProvisioningProfileByName('Missing Name', {
+      files: ['/profiles/other.mobileprovision', '/profiles/unreadable.mobileprovision'],
+      readIdentity: byIdentity({
+        '/profiles/other.mobileprovision': { name: 'Other', uuid: MANUAL_PROFILE_UUID },
+      }),
+    }),
+    /does not match an installed provisioning profile/,
+  );
+});
+
+const MANUAL_CERTIFICATE_DER = Buffer.from('manual distribution certificate');
+const MANUAL_CERTIFICATE_FINGERPRINT = createHash('sha1')
+  .update(MANUAL_CERTIFICATE_DER)
+  .digest('hex');
+const OLDER_CERTIFICATE_DER = Buffer.from('older revoked certificate');
+
+function manualCertificateParserByDer(records) {
+  return (der) => {
+    const record = records.find(([bytes]) => bytes.equals(der))?.[1];
+    if (!record) throw new Error('unknown fixture certificate');
+    return {
+      validFrom: record.validFrom ?? '2026-01-01T00:00:00Z',
+      validTo: record.validTo ?? '2027-01-01T00:00:00Z',
+      subject: record.subject,
+    };
+  };
+}
+
+test('manual export accepts a SHA-1 fingerprint pinned to one valid distribution certificate', () => {
+  const config = resolveManualAppStoreExportConfig({
+    env: {
+      [IOS_MANUAL_EXPORT_ENV.profile]: MANUAL_PROFILE_UUID,
+      [IOS_MANUAL_EXPORT_ENV.signingIdentity]: `  ${MANUAL_CERTIFICATE_FINGERPRINT}  `,
+    },
+  });
+  assert.deepEqual(config, {
+    profile: MANUAL_PROFILE_UUID,
+    signingIdentity: MANUAL_CERTIFICATE_FINGERPRINT,
+  });
+
+  const plist = manualAppStoreExportOptionsPlist({
+    bundleId: EXPECTED.bundleId,
+    teamId: EXPECTED.teamId,
+    profileUuid: MANUAL_PROFILE_UUID,
+    signingCertificate: MANUAL_CERTIFICATE_FINGERPRINT.toUpperCase(),
+  });
+  assert.match(
+    plist,
+    new RegExp(
+      `<key>signingCertificate<\\/key>\\s*<string>${MANUAL_CERTIFICATE_FINGERPRINT.toUpperCase()}<\\/string>`,
+    ),
+    'the exact fingerprint reaches ExportOptions verbatim',
+  );
+
+  const options = {
+    now: new Date('2026-01-01T00:00:00Z'),
+    profileIdentifier: 'Example App Store',
+    parseCertificate: manualCertificateParser(`CN=${MANUAL_SIGNING_IDENTITY}`),
+  };
+  assert.equal(
+    assertManualAppStoreProfile(manualProfileFixture(), EXPECTED, {
+      ...options,
+      signingIdentity: MANUAL_CERTIFICATE_FINGERPRINT,
+    }),
+    true,
+  );
+  assert.equal(
+    assertManualAppStoreProfile(manualProfileFixture(), EXPECTED, {
+      ...options,
+      signingIdentity: MANUAL_CERTIFICATE_FINGERPRINT.toUpperCase(),
+    }),
+    true,
+    'fingerprint matching is case-insensitive',
+  );
+
+  const sharedName = `CN=${MANUAL_SIGNING_IDENTITY}`;
+  const twoCertificateProfile = manualProfileFixture({
+    DeveloperCertificates: [
+      OLDER_CERTIFICATE_DER.toString('base64'),
+      MANUAL_CERTIFICATE_DER.toString('base64'),
+    ],
+  });
+  const olderFingerprint = createHash('sha1').update(OLDER_CERTIFICATE_DER).digest('hex');
+  const duplicateNameParser = manualCertificateParserByDer([
+    [OLDER_CERTIFICATE_DER, {
+      subject: sharedName,
+      validFrom: '2024-01-01T00:00:00Z',
+      validTo: '2025-01-01T00:00:00Z',
+    }],
+    [MANUAL_CERTIFICATE_DER, { subject: sharedName }],
+  ]);
+  assert.equal(
+    assertManualAppStoreProfile(twoCertificateProfile, EXPECTED, {
+      ...options,
+      signingIdentity: MANUAL_CERTIFICATE_FINGERPRINT,
+      parseCertificate: duplicateNameParser,
+    }),
+    true,
+    'the fingerprint pins the valid certificate when names collide',
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(twoCertificateProfile, EXPECTED, {
+      ...options,
+      signingIdentity: olderFingerprint,
+      parseCertificate: duplicateNameParser,
+    }),
+    /not included/,
+    'an expired certificate cannot satisfy a fingerprint pin',
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(manualProfileFixture(), EXPECTED, {
+      ...options,
+      signingIdentity: '0'.repeat(40),
+    }),
+    (error) => (
+      error.message.includes(IOS_MANUAL_EXPORT_ENV.signingIdentity)
+      && error.message.includes('not included')
+    ),
+  );
+  assert.throws(
+    () => assertManualAppStoreProfile(manualProfileFixture(), EXPECTED, {
+      ...options,
+      signingIdentity: MANUAL_CERTIFICATE_FINGERPRINT,
+      parseCertificate: manualCertificateParser(
+        'CN=Apple Development: Example (PRDQGB267K)',
+      ),
+    }),
+    /no valid Apple Distribution/,
+    'a development certificate cannot satisfy a fingerprint pin',
   );
 });

@@ -111,8 +111,9 @@ const DOOR_HALF_HEIGHT: float = 46.0
 ## Moonlight under the door. Reuses the beacon ring — already a round moonlight graphic.
 const DOOR_GLOW: Texture2D = preload("res://assets/derived/ui/charge_ring.png")
 
-## Four cells on the first row of the custom obstacle sheet. Art is drawn in
-## 64×64 with feet at y=50; the collision circle fits the ground part of the silhouette.
+## Four cells on the first row of the custom obstacle sheet, in world rects
+## (the sheet holds art_zoom pixels per world pixel). Art is drawn in 64×64
+## with feet at y=50; the collision circle fits the ground part of the silhouette.
 const OBSTACLE_REGIONS: Array[Rect2] = [
 	Rect2(0, 0, 64, 64),
 	Rect2(64, 0, 64, 64),
@@ -327,9 +328,12 @@ func _add_obstacle(at: Vector2, radius: float, variant: int) -> void:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.texture = kind.obstacle_tileset
 	sprite.region_enabled = true
-	sprite.region_rect = OBSTACLE_REGIONS[variant]
+	sprite.region_rect = _sheet_rect(OBSTACLE_REGIONS[variant])
 	sprite.centered = false
 	sprite.position = OBSTACLE_SPRITE_OFFSET
+	sprite.scale = Vector2.ONE / kind.art_zoom
+	if kind.art_zoom > 1.0:
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.material = STILL_MATERIAL
 	structure.add_child(sprite)
 	_structures.add_child(structure)
@@ -730,6 +734,13 @@ func _scatter_props(rng: RandomNumberGenerator, count: int) -> void:
 		_place_prop(rng, at)
 
 
+## KIND/PROP_KIND/OBSTACLE rects are world rects; the sheet holds art_zoom
+## texture pixels per world pixel, so scale regions up and draw at 1/art_zoom.
+func _sheet_rect(world: Rect2) -> Rect2:
+	return Rect2(
+		world.position * kind.art_zoom, world.size * kind.art_zoom)
+
+
 func _place_prop(rng: RandomNumberGenerator, at: Vector2) -> void:
 	var pick: String = kind.prop_kinds[rng.randi_range(0, kind.prop_kinds.size() - 1)]
 	var region: Rect2 = PROP_KIND.get(pick, Rect2())
@@ -740,8 +751,11 @@ func _place_prop(rng: RandomNumberGenerator, at: Vector2) -> void:
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.texture = kind.prop_tileset
 	sprite.region_enabled = true
-	sprite.region_rect = region
+	sprite.region_rect = _sheet_rect(region)
 	sprite.centered = false
+	sprite.scale = Vector2.ONE / kind.art_zoom
+	if kind.art_zoom > 1.0:
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.position = at - Vector2(region.size.x * 0.5, region.size.y)
 	var shade: float = rng.randf_range(0.86, 1.0)
 	sprite.modulate = Color(shade, shade, minf(shade * 1.04, 1.0), 1.0)
@@ -766,8 +780,11 @@ func _place(rng: RandomNumberGenerator, names: PackedStringArray, at: Vector2, s
 	var sprite: Sprite2D = Sprite2D.new()
 	sprite.texture = kind.tileset
 	sprite.region_enabled = true
-	sprite.region_rect = region
+	sprite.region_rect = _sheet_rect(region)
 	sprite.centered = false
+	sprite.scale = Vector2.ONE / kind.art_zoom
+	if kind.art_zoom > 1.0:
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	sprite.position = at - Vector2(region.size.x * 0.5, region.size.y)
 	sprite.modulate = Color(shade, shade, minf(shade * 1.06, 1.0), 1.0)
 	if pick not in FLAT:

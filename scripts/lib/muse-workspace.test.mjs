@@ -50,14 +50,14 @@ function makeCheckout(t) {
   put(root, 'apps/game/.godot/editor/x.cfg', 'editor');
   put(root, 'builds/out.txt', 'out');
   put(root, '.playwright-mcp/shot.png', 'png');
-  put(root, '.claude/allow-pr', '');
+  put(root, '.claude/settings.local.json', '{"permissions":{}}');
   return root;
 }
 
 test('what is a secret, and what is copied', () => {
   for (const path of ['.env', '.env.local', 'apps/x/.env.production', 'keys/AuthKey_ABC.p8', 'a/b.keystore', 'my.jks',
     'apps/game/.godot/export_credentials.cfg', 'svc-service-account-1.json', 'apps/game/iapkit.cfg', 'apps/game/firebase.cfg',
-    '.claude/allow-pr', '.secrets/x']) {
+    '.claude/settings.local.json', '.secrets/x']) {
     assert.ok(isSecretPath(path), `${path} should be a secret`);
     assert.ok(!isCopied(path), `${path} should not be copied`);
   }
@@ -80,7 +80,7 @@ test('the copy has the publishable files and the import cache, and no secret or 
     assert.ok(existsSync(join(destination, path)), `${path} should be in the copy`);
   }
   for (const path of ['.env', 'keys/AuthKey.p8', 'apps/game/.godot/export_credentials.cfg', 'apps/game/.godot/editor/x.cfg',
-    'builds/out.txt', '.playwright-mcp/shot.png', '.claude/allow-pr', 'ignored.txt', 'apps/game/scripts/gone.gd']) {
+    'builds/out.txt', '.playwright-mcp/shot.png', '.claude/settings.local.json', 'ignored.txt', 'apps/game/scripts/gone.gd']) {
     assert.ok(!existsSync(join(destination, path)), `${path} must not be in the copy`);
   }
   assert.ok(files >= 4);
@@ -151,7 +151,7 @@ test('a real tree that moved on since the copy was made refuses the patch', (t) 
 
 test('the paths an implementer may not change are protected, the ones to read twice are watched', () => {
   const protectedPaths = ['AGENTS.md', '.claude/commands/muse.md', '.agents/skills/x/SKILL.md', '.github/workflows/ci.yml',
-    '.gitignore', 'scripts/guard-pull-request.mjs', 'scripts/lib/pr-guard.mjs', 'scripts/muse.mjs', 'scripts/muse.config.json',
+    '.gitignore', 'scripts/muse.mjs', 'scripts/muse.config.json',
     'scripts/lib/muse-run.mjs', 'notes/workflow/muse/standing-orders.md', 'apps/game/export_presets.cfg', 'firestore.rules',
     '.env', 'x/AuthKey.p8'];
   for (const path of protectedPaths) assert.equal(classifyChange(path).level, 'protected', path);

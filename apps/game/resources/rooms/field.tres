@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="RoomKind" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/room_kind.gd" id="script"]
-[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/nature.png" id="tileset"]
+[ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field_nature.png" id="tileset"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field.png" id="field"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/ground_field.png" id="floor"]
 [ext_resource type="Texture2D" path="res://assets/custom/world/terrain/field_props.png" id="obstacles"]
@@ -11,6 +11,7 @@ script = ExtResource("script")
 display_name = "달빛 들판"
 encounter = 1
 tileset = ExtResource("tileset")
+art_zoom = 3.0
 floor_texture = ExtResource("floor")
 tint = Color(0.72, 0.8, 0.9, 1)
 floor_tint = Color(1, 1, 1, 1)

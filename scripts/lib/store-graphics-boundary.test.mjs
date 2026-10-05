@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { ANDROID_CAPTURE_PERSISTENT_FILES } from './android-capture-persistence.mjs';
+import { ANDROID_CAPTURE_PERSISTENT_FILES, ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN } from './android-capture-persistence.mjs';
 import { IOS_CODE_PERSISTENT_FILES } from './ios-device-evidence.mjs';
 
 test('store screenshot cleanup does not delete files outside a symbolic link', () => {
@@ -2235,11 +2235,17 @@ report = {
         "evidence_path": "builds/shots/store-localized/avd-config.ini",
     },
     "persistent_data_files": list(module.ANDROID_CAPTURE_PERSISTENT_FILES),
+    "persistent_data_dynamic_files": [],
     "persistent_data_sha256_before": before,
     "persistent_data_sha256_observed": observed,
     "persistent_data_sha256_restored": dict(before),
+    "persistent_data_dynamic_sha256_before": {},
+    "persistent_data_dynamic_sha256_observed": {},
+    "persistent_data_dynamic_sha256_restored": {},
     "persistent_data_mutated_during_capture": True,
+    "persistent_data_dynamic_mutated_during_capture": False,
     "persistent_data_restored_byte_exact": True,
+    "persistent_data_dynamic_restored_byte_exact": True,
     "persistent_data_unchanged": True,
     "settings_restore": {
         "original_present": True,
@@ -2984,11 +2990,17 @@ def persistence_evidence(target):
     write_bytes(anchor_relative, anchor_bytes)
     return {
         "persistent_data_files": list(module.ANDROID_CAPTURE_PERSISTENT_FILES),
+        "persistent_data_dynamic_files": [],
         "persistent_data_sha256_before": before,
         "persistent_data_sha256_observed": observed,
         "persistent_data_sha256_restored": restored,
+        "persistent_data_dynamic_sha256_before": {},
+        "persistent_data_dynamic_sha256_observed": {},
+        "persistent_data_dynamic_sha256_restored": {},
         "persistent_data_mutated_during_capture": True,
+        "persistent_data_dynamic_mutated_during_capture": False,
         "persistent_data_restored_byte_exact": True,
+        "persistent_data_dynamic_restored_byte_exact": True,
         "persistent_data_unchanged": True,
         "settings_restore": {
             "original_present": True,
@@ -4736,7 +4748,7 @@ test('Python capture persistence contract matches the Node producer including Ch
   const root = mkdtempSync(join(tmpdir(), 'moonlit-persistence-contract-'));
   try {
     const producer = [...ANDROID_CAPTURE_PERSISTENT_FILES];
-    assert.equal(producer.length, 20);
+    assert.equal(producer.length, 32);
     assert.deepEqual(producer.slice(3, 5), ['chronicle.json', 'chronicle.json.tmp']);
     assert.deepEqual([...IOS_CODE_PERSISTENT_FILES], producer);
     const probe = String.raw`
@@ -4751,11 +4763,20 @@ from pathlib import Path
 module_path = Path(sys.argv[1])
 root = Path(sys.argv[2])
 producer = json.loads(sys.argv[3])
+node_pattern = sys.argv[4]
 spec = importlib.util.spec_from_file_location(
     "store_graphics_persistence_contract", module_path)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 module.REPO_ROOT = root
+
+if module.ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN != node_pattern:
+    raise RuntimeError(
+        "dynamic pattern differs between the Node producer and the "
+        "Python consumer"
+    )
+if module.IOS_CAPTURE_PERSISTENT_DYNAMIC_PATTERN != node_pattern:
+    raise RuntimeError("iOS dynamic pattern differs from the Node producer")
 
 android = list(module.ANDROID_CAPTURE_PERSISTENT_FILES)
 ios = list(module.IOS_CAPTURE_PERSISTENT_FILES)
@@ -4814,13 +4835,29 @@ anchor_transcript = {
 }
 anchor_bytes = (json.dumps(anchor_transcript, indent=2) + "\n").encode()
 (root / anchor_relative).write_bytes(anchor_bytes)
+partition = "journey.MB-0123456789abcdef0123456789abcdef.json"
+created = "cloud_journey.firebaseUid_123-ABC.json"
+dynamic_before = {
+    partition: hashlib.sha256(b"partition-before").hexdigest(),
+}
+dynamic_observed = {
+    partition: hashlib.sha256(b"partition-observed").hexdigest(),
+    created: hashlib.sha256(b"capture-created").hexdigest(),
+}
+dynamic_restored = dict(dynamic_before)
 report = {
     "persistent_data_files": list(producer),
+    "persistent_data_dynamic_files": [partition],
     "persistent_data_sha256_before": before,
     "persistent_data_sha256_observed": observed,
     "persistent_data_sha256_restored": dict(restored),
+    "persistent_data_dynamic_sha256_before": dynamic_before,
+    "persistent_data_dynamic_sha256_observed": dynamic_observed,
+    "persistent_data_dynamic_sha256_restored": dynamic_restored,
     "persistent_data_mutated_during_capture": True,
+    "persistent_data_dynamic_mutated_during_capture": True,
     "persistent_data_restored_byte_exact": True,
+    "persistent_data_dynamic_restored_byte_exact": True,
     "persistent_data_unchanged": True,
     "settings_restore": {
         "original_present": True,
@@ -4894,6 +4931,29 @@ def keep_capture_created_chronicle(value):
         value["persistent_data_sha256_observed"]["chronicle.json"]
 rejected("capture-created chronicle.json kept after restore",
          keep_capture_created_chronicle)
+rejected("dynamic partition dropped from file list",
+         lambda value: value["persistent_data_dynamic_files"].remove(partition))
+rejected("non-pattern name in dynamic file list",
+         lambda value: value["persistent_data_dynamic_files"].append("unexpected.cfg"))
+rejected("fixed name in dynamic file list",
+         lambda value: value["persistent_data_dynamic_files"].append("vault.cfg"))
+rejected("dynamic partition dropped from before map",
+         lambda value: value["persistent_data_dynamic_sha256_before"].pop(partition))
+def tamper_dynamic_restored(value):
+    value["persistent_data_dynamic_sha256_restored"][partition] = "c" * 64
+rejected("dynamic restored hash changed", tamper_dynamic_restored)
+def keep_capture_created_partition(value):
+    value["persistent_data_dynamic_sha256_restored"][created] = \
+        value["persistent_data_dynamic_sha256_observed"][created]
+rejected("capture-created partition kept after restore",
+         keep_capture_created_partition)
+def tamper_dynamic_observed_extra(value):
+    value["persistent_data_dynamic_sha256_observed"]["unexpected.cfg"] = "d" * 64
+rejected("non-pattern name in dynamic observed map",
+         tamper_dynamic_observed_extra)
+rejected("dynamic mutated flag flipped",
+         lambda value: value.__setitem__(
+             "persistent_data_dynamic_mutated_during_capture", False))
 
 def ios_rejected(label, candidate):
     try:
@@ -4932,13 +4992,14 @@ print(json.dumps({"android": len(android), "ios": len(ios)}))
         resolve('apps/game/tools/build_store_graphics.py'),
         root,
         JSON.stringify(producer),
+        ANDROID_CAPTURE_PERSISTENT_DYNAMIC_PATTERN,
       ],
       { cwd: resolve('.'), encoding: 'utf8' },
     );
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
     assert.deepEqual(JSON.parse(result.stdout.trim().split('\n').at(-1)), {
-      android: 20,
-      ios: 20,
+      android: 32,
+      ios: 32,
     });
   } finally {
     rmSync(root, { recursive: true, force: true });

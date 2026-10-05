@@ -1296,6 +1296,91 @@ provenance requirements are untouched. No new tests, no
 runtime, capture, or remote operations; final screenshots and
 deployment remain pending with the director.
 
+## Resolve the embedded title in the distribution probe: brief 156 (2026-10-04)
+
+The phone producer reached the direct-distribution installed-binary probe
+with every store proof green except the title UI: `title_screen_visible`
+and `title_store_button_present` were false, so `ready` stayed false.
+Cause was the same embedding the boot marker had just been repaired for:
+`store_capture_probe.gd` resolved `Ui/Screen` on the scene root, but the
+production scene nests the original title under its `Title` child.
+
+The probe now resolves through real scene identity — the `Title` child
+under `production_entry.tscn`, the root itself under `title_menu.tscn`,
+null otherwise — and fails closed while a gate card, panel, loader, or
+confirm covers the production title. The resolver is structural on
+purpose: naming `TestLauncher` or `ProductionEntry` from the probe broke
+the `--script` clean-UI regression, which compiles without autoload
+symbols, through `production_entry.gd`'s `Settings` reference. The live
+Shop singleton, export feature, unavailable state, paid-SKU memory
+fixture, `owns()` call, immediate byte-equivalent restore, and every
+exported field are untouched.
+
+What bit us: the first version reused the marker's resolver through the
+global class name and turned the clean-UI suite red with compile errors
+(caught before anything else ran). The second lesson was a missing
+`await` on the new test's parity helper, which freed the production
+entry mid-check and silently skipped four asserts behind a passing
+count — the count is only trustworthy with the error stream next to it.
+
+Coverage is `test_direct_distribution_title` (108 cases, registered in
+the regression runner): production and standalone UI fields against the
+actual embedded nodes, bare/decoy/missing rejection, card/panel/loader/
+confirm occlusion parity with the marker, and the Shop memory/revision/
+disk boundary. A headless engine proves every component but not the
+final `ready`; the installed APK proves that. Reverting to the old root
+lookup fails 10 of the 108, then restores exact bytes (sha256 pinned in
+the report). One stale host pin was noticed along the way
+(`capture-run-state.test.mjs` still demanded the pre-repair inline
+marker shape in `test_launcher.gd`), but brief 155 fixed it
+independently in the real tree, so this copy leaves that file at
+baseline and the director gates on the current-root suites after
+acceptance. Other debug helpers were inspected — arena/shot harnesses
+already resolve their own roots or forward through `has_method` — and no
+further embedding mistake was found. `check:store-screenshots` fails as
+expected after the `apps/game` touch; no recapture (non-visual).
+
+## One standing hero through walk, stop, and attack: briefs 186/188/190 (2026-10-05)
+
+The user stopped a release over this: at rest the heroes stood legs-spread in a
+frozen stride, and stopping changed the face (the idle head was visibly larger
+than the moving one). The bake used turnaround row 0 for idle but separate
+sidewalk donors for side walk, and idle rescaled the whole figure every breath.
+All three rounds below landed in one diff; the director judged pixels twice
+before accepting the approach a third time.
+
+Round 1 rebuilt the side idle by gathering legs toward the contact feet and
+kept row-0 reuse for down/up. The director read the result as a shortened step
+(rear shin angled, feet split) with 12 untouched front/back strides, and sent
+it back. Round 2 rebuilt all 24 idle cells from painted parts in the packer:
+sides articulate about hip pivots (shin rotates, boot replants flat, profile
+feet overlap at center 72±5), front/back mirror the walk's own planted leg
+into a symmetric pair below the garment hem (keeper's bridged back-view boots
+needed a one-boot donor erase to avoid a mirrored bar). Idle breath shrank to
+a torso-band-only resample so head and feet stay byte-identical. Round 3 fixed
+what round 2 measured but left open: every walk frame now wears its fitted
+row-0 head pixel-fixed (the shared scale alone never registered painted
+faces), and the down/up columns fit at one row-0 scale instead of equalizing
+every frame's height (up to 4% face pulse, gone).
+
+Two motion fights are worth recording. The side-stance file check first
+demanded two sole runs, which honest profile overlap can never show; it now
+checks the stance extent (26–38 gathered vs 56–68 stride, bound 20–46). The
+knight's cannon kick briefly dropped 7.0→5.0 to satisfy the reach clamp on the
+donor's tucked arm; the brief sent that back, and the honest fix was
+recalibrating the shoulder onto the pauldron crown with solver-consistent
+elbows — original 7.0 recoil and all motion floors pass unweakened.
+
+Forecourt grounding uses the idle|walk union bounds per facing now, so stops
+and same-facing departures never rescale or lift the actor; the paint tables
+were re-measured from the final sheets. The attack harness movers lane runs a
+synchronized stop cycle (walk, stop, planted attack, recover) with stops
+turning through all four facings. Coverage: canonical-head bytes and boxes in
+every walk/idle frame plus the attack torso and live transitions, standing
+geometry for all 24 cells, below-neck stride motion (bounds alone go blind
+once heads stop bobbing), and mirrored negative controls that fail on the
+baseline stride heads, split stances, and single-boot fronts.
+
 ## Not done
 
 - Store screenshots: the fresh five-locale Android originals (phone 40 PNGs, seven-inch 30, ten-inch 30)

@@ -31,6 +31,10 @@ enum Encounter {
 
 ## Sheet to crop trees and grass from.
 @export var tileset: Texture2D = null
+## Sheet pixels per world pixel. Painted terrain is 3× the legacy pixels, so
+## Room scales KIND/PROP_KIND/OBSTACLE regions by this and draws sprites at
+## 1/art_zoom for the same world footprint. Default 1.0 keeps legacy sheets.
+@export var art_zoom: float = 1.0
 
 ## Picture laid on the floor. Repeats like a tile.
 @export var floor_texture: Texture2D = null
@@ -70,7 +74,7 @@ enum Encounter {
 ##
 ## Keep them apart from decor so collision is not glued to every visible tree;
 ## only large-silhouette structures become clear combat terrain. `Room` picks
-## the four 64×64 cells on the first row.
+## the four obstacle cells on the first row (64×64 world, times art_zoom).
 @export var obstacle_tileset: Texture2D = null
 @export_range(0, 40, 1) var obstacle_count: int = 0
 

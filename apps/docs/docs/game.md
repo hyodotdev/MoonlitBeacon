@@ -19,7 +19,7 @@ title: The game we are making
 | Controls | full-screen floating move stick / bottom-right dash button / auto-attack |
 | Engine | Godot 4.7.1 Standard, GDScript |
 | Run length | you can cash out after each guardian — keep going after an 8-cycle official win |
-| Project version | 3.0.0 (iOS build 11 / Android versionCode 16) |
+| Project version | 4.0.0 (iOS build 12 / Android versionCode 17) |
 
 ### One-line pitch
 
@@ -36,12 +36,20 @@ screen as it looked when that lesson was finished.
 
 ## 2. Flow of a run
 
-1. Pick a character on the title, and spend collected moon shards on
-   permanent boons.
+1. Tap the title and choose how to enter: continue as a guest on this
+   installation, or with Google / Apple sign-in where configured.
+   Starting means you accept the in-app Terms and have read the Privacy
+   Policy, both linked on the same card. Pick a character at the shrine,
+   and spend collected moon shards on permanent boons. If a journey is
+   saved, the gate offers Resume back through the last gate with the
+   saved hero; starting over needs a confirmation first so the saved
+   gate is never lost by accident.
 2. Enter the night forest and scatter spirits with your hero's automatic
    primary weapon — wide sword cuts, twin blades, a piercing rifle, a
    lantern shotgun, a heavy cannon, or an orbiting scythe — backed by a
-   lighter sidearm on the other range.
+   lighter sidearm on the other range. The first run teaches movement
+   with short banners over live combat that never pauses for them, and
+   a tip once learned never shows again.
 3. Walk up to moonlight embers spirits leave behind and fill the
    **Moonfire gauge**. Ten pips raise every weapon's damage for 6.5
    seconds and speed up slash and Moon Disc.
@@ -65,10 +73,15 @@ screen as it looked when that lesson was finished.
 8. After picking loot, cash out the current score and shards and return,
    or enter the next cycle where region order and enemies change. An
    8-cycle return is the official win; you can keep going forever after
-   that if you want.
-9. Returning or hitting 0 health shows cycle, beacons, survival time,
-   level, kill score, and rank. Moon shards and records carry into the
-   next run.
+   that if you want. Cashing out banks the rewards and seals the next
+   gate, so Continue resumes at the next cycle with the build intact.
+9. Returning shows cycle, beacons, survival time, level, kill score, and
+   rank. Moon shards and records carry into the next run. Hitting 0
+   health keeps the banked journey and offers Retry from the last gate
+   with the growth earned before that segment; the lost segment's kills,
+   score and rewards grant nothing, so no number of retries can farm
+   them. A paid continue coin still revives in place instead, and is
+   never spent just to resume the saved journey.
 
 ## 3. Exact shipping-version scope
 
@@ -112,6 +125,16 @@ virtual stick work from mouse drag alone.
 | Silver Moon Knight | heavy cannon shell | slow straight shell, then a delayed blast where it lands |
 | Eclipse Mage | orbiting scythe ring | timed full-circle sweeps with a safe hole at the feet |
 | Constellation Sage | piercing rifle line | one long bolt through the whole line |
+
+- Every attack is a visible body action, not just a flash: swords sweep
+  through their cut with a carried grip and follow-through, twin blades
+  alternate fangs, the crescent sweep rides the orbit pulse, and each gun
+  kicks back in its holder's hands and settles. Walking attacks keep
+  stepping through the cut; standing attacks stay planted. At rest every
+  hero stands upright on both feet, and the same face carries through
+  walking, stopping, and attacking. Damage,
+  cooldowns, range, and relic balance are unchanged — only the motion is
+  new.
 
 - Moon Disc volleys start at power 0 and grow with picked-up cores to
   power 8. Normal fire stays straight: homing unlocks only with evolved
@@ -456,14 +479,68 @@ return, and stays hidden on defeat.
 | `chronicle.json` | which story beats, place memories, first-sight lines and endings have been seen (the Chronicle page) |
 | `chronicle.json.tmp` | temp file used only while swapping the chronicle in |
 | `analytics.json` | allowed events not yet sent after consent. Max 200 events / 14 days; revoked consent deletes immediately |
+| `player_identity.cfg` | durable player ID (`MB-` + 32 hex), minted before the first play and shown in full on the moon gate |
+| `player_bindings.cfg` | which player ID each signed-in account plays under, keyed by hashed account reference only |
+| `journey.<id>.json` | one saved gate per player ID: cycle, hero, relics, growth and score counters, plus backup, revision and rejected-copy files |
 
 A missing or corrupt save still launches with defaults.
 
-The online ladder is implemented with Firestore REST. Only when a
-shipping build includes a separate API-key config does it upload name,
-character, app version, score, rank, and cycle, and fetch global top
-records. This repository has no key file, so default builds use the local
-ladder only. Missing connection or a failed request leaves play and local
+### The moon gate: accounts, guests, and the Hall (4.0.0)
+
+The game opens on the original title composition: the same diorama
+framing, tap prompt, and small menu doors (Shrine, Shop, Settings,
+Credits, Chronicle, Ladder) in their shipped layout. The forest
+itself is the current painted runtime art, with the six-hero patrol
+walking the forecourt. Before anything else it mints a durable
+player ID; that ID names the saved gate and the Hall rows, and it never
+changes on relaunch. A tap opens the gate over that same title: the
+sign-in choice — Google, then Apple, then the always-usable guest
+door — or, for a cloud-restored account, a returning guest with a
+saved gate, or a guest chosen earlier this boot, the account card
+with the full ID and the continue options. Unconfigured providers
+read disabled rather than missing. The initial cloud save check
+owns the card until it resolves: a fetch in flight shows the
+checking face, a failure the save error with retry and an explicit
+offline door, and no start decision happens before the terminal
+result.
+
+- **Guest play works everywhere, including offline.** The gate labels it a
+  local guest and never presents it as a registered cloud account. When the
+  device supports it, the guest also registers quietly in the background;
+  a failure or a missing configuration never blocks play.
+- **Platform sign-in appears only where it is real.** Google, Apple, and
+  Play Games buttons show up only when the build genuinely supports them,
+  each with its own ready state. Linking never merges accounts: a provider
+  that already belongs to another player reports a conflict, keeps the
+  guest untouched, and offers an explicit switch. Signing out starts a
+  fresh guest ID; the previous account's ID, binding, and save stay on the
+  device.
+- **Continue where you stopped.** The gate resumes the last saved gate with
+  its hero, relics, and growth. Starting over with a save in place asks
+  first. Retrying a gate is free; continue coins only resume where you fell.
+- **The Hall shows real ranks.** Rows carry the actual hero, score, and full
+  player ID, each labeled live, cached, or offline. Equal scores share one
+  standing, and the rank chip in the Arena agrees with the board. Local
+  bests stay on the device ladder and are never mixed into the cloud board.
+- **Conflicts and offline states are explicit.** When the device save and the
+  cloud save differ, the gate shows both and waits for a pick; the rejected
+  side is preserved for recovery first. Nothing is overwritten silently, and
+  network trouble never pauses a fight.
+- **The account card holds link, sign-out, and delete.** Deleting a cloud
+  account first needs the cloud's own deletion acknowledgement, then the
+  platform sign-in deletion, and only then removes that account's local
+  save; any failure keeps the recovery data. The anonymous-metrics toggle
+  defaults off, and the privacy and support links open the project's pages.
+
+The legacy online ladder (before 4.0.0) was implemented with Firestore
+REST: only when a shipping build included a separate API-key config did
+it upload name, character, app version, score, rank, and cycle, and
+fetch global top records. That name/rank upload is not the current
+Hall. The active 4.0.0 Hall (`mb_hall_v1`) keeps one row per public ID
+carrying the public ID, the canonical hero path, score, cycles,
+release, schema, and update time — never the legacy name or a rank
+field. Standing is derived from the scores, so equal scores share one
+rank. Missing connection or a failed request leaves play and local
 records working. Android export has the internet permission on for this
 optional feature.
 
@@ -601,7 +678,7 @@ the official win needs no particular terrain.
 **The chronicle.** Entries are written into `chronicle.json` as their moments
 occur; a place memory is recorded when its beacon is restored. A discovery or
 first-sight line may wait until the screen is quiet, with its record already
-kept. The title screen's Chronicle page lists all forty entries, the unmet
+kept. The moon gate's Chronicle door lists all forty entries, the unmet
 ones as blanks.
 It has its own save file on purpose: purchases and shards live in the Vault,
 whose writes are verified and backed up, and a reading log is not worth that
@@ -622,15 +699,19 @@ Store screenshots were renewed for 3.0.0 and match the current screens.
 
 The current shipping scope excludes the following.
 
-- Accounts and login
 - Analytics accounts, advertising IDs, and device fingerprinting
 - Ads and energy / gacha-style IAP
 - Multiplayer
 - A manual attack button and a traditional slot inventory
 - **Windows / Web builds** (desktop runs are development tests only)
 
-The online ladder is an optional feature that types a name with no
-account. Unconnected builds show only the local top 10.
+The legacy online ladder was an optional feature that typed a name
+with no account; unconnected builds showed only the local top 10.
+The current 4.0.0 entry instead identifies each player with the
+durable player ID — as a local guest, optionally registered in
+the background, or through Google/Apple sign-in where genuinely
+configured — and the owned Hall keeps one row per public ID with
+no typed name. Unconnected play still shows only local records.
 
 Seven non-consumables are implemented: Moonlit Supporter, five companion
 heroes, and the Lantern Colors pack, plus three consumable continue-coin
@@ -646,15 +727,15 @@ boundaries are in [Monetization design](./monetize.md).
 ## 5. Game states
 
 ```text
-TITLE ──→ PLAYING ⇄ PAUSED
+GATE ──→ PLAYING ⇄ PAUSED
   │           │
   ├─ Shrine   ├─ guardian → loot → return → RESULT → record → restart
-  └─ Ladder   │                    └─ continue → next cycle → PLAYING
-              └─ health 0 → RESULT ──→ coin continue → PLAYING
+  ├─ Hall     │                    └─ continue → next cycle → PLAYING
+  └─ Account  └─ health 0 → RESULT ──→ coin continue → PLAYING
 ```
 
 Android **Back** sends `PLAYING` to `PAUSED`.
-Pressing it again from `PAUSED` returns to the title. The app is not
+Pressing it again from `PAUSED` returns to the moon gate. The app is not
 left to quit on its own.
 We handle `NOTIFICATION_WM_GO_BACK_REQUEST` and
 `quit_on_go_back` is off.

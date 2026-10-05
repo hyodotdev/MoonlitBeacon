@@ -1,0 +1,635 @@
+# 4.0.0 Hosting migration — director validation
+
+Recorded 2026-10-04, finalized 2026-10-05 KST. Operational receipts are local
+under `builds/verify/`. Current publication/submission states and the
+remaining native-test limitations are recorded in the final sections.
+
+## Domain and first public release
+
+The requested public origin is `https://moonlitbeacon.hyo.dev`.
+Vercel manages `hyo.dev` DNS. The Firebase-generated setup was applied to
+that zone: `moonlitbeacon` CNAME points to `moonlitbeacon-778ee.web.app`,
+and the dedicated ACME TXT verification record was added. Existing apex,
+mail, wildcard and unrelated subdomain records were preserved.
+
+Firebase readback confirmed host and ownership active. Certificate
+propagation was observed, then ordinary HTTPS requests (without disabling
+certificate validation or overriding DNS) returned the reviewed site.
+The first hosting-only deploy succeeded on the existing default site.
+No Firestore rules or native Firebase/Apple callback was changed.
+
+At 2026-10-03 19:14 UTC, independent HTTP verification checked 18 routes:
+root, English x-default privacy/support, five locale choosers, and ten
+localized privacy/support pages. Every response was HTTP 200 and matched
+the accepted static bytes exactly. CSS matched too; a missing route
+returned HTTP 404. No NUL byte was found in the HTML.
+
+Proofs:
+- `release4-custom-domain-state.json`
+- `release4-vercel-dns-cname-add.log`, `release4-vercel-dns-acme-add.log`
+- `release4-player-care-first-deploy.log`
+- `release4-player-care-live-proof.json`
+- `release4-player-care-live.jpg`
+
+The monorepo course/reference composition is a subsequent implementation
+brief. Its final deployment must be independently verified; the first
+release above contains only player-care.
+
+## Player-care implementation review
+
+Briefs 148–150 produced 53 accepted files: dependency-free five-language
+privacy/support source and exact static output, hosting config and current
+game/store contact links. Processor disclosures and native-session/data
+retention details were checked against the owned published policy and game
+source. The report alone was not counted as verification.
+
+Independent site tests: 11/11; contact tests: 4/4; gate-locale tests: 5/5.
+A Japanese processor link was deliberately replaced in the copy; tests 1
+and 6 failed (9 pass, 2 fail, exit 1). Restoring the original bytes returned
+11/11. Normal implementer quick-check judging passed (13 seconds, exit 0,
+zero failure-looking lines). Root site/check tests passed after acceptance.
+
+All ten policy/support pages were rendered at 390px width in Chrome.
+Document scroll width equalled viewport width on every page; each support
+table contained exactly ten products. The viewport override was reset.
+
+## Android Google account recovery
+
+On the attached Samsung device, the director observed the existing Google
+account and Wave 1 save, signed out, then completed reauthentication via
+the official Google native confirmation using keyboard navigation.
+After the confirmation, the original public player ID and Wave 1 hero/save
+returned. Account UI explicitly showed Google signed in. Resume loaded the
+actual arena and rendered gameplay; the process being alive was not the
+criterion. The game was left stopped at its level-up choice.
+
+This test used the previously installed development build. Later accepted
+changes touch capture evidence and website contact links, not provider or
+save logic. Final native store-binary tests are still required before
+claiming final release verification. This does not prove iPad Apple sign-in
+or store purchase/restore transactions.
+
+Proofs:
+- `release4-galaxy-google-reauth-account.png`
+- `release4-galaxy-google-resume-arena.png`
+
+No credentials, Google email/profile, purchase token or private account
+identifier are recorded in this note. The public ID is visible only in the
+local screenshot proof and was not sent to the implementer.
+
+## Combined care/course review
+
+Brief 151 was independently judged and accepted, then committed as
+`055a0eb`. The real combined build copied 37 care files and 142 docs files
+(26 docs pages); its checker resolved 1,725 local links. All 20 hosting
+regressions passed. The director disabled the symlink guard in the copy:
+the suite exited 1, then the original bytes were restored and the suite
+returned to 20/20. Nine scope boundaries, including root Firestore config,
+the existing Pages workflow, the game project and Terms CSV, remained
+byte-identical. Normal quick-check judging and root hosting/care checks
+passed.
+
+The director served the composed output and followed the visible course
+link into Lesson 1. Images loaded, the canonical URL used the requested
+custom origin, and the mobile page at 390px had no horizontal overflow.
+This review is distinct from deploying the final combined site; Terms
+publication and the final combined deploy are subsequent work.
+
+## Integrated verification and capture restart
+
+The root `pnpm verify` after briefs 146–150 passed, including the game/IAP
+regressions, engine smoke check, asset generators, locale, repository rules
+and the actual 26-page docs build/anchor check. The new hosting regression
+suite was independently run after brief 151 acceptance.
+
+The first final phone recapture built and installed successfully, then
+failed its initial title-ready marker after 90 seconds. No new canonical
+set was published. The producer restored existing persistent files.
+Inspection confirmed the marker writer still looked for `Ui/Screen` on
+`current_scene`, while production embeds that original title under
+`Title`. Brief 153 repairs this specific readiness path and adds marker
+coverage; the richer title capture-state bridge is already covered by its
+218 scene checks. This failure is not a successful screenshot recapture.
+
+The director also found the local release environment still resolving
+`MOONLIT_PUBLIC_SITE_URL` to the former public host. Only that public URL
+line in the private `.env` was changed to the requested origin; credential
+lines and mode 600 were preserved. A new process loading the normal
+release environment independently confirmed the custom Firebase origin.
+The private environment file is not tracked or sent to the implementer.
+
+## Terms review and actual combined-deploy findings
+
+Brief 152 was read and independently judged. Site tests passed 15/15;
+hosting tests passed 20/20. Every localized Terms page and English
+x-default decoded to exactly the same eight CSV paragraphs in order. A
+changed English source paragraph made the site suite exit 1; restoring
+the exact original CSV bytes returned 15/15. All five Terms pages rendered
+at 390px with eight paragraphs and no horizontal overflow. Existing
+styles, game CSV/config, root Firestore and Pages workflow were unchanged.
+
+The combined build contained 49 care plus 142 docs files (26 docs pages),
+and checked 2,068 local links. Normal quick-check judging initially
+failed because this fresh copy lacked imported translation resources;
+the actual editor-import operation created those generated resources,
+after which judging passed with zero failure-looking lines. Brief 152
+was accepted and committed as `ee4984d`; the scoped app ignore also keeps
+the generated Firebase cache out of Git.
+
+The real combined deploy was then attempted with the documented command.
+Firebase CLI refused `../../builds/hosting` as outside the config's project
+directory before uploading. The care-only live release remained in place.
+Brief 154 fixes the output location and adds that actual CLI boundary to
+the config checker; no final combined live success is claimed here yet.
+
+Brief 153 repaired the missing title-ready marker and was independently
+verified: 45/45 marker cases, 218/218 rich title-state cases, and 64/64
+clean-UI cases passed. Replacing production resolution with the old root
+lookup made the marker suite fail, then an exact byte restore returned
+45/45. Quick-check judging passed. The accepted root marker suite passed,
+and the change was committed as `4418533`.
+
+A subsequent full root verify caught a stale Node assertion still looking
+for inline screen/version checks after the four-frame wait. Those checks
+now live in the strict clean-title predicate before marker writing. This
+is tracked as brief 155; the final whole-tree verification has not passed
+yet, despite the related behavioral scene suites passing.
+
+## Combined website published and verified
+
+Brief 154 was independently read, tested, accepted and committed as
+`1c8945b`: hosting regressions 21/21, care regressions 15/15, actual
+combined build/check passed (49 care + 142 docs files, 26 docs pages,
+2,068 local links). Disabling the in-project public-directory guard made
+one regression fail; exact restoration returned 21/21. Scoped hygiene
+passed. The composer itself did not use the checker during the separate
+mutation probe; the actual final checker ran after restoration.
+
+The director reran the documented hosting-only Firebase deploy from
+`apps/player-care`. It completed upload, finalization and release (exit 0).
+Ordinary HTTPS verification fetched all 191 deployed files: every response
+was HTTP 200 and byte-identical to the inspected combined output. The 28
+clean routes also matched, used the canonical custom origin and contained
+no NUL. A missing route returned HTTP 404. Browser verification followed
+the live care navigation into the rendered course/docs home.
+
+Proofs: `release4-final-combined-hosting-deploy-retry.log`,
+`release4-final-combined-hosting-live-proof.json`, and
+`release4-final-firebase-site.jpg`. This proves website publication only;
+it does not prove native store submission. Brief 157 records that actual
+operation in the existing public-site handoff.
+
+Brief 155 was accepted and committed as `d6e0a11` after independent
+capture-state 40/40, Android build 130/130 and Play-package 232/232 tests.
+Bypassing the live marker predicate made the capture-state suite fail;
+exact restoration returned green. Root capture-state checks passed. This
+repairs the stale source assertion without weakening the runtime proof.
+
+The second final phone producer passed title boot, then failed the actual
+direct-distribution boundary. The installed build reported its real
+feature/cache/ledger checks correctly, but the remaining Ui lookup still
+expected Title to be current_scene rather than ProductionEntry.Title.
+Brief 156 repairs this confirmed embedding error; no canonical phone
+screenshots were published by this failed attempt.
+
+## Distribution probe accepted; final integrated pass in progress
+
+Briefs 156/159 were independently judged and accepted through the normal
+path. All new source and the 447-line real-scene test were read. The
+copy's overlapping marker-source assertion edit was returned because
+brief 155 had already supplied the independently verified stronger
+assertion in the real tree; the corrected task omits that file.
+
+The director performed a real import, then changed only the title
+resolver to the old root lookup in the finished copy. The new behavior
+suite exited 1; the probe bytes restored exactly to SHA-256
+`91730bdd66f92428ef6fb20a271ce4992e3695efe67e8fdb0f1ce4f672c74fb7`.
+Independent positive suites then passed: direct-distribution title 108,
+boot marker 45, rich title forwarding 218 and clean UI 64. No engine
+errors were present. Standard quick-check judging passed (12 seconds,
+zero failure-looking lines). Code/registration committed as `2bd5d9d`,
+its implementer-authored log as `850133b`.
+
+The root whole-tree verification is now running in
+`release4-final-integrated-verify-retry.log`. The first seventeen TAP
+groups finished 645 tests with zero failures; game regressions remain
+in progress at this entry. The separate store-capture check still rejects
+missing current canonical proof (`release4-post156-store-capture-check.log`).
+No successful final capture or native store submission is inferred from
+these intermediate results.
+
+The verified Hosting record was accepted after correcting the initial
+report's operation chronology and limiting its native-release statement
+to version 4.0.0 (`1945442`). `AGENTS.md` now identifies the requested
+Firebase origin as primary and the unchanged Pages workflow as its mirror.
+The remaining owned Desktop test screenshot was moved to recoverable Trash.
+
+## Final stock verification and Android captures passed
+
+The unmodified root `pnpm verify` completed successfully after the accepted
+production-title probe correction: 652 Node tests in 19 groups, all 76
+registered Godot checks, 165 compiled GDScripts, five locales, ten product
+rows, deterministic graphics/assets, hygiene/skills, and the 26-page docs
+build with clean anchors. No engine failure lines remained. The measured
+headless peak of 1196 nodes is a headless budget result, not native FPS.
+Local proof is `builds/verify/release4-final-integrated-summary.json`.
+
+Changed 4.0.0 art/layout justified the previously requested recapture. The
+final phone producer published 30 marketing and ten product-review native
+PNGs; separate fresh builds published 30 seven-inch and 30 ten-inch native
+PNGs. The director decoded every PNG, checked dimensions and report hashes,
+viewed every five-locale six-screen board and all product images, and ran
+the unchanged strict validators against all three canonical reports. The
+combined result is phone 40, seven-inch 30 and ten-inch 30, all current at
+runtime SHA-256 `ae1865d0031d1b89892991cf1153cd940ca396bd0df567c50ef110ea22031683`.
+Each producer proved byte-exact static and dynamic-account save restoration;
+APK/build/signature/source evidence was independently validated. A first
+phone validation raced an active Gradle directory cleanup; rerunning only
+after the build ended passed without changing the validator. Android
+screenshots do not establish purchases, physical Pixel coverage, or iPad
+rendering. Owned emulator processes were closed after capture.
+
+The final Android 4.0.0 (17) signed AAB and direct-distribution APK build
+commands have succeeded. iPad capture and Play artwork generation are now
+running; their completion, store uploads, final native purchase checks,
+remote merge and review submission are not claimed at this entry.
+
+## Final public policy and Play declaration pass (2026-10-04)
+
+Firebase custom-domain readback reached HOST_ACTIVE, OWNERSHIP_ACTIVE and
+CERT_ACTIVE. All 90 Play marketing images were generated, checked,
+synchronized and committed; the director viewed all 15 final locale/device
+contact boards. The final AAB was rebuilt after the iPad capture's initial
+export restored the preset file and advanced its timestamp; the normal
+package check now passes for 4.0.0 (17), five listings and 90 images.
+
+Brief 160 added a source-backed privacy inventory. The director read the
+entire document, checked the auth dependencies, automatic guest/cloud/Hall
+paths and deletion sequence, and ran hygiene in the copy and real tree.
+Its proposals are audit inputs, not proof of a store submission. The
+director's actual Play choices add Account management to the three personal
+information purposes; the official Firebase disclosure explicitly includes
+authentication and account management. Already-held Apple service-key and
+deployed-rule evidence is separate from the copy's unresolved inventory.
+
+The audit found a real mismatch: the published policy said every local save
+remained, but successful deletion removes that account's journey slot and
+UID binding. Brief 161 corrected exactly one privacy bullet per locale.
+The director inspected all five changes against production source and ran
+15 player-care tests, 21 hosting tests, custom-origin build/check and
+hygiene. Tests temporarily changed generated files in the copy; the
+director restored only those operation-generated files to its baseline
+before the normal five-file accept. The initial parallel content check
+observed test fixture output; a sequential rebuild/check passed. The real
+build regenerated the 12 committed privacy HTML variants normally.
+
+Firebase redeployment succeeded. Independent live proof found all 191
+files byte-identical to the build, 15 clean legal/support routes with the
+custom canonical origin and no NULs, and a true 404 for an absent route.
+Terms and game/runtime source were unchanged by this correction.
+
+Play Data safety changes were saved and show Ready to send for review:
+OAuth and anonymous guest account creation; name/email optional, user IDs
+and checkpoint/Hall actions required; no third-party sharing under the
+service-provider exception; purchase history and purchase diagnostics kept
+at their prior optional purposes. Both deletion links use the custom
+privacy route. The newly issued domain initially triggered Play's URL
+finder warning, but the next check advanced after ordinary HTTPS and DNS
+were independently verified. The old privacy-policy URL is being replaced
+separately. No production review submission is claimed.
+
+The first internal-track apply failed with HTTP 503 during the image reset,
+before commit; the normal client attempts to discard an uncommitted edit.
+A fresh local ready check preceded the normal retry. Its result is still
+pending at this entry. Native purchase verification, final iPad capture,
+App Store upload, PR, CI, merge and final review remain separate gates.
+
+## Follow-up classification and live internal-track proof
+
+Briefs 162/163 corrected only the source audit: Apple Product Interaction
+includes the functional saved game place as well as any analytics; the
+analytics-disabled finding cannot remove the cloud-checkpoint label.
+Gameplay Content stays declared. Account Management complements App
+functionality for Play's account identifiers/profile fields. Independent
+source reads and Apple primary definitions confirmed this classification;
+the existing hygiene check passed in the copy and real tree. The corrected
+audit keeps unfinished native testing and final review explicit.
+
+Play's normal apply retry committed internal 4.0.0 (17), five listings and
+90 screenshots. The read-only API audit and visible Console both confirmed
+artifact 17 available to internal testers. Production is still 3.0.0 (16).
+The first apply hit HTTP 503 before commit and was discarded; no duplicate
+version was published. The device still uses a sideloaded debug package,
+so installer and real purchases remain unverified.
+
+Play Data safety and privacy URL edits are saved for review. Apple privacy
+URLs were saved in five locales; new account/cloud-save types are still
+being prepared. No final review or main merge is claimed.
+
+The first full iPad attempt completed 21 shots, then timed out on the
+22nd handoff during context recovery. Mandatory cleanup restored the
+keychain search list and removed the isolated capture app; production
+app data remained untouched. Its failure/evidence is preserved. A normal
+fresh full retry is running; partial shots are not labelled canonical.
+
+## Store policy address readback and capture retry
+
+The director reopened the saved App Store privacy-policy localization
+fields and read back the custom Firebase URLs for English, Korean,
+Japanese, Simplified Chinese and Traditional Chinese. The UI says the
+address changes are released with the next app version; this is not a
+4.0.0 review submission. Local proof is
+`release4-asc-five-firebase-privacy-urls-saved.png`. The five added native
+privacy data types are still incomplete and have not been published.
+
+The two complete-set iPad capture attempts failed at Xcode handoff
+screens 22 and 6 after the bounded 299-second operator timeout. Neither
+partial result is canonical store evidence. Producer cleanup restored the
+owned keychain search list and isolated capture state. Logs/results were
+preserved under `release4-ipad-timeout-at-shot-22/` and
+`release4-ipad-timeout-at-shot-6/`. A fresh normal all-locale attempt is
+running; no timestamp, nonce, signature or evidence check was bypassed.
+
+The connected Android reached Google's official internal-test invitation.
+Its acceptance explicitly permits sharing the account email and game
+usage with the developer. Acceptance is pending user confirmation; no
+Play-store-installed final native purchase check is claimed.
+
+Brief 164 supplied the 407-character English Play reviewer entry note.
+The director read its sole-file diff, independently counted its exact
+bytes, checked the guest/start/resume signal wiring and the English
+production/Store labels, and ran copy and root hygiene successfully.
+Normal Muse accept applied only `google-play-review-entry.txt`. The
+exact note was saved in Play Console Sign in details and reopened for
+readback. Play confirmed the change was saved in Publishing overview,
+ready to send for review; it has not been sent. Local proof is
+`release4-play-guest-review-entry-saved.png`.
+
+## Native upload, privacy publication and preserved capture failure
+
+The feature branch was pushed with upstream tracking at b5fec29. The
+remote feature head matched the local head and the real working tree was
+clean. This does not mean main was merged or a PR was created.
+
+The third full iPad attempt accepted 16 frames, then the producer refused
+the 17th request because device observations showed both the isolated
+capture app and the original game running. Exact single-process continuity
+is required. The cause of that second launch is not established; no game
+defect or user action is inferred. Normal cleanup restored the keychain
+search list and removed the isolated app. Logs and the later rejected
+frame are preserved in `release4-ipad-two-game-processes-at-shot-17/`.
+No partial set or late screenshot was published as canonical evidence.
+Further full capture awaits an uninterrupted physical-device window.
+
+Owned Desktop captures from the earlier failed attempts (27) and latest
+attempt (17) were moved to a recoverable Trash folder after their bytes
+were matched to retained evidence. Other Desktop files and the existing
+production app data were not touched. The two movement reports are
+`release4-old-ipad-desktop-trash.json` and
+`release4-latest-ipad-desktop-trash.json`.
+
+The normal iOS distribution archive, signed IPA and local validation
+succeeded for 4.0.0 (12), with the normal asset catalog and AppIcon. The
+release-keychain search list was restored. Apple's remote validation and
+TestFlight upload both succeeded without errors; the uploaded IPA was
+86,579,622 bytes. Local logs are
+`release4-final-ios-distribution-build.log`,
+`release4-final-ios-remote-validate.log`, and
+`release4-final-ios-testflight-upload.log`.
+
+App Store Connect subsequently finished processing build 12. The director
+added it to the pre-existing Moonlit Beacon Internal group and read back
+4.0.0 (12) as Ready to Test. That group currently has zero testers; no
+tester invitation or TestFlight device installation is claimed. Proof is
+`release4-testflight-four-zero-internal-ready.png`. This is separate from
+an App Store version or review submission.
+
+The director finished and published the five new Apple privacy types:
+Name, Email Address, Gameplay Content, User ID, and Product Interaction.
+Each is App Functionality, linked to the account, and not used for
+tracking. Existing purchase and diagnostics selections were preserved.
+A fresh page reload showed all eight types and no incomplete-type warning;
+proof is `release4-asc-account-cloud-privacy-published.png`. The five
+Firebase privacy-policy localization addresses remain saved for release
+with the next app version.
+
+Google Play production is still 3.0.0 (16); internal 4.0.0 (17) is already
+published. The App Store's existing 3.0.0 review was not cancelled.
+Final iPad store captures, real native login/purchase checks, PR/CI, main
+merge and both 4.0.0 production-review submissions remain unfinished.
+Google's internal-test invitation acceptance and the physical iPad capture
+window are awaiting the pending user responses. No receipt, file timestamp,
+source fingerprint, nonce or signing check was fabricated or bypassed.
+
+## Overnight continuation: strict capture failure and identified prewarming
+
+Fresh store API readback at 2026-10-04 00:10 UTC confirmed Android internal
+4.0.0 (17), production 3.0.0 (16), processed iOS build 12 VALID, and the
+existing App Store 3.0.0 version WAITING_FOR_REVIEW. The ten current IAPs
+are APPROVED; the unused hero bundle remains excluded. No 4.0.0 production
+review submission occurred. The Play local promotion check remains ready
+with the previously applied AAB and manifest; it was not uploaded again.
+
+The fourth normal iPad all-locale capture accepted only three English
+frames, then failed before the barrage handoff. The same capture PID 8702
+was present, plus original production PID 8705. The failure, raw frames
+and exact restoration result are retained under
+`release4-ipad-two-game-processes-at-shot-4/`. Producer cleanup reported
+zero restoration errors and restored the owned keychain search list.
+The three owned Desktop PNGs were compared byte-for-byte to their retained
+native evidence, then moved to recoverable Trash. No canonical publication,
+nonce/timestamp alteration, late-frame acceptance or production-data access
+was performed.
+
+A bounded physical-device unified-log collection identified the second
+process precisely: at 09:19:31 KST, `dasd` requested `DAS Prewarm launch`
+for the original bundle, `launchd` spawned PID 8705, and the device reported
+it running-suspended-NotVisible. This happened after same-PID capture
+reactivation and during the slow runtime-state observations. Proof is
+`release4-ipad-prewarm-cause-proof.json`. This is evidence of OS prewarming;
+no user tap, OAuth callback or separate agent launch is inferred.
+Brief 165 requests a final exact-path production quiescence before the
+native frame window while retaining both broad single-process continuity
+checks. It expressly prohibits sanitizing a competitor after a screenshot.
+The implementer's result still needs independent judgment and a fresh full
+physical capture. The normal App Store preparation check currently fails
+its screenshot validation; it is not ready to submit.
+
+The exact proposed main/feature PR was checked through the repository's
+normal pull-request guard and denied because the human-created
+`.claude/allow-pr` signal is absent. No alternate GitHub route was tried and
+no marker was created by the director. Proposed base `main`, head
+`feat/4-0-0-gate-journey`, title `feat(game): renew moonlit beacon for 4.0.0`;
+reviewable body is `pr-4-0-0-ready-body.md`. Local evidence is
+`release4-night-pr-guard-check.json`. Main has not been merged.
+
+Current 4.0.0 physical iPad login and both-store ten-product purchase/restore
+checks remain incomplete. A specific 4.0.0 waiver question and the human
+PR-marker request are pending. The earlier 3.0.0 purchase-test waiver was
+not silently extended to 4.0.0. The official Android internal-test agreement
+also remains unaccepted pending its separate consent.
+
+Brief 165 round 1 changed only the iOS capture producer, its evidence
+library and registered tests. The director independently ran its focused
+suite (59/59) and read the full producer/library diff and report. The result
+was not accepted: three new helpers described themselves as mirrors and
+were tested, but the production producer never imported or called them.
+Brief 166 requests testing the actual used orchestration instead of unused
+duplicate logic. Both broad continuity guards and mandatory cleanup remain
+required. The game tree and uploaded native build are unchanged.
+
+Brief 166 round 2 connected the tested helpers to the real producer. The
+director read the revised source and report, independently passed 59 iOS
+evidence checks and 242 package checks, removed the final quiescence in the
+actual used helper and observed three failing regressions, then restored
+the exact bytes and returned to 59/59. Normal Muse accept applied only the
+three capture scripts/tests. Full real-tree `pnpm verify` then exited 0:
+662 Node tests across 19 groups, all registered game checks, 165 compiled
+scripts, locales/assets/hygiene and 26 clean docs pages with valid anchors.
+Knight Lv40 peaked at 1197 under the unchanged 1200 budget. Log and summary
+are `release4-prewarm-root-full-verify.log` and its summary JSON. Android
+local promotion readiness remains true with no blockers; native game
+source, build numbers and uploaded binaries were not changed. A fresh
+complete physical iPad capture remains the next independent check.
+
+The accepted capture-only correction and director evidence were committed
+and pushed at 443973d. Local and remote feature heads matched and the real
+working tree was clean. Before starting a fifth full capture, QuickTime
+reported that the iPad was turned off or disconnected. USB mux no longer
+listed the target; CoreDevice retained a local-network entry, but fresh
+live-details queries timed out at both 12 and 45 seconds. No fifth producer
+was started. Proof is `release4-ipad-fifth-preflight-blocker.json` and the
+Wi-Fi retry JSON/log. USB reconnection and an unlocked landscape device are
+now explicitly requested. The PR marker, current 4.0.0 real-test waiver and
+Google internal-test agreement still have no human response. No PR, main
+merge or 4.0.0 production-review submission is claimed.
+## Explicit 4.0.0 submission instruction and reconnected iPad
+
+After the director distinguished the submitted 3.0.0 release from the
+4.0.0 test distributions and disclosed the remaining native login,
+purchase/restore, capture and PR gaps, the user explicitly instructed:
+"그냥 4.0.0으로 올려버려". The director proceeds with 4.0.0 store
+submission under that instruction; unfinished real-device login and
+purchase checks remain unverified and are not reported as passing.
+
+The user then reported reconnecting the iPad. Fresh CoreDevice details
+confirmed a wired, booted physical device with Developer Mode enabled.
+A new normal complete five-locale capture started with the accepted
+prewarm fix, unchanged single-process and evidence checks, and native
+Xcode screenshot handoffs. Earlier partial attempts are not reused.
+
+The normal Play promotion command moved build 17 onto production.
+The immediate promotion readback was NOT_SENT_FOR_REVIEW; a subsequent
+GET confirmed IN_REVIEW. The separate review command correctly refused
+a duplicate submission because that version was already on production.
+Play Console Publishing overview visibly shows Moonlit Beacon 4.0.0
+under Changes in review and includes the saved sign-in instructions.
+Proof: release4-after-production-stage-audit.json and
+release4-google-production-in-review.png. No duplicate bundle upload,
+receipt deletion, guard bypass or product mutation was performed.
+
+Play's quick checks subsequently completed and Publishing overview
+explicitly displayed "Your changes are now in review" for 4.0.0.
+
+For the user's Apple-login question, a fresh GET-only Firebase readback
+confirmed Apple enabled, its service ID present, and its code-flow team,
+key ID and private key configured. The Apple configuration uses
+appleSignInConfig, not Google's clientSecret field; key material was
+neither printed nor committed. Independent inspection of the exact
+already-uploaded build-12 IPA reconfirmed its pinned SHA-256, 4.0.0/12,
+unchanged bundle ID and signed com.apple.developer.applesignin Default
+entitlement. Proofs: release4-live-firebase-provider-readback.json and
+release4-uploaded12-apple-signin-entitlement-proof.json. These establish
+server configuration and signed capability, not a completed native Apple
+authentication or guest-linking test.
+
+The reconnected-device run completed all 30 frames across five locales.
+The unchanged complete-set publisher passed build, signature, source,
+nonce, state and single-process evidence checks and published the canonical
+iPad set. The separate capture app was removed, the original 4.0.0 (12)
+application identity remained unchanged, and the temporary keychain search
+list was restored. All five six-screen contact boards were visually read;
+no clipped labels, missing glyphs or debug placeholders were observed.
+Proofs: release4-ipad-final-reconnected-capture.log,
+release4-ipad-xcode-capture-result.json and the canonical iPad capture report.
+
+The 30 screenshot files created on Desktop were compared with retained raw
+captures by SHA-256 and moved into a unique recoverable Trash folder. Other
+Desktop files were untouched. The original iPad app was then launched for
+Apple authentication. Xcode captured its actual Korean 4.0.0 title screen;
+QuickTime remained black after reopening and source reselection, so that
+mirror was not treated as successful rendering evidence. The user was
+asked to complete the native Apple authentication on the device while
+store submission work continued. That test remains pending. The one
+additional owned login-start screenshot was also retained and moved to
+recoverable Trash.
+
+Normal App Store image generation and its separate strict validation both
+passed. All five twelve-frame marketing boards and the ten-product review
+board were visually inspected. The 60 marketing files and ten review files
+were synced into stores/app-store with byte checks; generated provenance
+was copied byte-exactly. The old product images show the prior rectangular
+shop panels and pixel hero portraits; the current images show the changed
+decorated shop cards and painted heroes. Their replacement follows the
+user's request for current screenshots of the renewed game, rather than
+being triggered by a build-number or provenance-only difference. The exact
+ten review filenames and before/after SHA-256 values are retained in
+release4-iap-review-visual-change-hashes.json.
+
+The new local App Store manifest passed for version 4.0.0, build 12, five
+localizations, 60 screenshots, ten products, 50 product localizations and
+ten review images. Its payload SHA-256 is
+7b17bccd3334ba980670500dac89d7334d92a0a2935d02c765e1beaca50b9a66.
+Immediately before replacing 3.0.0, a fresh GET reconfirmed the exact
+pending version and its eleven submission items. One authenticated PATCH
+requested cancellation of that known review submission. Subsequent GET
+showed CANCELING and the version moved to DEVELOPER_REJECTED. This is a
+cancellation receipt, not a completed 4.0.0 submission; the normal 4.0.0
+metadata/build/review apply remains the next step. Proofs:
+release4-apple-cancel-three-for-four.json and
+release4-apple-cancellation-convergence.json.
+
+At 2026-10-04 14:50 UTC, a fresh GET showed Google Play production
+4.0.0 (17) as RELEASE_LIFECYCLE_STATE_PUBLISHED, with no remaining old
+production artifact in the returned release. Managed publishing was off,
+so publication followed the completed review automatically. Proof:
+release4-during-ios-apply-store-readback.json. This is the current Android
+publication state; the earlier IN_REVIEW receipt remains historical.
+
+## Final 4.0.0 submission readback
+
+The normal App Store apply finished with exit 0, complete true,
+reviewSubmitted true and no blockers. Twenty-eight metadata/image/build
+changes converged; the final pre-submit GET audit reported 106 unchanged
+targets and zero unresolved targets. All five-language marketing sets and
+ten review images were processed successfully. The submission contains
+exactly one app version plus ten product versions; the unused hero_bundle
+is excluded.
+
+An independent authenticated GET at 2026-10-04 15:00:18 UTC confirmed both
+the 4.0.0 app version and review submission WAITING_FOR_REVIEW, exactly
+eleven expected review targets, and the linked VALID build 12. The review
+submission ID is e53a0810-d622-4708-8958-47cc1ecb3949; its build ID is
+f153c000-e492-4c76-991b-360032a59bd0. The former canceled submission's final
+state is COMPLETE; that is not a 3.0.0 approval claim. The editable version
+was reused and now names 4.0.0. No second IPA upload or duplicate build was
+created. Proofs: release4-final-app-store-submit.json and
+release4-final-apple-review-readback.json.
+
+Google Play Console also visibly confirmed Latest production release
+Moonlit Beacon 4.0.0, rollout 100%, and no unpublished changes. Proof:
+release4-google-production-published.png. Android is publicly distributed;
+iOS 4.0.0 remains in the review queue, rather than being approved or public.
+
+The follow-up physical iPad screenshot still showed the original title
+before authentication. No human Apple-authentication completion was
+received, and neither successful native Apple sign-in nor its guest-link,
+restart and resume sequence is claimed. Both-store real purchase/restore
+tests also remain unverified under the explicit submission instruction.
+The two owned login-observation screenshots were retained and moved to
+recoverable Trash in addition to the thirty store-capture Desktop files.
+
+PR creation remains blocked by the prior guard denial and absent human
+.claude/allow-pr marker. No alternate PR route or direct-main workaround
+was used. The cumulative feature branch and concrete PR body remain ready
+for the authorized review path; CI and main merge are not claimed complete.

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Progress track: a dark slot with cut ends. Stretches horizontally. -->
+  <defs>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6b5a3e"/>
+      <stop offset="1" stop-color="#241c0e"/>
+    </linearGradient>
+    <linearGradient id="slot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#04060f"/>
+      <stop offset="0.5" stop-color="#0c1028"/>
+      <stop offset="1" stop-color="#04060f"/>
+    </linearGradient>
+  </defs>
+  <path d="M 12 8 H 36 L 47 19 V 29 L 36 40 H 12 L 1 29 V 19 Z" fill="url(#edge)"/>
+  <path d="M 13 11 H 35 L 44 20 V 28 L 35 37 H 13 L 4 28 V 20 Z" fill="url(#slot)"/>
+  <polygon points="13,12 35,12 38,15 38,18 10,18 10,15" fill="#000000" opacity="0.55"/>
+</svg>

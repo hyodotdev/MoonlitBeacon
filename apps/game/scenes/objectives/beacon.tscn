@@ -197,12 +197,14 @@ position = Vector2(0, 3)
 scale = Vector2(0.72, 0.42)
 texture = SubResource("GradientTexture2D_scorch")
 [node name="Pit" type="Sprite2D" parent="."]
+texture_filter = 2
 modulate = Color(0.258, 0.28, 0.45, 1)
 position = Vector2(-16, -15)
+scale = Vector2(0.33333334, 0.33333334)
 texture = ExtResource("camp")
 centered = false
 region_enabled = true
-region_rect = Rect2(192, 80, 32, 30)
+region_rect = Rect2(576, 240, 96, 90)
 
 [node name="Light" type="PointLight2D" parent="."]
 position = Vector2(0, -6)

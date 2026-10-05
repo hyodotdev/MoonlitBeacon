@@ -29,6 +29,7 @@ var _hearts: Array[TextureRect] = []
 @onready var _time: Label = $RightPanel/Row/Time
 @onready var _kills: Label = $RightPanel/Row/Kills
 @onready var _level: Label = $RightPanel/Row/Level
+@onready var _rank: Label = $RightPanel/Row/Rank
 @onready var _beacons_label: Label = $RightPanel/Row/Beacons
 @onready var _beacon_row: HBoxContainer = $RightPanel/Row/BeaconIcons
 var _beacon_icons: Array[TextureRect] = []
@@ -110,6 +111,7 @@ var _quiet_text: Dictionary = {}
 
 ## Start the secondary lines at rest so the first frame is already calm.
 func _ready() -> void:
+	add_to_group("moonlit_hud")
 	for label in _quiet_labels():
 		_quiet_text[label] = label.text
 		_quiet_hold[label] = 0.0
@@ -206,6 +208,21 @@ func set_max_health(count: int) -> void:
 func set_health(value: int) -> void:
 	for i in _hearts.size():
 		_hearts[i].modulate.a = 1.0 if i < value else 0.24
+
+
+## Compact cloud-rank chip, pushed by the production host from actual
+## coordinator snapshots. The text arrives preformatted with its honest
+## source label ("#12 · live"); an empty rank hides the chip instead of
+## showing a fake one. Never in the quiet set: the rank stays readable.
+func set_cloud_rank(display: String) -> void:
+	_rank.text = display
+	_rank.visible = not display.strip_edges().is_empty()
+
+
+## Hide the rank chip: no rank, no cloud, or signed out.
+func clear_cloud_rank() -> void:
+	_rank.text = ""
+	_rank.visible = false
 
 
 func set_beacons(lit: int, total: int) -> void:

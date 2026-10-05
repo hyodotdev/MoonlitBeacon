@@ -614,6 +614,19 @@ func _test_consent_modal() -> void:
 		_expect_equal(Settings.analytics_consent, Settings.AnalyticsConsent.UNKNOWN,
 			locale + " close-only keeps unchosen")
 
+	# The opt-in keeps equal visual weight: ember Share, steel NotNow, same
+	# minimum size, so neither choice is a dark pattern.
+	var share := panel.get_node(
+		"Center/Frame/Content/Rows/Actions/Share") as WorldButton
+	var not_now_top := panel.get_node(
+		"Center/Frame/Content/Rows/Actions/NotNow") as WorldButton
+	_expect_true(share != null and share.kind == "ember",
+		"SHARE takes the ember road")
+	_expect_true(not_now_top != null and not_now_top.kind == "steel",
+		"NOT_NOW takes the steel road")
+	_expect_equal(share.custom_minimum_size, not_now_top.custom_minimum_size,
+		"opt-in choices keep equal weight")
+
 	await _test_held_touch_release(panel)
 	await _test_held_mouse_release(panel)
 	var before: int = _decisions.size()

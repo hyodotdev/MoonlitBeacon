@@ -5,8 +5,14 @@ The title instances this scene, so there is no extra copy. Do not move by hand;
 edit this script and rerun it.
 
     python apps/game/tools/build_title_forest.py
+    python apps/game/tools/build_title_forest.py --check
 
-SEED is fixed, so the same input yields the same placement.
+SEED is fixed, so the same input yields the same placement. `--check` writes
+nothing and fails if the scene's Details/Trees blocks differ from generation.
+
+The painted nature sheet holds ART_ZOOM source pixels per logical pixel, so
+emit scales KIND regions up and draws each sprite at the reciprocal with
+node-local smoothing, exactly like Room does at runtime with art_zoom.
 
 ## What must be kept
 
@@ -20,7 +26,7 @@ SEED is fixed, so the same input yields the same placement.
   On the 808x360 baseline, leftover width on each side
   the view widens by half that leftover, so the current values leave no empty band out to 4:1.
 """
-import math, random, re
+import math, random, re, sys
 from pathlib import Path
 
 SEED = 20260725
@@ -38,7 +44,7 @@ DIRT_RX, DIRT_RY = 125.0, 74.0
 OPEN_C = (404.0, 258.0)
 OPEN_RX, OPEN_RY = 196.0, 90.0
 
-# name -> (region x, y, w, h)
+# name -> logical 1x (region x, y, w, h); emit scales by ART_ZOOM.
 KIND = {
     "bigA": (0, 32, 64, 48), "bigB": (64, 32, 64, 48),
     "bigC": (256, 32, 64, 48), "bigD": (320, 32, 64, 48),
@@ -55,6 +61,11 @@ KIND = {
 }
 for i in range(11):
     KIND["g%d" % i] = (i * 16, 160, 16, 16)
+
+# Source pixels per logical pixel on the painted nature sheet (1152x1008).
+ART_ZOOM = 3
+# float32 1/3, the exact text of what Vector2.ONE / 3.0 stores at runtime.
+DRAW_SCALE_TEXT = "0.33333334"
 
 GRASS = ["g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8", "g9", "g10"]
 
@@ -202,13 +213,16 @@ def emit(bucket, prefix, parent):
         px = int(round(bx - w * 0.5))
         py = int(round(by - h))
         s = ['[node name="%s%03d" type="Sprite2D" parent="%s"]' % (prefix, i, parent)]
+        s.append("texture_filter = 2")
         if col is not None:
             s.append("modulate = Color(%g, %g, %g, 1)" % col)
         s.append("position = Vector2(%d, %d)" % (px, py))
+        s.append("scale = Vector2(%s, %s)" % (DRAW_SCALE_TEXT, DRAW_SCALE_TEXT))
         s.append('texture = ExtResource("nature")')
         s.append("centered = false")
         s.append("region_enabled = true")
-        s.append("region_rect = Rect2(%d, %d, %d, %d)" % (rx, ry, w, h))
+        s.append("region_rect = Rect2(%d, %d, %d, %d)"
+                 % (rx * ART_ZOOM, ry * ART_ZOOM, w * ART_ZOOM, h * ART_ZOOM))
         if flip:
             s.append("flip_h = true")
         out.append("\n".join(s))
@@ -227,7 +241,14 @@ P = str(Path(__file__).resolve().parents[1] / "scenes" / "gameplay" / "night_for
 src = open(P, encoding="utf-8").read()
 start = src.index('[node name="Details" type="Node2D" parent="."]')
 end = src.index('[node name="CanopyShade" type="Sprite2D" parent="."]')
-open(P, "w", encoding="utf-8", newline="\n").write(src[:start] + block + src[end:])
+if "--check" in sys.argv[1:]:
+    if src[start:end] != block:
+        raise SystemExit(
+            "build_title_forest: night_forest.tscn Details/Trees blocks "
+            "differ from generation; rerun build_title_forest.py")
+    print("build_title_forest: scene matches generation")
+else:
+    open(P, "w", encoding="utf-8", newline="\n").write(src[:start] + block + src[end:])
 
 xs = [it[0] for it in items]
 print("details=%d trees=%d total=%d" % (n_det, n_tree, n_det + n_tree))

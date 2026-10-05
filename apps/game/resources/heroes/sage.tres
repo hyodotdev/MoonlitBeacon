@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "sage"
 display_name = "HERO_SAGE_NAME"
 description = "HERO_SAGE_DESC"
 unlock_cost = 300
@@ -23,9 +24,10 @@ projectile_secondary = Color(1, 0.78, 0.28, 1)
 walk_sheet = ExtResource("2_walk")
 idle_sheet = ExtResource("3_idle")
 portrait = ExtResource("4_portrait")
-sprite_cell = Vector2i(48, 64)
-preview_crop = Rect2i(12, 32, 24, 24)
+sprite_cell = Vector2i(144, 192)
+preview_crop = Rect2i(36, 96, 72, 72)
 walk_frames = 4
 idle_frames = 4
+visual_scale = 0.255
 walk_fps = 12.0
 idle_fps = 3.0

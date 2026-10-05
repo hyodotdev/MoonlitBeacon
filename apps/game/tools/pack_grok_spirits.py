@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Assemble spirit sources into 192×192 spirit sheets.
 
+Retired since 4.0.0: production spirit sheets come from the painted masters via
+pack_painted_world.py (true four-direction turnarounds, not one front view),
+and --check delegates there. The layout below stays as the record the painted
+packer follows.
+
 Sources are tools/spirit_grok/<kind>.png (or .webp/.jpg): one front view per creature,
 either with a transparent background or on magenta, which is keyed here. The current
 set is a ChatGPT lineup cut apart by `cut_lineup.py` (see spirit_grok/README.md).
@@ -156,28 +161,24 @@ def _png_bytes(image: Image.Image) -> bytes:
 
 
 def pack_all(*, check: bool) -> None:
-    missing = [k for k in HEIGHTS if _source_path(k) is None]
-    targets = [k for k in HEIGHTS if k not in missing]
-    if check and missing:
-        # Kinds that still lack a source are allowed a transition where the procedural create remains.
-        print(
-            f"spirit_grok source missing (allowed during transition): "
-            f"{', '.join(missing)}"
+    # Spirit sheets come from the painted masters since 4.0.0. Do not bake
+    # them here: writing would clobber the painted pack with pixel art.
+    #
+    # Do not delete `build_sheet()` and the layout above. Facings, frame
+    # counts and per-kind heights are written here, and the painted packer
+    # follows that table as-is.
+    if not check:
+        raise SystemExit(
+            "pack_grok_spirits.py no longer bakes spirit sheets; run "
+            "apps/game/tools/pack_painted_world.py instead"
         )
-    for kind in targets:
-        sheet = build_sheet(kind)
-        path = SPIRIT_ROOT / f"{kind}.png"
-        if check:
-            if not path.is_file():
-                raise RuntimeError(f"production spirit PNG is missing: {path}")
-            committed = Image.open(path).convert("RGBA")
-            if committed.size != sheet.size \
-                    or committed.tobytes() != sheet.convert("RGBA").tobytes():
-                raise RuntimeError(
-                    f"production spirit PNG differs from the Grok pack: {path}"
-                )
-        else:
-            path.write_bytes(_png_bytes(sheet))
+    from pack_painted_world import check_current
+
+    problems = check_current(byte_verify=False)
+    if problems:
+        raise RuntimeError(
+            "painted spirit sheets are not current:\n  " + "\n  ".join(problems)
+        )
 
 
 def main() -> int:
@@ -185,7 +186,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     pack_all(check=args.check)
-    print("grok spirits packed")
+    print("grok spirits check: painted sheets current")
     return 0
 
 

@@ -1,0 +1,227 @@
+// 4.0.0 owned-cloud rules addition. NOT a standalone ruleset: the director
+// inserts this block inside `match /databases/{database}/documents {`,
+// immediately before the final `match /{document=**}` catch-all in
+// `firestore.rules`. Legacy `/scores` and `/analytics_events_v1` blocks stay
+// byte-identical. See `tests/cloud-rules/build-combined-rules.mjs`.
+
+function isSignedIn() {
+  return request.auth != null;
+}
+
+function isValidPublicId(publicId) {
+  return publicId is string && publicId.matches('^MB-[0-9a-f]{32}$');
+}
+
+function isNearNow(stamp) {
+  return stamp is timestamp
+    && stamp >= request.time - duration.value(15, 'm')
+    && stamp <= request.time + duration.value(10, 'm');
+}
+
+function isAllowedHero(hero) {
+  return hero in [
+    'res://resources/heroes/warden.tres',
+    'res://resources/heroes/dancer.tres',
+    'res://resources/heroes/keeper.tres',
+    'res://resources/heroes/knight.tres',
+    'res://resources/heroes/eclipse.tres',
+    'res://resources/heroes/sage.tres'
+  ];
+}
+
+// Hall ownership needs BOTH halves of the pair: the caller's UID profile
+// must map to this public ID, and the ID reservation itself must belong to
+// the caller. A profile alone proves nothing, because a profile row only
+// restates an ID string; the reservation is the claim. Public Hall rows
+// still never carry a UID, email, or credential.
+function ownsPublicId(publicId) {
+  return isSignedIn()
+    && exists(/databases/$(database)/documents/mb_profiles_v1/$(request.auth.uid))
+    && get(/databases/$(database)/documents/mb_profiles_v1/$(request.auth.uid)).data.public_id == publicId
+    && exists(/databases/$(database)/documents/mb_reservations_v1/$(publicId))
+    && get(/databases/$(database)/documents/mb_reservations_v1/$(publicId)).data.uid == request.auth.uid;
+}
+
+// Post-commit twin of the reservation leg above. Registration commits the
+// profile and the reservation atomically, so the profile rule must see the
+// reservation as it stands AFTER the whole commit, not before it.
+function reservationOwnedAfter(publicId) {
+  return existsAfter(/databases/$(database)/documents/mb_reservations_v1/$(publicId))
+    && getAfter(/databases/$(database)/documents/mb_reservations_v1/$(publicId)).data.uid == request.auth.uid;
+}
+
+// Mirror image: the reservation rule sees the profile after the commit, so
+// neither half can be created without the other.
+function profileMapsAfter(uid, publicId) {
+  return existsAfter(/databases/$(database)/documents/mb_profiles_v1/$(uid))
+    && getAfter(/databases/$(database)/documents/mb_profiles_v1/$(uid)).data.public_id == publicId;
+}
+
+// Hall ownership in the final state. Writes that also delete the pair must
+// not leave a Hall row no living account owns.
+function ownsPublicIdAfter(publicId) {
+  return isSignedIn()
+    && existsAfter(/databases/$(database)/documents/mb_profiles_v1/$(request.auth.uid))
+    && getAfter(/databases/$(database)/documents/mb_profiles_v1/$(request.auth.uid)).data.public_id == publicId
+    && existsAfter(/databases/$(database)/documents/mb_reservations_v1/$(publicId))
+    && getAfter(/databases/$(database)/documents/mb_reservations_v1/$(publicId)).data.uid == request.auth.uid;
+}
+
+// Pair-half absence after the commit. Living halves go only together: each
+// delete requires the counterpart gone too.
+function reservationGoneAfter(publicId) {
+  return !existsAfter(/databases/$(database)/documents/mb_reservations_v1/$(publicId));
+}
+
+function profileGoneAfter(uid) {
+  return !existsAfter(/databases/$(database)/documents/mb_profiles_v1/$(uid));
+}
+
+// True once the public row is gone, in this commit or earlier. Reservation
+// and profile deletes require it so a removed pair half can never orphan or
+// re-home an existing Hall row.
+function hallGoneAfter(publicId) {
+  return !existsAfter(/databases/$(database)/documents/mb_hall_v1/$(publicId));
+}
+
+function validProfile(uid, data) {
+  return data.keys().hasOnly(
+      ['uid', 'public_id', 'schema', 'created_at', 'updated_at'])
+    && data.uid == uid
+    && isValidPublicId(data.public_id)
+    && data.schema == 1
+    && isNearNow(data.created_at)
+    && isNearNow(data.updated_at);
+}
+
+// One immutable UID-to-public-ID row per Firebase UID. Creation also
+// requires the paired reservation to belong to the caller after the commit,
+// so no profile can point at another player's reserved ID: neither alone,
+// nor mismatched in a batch, nor smuggled past a same-batch reservation
+// delete (getAfter reads the final state). Registration is an atomic pair
+// or nothing; sequential half-registration is denied on both sides. Updates
+// are denied outright: the mapping can never be reassigned. Only the owner
+// reads it, and a living row goes only with the public row and the
+// reservation half both gone.
+match /mb_profiles_v1/{uid} {
+  allow get: if isSignedIn() && request.auth.uid == uid;
+  allow list: if false;
+  allow create: if isSignedIn() && request.auth.uid == uid
+    && validProfile(uid, request.resource.data)
+    && reservationOwnedAfter(request.resource.data.public_id);
+  allow update: if false;
+  // Missing rows delete as a no-op so an interrupted deletion resumes
+  // cleanly; a living row goes only with the public row already gone and its
+  // reservation half gone too, so no crash can strand a profile claiming a
+  // freed ID.
+  allow delete: if isSignedIn() && request.auth.uid == uid
+    && (!exists(/databases/$(database)/documents/mb_profiles_v1/$(uid))
+      || (hallGoneAfter(resource.data.public_id)
+        && reservationGoneAfter(resource.data.public_id)));
+}
+
+function validReservation(publicId, data) {
+  return data.keys().hasOnly(['public_id', 'uid', 'schema', 'created_at'])
+    && data.public_id == publicId
+    && isSignedIn() && data.uid == request.auth.uid
+    && data.schema == 1
+    && isNearNow(data.created_at);
+}
+
+// Public-ID reservation keyed by the ID itself. `create` fires only when the
+// document is absent, so another UID's existing ID can neither be claimed
+// (that write is an update) nor changed (updates are denied). Creation also
+// requires the paired profile after the commit: lone reservations are
+// denied, and registration is an atomic pair or nothing. A living row goes
+// only with the public row already gone and its profile half gone too, so a
+// freed ID can never be re-registered underneath a living Hall row or a
+// stranded profile.
+match /mb_reservations_v1/{publicId} {
+  allow get: if isSignedIn() && resource.data.uid == request.auth.uid;
+  allow list: if false;
+  allow create: if isSignedIn() && isValidPublicId(publicId)
+    && validReservation(publicId, request.resource.data)
+    && profileMapsAfter(request.auth.uid, publicId);
+  allow update: if false;
+  // Missing rows delete as a no-op so an interrupted deletion resumes
+  // cleanly; living rows still need their owner with the public row and the
+  // profile half both gone.
+  allow delete: if isSignedIn()
+    && (!exists(/databases/$(database)/documents/mb_reservations_v1/$(publicId))
+      || (resource.data.uid == request.auth.uid
+        && hallGoneAfter(publicId)
+        && profileGoneAfter(resource.data.uid)));
+}
+
+function validCheckpointPayload(payload) {
+  return payload is string && payload.size() > 0 && payload.size() <= 32768
+    && payload.matches('\\{.*\\}');
+}
+
+function validCheckpoint(uid, data) {
+  return data.keys().hasOnly(
+      ['uid', 'revision', 'payload', 'schema', 'updated_at'])
+    && data.uid == uid
+    && data.revision is int && data.revision >= 1
+    && validCheckpointPayload(data.payload)
+    && data.schema == 1
+    && isNearNow(data.updated_at);
+}
+
+// One private versioned checkpoint per UID. Revisions advance by exactly one,
+// so stale or decreasing writes are denied; the client pairs this with a
+// compare-and-swap update-time guard. The payload rule bounds only size and
+// brace shape: it cannot parse JSON, so brace-shaped garbage still passes
+// here and the client must reject non-JSON before upload and validate every
+// download before applying it.
+match /mb_checkpoints_v1/{uid} {
+  allow get: if isSignedIn() && request.auth.uid == uid;
+  allow list: if false;
+  allow create: if isSignedIn() && request.auth.uid == uid
+    && request.resource.data.revision == 1
+    && validCheckpoint(uid, request.resource.data);
+  allow update: if isSignedIn() && request.auth.uid == uid
+    && request.resource.data.uid == resource.data.uid
+    && request.resource.data.revision == resource.data.revision + 1
+    && validCheckpoint(uid, request.resource.data);
+  allow delete: if isSignedIn() && request.auth.uid == uid;
+}
+
+function validHall(publicId, data) {
+  return data.keys().hasOnly(
+      ['public_id', 'hero', 'score', 'cycles', 'release', 'schema',
+        'updated_at'])
+    && data.public_id == publicId
+    && isAllowedHero(data.hero)
+    && data.score is int && data.score >= 0 && data.score <= 2000000000
+    && data.cycles is int && data.cycles >= 0 && data.cycles <= 99999
+    && data.release is string && data.release.size() > 0
+      && data.release.size() <= 32
+    && data.schema == 1
+    && isNearNow(data.updated_at);
+}
+
+// Public best-score row per public ID. Reads are open; writes require the
+// matching UID profile AND the matching reservation, both owned by the
+// caller, before AND after the commit, so a write bundled with pair deletes
+// cannot orphan a row no living account owns. Scores never decrease, so
+// equal-score retries are idempotent and races resolve toward the higher
+// score. No email, private save, UID, or credential may appear: the key
+// list forbids it.
+match /mb_hall_v1/{publicId} {
+  allow get, list: if true;
+  allow create: if isValidPublicId(publicId)
+    && ownsPublicId(publicId)
+    && ownsPublicIdAfter(publicId)
+    && validHall(publicId, request.resource.data);
+  allow update: if ownsPublicId(publicId)
+    && ownsPublicIdAfter(publicId)
+    && request.resource.data.public_id == resource.data.public_id
+    && request.resource.data.score >= resource.data.score
+    && validHall(publicId, request.resource.data);
+  // Missing rows delete as a signed-in no-op so an interrupted deletion
+  // resumes cleanly; living rows still need the full ownership pair.
+  allow delete: if isSignedIn()
+    && (!exists(/databases/$(database)/documents/mb_hall_v1/$(publicId))
+      || ownsPublicId(publicId));
+}

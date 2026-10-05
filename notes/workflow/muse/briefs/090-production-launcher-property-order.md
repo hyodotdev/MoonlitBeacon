@@ -1,0 +1,9 @@
+# Brief 090: production scene actually hides the developer launcher
+
+## Confirmed director evidence
+The accepted Gate presentation pins `show_developer_controls = false` before the script property on the ProductionEntry scene's TestLauncher node. The director loaded the actual production PackedScene in an isolated windowed boot and waited 2 seconds without manually hiding the launcher. It remained visible with all debug buttons. `builds/verify/director-production-crafted-intro.log` has `production-default-clean=false`, and `builds/shots/four-zero-review/09-production-crafted-intro.png` shows the commands covering the feet. Source SceneState assertions passed but did not verify the instantiated production node. Godot applies a custom property only after its script is assigned: confirm this in the real instance and fix the serialization order.
+
+## Do
+Own only the narrow production TestLauncher scene property and the relevant existing Gate state test, plus an author note. Retain the launcher hooks and explicit debug opt-in from the accepted work. Put the custom property after the script assignment if confirmed. Add a regression on a real instantiated production PackedScene and its actual TestLauncher visibility/child buttons, without manually changing/hiding it. Do not merely read SceneState. Preserve clean-title/capture hooks and the old title's intentional developer launcher.
+
+The director repeats the actual production boot on a real display. Run Gate state/layout and related clean UI checks. Use a meaningful negative control that restores the offending property order, then restore. No visual art change, no Host/ProductionEntry script changes (parallel 089 owns its intent logic), no cloud/native/preset/build/store changes. This is a concrete rendering defect after integration, not an art redesign.

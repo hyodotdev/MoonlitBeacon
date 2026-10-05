@@ -1,13 +1,9 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/run_choice_panel.gd" id="script"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/normal.tres" id="button_normal"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/hover.tres" id="button_hover"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/pressed.tres" id="button_pressed"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/disabled.tres" id="button_disabled"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/cards/focus.tres" id="button_focus"]
 [ext_resource type="FontVariation" path="res://assets/third_party/fonts/Galmuri11-Bold-Multilingual.tres" id="font"]
-[ext_resource type="StyleBoxTexture" path="res://resources/ui/panels/panel.tres" id="panel"]
+[ext_resource type="Script" path="res://scripts/ui/world_button.gd" id="world_button"]
+[ext_resource type="Script" path="res://scripts/ui/world_frame.gd" id="world_frame"]
 
 [node name="RunChoicePanel" type="Control"]
 process_mode = 3
@@ -41,10 +37,11 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="Frame" type="PanelContainer" parent="Center"]
+script = ExtResource("world_frame")
+kind = "panel"
 custom_minimum_size = Vector2(640, 238)
 layout_mode = 2
 mouse_filter = 2
-theme_override_styles/panel = ExtResource("panel")
 
 [node name="Content" type="MarginContainer" parent="Center/Frame"]
 layout_mode = 2
@@ -100,16 +97,13 @@ theme_override_constants/separation = 14
 alignment = 1
 
 [node name="Left" type="Button" parent="Center/Frame/Content/Rows/Choices"]
+script = ExtResource("world_button")
+kind = "ember"
 custom_minimum_size = Vector2(284, 112)
 layout_mode = 2
 size_flags_horizontal = 3
 clip_contents = true
 disabled = true
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
 
 [node name="Copy" type="MarginContainer" parent="Center/Frame/Content/Rows/Choices/Left"]
 layout_mode = 1
@@ -155,16 +149,13 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="Right" type="Button" parent="Center/Frame/Content/Rows/Choices"]
+script = ExtResource("world_button")
+kind = "steel"
 custom_minimum_size = Vector2(284, 112)
 layout_mode = 2
 size_flags_horizontal = 3
 clip_contents = true
 disabled = true
-theme_override_styles/normal = ExtResource("button_normal")
-theme_override_styles/hover = ExtResource("button_hover")
-theme_override_styles/pressed = ExtResource("button_pressed")
-theme_override_styles/disabled = ExtResource("button_disabled")
-theme_override_styles/focus = ExtResource("button_focus")
 
 [node name="Copy" type="MarginContainer" parent="Center/Frame/Content/Rows/Choices/Right"]
 layout_mode = 1
