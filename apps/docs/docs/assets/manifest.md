@@ -863,10 +863,13 @@ Modification:   tools/pack_painted_world.py fits each turnaround's four true
                 the donor's contact / recover / opposite-contact / recover
                 stride at one scale with the torso registered, and the right
                 column mirrors it exactly (crop and registration table in
-                notes/workflow/muse/gait-131-implementation.md). Idle,
-                portraits and down/up walk columns are byte-identical to the
-                turnaround bake. Hero.visual_scale (0.255) renders the legacy
-                world body with a smooth filter
+                notes/workflow/muse/gait-131-implementation.md). Down/up walk
+                columns fit all four frames at their row-0 scale, and every
+                walk frame wears its fitted row-0 head pixel-fixed, so one
+                face holds through motion. Idle columns rebuild the lower
+                body into a supported standing pose from the walk parts while
+                sharing the walk frame-0 head per facing. Hero.visual_scale
+                (0.255) renders the legacy world body with a smooth filter
 ```
 
 | Hero | Design |
@@ -884,13 +887,16 @@ Modification:   tools/pack_painted_world.py fits each turnaround's four true
 | `idle.png` | 576×768 | 144×192 cells, columns=4 facings, rows=4 breath frames | 4fps |
 | `portrait.png` | 96×96 | single full-body portrait | static |
 
-All three files use graded alpha and put the feet on the bottom of the cell. A hero
-is about 36 world px tall, drawn as a shaded chibi with a big head and a bold
-silhouette, and every facing keeps that height and foot origin, so turning does not
-change the size. The walk is four source poses per facing; the idle breathes
-feet-planted about the soles. Down, up and idle facings are true turnaround art;
-the walk sides are the donor stride on the left with its exact mirror on the
-right, so the same legs alternate on both sides.
+All three files use graded alpha and put the feet on the bottom of the cell. A hero's
+opaque painted body is about 28 world px tall at the existing 0.255 scale, drawn as
+a shaded chibi with a big head and a bold silhouette, and every facing keeps that
+height and foot origin, so turning does not change the size. The walk is four source
+poses per facing with one fixed head per facing; the idle stands on both feet and
+breathes with the torso band only, scaling vertically about the hips while the head
+and planted feet stay fixed. Down and up keep their turnaround bodies; both
+side columns derive from the one donor stride on the left with its exact
+mirror on the right, so the same legs alternate on both sides and the same
+character faces left or right.
 
 Each hero also carries an attack rig under `rig/`: 80 torso and arm PNGs
 cut deterministically from each hero's own first idle frame per facing, plus

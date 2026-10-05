@@ -130,7 +130,9 @@ virtual stick work from mouse drag alone.
   through their cut with a carried grip and follow-through, twin blades
   alternate fangs, the crescent sweep rides the orbit pulse, and each gun
   kicks back in its holder's hands and settles. Walking attacks keep
-  stepping through the cut; standing attacks stay planted. Damage,
+  stepping through the cut; standing attacks stay planted. At rest every
+  hero stands upright on both feet, and the same face carries through
+  walking, stopping, and attacking. Damage,
   cooldowns, range, and relic balance are unchanged — only the motion is
   new.
 
