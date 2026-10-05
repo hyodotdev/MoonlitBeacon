@@ -57,6 +57,16 @@ If identity, size, stance or transition checks fail, fix them before another
 upload or review submission. Retain the existing store gallery when requested;
 these QA checks never require marketing recapture.
 
+Compare proportions **between facings** too. Sharing one head through the
+frames of a facing does not prove that turning preserves the same character.
+Measure the actual skull and forehead-to-chin face landmarks at equal world
+scale, excluding hood ornaments, hair tails and clothing. A fixed neck band
+can hide a smaller face while reporting the same head height. Allow natural
+profile narrowing, but inspect face height, eye size and face/body proportion
+in the full four-facing row. Cover an undersized side head with a separate
+negative control even when that head is shared perfectly by walk, idle and
+attack.
+
 The current contract requires the following for each of 6 heroes. If the
 hero count or frame count changes, recount from resources and generators and
 update the report denominator too.
