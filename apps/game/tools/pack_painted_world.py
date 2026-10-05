@@ -70,6 +70,7 @@ texture bounds, so a layout drift fails the suite, not just this tool.
 from __future__ import annotations
 
 import argparse
+import struct
 import sys
 from pathlib import Path
 
@@ -1572,11 +1573,59 @@ def _shifted(cell: Image.Image, dx: int, dy: int) -> Image.Image:
     return out
 
 
+def _stable_blend_byte(a: int, b: int, factor: float) -> int:
+    """One saturation-blend output byte with explicit fused rounding.
+
+    Pillow's C blend computes ``a + factor * (b - a)`` in binary32, but
+    the multiply and the add round once on fused-multiply-add builds and
+    twice elsewhere, so boundary bytes differ by host (glow's 1.22
+    disagrees at 179 of the 65,536 byte pairs). The committed art baked
+    the fused side, so the factor rounds to binary32, the
+    product-plus-integer stays exact, and the sum rounds once to binary32
+    before clamping and truncating, on every host.
+    """
+    alpha = struct.unpack("f", struct.pack("f", factor))[0]
+    exact = alpha * (b - a) + a
+    out = struct.unpack("f", struct.pack("f", exact))[0]
+    return min(255, max(0, int(out)))
+
+
+def _stable_saturation(rgb: Image.Image, factor: float) -> Image.Image:
+    """Saturation grade with the fused rounding the committed art baked.
+
+    The degenerate is ImageEnhance.Color's own (the Luma convert, integer
+    math, identical on every host); only the blend rounds here instead of
+    in C. Byte-identical to the native call on fused builds.
+    """
+    gray = rgb.convert("L")
+    width, height = rgb.size
+    source = rgb.load()
+    shade = gray.load()
+    out = Image.new("RGB", (width, height))
+    dest = out.load()
+    for y in range(height):
+        for x in range(width):
+            a = shade[x, y]
+            red, green, blue = source[x, y]
+            dest[x, y] = (
+                _stable_blend_byte(a, red, factor),
+                _stable_blend_byte(a, green, factor),
+                _stable_blend_byte(a, blue, factor),
+            )
+    return out
+
+
 def _grade(art: Image.Image, key: str) -> Image.Image:
     """Restrained variant material grade over the figure's own pixels.
 
     Channel curves plus saturation/brightness only; the silhouette and the
     painted detail stay the source's. Restricted to the ink box.
+    Saturation blends in _stable_saturation: the glow and rime factors
+    sit on the fused/separate rounding boundary. Brightness blends from
+    black, where fused and separate rounding are the same value for every
+    factor, and the contrast factors below are boundary-free over the
+    whole byte square; both stay native (test_grade_blend_checks.py pins
+    all three claims).
     """
     box = _ink_bbox(art)
     if box is None:
@@ -1599,7 +1648,7 @@ def _grade(art: Image.Image, key: str) -> Image.Image:
         bands[index] = bands[index].point(table)
     figure = Image.merge("RGBA", bands)
     rgb = figure.convert("RGB")
-    rgb = ImageEnhance.Color(rgb).enhance(saturation)
+    rgb = _stable_saturation(rgb, saturation)
     rgb = ImageEnhance.Brightness(rgb).enhance(brightness)
     rgb = ImageEnhance.Contrast(rgb).enhance(contrast)
     figure = rgb.convert("RGBA")
