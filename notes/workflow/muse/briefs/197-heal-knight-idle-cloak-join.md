@@ -1,0 +1,18 @@
+# Brief 197: Heal the Knight idle cloak join
+
+## Confirmed finding during the brief-196 review
+The user asks that character identity and proportions remain consistent in every facing. The director inspected all six production facing rows at equal scale while brief196 was running, then reopened Knight's side lower body at 8x nearest. Knight idle column2 row0 has a sharp horizontal transparent slit through the blue/gold trailing cloak at the stance cut around cell y150. The upper cloak and lower cloak tips fail to connect; this is present in the current main art, not an invented facial-size problem. Exact inspection source: apps/game/assets/custom/actors/heroes/knight/idle.png. Crop cell-local x24..136, y118..192 to see the whole affected body. The initial standing implementation re-articulates the lower paint through _gather_stance in tools/pack_painted_world.py; it also moved/clipped part of this long cloak. The mirrored right has the same defect.
+
+## One correction, on top of brief196
+Preserve the useful face-proportion work and its regressions. Correct the Knight standing side cloak join in the deterministic generator so the trailing blue/gold cloth connects naturally to the upper garment. Distinguish static hanging/trailing garment paint from the articulated legs. Keep the actual supported neutral near/far legs, current gait, feet/neck anchors and four-state canonical head unchanged. Re-bake affected idle and derived attack torso assets. Inspect the same join through idle breathing, moving attack, recovery and intro stops. Do not paint a blur across the gap, enlarge/rescale the body, restore the old stride stance, erase the cloak tips, or let the walk-to-idle costume change. Inspect the other heroes for this same cutline artifact and change one only if you confirm it visibly.
+
+## Acceptance
+- All four Knight left idle frames and their exact right mirrors show continuous attached blue/gold cloak paint across the y150 cutline with no horizontal transparent tear, smeared repair or detached tip. Both planted relaxed feet remain intact.
+- A focused registered continuity regression rejects the original Knight idle slit even when the head is the corrected brief196 head. Keep existing head/facing/gait and standing checks strict. Re-pin only the intentionally changed approved assets.
+- Current deterministic painted-world and rig checks, relevant registered Hero/forecourt/attack tests and asset/manifest/hygiene checks pass. No changes to gameplay, original sources, versions, store images/provenance, authentication/saves, unrelated world assets or nodes.
+- Return the exact changed files, a full-body before/after side crop, and actual negative-control result. No native/store/git/network work; those are director operations.
+
+## After the round-1 report
+The director reviewed the report and full22-file diff. Preserve the three accepted-in-principle face calibrations, registered checks and legitimate re-pins. The report's “slit scan clean” does not certify this garment: the Knight full-body crop still clearly shows the gap below the unchanged head. Keep the next report's head-join and cloak-continuity evidence distinct. This is a continuation, not a second face redesign.
+
+The unrestricted director owns the final full pnpm verify and native/store work. Do not repeat unrelated auth/IAP/gameplay tests or spend time working around the sandbox's editor-settings/corepack limitations. Run the new focused cloak negative, deterministic painted-world/rig checks, and related standing/head/gait/attack/forecourt checks. Report any environment restriction plainly; do not alter checks to accommodate it. The director will independently run the full wrapper on the real tree.
