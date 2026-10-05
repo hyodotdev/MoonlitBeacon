@@ -909,3 +909,48 @@ above. It does not waive unrequested PR approval, store-image retention or
 device evidence requirements, and it changes no game or release artifact.
 The user's existing PR, push, main merge and both-store release requests
 remain the authorization for the current release.
+
+## PR 11 Linux grading repair
+
+The already requested PR was created at
+https://github.com/hyodotdev/MoonlitBeacon/pull/11. Its initial Linux Game
+check rejected four marsh-glow guardian sheets; Docs, Repo rules and the
+Android APK/AAB job passed. The director reproduced all four RGBA
+differences in an offline Linux x86_64 container. Mac Pillow 11.3.0 and
+12.3.0 both matched the approved art, so a dependency-version pin would
+not fix the CPU arithmetic difference.
+
+Brief 195 asked the implementer to make saturation blending explicitly
+round once to binary32, preserving the approved fused result. The
+accepted patch changes only the generator, a six-case regression file
+and its normal asset-check registration. No PNG, master, game runtime,
+scene, resource, version, store or CI file changed. The director read
+the full diff and the package registration twice, then ran the actual
+checks independently rather than relying on the implementer's report.
+
+The Mac and Linux fresh bakes matched all 89 outputs, with equal RGBA
+hashes on both hosts and no geometry/identity errors. The Linux focused suite passed
+all six cases, including all 44 guardian sheets and strict single-channel
+rejection. A process-local return to separate rounding failed four cases
+on Mac; returning the real saturation path to native Pillow failed the
+two real-bake cases on Linux. Both probes leave the source untouched.
+All 282 copied production/master PNGs match the real tree, and all 160
+retained store PNGs match the original baseline. Of the 188 files pinned
+by the earlier rendered review, only the generator changes; the other
+187, including the actual art and runtime, remain exact.
+
+Evidence: `pr11-muse195-director-mac-all.json`,
+`pr11-muse195-director-linux-all.json`,
+`pr11-muse195-director-linux-focused.log`,
+`pr11-muse195-director-mac-separate-negative.json`,
+`pr11-muse195-director-linux-native-negative.json`, and
+`pr11-muse195-director-image-integrity.json` under `builds/verify/`.
+The implementer's copy could not run the normal game suite because its
+sandbox denied Godot editor-settings writes; the director's root suite
+is the release evidence. The implementer also used three scratch files
+in `/tmp` rather than the requested copy-local scratch directory; none
+are accepted, and the director repeated the measurements independently.
+
+The patch passed `muse accept --check` and was accepted. Root verification
+and the fresh-head CI readback are still required before merging. No
+marketing recapture or image/provenance mutation is authorized or run.
