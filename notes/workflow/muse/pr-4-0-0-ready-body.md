@@ -6,6 +6,8 @@ All six heroes now move their painted bodies, hands and weapons during primary a
 
 The world, guardian states and inner screens use painted artwork. Login buttons use official artwork, left-aligned icons and centered labels; guest entry sits last. Entry loading, delayed Hall responses and audio teardown have lifecycle coverage. Five-language privacy, Terms, support and the 16-lesson course/reference are managed in this monorepo and served by Firebase Hosting at https://moonlitbeacon.hyo.dev, with Vercel DNS and the Pages mirror retained.
 
+Repository PR authorization now follows the user's explicit request: an unrequested PR always requires asking and waiting for the user's answer, while an already requested PR proceeds within that scope without an approval file. The obsolete marker hook and detector are removed. Implementer isolation, secret exclusions and the remaining protected paths remain enforced.
+
 Validation of the final standing repair and replacement artifacts:
 
 - The director inspected all 192 idle/walk production cells at 4× nearest, all 82 rig PNGs, and actual Godot attack movies with and without VFX. Each final movie contains 2,338 original frames at 60fps; 24 dense pages cover all 24 stationary attack facings, and a separate six-player lane covers walk, stop, attack, recovery and departure. The title-party movie was also inspected.

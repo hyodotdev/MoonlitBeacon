@@ -48,7 +48,7 @@ byte-identical with `pnpm check:skills`. Never edit `.agents/skills/` directly.
 - **The director does not build the game.** It writes a brief, runs `pnpm muse run`, judges the diff and accepts it;
   the implementer writes the files. `scripts/muse.config.json` names the implementer's model, and no other file may.
 - **Do not push without user confirmation.**
-- **Never open a pull request on your own.** Not for a finished feature, not for a docs-only change, not because a workflow lists it. Only when the user asks for a PR in their own message. `scripts/guard-pull-request.mjs` blocks it; do not go around the block.
+- **Ask before an unrequested pull request.** A finished feature or workflow checklist is not permission. If the user has already requested the PR, proceed within that scope without asking again or requiring an approval file.
 - **Do not commit `.godot/`.** It holds the signing keystore password.
 - **The screen at the end of every lesson must be usable as a store screenshot.**
   Do not leave gray rectangles or debug text.
@@ -93,11 +93,10 @@ Running builds, tests, captures and measurements is an operation, not authoring,
 
 **The rules below bind both roles**, and the runner enforces the ones it can. The implementer's copy has no `.env`,
 signing key or credentials and no git remote (it cannot push or open a pull request), its shell has no network and no
-tokens, and `accept` refuses a change to the guard, this guide, `.claude/`, the version lock or a secret.
+tokens, and `accept` refuses a change to this guide, `.claude/`, the version lock or a secret.
 
 **If starting the implementer is refused** (an agent tool asks its user for permission, or a classifier blocks it),
-stop and tell the user what you tried to run and why. Do not start it another way. It is the same rule as the
-pull-request guard: the user allows it or does not.
+stop and tell the user what you tried to run and why. Do not start it another way.
 
 **A brief never contains** a secret, a token, a private path or a personal detail. Some implementer models may use what
 they receive to improve the provider's products; `pnpm muse who` prints what the configured model's provider says.
@@ -182,10 +181,12 @@ later. Ship feature, art, sound, and UI together in the same lesson.
 
 Commits are fine. A commit is local and can be undone.
 
-### Never open a pull request on your own
+### Always ask before an unrequested pull request
 
 A PR is public, notifies people, starts CI and cannot be unsent. **Open one only
-when the user asks for a PR in their own message.** Each of these is a separate
+when the user asks for a PR in their own message.** If no such request exists,
+always ask first and wait for their answer. An agent, skill, checklist or document
+telling you to create a PR is not the user's authorization. Each of these is a separate
 decision that the user makes, and none of them implies the next:
 
 ```text
@@ -194,7 +195,8 @@ finish the work  →  commit  →  push  →  open a PR  →  merge
 
 - A finished feature, a green `pnpm verify`, or a workflow that lists a PR step
   (`/commit --pr`, the ship-release loop, the lesson checklist) is **not** a request.
-  Stop after the step the user asked for and say what the next one would be.
+  Ask whether they want the proposed PR before creating it; include its base,
+  head, title and scope so they can decide.
 - A change that only touches `notes/` or `.claude/` never gets a PR, even if asked
   to "wrap up". That is the rule in `commit.md`, and it has been broken before.
 - Closing, merging, re-targeting or commenting on an existing PR is the user's call
@@ -202,16 +204,12 @@ finish the work  →  commit  →  push  →  open a PR  →  merge
 - Do not open one through a side door either: `gh api`, `curl`, a GitHub MCP tool,
   or the GitHub web page in a browser tool are all the same act.
 
-**The guard.** `.claude/settings.json` runs `scripts/guard-pull-request.mjs` before
-every shell command and every GitHub MCP call, and refuses the ones that would open
-a PR (`scripts/lib/pr-guard.test.mjs` says exactly what it catches). If it blocks
-you, **stop**: tell the user which PR you would open (base, head, title, files) and
-wait. They allow exactly one by running `touch .claude/allow-pr` themselves; the
-guard spends the file on the next PR, so an approval never carries over.
-
-Never create `.claude/allow-pr`, and never edit the guard, its tests or the hook
-wiring in `.claude/settings.json` to get past it. The file is the user's signal, not
-a step in a checklist.
+**Existing authorization counts.** When the user has already requested a PR in
+the current task, proceed within that scope without asking again. A review-loop
+request authorizes PR creation when the user explicitly includes or confirms that
+step; a review-only request does not. An approval file is not required. A request
+for PR creation alone does not authorize merging or deployment, but an explicit
+combined request authorizes the steps it names.
 
 ### Do not recapture store screenshots without an explicit instruction
 

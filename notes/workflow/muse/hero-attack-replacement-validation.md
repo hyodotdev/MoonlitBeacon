@@ -891,3 +891,21 @@ Independent Google Play GET at 09:12 UTC confirms internal build 18 is
 still carries published build 17. This is not a production-18 release or
 review submission. The exact readback is pinned in
 `hero-character-standing-play18-track-readback.json`.
+
+## User clarification of PR authorization
+
+On 2026-10-05 the user explicitly removed the manual PR approval-file rule,
+then clarified the intended replacement: always ask before creating a PR
+that the user did not request; do not ask again for this already requested
+review-loop PR. The director made the specific requested workflow edit.
+The guide, commit workflow and canonical skills now distinguish the user's
+request from an agent or checklist instruction. The obsolete approval-file
+hook, detector and test command are removed, and the skills mirror is
+synchronized through the normal sync command. The implementer's no-remote,
+no-network, secret and protected-path boundaries remain in force.
+
+This clarification supersedes the earlier PR-marker blocker recorded
+above. It does not waive unrequested PR approval, store-image retention or
+device evidence requirements, and it changes no game or release artifact.
+The user's existing PR, push, main merge and both-store release requests
+remain the authorization for the current release.

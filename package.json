@@ -74,7 +74,7 @@
     "hosting:build": "pnpm player-care:build && pnpm docs:build && node apps/player-care/hosting-build.mjs",
     "hosting:check": "node apps/player-care/hosting-check.mjs",
     "test:hosting": "node --test apps/player-care/hosting.test.mjs",
-    "verify": "pnpm test:android-build && pnpm test:iapkit-config && pnpm test:godot-iap-vendor && pnpm test:play-release-package && pnpm test:export-preflight && pnpm test:ios-build && pnpm test:app-store-release && pnpm test:store-contact && pnpm test:store-metadata && pnpm test:analytics && pnpm test:firestore-index && pnpm test:gate-locale && pnpm test:player-care && pnpm test:hosting && pnpm test:pr-guard && pnpm test:muse && pnpm test:game && pnpm game:check && pnpm check:scripts && pnpm check:locale && pnpm check:store-metadata && pnpm check:skills && pnpm check:hygiene && pnpm check:assets && pnpm check:store-graphics && pnpm docs:build && pnpm check:docs",
+    "verify": "pnpm test:android-build && pnpm test:iapkit-config && pnpm test:godot-iap-vendor && pnpm test:play-release-package && pnpm test:export-preflight && pnpm test:ios-build && pnpm test:app-store-release && pnpm test:store-contact && pnpm test:store-metadata && pnpm test:analytics && pnpm test:firestore-index && pnpm test:gate-locale && pnpm test:player-care && pnpm test:hosting && pnpm test:muse && pnpm test:game && pnpm game:check && pnpm check:scripts && pnpm check:locale && pnpm check:store-metadata && pnpm check:skills && pnpm check:hygiene && pnpm check:assets && pnpm check:store-graphics && pnpm docs:build && pnpm check:docs",
     "check:locale": "node .github/scripts/check-locale.mjs && node scripts/godot.mjs --headless --path apps/game --script res://tools/check_locale.gd",
     "check:store-metadata": "node scripts/check-store-metadata.mjs",
     "skills:sync": "node scripts/sync-agent-skills.mjs --write",
@@ -87,7 +87,6 @@
     "growth:report": "node scripts/growth-report.mjs",
     "growth:check": "node scripts/growth-report.mjs --check",
     "test:growth": "node --test scripts/lib/growth-report.test.mjs",
-    "test:pr-guard": "node --test scripts/lib/pr-guard.test.mjs",
     "test:muse": "node --test scripts/lib/muse-config.test.mjs scripts/lib/muse-run.test.mjs scripts/lib/muse-workspace.test.mjs scripts/lib/muse-cli.test.mjs scripts/lib/muse-judge.test.mjs scripts/lib/godot-run.test.mjs",
     "muse": "node scripts/muse.mjs",
     "godot:isolated": "node scripts/godot-run.mjs"

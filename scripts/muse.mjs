@@ -17,7 +17,7 @@
 //
 // The rules of the workflow are in AGENTS.md and .claude/skills/muse-director/SKILL.md. Starting the
 // implementer starts a second autonomous agent, so an agent tool may ask its user first or refuse; when it does,
-// stop and tell the user (the same rule as for the pull-request guard).
+// stop and tell the user.
 
 import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
