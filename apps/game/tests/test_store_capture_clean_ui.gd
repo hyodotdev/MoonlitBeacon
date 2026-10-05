@@ -25,6 +25,8 @@ func _run() -> void:
 	await _test_title_tools()
 	await _test_combat_tools()
 	_test_boot_request()
+	_test_inspection_boot_request()
+	_test_boot_kind_separation()
 	_test_capture_locale_override()
 	_cleanup()
 	if _failed > 0:
@@ -145,7 +147,93 @@ func _test_boot_request() -> void:
 	]:
 		_write_json(path, invalid)
 		_expect_equal(BOOT_SCRIPT.read_request(true), {}, "rejects a bad boot request")
+	_write_json(path, {
+		"schema": 1,
+		"nonce": "c".repeat(64),
+		"kind": "hero_direction",
+	})
+	_expect_equal(
+		BOOT_SCRIPT.read_request(true), {},
+		"boosted reader rejects the unboosted inspection kind")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+func _test_inspection_boot_request() -> void:
+	# A missing reader must fail the suite, not abort this function with a
+	# runtime error while the run still exits 0 further down.
+	_expect_true(
+		_has_inspection_reader(),
+		"boot script exposes the inspection reader")
+	if not _has_inspection_reader():
+		return
+	var path: String = str(BOOT_SCRIPT.REQUEST_PATH)
+	_write_json(path, {
+		"schema": 1,
+		"nonce": "a".repeat(64),
+		"kind": "hero_direction",
+	})
+	_expect_equal(
+		BOOT_SCRIPT.read_inspection_request(false), {},
+		"release does not read inspection boot requests")
+	_expect_equal(
+		BOOT_SCRIPT.read_inspection_request(true),
+		{"schema": 1, "nonce": "a".repeat(64), "kind": "hero_direction"},
+		"debug unboosted hero inspection boot request")
+	for invalid in [
+		{"schema": 1, "nonce": "short", "kind": "hero_direction"},
+		{"schema": 1, "nonce": "g".repeat(64), "kind": "hero_direction"},
+		{"schema": 1, "nonce": "b".repeat(64), "kind": "not-a-scene"},
+		{"schema": 1, "nonce": "b".repeat(64), "kind": "field_guardian"},
+		["not", "a", "dictionary"],
+	]:
+		_write_json(path, invalid)
+		_expect_equal(
+			BOOT_SCRIPT.read_inspection_request(true), {},
+			"rejects a bad inspection boot request")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	_expect_equal(
+		BOOT_SCRIPT.read_inspection_request(true), {},
+		"missing inspection boot request no-ops")
+
+
+func _test_boot_kind_separation() -> void:
+	_expect_true(
+		_has_inspection_kinds(),
+		"boot script exposes the inspection kind list")
+	if not _has_inspection_kinds() or not _has_inspection_reader():
+		return
+	var path: String = str(BOOT_SCRIPT.REQUEST_PATH)
+	_expect_true(
+		"hero_direction" in BOOT_SCRIPT.INSPECTION_KINDS,
+		"hero_direction is an unboosted inspection kind")
+	_expect_true(
+		"hero_direction" not in BOOT_SCRIPT.ALLOWED_KINDS,
+		"hero_direction is not a boosted boot preset")
+	for boosted in ["moonlight_barrage", "missile_core", "field_guardian"]:
+		_expect_true(
+			boosted in BOOT_SCRIPT.ALLOWED_KINDS,
+			"boosted preset kept: " + boosted)
+		_expect_true(
+			boosted not in BOOT_SCRIPT.INSPECTION_KINDS,
+			"boosted preset is not an inspection kind: " + boosted)
+	_write_json(path, {
+		"schema": 1,
+		"nonce": "d".repeat(64),
+		"kind": "missile_core",
+	})
+	_expect_equal(
+		BOOT_SCRIPT.read_inspection_request(true), {},
+		"inspection reader rejects boosted presets")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	# The quiet-Lv1 title-to-Arena proof needs autoloads, which `--script`
+	# mode never loads, so it executes as its own scene row in
+	# run_regression_tests.mjs — this check does not run it. It only locks
+	# the file wiring: the suite fails when the harness scene or the
+	# request API it needs goes missing.
+	_expect_true(
+		ResourceLoader.exists(
+			"res://tests/test_store_capture_inspection_boot.tscn"),
+		"real-scene inspection harness file ships with the suite")
 
 
 func _test_capture_locale_override() -> void:
@@ -165,6 +253,17 @@ func _test_capture_locale_override() -> void:
 			PROBE_SCRIPT.capture_locale({"game_locale": invalid}),
 			"",
 			"rejects an unsupported capture temporary locale")
+
+
+func _has_inspection_reader() -> bool:
+	for method in BOOT_SCRIPT.get_script_method_list():
+		if str(method.get("name", "")) == "read_inspection_request":
+			return true
+	return false
+
+
+func _has_inspection_kinds() -> bool:
+	return "INSPECTION_KINDS" in BOOT_SCRIPT.get_script_constant_map()
 
 
 func _write_request(path: String) -> void:

@@ -154,13 +154,40 @@ func _debug_opt_in() -> bool:
 
 func _launch_store_capture_boot() -> void:
 	var request: Dictionary = STORE_CAPTURE_BOOT.read_request()
-	if request.is_empty() or not is_inside_tree():
+	if request.is_empty():
+		_launch_hero_inspection_boot()
+		return
+	if not is_inside_tree():
 		return
 	match str(request["kind"]):
 		"missile_core":
 			_launch(10, 1)
 		"moonlight_barrage", "field_guardian":
 			_launch(20, 3)
+
+
+## Unboosted hero inspection: open the real Arena with no boost meta, no
+## journey arm, and no title-origin plan. The next hero still comes from the
+## existing one-shot `test_hero.request` consumer in the arena, and the
+## nonce-bound hero/direction proof still comes from the separate runtime
+## request. Opening the arena proves nothing; the runtime checks do.
+func _launch_hero_inspection_boot() -> void:
+	var inspection: Dictionary = STORE_CAPTURE_BOOT.read_inspection_request()
+	if inspection.is_empty() or not is_inside_tree():
+		return
+	# Refuse when a real journey is already armed or waiting: the arena
+	# consumes the pending action and the from-title flag on open, and a
+	# fresh/resume entry would clear or rewrite the saved journey. A refused
+	# inspection leaves the request file for a later boot and touches nothing.
+	if Journey.armed or Journey.pending != Journey.Pending.NONE \
+			or RunEntry.from_title:
+		return
+	# Never carry a stale boost into a quiet inspection. `_apply_test_boost`
+	# grants max missile and survived time even at Lv1, so this path sets no
+	# meta at all instead of calling `_launch`.
+	if get_tree().root.has_meta(BOOST_META):
+		get_tree().root.remove_meta(BOOST_META)
+	get_tree().change_scene_to_file("res://scenes/gameplay/arena.tscn")
 
 
 ## Resolve the node carrying the original title's Ui/Screen: the Title
