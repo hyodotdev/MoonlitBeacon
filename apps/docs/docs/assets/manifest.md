@@ -892,7 +892,14 @@ feet-planted about the soles. Down, up and idle facings are true turnaround art;
 the walk sides are the donor stride on the left with its exact mirror on the
 right, so the same legs alternate on both sides.
 
-A `0.16s` casting cue plays after each shot, so a hero needs no separate attack sheet.
+Each hero also carries an attack rig under `rig/`: 80 torso and arm PNGs
+cut deterministically from each hero's own first idle frame per facing, plus
+the two Eclipse profile off-hand nubs, which are authored fixed templates
+painted in colors sampled from that hero's near arm rather than literal
+atlas cuts, and the joints in `rig.json`. `tools/pack_attack_rig.py` bakes
+all 82 PNGs plus 6 JSON files (`--check` byte-verifies all 88 outputs), so
+the articulated arm is the same painted character. A `0.16s` casting cue
+still plays after each shot.
 
 Shrine buy/select cards and the five individual-hero IAP cards press each Hero's `48×48`
 icon, the `72×72` `preview_crop` of the idle sheet scaled smooth, to open a full-body
@@ -922,15 +929,23 @@ Modification:   tools/pack_painted_weapons.py separates the atlas by alpha
 ```
 
 Author note: these are the original shaded equipment for the 4.0.0 painted
-heroes — the bright primitive bars `WeaponRig` used to draw are gone, but
-every attack number, muzzle seat, and timing is untouched. Each sheet holds
+heroes — the bright primitive bars `WeaponRig` used to draw are gone, and the
+seats were deliberately recalibrated from centered hand constants to painted
+wrists, with each spawn agreeing with its new painted muzzle. Combat timing,
+damage, range, and counts are unchanged. Each sheet holds
 four texels per logical pixel and draws at quarter scale through per-item
 Linear filtering, so the paint stays smooth at real device output. Guns align
 by barrel axis so each painted tip lands exactly on its muzzle seat; melee
-weapons align by grip with the blade following the aim. The dancer sheet
-holds both fang daggers straddling one hand point. Calibration (tips, grips,
+weapons align by grip with the blade following the aim. The existing Dancer
+sheet supplies both fang daggers, and the runtime seats each fang on its own
+grip in its own articulated hand. Calibration (tips, grips,
 axis rows) is measured from the master alpha by the pack tool and frozen in
 `WeaponRig` logical constants, guarded by `tests/test_painted_weapons.gd`.
+
+Author note (attack motion): the painted arm chains from each hero's `rig/`
+bake carry the weapon — no drawn glove. The Dancer always draws both fangs
+from its existing sheet, each half seated on its own handle in its own hand.
+No pack-tool input changed.
 
 | Atlas cell | Runtime file | Size | Paint |
 | --- | --- | --- | --- |

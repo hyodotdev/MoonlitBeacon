@@ -126,6 +126,14 @@ virtual stick work from mouse drag alone.
 | Eclipse Mage | orbiting scythe ring | timed full-circle sweeps with a safe hole at the feet |
 | Constellation Sage | piercing rifle line | one long bolt through the whole line |
 
+- Every attack is a visible body action, not just a flash: swords sweep
+  through their cut with a carried grip and follow-through, twin blades
+  alternate fangs, the crescent sweep rides the orbit pulse, and each gun
+  kicks back in its holder's hands and settles. Walking attacks keep
+  stepping through the cut; standing attacks stay planted. Damage,
+  cooldowns, range, and relic balance are unchanged — only the motion is
+  new.
+
 - Moon Disc volleys start at power 0 and grow with picked-up cores to
   power 8. Normal fire stays straight: homing unlocks only with evolved
   Starfall, or during Moonfire awakening at power 3 and above. Relic
