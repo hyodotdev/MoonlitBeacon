@@ -39,6 +39,24 @@ off-screen placement hides the direction does not count as evidence either.
 
 ## Hero direction matrix
 
+### Character identity across movement and rest
+
+Character consistency is a release gate. For every hero and facing, inspect
+walk → stop → primary attack → recovery → walk in the intro where applicable
+and in the real Player. The head, face, outfit and body proportions must stay
+the same through each transition. Measure the drawn head dimensions, body
+scale and ground anchor; equal atlas-cell sizes alone do not prove identity.
+Do not fit idle and walk independently to tight opaque bounds if that makes
+the face grow at a stop. Idle must stand with both feet supported and relaxed,
+not freeze a spread contact pose or a passing pose with one foot lifted.
+
+Keep this covered by registered regressions as well as dense moving-frame
+review. Check all six heroes in all four facings, with and without attack VFX,
+and verify the final installed binary separately from its source sheets.
+If identity, size, stance or transition checks fail, fix them before another
+upload or review submission. Retain the existing store gallery when requested;
+these QA checks never require marketing recapture.
+
 The current contract requires the following for each of 6 heroes. If the
 hero count or frame count changes, recount from resources and generators and
 update the report denominator too.
