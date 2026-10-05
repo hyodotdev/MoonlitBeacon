@@ -17,6 +17,9 @@ var _profile: Hero.AttackProfile = Hero.AttackProfile.WARDEN
 var _primary: Color = Color(0.3, 0.68, 1.0, 1.0)
 var _secondary: Color = Color(0.82, 0.95, 1.0, 1.0)
 var _vfx_tier: int = 0
+## Draw-layer VFX suppression for the motion harness no-VFX pass. `play()`
+## timing still runs; the glow just draws dark.
+var _vfx_suppressed: bool = false
 
 
 func _ready() -> void:
@@ -76,6 +79,11 @@ func cast_count() -> int:
 	return _cast_count
 
 
+func set_vfx_suppressed(value: bool) -> void:
+	_vfx_suppressed = value
+	queue_redraw()
+
+
 func _process(delta: float) -> void:
 	if _left <= 0.0:
 		set_process(false)
@@ -88,6 +96,8 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	if _left <= 0.0:
+		return
+	if _vfx_suppressed:
 		return
 	var fade: float = clampf(_left / CAST_SECONDS, 0.0, 1.0)
 	var progress: float = 1.0 - fade

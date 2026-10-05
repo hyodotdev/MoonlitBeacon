@@ -26,10 +26,13 @@ const RANGED_HEROES: Array[String] = ["keeper.tres", "knight.tres", "sage.tres"]
 const MUZZLE_SEAT: Dictionary = {
 	"sage.tres": 16.0, "keeper.tres": 9.0, "knight.tres": 9.0,
 }
-const SIDE_HAND: Vector2 = Vector2(10.0, 0.0)
+## Independent stock offsets: px behind the seated pivot where the painted
+## hand grips. Must match `WeaponRig.stock_back`, never read it.
+const STOCK_BACK: Dictionary = {"sage": 3.0, "keeper": 2.0, "knight": 2.0}
 
 var _failed: int = 0
 var _checked: int = 0
+var _rig_bake_cache: Dictionary = {}
 
 
 class CaptureSpirit:
@@ -711,21 +714,23 @@ func _test_moonlight_projectile_origin(
 		target: Node2D,
 		label: String,
 	) -> void:
-	# Independent two-pass aim from the contract above: anchor, then the side
-	# hand for guns. Nothing here is read from the player's own helpers.
+	# Independent two-pass aim from the contract above: anchor, then the
+	# painted hand for guns. Nothing here is read from the player's own helpers.
 	var gun: bool = RANGED_HEROES.has(label)
 	var candle: Vector2 = player.call("moonlight_origin")
-	var anchor: Vector2 = player.to_global(Player.WEAPON_GRIP) \
-		if gun else candle
+	var hero_id: String = label.replace(".tres", "")
+	var anchor: Vector2 = player.to_global(_independent_seat(
+		player, hero_id, player.call("facing_vector"))) if gun else candle
 	var first: Vector2 = (target.global_position - anchor).normalized()
-	var shift: Vector2 = _independent_shift(first, gun)
-	var base: Vector2 = (target.global_position - (anchor + shift)).normalized()
+	var want_hand: Vector2 = player.to_global(
+		_independent_seat(player, hero_id, first)) if gun else candle
+	var base: Vector2 = (target.global_position - want_hand).normalized()
 	var origin_name: String = "gun muzzle" if gun else "beacon candle"
 	# The player's helpers agree with the independent contract.
 	_expect_true(player.call("shot_anchor").distance_to(anchor) < 0.01,
 		label + " shot anchor matches the contract")
-	_expect_true(player.call("hand_for_aim", first).distance_to(anchor + shift) < 0.01,
-		label + " side-hand aim matches the contract")
+	_expect_true(player.call("hand_for_aim", first).distance_to(want_hand) < 0.01,
+		label + " painted-hand aim matches the contract")
 	var spirits_before: Array[Node2D] = arena.get("_spirits")
 	arena.set("_spirits", [target])
 	arena.set("_missile_power", 0)
@@ -743,10 +748,9 @@ func _test_moonlight_projectile_origin(
 			int(player.call("attack_profile_id")),
 			label + " selected-hero combat profile is passed to the straight moon disc")
 		var lane: Vector2 = projectile.get("_base_direction") as Vector2
-		var lane_shift: Vector2 = _independent_shift(lane, gun)
 		var want: Vector2 = candle
 		if gun:
-			want = anchor + lane_shift \
+			want = player.to_global(_independent_seat(player, hero_id, lane)) \
 				+ lane * float(MUZZLE_SEAT[label])
 		_expect_true(
 			player.call("muzzle_origin", lane).distance_to(want) < 0.01,
@@ -770,9 +774,23 @@ func _test_moonlight_projectile_origin(
 	projectiles = _friendly_projectiles()
 	_expect_equal(projectiles.size(), 1,
 		label + " guided volley is created as a single node")
+	# Fresh two-pass aim at guided time: the straight volley above already
+	# faced the body at the target, and the gun anchor follows the body
+	# facing, so the pre-volley anchor/hand/base are stale here. Production
+	# resolves anchor, then hand, then the muzzle along the cast direction.
+	var guided_anchor: Vector2 = player.to_global(_independent_seat(
+		player, hero_id, player.call("facing_vector"))) if gun else candle
+	var guided_first: Vector2 = (
+		target.global_position - guided_anchor).normalized()
+	var guided_hand: Vector2 = player.to_global(
+		_independent_seat(player, hero_id, guided_first)) if gun else candle
+	var guided_dir: Vector2 = (
+		target.global_position - guided_hand).normalized()
 	var guided_expected: Vector2 = candle
 	if gun:
-		guided_expected = anchor + shift + base * float(MUZZLE_SEAT[label])
+		guided_expected = player.to_global(
+			_independent_seat(player, hero_id, guided_dir)) \
+			+ guided_dir * float(MUZZLE_SEAT[label])
 	if not projectiles.is_empty():
 		var missile: Node2D = projectiles[0] as Node2D
 		_expect_equal(
@@ -801,10 +819,42 @@ func _test_moonlight_projectile_origin(
 
 ## The side-hand rule, restated literally: vertical-dominant gun aims shift
 ## 10px right; everything else stays centered.
-func _independent_shift(aim: Vector2, gun: bool) -> Vector2:
-	if gun and absf(aim.y) > absf(aim.x):
-		return SIDE_HAND
-	return Vector2.ZERO
+## Independent rig seat: the painted wrist from the attack rig bake (never
+## the player's own seat math) through the inlined sprite transform, plus the
+## stock offset along the aim.
+func _independent_seat(
+	player: Node2D, hero_id: String, aim: Vector2
+) -> Vector2:
+	var flat: Vector2 = aim.normalized() if aim.length() > 0.01 \
+		else Vector2.RIGHT
+	var facing: String = "down"
+	if absf(flat.x) > absf(flat.y):
+		facing = "left" if flat.x < 0.0 else "right"
+	elif flat.y < 0.0:
+		facing = "up"
+	var wrist: Vector2 = _rig_bake_wrist(hero_id, facing)
+	var base_y: float = float(player.get("_sprite_base_y"))
+	var scale: float = float(player.get("_hero_scale"))
+	return Vector2(0.0, base_y) \
+		+ (Vector2(0.0, -8.0) + (wrist - Vector2(72, 96))) * scale \
+		+ flat * float(STOCK_BACK[hero_id])
+
+
+func _rig_bake_wrist(hero_id: String, facing: String) -> Vector2:
+	if not _rig_bake_cache.has(hero_id):
+		var text: String = FileAccess.get_file_as_string(
+			"res://assets/custom/actors/heroes/%s/rig/rig.json" % hero_id)
+		_rig_bake_cache[hero_id] = JSON.parse_string(text) as Dictionary
+	var entry: Dictionary = (
+		(_rig_bake_cache[hero_id] as Dictionary).get("facings", {})
+		as Dictionary).get(facing, {})
+	var arms: Dictionary = entry.get("arms", {})
+	var side: String = "near" if facing == "left" or facing == "right" \
+		else "right"
+	if arms.has(side):
+		var wrist: Array = (arms[side] as Dictionary).get("W", [72, 96])
+		return Vector2(float(wrist[0]), float(wrist[1]))
+	return Vector2(72, 96)
 
 
 func _friendly_projectiles() -> Array[Node]:

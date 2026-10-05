@@ -45,6 +45,9 @@ const MIN_ALPHA_LEVELS: int = 60
 const MIN_GRADIENT_TEXELS: int = 60
 ## Independent muzzle seats. Must match `WeaponRig.muzzle_length`, never read it.
 const SEATS: Dictionary = {"sage": 16.0, "keeper": 9.0, "knight": 9.0}
+## Independent stock offsets: px behind the seated pivot where the painted
+## hand grips. Must match `WeaponRig.stock_back`, never read it.
+const STOCK_BACK: Dictionary = {"sage": 3.0, "keeper": 2.0, "knight": 2.0}
 ## Independent sheet-tint math: Player night tint from `player.tscn`.
 const NIGHT_TINT: Color = Color(0.315, 0.35, 0.57, 1.0)
 const DIAGONAL: float = 0.70710678
@@ -61,6 +64,7 @@ const CORE: float = 32.0 / 255.0
 
 var _failed: int = 0
 var _checked: int = 0
+var _rig_bake_cache: Dictionary = {}
 
 
 func _init() -> void:
@@ -76,7 +80,7 @@ func _run() -> void:
 	_test_silhouettes_distinct()
 	_test_lighting_no_washout()
 	_test_flash_behavior_preserved()
-	await _test_player_seats_untouched()
+	await _test_player_seats_calibrated()
 	_finish()
 
 
@@ -482,8 +486,11 @@ func _test_flash_behavior_preserved() -> void:
 	_expect_equal(rig.aim(), Vector2.LEFT, "clear keeps the last aim")
 	rig.flash(Vector2.UP, WeaponRig.MUZZLE_SPARK, true)
 	_expect_equal(rig.get("_kind"), WeaponRig.MUZZLE_SPARK, "idle sidearm lights")
+	# Brief 171: a sidearm cue never relocates the held primary, so the idle
+	# spark above left the aim on LEFT; the empty aim below must keep it there.
+	_expect_equal(rig.aim(), Vector2.LEFT, "idle sidearm never turns the weapon")
 	rig.flash(Vector2.ZERO, WeaponRig.MUZZLE_CANNON)
-	_expect_equal(rig.aim(), Vector2.UP, "empty aim never turns the weapon")
+	_expect_equal(rig.aim(), Vector2.LEFT, "empty aim never turns the weapon")
 	_expect_equal(float(rig.get("_span")), 0.22, "cannon span 0.22s")
 	rig.call("_process", 0.3)
 	_expect_equal(rig.get("_kind"), &"", "span expiry drops the kind")
@@ -500,8 +507,46 @@ func _test_flash_behavior_preserved() -> void:
 	await process_frame
 
 
-## Projectile seats and hand seating stay exactly where they were.
-func _test_player_seats_untouched() -> void:
+## Independent rig seat: the painted wrist from the attack rig bake (never
+## the player's own seat math) through the inlined sprite transform, plus the
+## stock offset along the aim.
+func _independent_seat(
+	player: Player, hero_id: String, flat: Vector2
+) -> Vector2:
+	var facing: String = "down"
+	if absf(flat.x) > absf(flat.y):
+		facing = "left" if flat.x < 0.0 else "right"
+	elif flat.y < 0.0:
+		facing = "up"
+	var wrist: Vector2 = _rig_bake_wrist(hero_id, facing)
+	var base_y: float = float(player.get("_sprite_base_y"))
+	var scale: float = float(player.get("_hero_scale"))
+	return Vector2(0.0, base_y) \
+		+ (Vector2(0.0, -8.0) + (wrist - Vector2(72, 96))) * scale \
+		+ flat * float(STOCK_BACK[hero_id])
+
+
+func _rig_bake_wrist(hero_id: String, facing: String) -> Vector2:
+	if not _rig_bake_cache.has(hero_id):
+		var text: String = FileAccess.get_file_as_string(
+			"res://assets/custom/actors/heroes/%s/rig/rig.json" % hero_id)
+		_rig_bake_cache[hero_id] = JSON.parse_string(text) as Dictionary
+	var entry: Dictionary = (
+		(_rig_bake_cache[hero_id] as Dictionary).get("facings", {})
+		as Dictionary).get(facing, {})
+	var arms: Dictionary = entry.get("arms", {})
+	var side: String = "near" if facing == "left" or facing == "right" \
+		else "right"
+	if arms.has(side):
+		var wrist: Array = (arms[side] as Dictionary).get("W", [72, 96])
+		return Vector2(float(wrist[0]), float(wrist[1]))
+	return Vector2(72, 96)
+
+
+## Projectile seats sit on the calibrated painted wrists: the wrist from the
+## attack rig bake plus the stock offset plus the independent muzzle length.
+## The old centered grip is gone; the muzzle still lands exactly.
+func _test_player_seats_calibrated() -> void:
 	var player: Player = _add_player()
 	await process_frame
 	for hero_id in ["sage", "keeper", "knight"]:
@@ -509,7 +554,8 @@ func _test_player_seats_untouched() -> void:
 		_expect_true(player.apply_hero_visual(hero), hero_id + " visual applies")
 		for aim in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
 			var flat: Vector2 = aim.normalized()
-			var want: Vector2 = player.to_global(Player.WEAPON_GRIP + Player.side_shift(flat)) \
+			var want: Vector2 = player.to_global(
+				_independent_seat(player, hero_id, flat)) \
 				+ flat * float(SEATS[hero_id])
 			_expect_true(
 				(player.call("muzzle_origin", aim) as Vector2).distance_to(want) < 0.01,

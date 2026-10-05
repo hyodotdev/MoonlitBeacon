@@ -33,6 +33,10 @@ enum AttackProfile {
 	SAGE,    ## Teal-gold constellation chains and a nebula burst.
 }
 
+## Stable lowercase id matching the resource file name (`warden`, `dancer`,
+## ...). Keys the attack rig bake and per-hero seats.
+@export var id: String = "warden"
+
 @export var display_name: String = "Name"
 
 ## One-line intro. Say what is different **in numbers.**

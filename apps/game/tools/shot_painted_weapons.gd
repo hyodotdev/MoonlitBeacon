@@ -229,9 +229,8 @@ func _expect_pose(key: String, hero_id: String, side: String) -> void:
 	var rig: Node = player.get_node("WeaponRig") as Node
 	_expect_true((((rig as WeaponRig).aim() - aim).length()) < 0.001,
 		"%s held weapon points %s" % [key, side])
-	_expect_equal((rig as Node2D).position,
-		Player.WEAPON_GRIP + Player.side_shift(aim),
-		"%s grip clears the face" % key)
+	_expect_equal((rig as Node2D).position, player.rest_rig_seat(aim),
+		"%s grip sits in the painted wrist" % key)
 	_expect_true(str(rig.get("_kind")).is_empty(), "%s rig burns nothing" % key)
 	_expect_true(not (player.get_node("Slash") as Sprite2D).visible,
 		"%s blade put away" % key)

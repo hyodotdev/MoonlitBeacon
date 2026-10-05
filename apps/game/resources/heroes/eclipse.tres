@@ -7,6 +7,7 @@
 
 [resource]
 script = ExtResource("1")
+id = "eclipse"
 display_name = "HERO_ECLIPSE_NAME"
 description = "HERO_ECLIPSE_DESC"
 unlock_cost = 240

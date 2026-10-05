@@ -13,9 +13,13 @@ const ARROW_SCENE: PackedScene = preload("res://scenes/actors/moon_arrow.tscn")
 const HERO_IDS: Array[String] = [
 	"warden", "dancer", "keeper", "knight", "eclipse", "sage",
 ]
+## Independent stock offsets: px behind the seated pivot where the painted
+## hand grips. Must match `WeaponRig.stock_back`, never read it.
+const STOCK_BACK: Dictionary = {"sage": 3.0, "keeper": 2.0, "knight": 2.0}
 
 var _failed: int = 0
 var _checked: int = 0
+var _rig_bake_cache: Dictionary = {}
 
 
 class DurableTargetSpirit:
@@ -142,17 +146,6 @@ func _target_global(arena: Node2D, at: Vector2) -> DurableTargetSpirit:
 	return double
 
 
-## Point on the real firing ray: shots aim from the player's shot anchor, so
-## close-range test geometry must follow the ray, not the floor.
-func _ray_global(
-	player: Node2D, through_local: Vector2, distance: float
-) -> Vector2:
-	var origin: Vector2 = player.call("shot_anchor")
-	var through: Vector2 = (player as Node2D).global_position + through_local
-	var direction: Vector2 = (through - origin).normalized()
-	return origin + direction * distance
-
-
 func _swing(arena: Node2D, player: Node2D, target: Node2D) -> void:
 	player.set("_attack_cooldown", 0.0)
 	arena.call("_swing_at", target)
@@ -242,8 +235,15 @@ func _test_sage_rifle() -> void:
 	_expect_equal(float(arena.get("_arrow_cooldown")), 1.20, "rifle cadence")
 	_expect_equal(int(arena.get("_arrow_pierce")), 6, "rifle pierce")
 	var near: DurableTargetSpirit = _target(arena, player, Vector2(100, 0))
-	var mid_at: Vector2 = _ray_global(player, Vector2(100, 0), 180.0)
-	var far_at: Vector2 = _ray_global(player, Vector2(100, 0), 260.0)
+	# Pierce bodies sit on the production firing line: the arena's two-pass
+	# aim through the painted hand, then the muzzle along the resolved lane.
+	# The one-pass anchor ray diverges from it once the hand leaves the grip.
+	var anchor: Vector2 = player.call("shot_anchor")
+	var base: Vector2 = (near.global_position - anchor).normalized()
+	base = (near.global_position - player.call("hand_for_aim", base)).normalized()
+	var muzzle: Vector2 = player.call("muzzle_origin", base)
+	var mid_at: Vector2 = muzzle + base * 180.0
+	var far_at: Vector2 = muzzle + base * 260.0
 	var mid: DurableTargetSpirit = _target_global(arena, mid_at)
 	var far: DurableTargetSpirit = _target_global(arena, far_at)
 	var ray: Vector2 = (mid_at - far_at).normalized().orthogonal()
@@ -332,25 +332,25 @@ func _test_muzzle_coherence() -> void:
 			var shots: Array[Node] = _arena_shots(arena)
 			_expect_true(not shots.is_empty(),
 				"%s %s volley leaves the gun" % [hero_id, side])
-			# The arena's own two-pass aim: anchor, then the side hand.
+			# The arena's own two-pass aim: anchor, then the painted hand.
 			var anchor: Vector2 = player.call("shot_anchor")
 			var base: Vector2 = (mark.global_position - anchor).normalized()
 			base = (mark.global_position - player.call("hand_for_aim", base)).normalized()
+			var rig: Node2D = player.get_node("WeaponRig") as Node2D
 			for shot in shots:
 				var lane: Vector2 = shot.get("_base_direction") as Vector2
 				var muzzle: Vector2 = player.call("muzzle_origin", lane)
-				var want: Vector2 = player.to_global(Player.WEAPON_GRIP \
-					+ Player.side_shift(lane)) \
+				var want: Vector2 = player.to_global(
+					_independent_seat(player, hero_id, lane)) \
 					+ lane * float(seats[hero_id])
 				_expect_true(muzzle.distance_to(want) < 0.01,
 					"%s %s muzzle helper matches its seat" % [hero_id, side])
 				_expect_true(
 					(shot as Node2D).global_position.distance_to(muzzle) < 0.5,
 					"%s %s shot spawns on its lane muzzle" % [hero_id, side])
-			var rig: Node2D = player.get_node("WeaponRig") as Node2D
-			_expect_equal(rig.position,
-				Player.WEAPON_GRIP + Player.side_shift(base),
-				"%s %s seats the hand off the face" % [hero_id, side])
+			_expect_true(
+				rig.position.distance_to(player.call("rest_rig_seat", base)) < 0.01,
+				"%s %s seats the painted wrist" % [hero_id, side])
 			var cast: Node2D = player.get_node("MoonlightCast") as Node2D
 			_expect_true(
 				cast.global_position.distance_to(player.call("muzzle_origin", base)) < 0.5,
@@ -383,16 +383,70 @@ func _test_muzzle_coherence() -> void:
 	await _free_arena(backup_arena)
 
 
-## Cannon kick is seen and settled: the sprite jumps, then rests at its base
-## inside the 0.2s strip gap, so a strip frame never catches a drift.
+## Independent rig seat: the painted wrist from the attack rig bake (never
+## the player's own seat math) through the inlined sprite transform, plus the
+## stock offset along the aim.
+func _independent_seat(
+	player: Node2D, hero_id: String, aim: Vector2
+) -> Vector2:
+	var flat: Vector2 = aim.normalized() if aim.length() > 0.01 \
+		else Vector2.RIGHT
+	var facing: String = "down"
+	if absf(flat.x) > absf(flat.y):
+		facing = "left" if flat.x < 0.0 else "right"
+	elif flat.y < 0.0:
+		facing = "up"
+	var wrist: Vector2 = _rig_bake_wrist(hero_id, facing)
+	var base_y: float = float(player.get("_sprite_base_y"))
+	var scale: float = float(player.get("_hero_scale"))
+	return Vector2(0.0, base_y) \
+		+ (Vector2(0.0, -8.0) + (wrist - Vector2(72, 96))) * scale \
+		+ flat * float(STOCK_BACK[hero_id])
+
+
+func _rig_bake_wrist(hero_id: String, facing: String) -> Vector2:
+	if not _rig_bake_cache.has(hero_id):
+		var text: String = FileAccess.get_file_as_string(
+			"res://assets/custom/actors/heroes/%s/rig/rig.json" % hero_id)
+		_rig_bake_cache[hero_id] = JSON.parse_string(text) as Dictionary
+	var entry: Dictionary = (
+		(_rig_bake_cache[hero_id] as Dictionary).get("facings", {})
+		as Dictionary).get(facing, {})
+	var arms: Dictionary = entry.get("arms", {})
+	var side: String = "near" if facing == "left" or facing == "right" \
+		else "right"
+	if arms.has(side):
+		var wrist: Array = (arms[side] as Dictionary).get("W", [72, 96])
+		return Vector2(float(wrist[0]), float(wrist[1]))
+	return Vector2(72, 96)
+
+
+## Cannon kick is seen and settled: the torso rocks back, then the split
+## hides and the sprite rests at its base inside the 0.2s strip gap, so a
+## strip frame never catches a drift.
 func _expect_recoil_settles(player: Node2D, side: String) -> void:
 	var sprite: Node2D = player.get_node("Sprite") as Node2D
+	var torso: Node2D = player.get_node("AttackTorso") as Node2D
+	var rig_probe: Node2D = player.get_node("WeaponRig") as Node2D
+	_expect_true(float(rig_probe.get("_attack_span")) < 0.2,
+		"knight %s kick span fits the strip gap" % side)
 	var rest: Vector2 = Vector2(0.0, float(player.get("_sprite_base_y")))
-	var kicked: bool = sprite.position.distance_to(rest) > 1.0
-	for frame in 30:
+	var torso_base: Vector2 = torso.position
+	var have_base: bool = torso.visible
+	var kicked: bool = false
+	for frame in 120:
 		await get_tree().process_frame
-		kicked = kicked or sprite.position.distance_to(rest) > 1.0
-	_expect_true(kicked, "knight %s cannon kicks the sprite" % side)
+		if torso.visible:
+			if not have_base:
+				torso_base = torso.position
+				have_base = true
+			kicked = kicked \
+				or torso.position.distance_to(torso_base) > 1.0
+		if not bool(player.get("_split_shown")):
+			break
+	_expect_true(kicked, "knight %s cannon kicks the torso" % side)
+	_expect_false(bool(player.get("_split_shown")),
+		"knight %s attack split hides after the kick" % side)
 	_expect_true(sprite.position.distance_to(rest) < 0.5,
 		"knight %s recoil settles at rest" % side)
 
@@ -962,3 +1016,7 @@ func _expect_equal(actual: Variant, expected: Variant, label: String) -> void:
 
 func _expect_true(value: bool, label: String) -> void:
 	_expect_equal(value, true, label)
+
+
+func _expect_false(value: bool, label: String) -> void:
+	_expect_equal(value, false, label)

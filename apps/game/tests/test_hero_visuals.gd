@@ -334,12 +334,19 @@ func _test_weapon_rig(player: Player) -> void:
 	_expect_true(rig != null, "weapon-rig node rides the player")
 	if rig == null:
 		return
-	_expect_equal(rig.position, Vector2(0.0, -8.0), "rig grip at hand height")
-	_expect_equal(rig.position, Player.WEAPON_GRIP, "rig grip follows its constant")
-	_expect_true(Player.WEAPON_GRIP.y > Player.MOONLIGHT_ORIGIN.y,
-		"grip hangs below the candle, off the face")
-	_expect_true(absf(Player.WEAPON_GRIP.y - Player.SLASH_PIVOT.y) <= 4.0,
-		"grip stays near the hand the slash orbits")
+	_expect_equal(rig.position, player.rest_rig_seat(Vector2.RIGHT),
+		"rig grip sits in the painted wrist")
+	# Calibrated wrists across the roster: below the candle so the face stays
+	# readable, and inside the slash blade's reach on every aim.
+	for hero_case in HERO_CASES:
+		var hero: Hero = load(hero_case["resource"]) as Hero
+		player.call("apply_hero_visual", hero)
+		for aim in [Vector2.RIGHT, Vector2.LEFT, Vector2.UP, Vector2.DOWN]:
+			var seat: Vector2 = player.rest_rig_seat(aim)
+			_expect_true(seat.y > Player.MOONLIGHT_ORIGIN.y,
+				"%s %s grip hangs below the candle" % [hero_case["id"], str(aim)])
+			_expect_true(seat.distance_to(Player.SLASH_PIVOT) <= 16.0,
+				"%s %s grip stays inside the slash reach" % [hero_case["id"], str(aim)])
 	var muzzle_want: Dictionary = {
 		Hero.AttackProfile.SAGE: WeaponRig.MUZZLE_RIFLE,
 		Hero.AttackProfile.KEEPER: WeaponRig.MUZZLE_SCATTER,
@@ -371,7 +378,10 @@ func _test_weapon_rig(player: Player) -> void:
 	player.call("play_moonlight_cast", Vector2.UP, 1)
 	_expect_equal(rig.get("_kind"), WeaponRig.MUZZLE_SPARK,
 		"sidearm spark shows once the cut fades")
-	_expect_equal(rig.call("aim"), Vector2.UP, "aim follows the shown flash")
+	# Brief 171: a sidearm cue never relocates the held primary. The spark
+	# burns at its own direction while the blade keeps its last primary aim.
+	_expect_equal(rig.call("aim"), Vector2.RIGHT,
+		"held blade keeps its aim past an idle sidearm cue")
 	player.set("_attack_cooldown", 0.0)
 	player.call("attack", Vector2.LEFT)
 	_expect_equal(rig.get("_kind"), WeaponRig.CUT,
@@ -398,23 +408,24 @@ func _test_weapon_rig(player: Player) -> void:
 	player.call("attack", Vector2.UP)
 	_expect_equal(rig.get("_kind"), WeaponRig.MUZZLE_RIFLE,
 		"sidearm bash yields to the live rifle flash")
-	# A vertical primary aim seats the side hand so the barrel clears the
-	# face; a sidearm cue never moves the held primary.
+	# A vertical primary aim re-seats to the up-facing wrist; a sidearm cue
+	# never moves the held primary.
+	var side_seat: Vector2 = rig.position
 	player.call("play_moonlight_cast", Vector2.UP, 1)
-	_expect_equal(rig.position,
-		Player.WEAPON_GRIP + Vector2(Player.HAND_SIDE_X, 0.0),
-		"vertical rifle aim takes the side hand")
+	_expect_true(rig.position.distance_to(player.rest_rig_seat(Vector2.UP)) < 0.01,
+		"vertical rifle aim seats the up-facing wrist")
+	_expect_true(rig.position.distance_to(side_seat) > 2.0,
+		"vertical rifle aim leaves the side seat")
 	player.call("apply_hero_visual", warden)
 	player.set("_attack_cooldown", 0.0)
 	player.call("attack", Vector2.UP)
-	_expect_equal(rig.position,
-		Player.WEAPON_GRIP + Vector2(Player.HAND_SIDE_X, 0.0),
-		"vertical sword swing takes the side hand")
+	_expect_true(rig.position.distance_to(player.rest_rig_seat(Vector2.UP)) < 0.01,
+		"vertical sword swing seats the up-facing wrist")
 	player.call("apply_hero_visual", sage)
-	rig.position = Player.WEAPON_GRIP
+	rig.position = Vector2(7.0, -11.0)
 	player.set("_attack_cooldown", 0.0)
 	player.call("attack", Vector2.UP)
-	_expect_equal(rig.position, Player.WEAPON_GRIP,
+	_expect_equal(rig.position, Vector2(7.0, -11.0),
 		"sidearm bash never moves the held rifle")
 
 

@@ -54,6 +54,8 @@ const checks = [
   ['Painted-world resource contract', ['--script', 'res://tests/test_painted_world.gd'], true, false],
   ['Six-hero side-walk gait and preserved bytes', ['--script', 'res://tests/test_hero_gait.gd'], true, false],
   ['Painted held weapons: art, seats, light, and flash', ['--script', 'res://tests/test_painted_weapons.gd'], true, false],
+  ['Six-hero physical attack motion', ['--script', 'res://tests/test_hero_attack_motion.gd'], true, false],
+  ['Player lazy attack nodes stay in the node budget', ['--script', 'res://tests/test_player_node_budget.gd'], true, false],
   ['Night-forest painted atlas addressing', ['--script', 'res://tests/test_night_forest_atlas.gd'], true, false],
   ['Guardian burst vs normal-hit balance', ['--script', 'res://tests/test_guardian_balance.gd'], true, false],
   ['Guardian second-answer moves', ['--script', 'res://tests/test_guardian_moves.gd'], true, false],

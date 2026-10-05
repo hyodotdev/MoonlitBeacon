@@ -3135,6 +3135,1482 @@
           "bottom": 4
         }
       }
+    },
+    {
+      "id": "hero.dancer.rig.arm_down_left_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_down_left_fore.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 164,
+      "max_alpha_levels": 135,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_down_left_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_down_left_upper.png",
+      "width": 15,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 137,
+      "max_alpha_levels": 140,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_down_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_down_right_fore.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 194,
+      "max_alpha_levels": 143,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_down_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_down_right_upper.png",
+      "width": 16,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 136,
+      "max_alpha_levels": 130,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_left_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_left_near_fore.png",
+      "width": 15,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 239,
+      "max_alpha_levels": 126,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_left_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_left_near_upper.png",
+      "width": 16,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 248,
+      "max_alpha_levels": 136,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_right_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_right_near_fore.png",
+      "width": 15,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 233,
+      "max_alpha_levels": 131,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_right_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_right_near_upper.png",
+      "width": 16,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 215,
+      "max_alpha_levels": 137,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_up_left_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_up_left_fore.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 188,
+      "max_alpha_levels": 140,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_up_left_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_up_left_upper.png",
+      "width": 15,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 143,
+      "max_alpha_levels": 125,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_up_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_up_right_fore.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 114,
+      "max_alpha_levels": 135,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.arm_up_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/arm_up_right_upper.png",
+      "width": 15,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 76,
+      "max_alpha_levels": 113,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.torso_down",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/torso_down.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3268,
+      "max_alpha_levels": 237,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.torso_left",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/torso_left.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3097,
+      "max_alpha_levels": 233,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.torso_right",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/torso_right.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3163,
+      "max_alpha_levels": 231,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.dancer.rig.torso_up",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/dancer/rig/torso_up.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3608,
+      "max_alpha_levels": 239,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_down_left_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_down_left_fore.png",
+      "width": 12,
+      "height": 22,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 207,
+      "max_alpha_levels": 101,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 22,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_down_left_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_down_left_upper.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 240,
+      "max_alpha_levels": 113,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_down_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_down_right_fore.png",
+      "width": 12,
+      "height": 22,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 209,
+      "max_alpha_levels": 105,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 22,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_down_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_down_right_upper.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 239,
+      "max_alpha_levels": 104,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_left_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_left_near_fore.png",
+      "width": 14,
+      "height": 21,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 203,
+      "max_alpha_levels": 98,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 21,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_left_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_left_near_upper.png",
+      "width": 16,
+      "height": 22,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 241,
+      "max_alpha_levels": 95,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 22,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_right_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_right_near_fore.png",
+      "width": 14,
+      "height": 21,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 205,
+      "max_alpha_levels": 106,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 21,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_right_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_right_near_upper.png",
+      "width": 16,
+      "height": 22,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 238,
+      "max_alpha_levels": 93,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 22,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_up_left_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_up_left_fore.png",
+      "width": 12,
+      "height": 18,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 144,
+      "max_alpha_levels": 121,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 18,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_up_left_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_up_left_upper.png",
+      "width": 13,
+      "height": 18,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 156,
+      "max_alpha_levels": 103,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 13,
+        "cell_height": 18,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_up_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_up_right_fore.png",
+      "width": 12,
+      "height": 18,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 129,
+      "max_alpha_levels": 136,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 18,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.arm_up_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/arm_up_right_upper.png",
+      "width": 13,
+      "height": 18,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 151,
+      "max_alpha_levels": 124,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 13,
+        "cell_height": 18,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.nub_left_off",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/nub_left_off.png",
+      "width": 8,
+      "height": 8,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2,
+      "max_alpha_levels": 15,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 8,
+        "cell_height": 8,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.nub_right_off",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/nub_right_off.png",
+      "width": 8,
+      "height": 8,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2,
+      "max_alpha_levels": 15,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 8,
+        "cell_height": 8,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.torso_down",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/torso_down.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3765,
+      "max_alpha_levels": 205,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.torso_left",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/torso_left.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3588,
+      "max_alpha_levels": 220,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.torso_right",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/torso_right.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3601,
+      "max_alpha_levels": 224,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.eclipse.rig.torso_up",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/eclipse/rig/torso_up.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3342,
+      "max_alpha_levels": 212,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_down_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_down_right_fore.png",
+      "width": 16,
+      "height": 29,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 238,
+      "max_alpha_levels": 154,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 29,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_down_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_down_right_upper.png",
+      "width": 20,
+      "height": 31,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 307,
+      "max_alpha_levels": 157,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 20,
+        "cell_height": 31,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_left_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_left_near_fore.png",
+      "width": 21,
+      "height": 25,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 252,
+      "max_alpha_levels": 146,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 21,
+        "cell_height": 25,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_left_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_left_near_upper.png",
+      "width": 24,
+      "height": 28,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 410,
+      "max_alpha_levels": 122,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 24,
+        "cell_height": 28,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_right_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_right_near_fore.png",
+      "width": 21,
+      "height": 25,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 246,
+      "max_alpha_levels": 141,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 21,
+        "cell_height": 25,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_right_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_right_near_upper.png",
+      "width": 24,
+      "height": 28,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 384,
+      "max_alpha_levels": 127,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 24,
+        "cell_height": 28,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_up_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_up_right_fore.png",
+      "width": 16,
+      "height": 29,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 160,
+      "max_alpha_levels": 133,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 29,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.arm_up_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/arm_up_right_upper.png",
+      "width": 20,
+      "height": 31,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 379,
+      "max_alpha_levels": 156,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 20,
+        "cell_height": 31,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.torso_down",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/torso_down.png",
+      "width": 144,
+      "height": 172,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3961,
+      "max_alpha_levels": 175,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 172,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.torso_left",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/torso_left.png",
+      "width": 144,
+      "height": 172,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3576,
+      "max_alpha_levels": 181,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 172,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.torso_right",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/torso_right.png",
+      "width": 144,
+      "height": 172,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3368,
+      "max_alpha_levels": 166,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 172,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.keeper.rig.torso_up",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/keeper/rig/torso_up.png",
+      "width": 144,
+      "height": 172,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3822,
+      "max_alpha_levels": 194,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 172,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_down_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_down_right_fore.png",
+      "width": 12,
+      "height": 22,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 120,
+      "max_alpha_levels": 118,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 22,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_down_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_down_right_upper.png",
+      "width": 14,
+      "height": 23,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 144,
+      "max_alpha_levels": 125,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 23,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_left_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_left_near_fore.png",
+      "width": 16,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 147,
+      "max_alpha_levels": 131,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 20,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_left_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_left_near_upper.png",
+      "width": 18,
+      "height": 21,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 187,
+      "max_alpha_levels": 125,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 18,
+        "cell_height": 21,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_right_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_right_near_fore.png",
+      "width": 16,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 151,
+      "max_alpha_levels": 131,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 20,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_right_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_right_near_upper.png",
+      "width": 18,
+      "height": 21,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 202,
+      "max_alpha_levels": 121,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 18,
+        "cell_height": 21,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_up_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_up_right_fore.png",
+      "width": 11,
+      "height": 19,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 151,
+      "max_alpha_levels": 91,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 11,
+        "cell_height": 19,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.arm_up_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/arm_up_right_upper.png",
+      "width": 13,
+      "height": 21,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 199,
+      "max_alpha_levels": 123,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 13,
+        "cell_height": 21,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.torso_down",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/torso_down.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3118,
+      "max_alpha_levels": 208,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.torso_left",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/torso_left.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2738,
+      "max_alpha_levels": 189,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.torso_right",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/torso_right.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2830,
+      "max_alpha_levels": 189,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.knight.rig.torso_up",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/knight/rig/torso_up.png",
+      "width": 144,
+      "height": 166,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2929,
+      "max_alpha_levels": 205,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 166,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_down_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_down_right_fore.png",
+      "width": 14,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 129,
+      "max_alpha_levels": 140,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_down_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_down_right_upper.png",
+      "width": 15,
+      "height": 25,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 110,
+      "max_alpha_levels": 127,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 25,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_left_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_left_near_fore.png",
+      "width": 19,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 233,
+      "max_alpha_levels": 156,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 19,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_left_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_left_near_upper.png",
+      "width": 19,
+      "height": 26,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 291,
+      "max_alpha_levels": 122,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 19,
+        "cell_height": 26,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_right_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_right_near_fore.png",
+      "width": 19,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 155,
+      "max_alpha_levels": 136,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 19,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_right_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_right_near_upper.png",
+      "width": 19,
+      "height": 26,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 201,
+      "max_alpha_levels": 144,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 19,
+        "cell_height": 26,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_up_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_up_right_fore.png",
+      "width": 14,
+      "height": 24,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 153,
+      "max_alpha_levels": 155,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 24,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.arm_up_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/arm_up_right_upper.png",
+      "width": 15,
+      "height": 25,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 246,
+      "max_alpha_levels": 161,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 15,
+        "cell_height": 25,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.torso_down",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/torso_down.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3036,
+      "max_alpha_levels": 202,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.torso_left",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/torso_left.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3057,
+      "max_alpha_levels": 223,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.torso_right",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/torso_right.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3148,
+      "max_alpha_levels": 226,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.sage.rig.torso_up",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/sage/rig/torso_up.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 2903,
+      "max_alpha_levels": 212,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_down_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_down_right_fore.png",
+      "width": 12,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 158,
+      "max_alpha_levels": 103,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 12,
+        "cell_height": 20,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_down_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_down_right_upper.png",
+      "width": 14,
+      "height": 21,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 110,
+      "max_alpha_levels": 124,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 14,
+        "cell_height": 21,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_left_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_left_near_fore.png",
+      "width": 16,
+      "height": 19,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 191,
+      "max_alpha_levels": 79,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 19,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_left_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_left_near_upper.png",
+      "width": 17,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 218,
+      "max_alpha_levels": 84,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 17,
+        "cell_height": 20,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_right_near_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_right_near_fore.png",
+      "width": 16,
+      "height": 19,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 192,
+      "max_alpha_levels": 71,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 19,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_right_near_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_right_near_upper.png",
+      "width": 17,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 214,
+      "max_alpha_levels": 66,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 17,
+        "cell_height": 20,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_up_right_fore",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_up_right_fore.png",
+      "width": 13,
+      "height": 20,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 186,
+      "max_alpha_levels": 94,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 13,
+        "cell_height": 20,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.arm_up_right_upper",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/arm_up_right_upper.png",
+      "width": 16,
+      "height": 22,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 192,
+      "max_alpha_levels": 104,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 16,
+        "cell_height": 22,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.torso_down",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/torso_down.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3884,
+      "max_alpha_levels": 175,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.torso_left",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/torso_left.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3384,
+      "max_alpha_levels": 198,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.torso_right",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/torso_right.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3415,
+      "max_alpha_levels": 197,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
+    },
+    {
+      "id": "hero.warden.rig.torso_up",
+      "category": "hero",
+      "status": "final",
+      "path": "assets/custom/actors/heroes/warden/rig/torso_up.png",
+      "width": 144,
+      "height": 168,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 3042,
+      "max_alpha_levels": 170,
+      "frame_grid": {
+        "columns": 1,
+        "rows": 1,
+        "cell_width": 144,
+        "cell_height": 168,
+        "allow_blank_frames": false
+      }
     }
   ]
 }
