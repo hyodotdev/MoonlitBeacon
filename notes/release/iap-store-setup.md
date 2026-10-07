@@ -379,6 +379,13 @@ the publishable key.
       IAP.
 - [ ] Connected required IAP review information and restore guidance to the
       app version.
+- [ ] Left the App Store version release option on the tool default:
+      automatic release immediately after approval (App Store Connect
+      `releaseType` `AFTER_APPROVAL`), verified by GET readback before
+      review submission. `scripts/lib/app-store-release.mjs` plans this
+      value on version create/update with no scheduled date; manual or
+      scheduled release is not used for new submissions. Historical
+      manual-release receipts stay historical.
 - [ ] Made a Sandbox Tester as a real test Apple ID. Do not arbitrarily use
       a developer's personal Apple ID or a customer account as a test
       account.
