@@ -753,11 +753,30 @@ export function buildAppStoreReviewNotes(products) {
     '',
     'Entry: Launch the app and tap the title screen (Tap to start) to open '
       + 'the entry card, then choose Continue as guest: the game issues a '
-      + 'permanent player ID shown on the identity card. From that card, '
-      + 'tap New expedition to play, or Resume the gate when a saved '
-      + 'checkpoint is listed. No developer demo account or password is '
-      + 'needed: reviewers reach the game, Store, Restore purchases, and '
-      + 'resume fully as guest.',
+      + 'permanent player ID shown on the identity card. A first entry does '
+      + 'not go straight to the Arena: it visits the gate lodge, where Lumi '
+      + 'the Lantern Keeper greets the hero. Claim one unique adventurer '
+      + 'name there (it needs a connection and cannot be renamed later), '
+      + 'walk and dash once on the open floor, then step through the moon '
+      + 'gate to depart. No developer demo account or password is needed: '
+      + 'reviewers reach the game, Store, Restore purchases, and resume '
+      + 'fully as guest.',
+    '',
+    'Returning accounts: a settled name is cached on the device and still '
+      + 'identifies the account when offline. A verified name plus a '
+      + 'completed guide lesson skips the lodge; interrupted practice '
+      + 'returns to the lodge. From the identity card, tap New expedition '
+      + 'to play, or Resume the gate when a living saved checkpoint is '
+      + 'listed. A journey that ended in defeat is sealed and never '
+      + 'resumes; the loss screen instead offers a one-coin revive where '
+      + 'the hero fell, a fresh start, or the title.',
+    '',
+    'Attendance: a signed-in account may claim two continue coins per '
+      + 'rolling twelve hours, at most once per twelve hours since the '
+      + 'last claim; claiming needs a connection and the game plays on '
+      + 'without the grant when offline. Settings offers an optional '
+      + 'local reminder for the next grant: it never grants coins by '
+      + 'itself, and switching it off cancels the scheduled notices.',
     '',
     'Sign in with Google and Sign in with Apple are optional ways to link '
       + 'or recover the same account; neither is required for core play or '

@@ -15,8 +15,15 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { deflateSync } from 'node:zlib';
 import test from 'node:test';
+import {
+  readAndroidReleaseMetadata,
+} from './android-build.mjs';
+import {
+  readIosReleaseMetadata,
+} from './ios-distribution.mjs';
 import {
   ADOPTABLE_APP_VERSION_STATES,
   APPLE_LOCALES,
@@ -565,6 +572,24 @@ test('5-locale · 60-shot · 50-IAP fixture manifest is deterministic', () =>
     assert.match(first.appStoreReview.notes, /Tap to start/u);
     assert.match(first.appStoreReview.notes, /Continue as guest/u);
     assert.match(first.appStoreReview.notes, /permanent player ID/u);
+    assert.match(first.appStoreReview.notes, /does not go straight to the Arena/u);
+    assert.match(first.appStoreReview.notes, /gate lodge/u);
+    assert.match(first.appStoreReview.notes, /Lumi/u);
+    assert.match(first.appStoreReview.notes, /unique adventurer name/u);
+    assert.match(first.appStoreReview.notes, /walk and dash/u);
+    assert.match(first.appStoreReview.notes, /moon gate to depart/u);
+    assert.match(first.appStoreReview.notes, /cached on the device/u);
+    assert.match(first.appStoreReview.notes, /completed guide lesson/u);
+    assert.match(first.appStoreReview.notes, /returns to the lodge/u);
+    assert.match(first.appStoreReview.notes, /living saved checkpoint/u);
+    assert.match(first.appStoreReview.notes, /sealed and never resumes/u);
+    assert.match(first.appStoreReview.notes, /rolling twelve hours/u);
+    assert.match(first.appStoreReview.notes, /optional local reminder/u);
+    assert.match(first.appStoreReview.notes, /never grants coins by itself/u);
+    assert.doesNotMatch(
+      first.appStoreReview.notes,
+      /From that card,\s+tap New expedition to play/u,
+    );
     assert.match(first.appStoreReview.notes, /New expedition/u);
     assert.match(first.appStoreReview.notes, /Resume the gate/u);
     assert.match(first.appStoreReview.notes, /Sign in with Google/u);
@@ -652,6 +677,60 @@ test('5-locale · 60-shot · 50-IAP fixture manifest is deterministic', () =>
       /review image mapping/u,
     );
   }));
+
+test('App Review notes lead a fresh guest through the name room before the Arena', () =>
+  withTempRoot((root) => {
+    const payload = fixturePayload(root);
+    const notes = buildAppStoreReviewNotes(payload.inAppPurchases.products);
+    assert.equal(notes, payload.appStoreReview.notes);
+    for (const fragment of [
+      'does not go straight to the Arena',
+      'gate lodge',
+      'Lumi',
+      'unique adventurer name',
+      'needs a connection and cannot be renamed',
+      'walk and dash',
+      'moon gate to depart',
+      'cached on the device',
+      'identifies the account when offline',
+      'verified name plus a completed guide lesson',
+      'returns to the lodge',
+      'living saved checkpoint',
+      'sealed and never resumes',
+      'one-coin revive',
+      'rolling twelve hours',
+      'at most once per twelve hours',
+      'optional local reminder',
+      'never grants coins by itself',
+      'No developer demo account or password',
+    ]) {
+      assert.ok(notes.includes(fragment), `review notes mention: ${fragment}`);
+    }
+    assert.ok(!notes.includes('From that card, tap New expedition to play'));
+    assert.ok(IAP_PRODUCT_IDS.every((productId) => notes.includes(productId)));
+    assert.ok(notes.includes('Restore purchases'));
+    assert.ok([...notes].length <= 4000);
+    assert.ok(Buffer.byteLength(notes, 'utf8') <= 4000);
+  }));
+
+test('release identities agree across project, presets, and store page', () => {
+  const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
+  const project = readFileSync(join(repoRoot, 'apps/game/project.godot'), 'utf8');
+  const presets = readFileSync(join(repoRoot, 'apps/game/export_presets.cfg'), 'utf8');
+  const storePage = readFileSync(join(repoRoot, 'notes/release/store-page.md'), 'utf8');
+  const ios = readIosReleaseMetadata(project, presets);
+  const android = readAndroidReleaseMetadata(project, presets);
+  assert.equal(android.direct.versionName, ios.projectVersion);
+  assert.equal(android.play.versionName, ios.projectVersion);
+  assert.equal(android.direct.versionCode, android.play.versionCode);
+  assert.ok(android.direct.versionCode >= 1);
+  assert.match(ios.buildVersion, /^[0-9]+$/u);
+  const versionRow = storePage.match(
+    /^\|\s*Version\s*\|\s*([0-9]+(?:\.[0-9]+){1,2})\s*\|$/mu,
+  )?.[1];
+  assert.equal(versionRow, ios.projectVersion);
+  assert.ok(storePage.includes(`MoonlitBeacon-${ios.projectVersion}.apk`));
+});
 
 test('manifest save/check requires matching current payload and hashes', () =>
   withTempRoot((root) => {
