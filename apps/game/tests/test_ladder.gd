@@ -405,6 +405,73 @@ func _run() -> void:
 	_expect_equal(Records.best_score, 50, "retried best-score file restored")
 	_expect_equal(Records.best_rank, "C", "retried best-rank file restored")
 
+	# A verified named player records under the account handle with no
+	# re-ask: the entry shows read-only, submit publishes the stored
+	# handle locally, and no legacy global upload runs.
+	var named_panel: Control = PANEL_SCENE.instantiate() as Control
+	add_child(named_panel)
+	await get_tree().process_frame
+	Ladder.entries.clear()
+	Ladder.set("_submitted_results", {})
+	GlobalLadder.set("_submitted_results", {})
+	GlobalLadder.set("_doing", "")
+	var unnamed_run: String = "44444444444444444444444444444444"
+	named_panel.call("ask", 39, "C", 1, KEEPER, unnamed_run)
+	(named_panel.get("_name") as LineEdit).text = "typed"
+	_expect_true(bool(named_panel.call("_on_submit")),
+		"classic submit still succeeds")
+	_expect_equal(str((named_panel.get("_last_global_upload")
+		as Dictionary).get("name", "")), "typed",
+		"classic submit records the legacy upload")
+	var named_run_id: String = "22222222222222222222222222222222"
+	named_panel.call("ask_named", "Luna", 40, "B", 2, KEEPER,
+		named_run_id)
+	_expect_equal(str(named_panel.get("_verified_handle")), "Luna",
+		"named ask stores the verified handle")
+	_expect_equal((named_panel.get("_name") as LineEdit).text, "Luna",
+		"named ask shows the handle")
+	_expect_false((named_panel.get("_name") as LineEdit).editable,
+		"named ask locks the entry read-only")
+	(named_panel.get("_name") as LineEdit).text = "forged"
+	_expect_true(bool(named_panel.call("_on_submit")),
+		"named submit succeeds")
+	_expect_equal(str(Ladder.entries[0].get("name", "")), "Luna",
+		"named submit publishes the stored handle, never the widget")
+	_expect_true((named_panel.get("_last_global_upload")
+		as Dictionary).is_empty(),
+		"named submit starts no legacy upload")
+	named_panel.call("ask", 41, "B", 2, KEEPER, named_run_id)
+	_expect_true(str(named_panel.get("_verified_handle")).is_empty(),
+		"classic ask clears the verified handle")
+	_expect_true((named_panel.get("_name") as LineEdit).editable,
+		"classic ask reopens the entry")
+	named_panel.call("view")
+	_expect_true(str(named_panel.get("_verified_handle")).is_empty(),
+		"view clears the verified handle")
+	# A failed local save keeps the verified pending result for retry.
+	if FileAccess.file_exists(Ladder.TEMP_SAVE_PATH):
+		DirAccess.remove_absolute(ladder_temp_absolute)
+	_expect_equal(DirAccess.make_dir_absolute(ladder_temp_absolute), OK,
+		"prepares a directory for named save failure")
+	var named_fail_run: String = "33333333333333333333333333333333"
+	named_panel.call("ask_named", "Luna", 45, "B", 2, KEEPER,
+		named_fail_run)
+	named_panel.call("close")
+	_expect_true(named_panel.visible,
+		"named panel stays open when the local save fails")
+	_expect_equal(str(named_panel.get("_verified_handle")), "Luna",
+		"named retry keeps the verified handle")
+	_expect_equal(DirAccess.remove_absolute(ladder_temp_absolute), OK,
+		"named save path recovered")
+	_expect_true(bool(named_panel.call("_on_submit")),
+		"named retry succeeds after path recovery")
+	_expect_equal(str(Ladder.entries[0].get("name", "")), "Luna",
+		"named retry records under the handle")
+	_expect_true((named_panel.get("_pending") as Dictionary).is_empty(),
+		"named pending clears after the save lands")
+	named_panel.queue_free()
+	await get_tree().process_frame
+
 	ProjectSettings.set_setting(VERSION_KEY, original_version)
 	Ladder.entries.clear()
 	var absolute: String = ProjectSettings.globalize_path(Ladder.SAVE_PATH)

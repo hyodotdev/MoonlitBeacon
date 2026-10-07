@@ -125,6 +125,7 @@ class MoonlitIdentityExportPlugin extends EditorExportPlugin:
 		_add_ios_plist_content(
 			IosExportManifest.plist_url_types_content(IDENTITY_CONFIG_PATH))
 		_export_ios_frameworks(is_debug)
+		_export_app_privacy_manifest()
 
 	func _export_ios_frameworks(is_debug: bool) -> void:
 		# Static Firebase frameworks, staged per variant by --build-ios
@@ -173,6 +174,24 @@ class MoonlitIdentityExportPlugin extends EditorExportPlugin:
 				push_warning(
 					"[MoonlitIdentity] Staged bundle lacks its manifest, "
 					+ "skipping: %s." % bundle)
+
+	func _export_app_privacy_manifest() -> void:
+		# The app's own UserDefaults declaration (reminder scheduling
+		# metadata, CA92.1) is only validated here, never registered:
+		# Godot 4.7.1 emits its own app-root PrivacyInfo.xcprivacy, and
+		# a loose same-basename registration fails Xcode with
+		# "Multiple commands produce". The owned export pipeline
+		# (scripts/ios.mjs) merges this file into Godot's generated
+		# manifest after the export. The SDK bundles above keep their
+		# own untouched manifests.
+		var path: String = \
+			IosExportManifest.app_privacy_manifest_path()
+		if not IosExportManifest.app_privacy_manifest_ready(path):
+			push_warning(
+				"[MoonlitIdentity] App privacy manifest missing or "
+				+ "invalid: %s. " % path + "The export pipeline cannot "
+				+ "merge the required-reason declaration for reminder "
+				+ "storage.")
 
 	func _add_ios_project_static_lib(path: String) -> void:
 		if has_method("add_apple_embedded_platform_project_static_lib"):

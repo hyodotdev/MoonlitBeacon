@@ -35,6 +35,7 @@ const HERO_KNIGHT: String = "res://resources/heroes/knight.tres"
 
 var _failed: int = 0
 var _checked: int = 0
+var _stable_texts: Array[String] = []
 
 
 func _ready() -> void:
@@ -100,6 +101,17 @@ func _run() -> void:
 	await _test_restore_cancel_discards_late_reply()
 	await _test_restore_second_claim_preempts_first()
 	await _test_sender_pre_bound_and_close()
+	await _test_tombstone_round_trip_uploads_and_restores()
+	await _test_tombstone_offline_retry_commits()
+	await _test_restore_keeps_local_defeat_over_stale_remote()
+	await _test_restore_adopts_remote_defeat_over_stale_local()
+	await _test_remote_choice_refused_over_local_defeat()
+	await _test_local_choice_refused_over_remote_defeat()
+	await _test_different_journey_defeat_conflict_still_explicit()
+	await _test_stale_remote_death_retires_against_acknowledged_revive()
+	await _test_unacknowledged_revive_conflicts_guarded()
+	await _test_stale_dialog_local_refused_over_fresh_revive()
+	await _test_paid_revive_restores_over_observed_defeat()
 	_reset_all([GUEST_A, GUEST_B, CANON_C])
 	if _failed > 0:
 		printerr("cloud coordinator tests failed — ", _failed, "/", _checked,
@@ -355,6 +367,22 @@ func _own_get_call_count(sender: RefCounted) -> int:
 				entry.get("url", "")).contains("mb_hall_v1/"):
 			count += 1
 	return count
+
+
+func _on_crash_stable(info: Dictionary) -> void:
+	_stable_texts.append(str(info.get("text", "")))
+
+
+func _stable_ids() -> Array:
+	var ids: Array = []
+	for text in _stable_texts:
+		var parser: JSON = JSON.new()
+		if parser.parse(text) != OK:
+			ids.append(-1)
+			continue
+		var data: Dictionary = parser.data as Dictionary
+		ids.append(int(data.get("checkpoint_id", -1)))
+	return ids
 
 
 func _commit_call_count(sender: RefCounted) -> int:
@@ -1247,6 +1275,557 @@ func _ready_account(sender: RefCounted, coordinator: Node, uid: String,
 	sender.call("queue_ok", "{\"writeResults\":[{},{}]}")
 	coordinator.call("configure_host", _config(sender, uid, guest))
 	await _settle_account(coordinator)
+
+
+## A sealed defeat uploads like any checkpoint and restores terminal on a
+## fresh device: the marker rides the normal revision flow and grants
+## nothing on arrival.
+func _test_tombstone_round_trip_uploads_and_restores() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("tomb-j-1", 1, 0)), OK,
+		"tomb: the alive seal writes")
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var first: Dictionary = await coordinator.call("flush")
+	_expect_equal(first.get("status", ""), "ok",
+		"tomb: the alive seal uploads")
+	var alive_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	var sealed: Dictionary = _valid_checkpoint("tomb-j-1", 1, 12,
+		{"ended": true, "settled_score": 3100})
+	_expect_equal(Journey.write_checkpoint(sealed), OK,
+		"tomb: the defeat seals")
+	sender.call("queue_ok", _remote_body(UID_A, 1, alive_bytes,
+		"2026-10-01T01:00:00Z"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var second: Dictionary = await coordinator.call("flush")
+	_expect_equal(second.get("status", ""), "ok",
+		"tomb: the defeat uploads over its own baseline")
+	_expect_equal(second.get("revision", 0), 2,
+		"tomb: the defeat acks one past the alive seal")
+	var commit: Dictionary = JSON.parse_string(str(
+		sender.call("last_call").get("body", "")))
+	var commit_writes: Array = commit.get("writes", [])
+	var commit_update: Dictionary = (
+		commit_writes[0] as Dictionary).get("update", {})
+	var commit_fields: Dictionary = commit_update.get("fields", {})
+	var commit_payload: String = str((commit_fields.get("payload", {})
+		as Dictionary).get("stringValue", ""))
+	_expect_true(bool(JSON.parse_string(commit_payload).get("ended", false)),
+		"tomb: the commit carries the marker")
+	var tomb_bytes: String = _read_text(Journey.account_main_path(GUEST_A))
+	_wipe_slot(GUEST_A)
+	sender.call("queue_ok", _remote_body(UID_A, 2, tomb_bytes,
+		"2026-10-01T02:00:00Z"))
+	var bank_before: int = Vault.shards
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("code", ""), "restored",
+		"tomb: a fresh device restores the marker")
+	_expect_true(bool(Journey.read_checkpoint().get("ended", false)),
+		"tomb: the restored file is terminal")
+	_expect_false(Journey.has_valid_checkpoint(),
+		"tomb: the restored defeat offers no Continue")
+	_expect_equal(Vault.shards, bank_before,
+		"tomb: the restored defeat grants nothing")
+	_close_coordinator(coordinator)
+
+
+## An offline defeat upload stays queued and commits on retry: the marker
+## is never dropped and never sent twice.
+func _test_tombstone_offline_retry_commits() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("retry-j-1", 1, 0)), OK,
+		"offline tomb: the alive seal writes")
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var first: Dictionary = await coordinator.call("flush")
+	_expect_equal(first.get("status", ""), "ok",
+		"offline tomb: the alive seal uploads")
+	var alive_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	_expect_equal(Journey.write_checkpoint(_valid_checkpoint("retry-j-1", 1,
+		9, {"ended": true, "settled_score": 2800})), OK,
+		"offline tomb: the defeat seals")
+	sender.call("queue_reply", {"transport": "offline", "code": 0,
+		"body": ""})
+	var dropped: Dictionary = await coordinator.call("flush")
+	_expect_equal(dropped.get("status", ""), "offline",
+		"offline tomb: the offline flush reports offline")
+	_expect_true(bool((coordinator.call("_test_state") as Dictionary).get(
+		"has_pending", false)),
+		"offline tomb: the marker stays queued")
+	sender.call("queue_ok", _remote_body(UID_A, 1, alive_bytes,
+		"2026-10-01T01:00:00Z"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var retried: Dictionary = await coordinator.call("flush")
+	_expect_equal(retried.get("status", ""), "ok",
+		"offline tomb: the retry commits")
+	_expect_equal(retried.get("revision", 0), 2,
+		"offline tomb: the retry acks one past the alive seal")
+	_expect_equal(_commit_call_count(sender), 3,
+		"offline tomb: reservation plus two uploads, no duplicate commit")
+	_close_coordinator(coordinator)
+
+
+## A stale alive download never resurrects a sealed local run: the restore
+## keeps the defeat, touches no file, and opens no dialog.
+func _test_restore_keeps_local_defeat_over_stale_remote() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("keep-j-1", 1, 4)), OK,
+		"kept defeat: the first seal writes")
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("keep-j-1", 2, 9)), OK,
+		"kept defeat: the second seal writes")
+	_expect_equal(Journey.write_checkpoint(_valid_checkpoint("keep-j-1", 2,
+		11, {"ended": true, "settled_score": 3000})), OK,
+		"kept defeat: the defeat seals")
+	var before: String = _read_text(Journey.account_main_path(GUEST_A))
+	var stale: String = JSON.stringify(_valid_checkpoint("keep-j-1", 1, 4))
+	sender.call("queue_ok", _remote_body(UID_A, 7, stale,
+		"2026-10-01T03:00:00Z"))
+	var bank_before: int = Vault.shards
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("status", ""), "ok",
+		"kept defeat: the stale download resolves")
+	_expect_equal(restored.get("code", ""), "defeat-kept",
+		"kept defeat: the local seal wins outright")
+	_expect_equal(_read_text(Journey.account_main_path(GUEST_A)), before,
+		"kept defeat: the local file is untouched")
+	_expect_true((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "kept defeat: no dialog opens")
+	_expect_equal(Vault.shards, bank_before,
+		"kept defeat: the stale download grants nothing")
+	_close_coordinator(coordinator)
+
+
+## A defeat sealed on another device ends this device's stale same-journey
+## save: the restore installs the marker, preserves the superseded bytes,
+## and floors the receipt with zero granted.
+func _test_restore_adopts_remote_defeat_over_stale_local() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("adopt-j-1", 2, 9)), OK,
+		"adopted defeat: the stale local seal writes")
+	var local_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	var sealed: String = JSON.stringify(_valid_checkpoint("adopt-j-1", 2,
+		11, {"ended": true, "settled_score": 3000}))
+	sender.call("queue_ok", _remote_body(UID_A, 5, sealed,
+		"2026-10-01T03:00:00Z"))
+	var bank_before: int = Vault.shards
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("status", ""), "ok",
+		"adopted defeat: the remote seal resolves")
+	_expect_equal(restored.get("code", ""), "defeat-adopted",
+		"adopted defeat: the death wins outright")
+	_expect_false(bool(restored.get("remapped", true)),
+		"adopted defeat: a string journey installs byte-identical")
+	_expect_true(bool(Journey.read_checkpoint().get("ended", false)),
+		"adopted defeat: the local file is terminal now")
+	_expect_false(Journey.has_valid_checkpoint(),
+		"adopted defeat: the adopted defeat offers no Continue")
+	_expect_equal((coordinator.call("recovery_payload", "local") as Dictionary
+		).get("text", ""), local_bytes,
+		"adopted defeat: the superseded bytes are preserved")
+	_expect_equal((coordinator.call("save_snapshot") as Dictionary).get(
+		"floor_code", ""), "floored",
+		"adopted defeat: the install floors its receipt")
+	_expect_equal(Vault.shards, bank_before,
+		"adopted defeat: the adoption grants nothing")
+	_close_coordinator(coordinator)
+
+
+## A remote choice made after the local run sealed its defeat is refused:
+## installing the stale alive download would resume the sealed run. The
+## sealed marker itself can still land explicitly afterwards.
+func _test_remote_choice_refused_over_local_defeat() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("guard-j-1", 2, 9)), OK,
+		"refused remote: the local seal writes")
+	var remote_text: String = JSON.stringify(_valid_checkpoint("guard-j-1",
+		2, 14, {"cycle": 5, "kill_score": 900}))
+	sender.call("queue_ok", _remote_body(UID_A, 9, remote_text,
+		"2026-10-01T01:00:00Z"))
+	var flushed: Dictionary = await coordinator.call("flush")
+	_expect_equal(flushed.get("status", ""), "conflict",
+		"refused remote: the diverged seals conflict")
+	_expect_equal(Journey.write_checkpoint(_valid_checkpoint("guard-j-1", 2,
+		11, {"ended": true, "settled_score": 3000})), OK,
+		"refused remote: the local run seals its defeat after the dialog")
+	var refused: Dictionary = await coordinator.call(
+		"resolve_conflict", "remote")
+	_expect_equal(refused.get("status", ""), "failure",
+		"refused remote: the stale choice is refused")
+	_expect_equal(refused.get("code", ""), "defeat-kept",
+		"refused remote: the refusal names the sealed defeat")
+	_expect_equal(_commit_call_count(sender), 1,
+		"refused remote: only the reservation commit was ever sent")
+	_expect_true(bool(Journey.read_checkpoint().get("ended", false)),
+		"refused remote: the local file stays sealed")
+	_expect_false((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "refused remote: the conflict stays open")
+	sender.call("queue_ok", _remote_body(UID_A, 9, remote_text,
+		"2026-10-01T01:00:00Z"))
+	sender.call("queue_ok", _remote_body(UID_A, 9, remote_text,
+		"2026-10-01T01:00:00Z"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var kept: Dictionary = await coordinator.call(
+		"resolve_conflict", "local")
+	_expect_equal(kept.get("code", ""), "local-kept",
+		"refused remote: the sealed marker still lands explicitly")
+	_expect_true(bool(Journey.read_checkpoint().get("ended", false)),
+		"refused remote: the landed file stays sealed")
+	_close_coordinator(coordinator)
+
+
+## A local choice made after the server sealed the journey's defeat is
+## refused: rebasing stale alive bytes over it would resurrect the run on
+## the server. A restore afterwards adopts the death instead.
+func _test_local_choice_refused_over_remote_defeat() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("guard2-j-1", 2, 9)), OK,
+		"refused local: the local seal writes")
+	var remote_text: String = JSON.stringify(_valid_checkpoint("guard2-j-1",
+		2, 14, {"cycle": 5, "kill_score": 900}))
+	sender.call("queue_ok", _remote_body(UID_A, 9, remote_text,
+		"2026-10-01T01:00:00Z"))
+	var flushed: Dictionary = await coordinator.call("flush")
+	_expect_equal(flushed.get("status", ""), "conflict",
+		"refused local: the diverged seals conflict")
+	var sealed_text: String = JSON.stringify(_valid_checkpoint("guard2-j-1",
+		2, 16, {"ended": true, "settled_score": 3200}))
+	sender.call("queue_ok", _remote_body(UID_A, 10, sealed_text,
+		"2026-10-01T02:00:00Z"))
+	var refused: Dictionary = await coordinator.call(
+		"resolve_conflict", "local")
+	_expect_equal(refused.get("status", ""), "failure",
+		"refused local: the stale choice is refused")
+	_expect_equal(refused.get("code", ""), "defeat-kept",
+		"refused local: the refusal names the sealed defeat")
+	_expect_equal(_commit_call_count(sender), 1,
+		"refused local: only the reservation commit was ever sent")
+	_expect_false((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "refused local: the conflict stays open")
+	sender.call("queue_ok", _remote_body(UID_A, 10, sealed_text,
+		"2026-10-01T02:00:00Z"))
+	var adopted: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(adopted.get("code", ""), "defeat-adopted",
+		"refused local: the restore adopts the death instead")
+	_expect_true(bool(Journey.read_checkpoint().get("ended", false)),
+		"refused local: the local file is terminal now")
+	_close_coordinator(coordinator)
+
+
+## Different journeys still choose explicitly: a fresh local run against a
+## sealed older journey opens a real dialog, names the sealed side, and
+## either pick lands honestly.
+func _test_different_journey_defeat_conflict_still_explicit() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("fresh-j-9", 1, 2)), OK,
+		"explicit defeat: the fresh local run seals")
+	var local_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	var sealed_text: String = JSON.stringify(_valid_checkpoint("old-j-1",
+		4, 20, {"ended": true, "settled_score": 4100}))
+	sender.call("queue_ok", _remote_body(UID_A, 3, sealed_text,
+		"2026-10-01T03:00:00Z"))
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("status", ""), "conflict",
+		"explicit defeat: different journeys conflict")
+	_expect_equal(restored.get("code", ""), "restore-differs",
+		"explicit defeat: the conflict names its cause")
+	_expect_equal((restored.get("remote_summary", {}) as Dictionary).get(
+		"ended", false), true,
+		"explicit defeat: the sealed side is marked")
+	_expect_equal((restored.get("local_summary", {}) as Dictionary).get(
+		"ended", false), false,
+		"explicit defeat: the living side is unmarked")
+	var bank_before: int = Vault.shards
+	var kept: Dictionary = await coordinator.call(
+		"resolve_conflict", "remote")
+	_expect_equal(kept.get("code", ""), "remote-kept",
+		"explicit defeat: the explicit remote pick lands")
+	_expect_true(bool(Journey.read_checkpoint().get("ended", false)),
+		"explicit defeat: the installed pick is terminal")
+	_expect_false(Journey.has_valid_checkpoint(),
+		"explicit defeat: the installed pick offers no Continue")
+	_expect_equal((coordinator.call("recovery_payload", "local") as Dictionary
+		).get("text", ""), local_bytes,
+		"explicit defeat: the rejected run is preserved")
+	_expect_equal(Vault.shards, bank_before,
+		"explicit defeat: the install grants nothing")
+	_close_coordinator(coordinator)
+
+
+## A stale downloaded death retires silently against an acknowledged newer
+## seal: our revive already landed on the server, so the older ended bytes
+## resolve without a dialog and touch no file.
+func _test_stale_remote_death_retires_against_acknowledged_revive() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("stale-j-1", 2, 9)), OK,
+		"retired death: the alive seal writes")
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var first: Dictionary = await coordinator.call("flush")
+	_expect_equal(first.get("status", ""), "ok",
+		"retired death: the alive seal uploads")
+	var alive_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("stale-j-1", 3, 11)), OK,
+		"retired death: the revive seals")
+	sender.call("queue_ok", _remote_body(UID_A, 1, alive_bytes,
+		"2026-10-01T01:00:00Z"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var second: Dictionary = await coordinator.call("flush")
+	_expect_equal(second.get("status", ""), "ok",
+		"retired death: the revive uploads")
+	var revived_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	var stale_text: String = JSON.stringify(_valid_checkpoint("stale-j-1",
+		2, 11, {"ended": true, "settled_score": 3000}))
+	sender.call("queue_ok", _remote_body(UID_A, 5, stale_text,
+		"2026-10-01T03:00:00Z"))
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("status", ""), "ok",
+		"retired death: the stale download resolves")
+	_expect_equal(restored.get("code", ""), "stale-ended-retired",
+		"retired death: the acknowledged revive wins outright")
+	_expect_equal(_read_text(Journey.account_main_path(GUEST_A)),
+		revived_bytes, "retired death: the local file is untouched")
+	_expect_true((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "retired death: no dialog opens")
+	_expect_true(Journey.has_valid_checkpoint(),
+		"retired death: the revive stays resumable")
+	_close_coordinator(coordinator)
+
+
+## An unflushed revive still opens the explicit dialog against a stale
+## downloaded death — but the guarded resolve refuses to install it, while
+## the live side rebases honestly.
+func _test_unacknowledged_revive_conflicts_guarded() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("guard3-j-1", 3, 11)), OK,
+		"guarded revive: the unflushed revive seals")
+	var stale_text: String = JSON.stringify(_valid_checkpoint("guard3-j-1",
+		2, 11, {"ended": true, "settled_score": 3000}))
+	sender.call("queue_ok", _remote_body(UID_A, 4, stale_text,
+		"2026-10-01T03:00:00Z"))
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("status", ""), "conflict",
+		"guarded revive: the unacknowledged seal opens a dialog")
+	var refused: Dictionary = await coordinator.call(
+		"resolve_conflict", "remote")
+	_expect_equal(refused.get("status", ""), "failure",
+		"guarded revive: the stale death is refused")
+	_expect_equal(refused.get("code", ""), "stale-ended-retired",
+		"guarded revive: the refusal names the stale death")
+	_expect_false((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "guarded revive: the conflict stays open")
+	sender.call("queue_ok", _remote_body(UID_A, 4, stale_text,
+		"2026-10-01T03:00:00Z"))
+	sender.call("queue_ok", _remote_body(UID_A, 4, stale_text,
+		"2026-10-01T03:00:00Z"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var kept: Dictionary = await coordinator.call(
+		"resolve_conflict", "local")
+	_expect_equal(kept.get("code", ""), "local-kept",
+		"guarded revive: the live side still rebases honestly")
+	_expect_true(Journey.has_valid_checkpoint(),
+		"guarded revive: the rebased revive stays resumable")
+	_close_coordinator(coordinator)
+
+
+## A stale dialog holding an ended candidate refuses its local choice once
+## the server holds the journey's newer alive seal — and the acknowledged
+## revive then restores onto the defeated client through the remote choice.
+func _test_stale_dialog_local_refused_over_fresh_revive() -> void:
+	_reset_all([GUEST_A])
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("dlg-j-1", 2, 9)), OK,
+		"stale dialog: the local seal writes")
+	var remote_text: String = JSON.stringify(_valid_checkpoint("dlg-j-1",
+		2, 14, {"cycle": 5, "kill_score": 900}))
+	sender.call("queue_ok", _remote_body(UID_A, 9, remote_text,
+		"2026-10-01T01:00:00Z"))
+	var flushed: Dictionary = await coordinator.call("flush")
+	_expect_equal(flushed.get("status", ""), "conflict",
+		"stale dialog: the diverged seals conflict")
+	_expect_equal(Journey.write_checkpoint(_valid_checkpoint("dlg-j-1", 2,
+		11, {"ended": true, "settled_score": 3000})), OK,
+		"stale dialog: the local run seals its defeat after the dialog")
+	# The revive lands on the server from the device that paid for it.
+	var revived_text: String = JSON.stringify(
+		_valid_checkpoint("dlg-j-1", 3, 11))
+	sender.call("queue_ok", _remote_body(UID_A, 10, revived_text,
+		"2026-10-01T02:00:00Z"))
+	var refused: Dictionary = await coordinator.call(
+		"resolve_conflict", "local")
+	_expect_equal(refused.get("status", ""), "failure",
+		"stale dialog: the stale death is refused")
+	_expect_equal(refused.get("code", ""), "stale-ended-retired",
+		"stale dialog: the refusal names the stale death")
+	_expect_equal(_commit_call_count(sender), 1,
+		"stale dialog: only the reservation commit was ever sent")
+	_expect_false((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "stale dialog: the conflict stays open")
+	var remote_refused: Dictionary = await coordinator.call(
+		"resolve_conflict", "remote")
+	_expect_equal(remote_refused.get("code", ""), "defeat-kept",
+		"stale dialog: the stale alive download is refused too")
+	# Pulling instead restores the acknowledged revive honestly.
+	sender.call("queue_ok", _remote_body(UID_A, 10, revived_text,
+		"2026-10-01T02:00:00Z"))
+	var pulled: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(pulled.get("status", ""), "conflict",
+		"stale dialog: the newer revive conflicts honestly")
+	var kept: Dictionary = await coordinator.call(
+		"resolve_conflict", "remote")
+	_expect_equal(kept.get("code", ""), "remote-kept",
+		"stale dialog: the acknowledged revive still installs")
+	_expect_true(Journey.has_valid_checkpoint(),
+		"stale dialog: the installed revive is resumable")
+	_close_coordinator(coordinator)
+
+
+## A paid continuation acknowledged on one client restores on another that
+## already observed the defeat: the newer alive seal survives the explicit
+## conflict and installs by remote choice. A pending local transaction —
+## the crash client's intermediate state — neither poisons that
+## comparison nor publishes its unlanded seal.
+func _test_paid_revive_restores_over_observed_defeat() -> void:
+	_reset_all([GUEST_A])
+	Vault.continue_coins = 2
+	_expect_equal(Vault.save_vault(), OK,
+		"cross-client: the purse persists")
+	_stable_texts.clear()
+	Journey.subscribe_stable_checkpoint(_on_crash_stable)
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var coordinator: Node = _new_coordinator()
+	await _ready_account(sender, coordinator, UID_A, GUEST_A)
+	_expect_equal(Journey.write_checkpoint(
+		_valid_checkpoint("cb-remote-1", 1, 9)), OK,
+		"cross-client: the alive seal writes")
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var first: Dictionary = await coordinator.call("flush")
+	_expect_equal(first.get("status", ""), "ok",
+		"cross-client: the alive seal uploads")
+	var alive_bytes: String = _read_text(
+		Journey.account_main_path(GUEST_A))
+	var sealed: Dictionary = _valid_checkpoint("cb-remote-1", 1, 12,
+		{"ended": true, "settled_score": 3100})
+	_expect_equal(Journey.write_checkpoint(sealed), OK,
+		"cross-client: the defeat seals")
+	sender.call("queue_ok", _remote_body(UID_A, 1, alive_bytes,
+		"2026-10-01T01:00:00Z"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var second: Dictionary = await coordinator.call("flush")
+	_expect_equal(second.get("status", ""), "ok",
+		"cross-client: the observed defeat uploads")
+	_expect_equal(_stable_ids(), [1, 1],
+		"cross-client: only the two local seals notified")
+	var commits_after_defeat: int = _commit_call_count(sender)
+
+	# The crash client's intermediate state: a debited journal for a seal
+	# that never landed. Journaling alone publishes nothing.
+	var journaled: Dictionary = _valid_checkpoint("cb-remote-1", 5, 21)
+	_expect_true(Vault.begin_continue_txn("cb-remote-1", 5,
+		JSON.stringify(journaled)),
+		"cross-client: the newer debit journals")
+	_expect_equal(Vault.continue_coins, 1,
+		"cross-client: the journal charges exactly one coin")
+	_expect_equal(_stable_ids(), [1, 1],
+		"cross-client: the journal notifies nothing stable")
+
+	# The acknowledged paid seal arrives from the other client. The
+	# comparison ignores the intermediate journal: same conflict, same
+	# install, and the journaled seal never uploads.
+	var revived_text: String = JSON.stringify(
+		_valid_checkpoint("cb-remote-1", 2, 14))
+	sender.call("queue_ok", _remote_body(UID_A, 5, revived_text,
+		"2026-10-01T03:00:00Z"))
+	var restored: Dictionary = await coordinator.call("restore_from_cloud")
+	_expect_equal(restored.get("status", ""), "conflict",
+		"cross-client: the newer revive conflicts honestly")
+	_expect_equal(restored.get("code", ""), "restore-differs",
+		"cross-client: the journal does not preempt the dialog")
+	_expect_equal(_stable_ids(), [1, 1],
+		"cross-client: the conflict installs nothing")
+	var kept: Dictionary = await coordinator.call(
+		"resolve_conflict", "remote")
+	_expect_equal(kept.get("code", ""), "remote-kept",
+		"cross-client: the acknowledged revive installs by remote choice")
+	var installed: Dictionary = Journey.read_checkpoint()
+	_expect_false(Journey.is_ended(installed),
+		"cross-client: the installed seal is alive")
+	_expect_equal(int(installed.get("checkpoint_id", 0)), 2,
+		"cross-client: the installed seal is the remote one, not the journal")
+	_expect_equal(str(installed.get("journey_id", "")), "cb-remote-1",
+		"cross-client: the installed seal keeps the journey")
+	_expect_true(Journey.has_valid_checkpoint(),
+		"cross-client: the installed revive is resumable")
+	_expect_true((coordinator.call("conflict_snapshot") as Dictionary
+		).is_empty(), "cross-client: the choice clears the dialog")
+	_expect_equal(_stable_ids(), [1, 1, 2],
+		"cross-client: only the acknowledged seal notifies")
+	_expect_equal(_commit_call_count(sender), commits_after_defeat,
+		"cross-client: the journaled seal never uploads")
+	_expect_equal(int((Vault.continue_txn as Dictionary).get(
+		"checkpoint_id", 0)), 5,
+		"cross-client: the cloud dance leaves the journal alone")
+	_expect_equal(Vault.continue_coins, 1,
+		"cross-client: the cloud dance charges nothing")
+
+	# The journal still settles afterwards as one paid continuation.
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"cross-client: the journal still materializes afterwards")
+	_expect_equal(Vault.continue_coins, 1,
+		"cross-client: the materialize charges no second coin")
+	Journey.unsubscribe_stable_checkpoint(_on_crash_stable)
+	_close_coordinator(coordinator)
 
 
 func _test_save_conflict_after_baseline_match() -> void:

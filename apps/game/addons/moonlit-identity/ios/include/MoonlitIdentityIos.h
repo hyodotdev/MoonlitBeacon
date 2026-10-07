@@ -35,6 +35,23 @@ public:
 		const godot::String &p_args_json);
 	// Answers `cancelled` while no mutation began, `draining` once one did.
 	godot::String moonlitCancelRequest(const godot::String &p_request_id);
+	// Local attendance reminders (UserNotifications; no Firebase). Status
+	// answers synchronously from a cached authorization state; permission
+	// and pending diagnostics answer `pending` and settle on the signal.
+	godot::String moonlitReminderStatus(const godot::String &p_request_id,
+		const godot::String &p_args_json);
+	godot::String moonlitReminderRequestPermission(
+		const godot::String &p_request_id, const godot::String &p_args_json);
+	godot::String moonlitReminderSchedule(const godot::String &p_request_id,
+		const godot::String &p_args_json);
+	godot::String moonlitReminderCancel(const godot::String &p_request_id,
+		const godot::String &p_args_json);
+	godot::String moonlitReminderOpenSettings(
+		const godot::String &p_request_id, const godot::String &p_args_json);
+	godot::String moonlitReminderPending(const godot::String &p_request_id,
+		const godot::String &p_args_json);
+	godot::String moonlitReminderDebugSchedule(
+		const godot::String &p_request_id, const godot::String &p_args_json);
 
 	// Deferred emission point. Native SDK callbacks (main queue) never emit
 	// the Godot signal directly; they call_deferred into this method, which

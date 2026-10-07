@@ -340,6 +340,77 @@ func delete_account(options: Dictionary = {}) -> Dictionary:
 	return _native_call("moonlitDeleteAccount", options)
 
 
+## Local attendance reminders. A separate API on the same natives, with
+## no Firebase or provider gating: a local notification needs no cloud.
+## Every method answers synchronously with a terminal receipt, except
+## `reminder_request_permission`, which answers `pending` and settles on
+## `request_completed` like an identity call, and `reminder_status`,
+## which answers `pending` on iOS (the OS read is async-only) and
+## settles the same way. Where no native side exists
+## every method answers `unsupported` and the game stays playable.
+##
+## Reminder payloads carry only scheduling facts (`permission`,
+## `eligible_utc`, `remaining_seconds`, `locale`, `account`): no token,
+## email, name, or wallet value crosses this layer.
+
+## Live OS notification state plus what this install scheduled.
+## `permission` is `granted`, `denied`, or `unknown` (never asked);
+## `scheduled` tells whether this install asked the OS to hold an
+## attendance delivery (persisted intent: no platform exposes a live
+## OS-held query, and token probes cannot stand in for one);
+## `launched_from_reminder` is true once when this process started from
+## the reminder's launch action. A retryable `error` (for example the
+## activity is between lifecycles) keeps the owned delivery: it is a
+## reason to retry, never to cancel.
+func reminder_status() -> Dictionary:
+	return _native_call("moonlitReminderStatus", {})
+
+
+## Ask the OS for notification permission. The system sheet waits on a
+## human, so this uses the interactive window; the terminal receipt
+## carries the resulting `permission`.
+func reminder_request_permission() -> Dictionary:
+	return _native_call("moonlitReminderRequestPermission", {})
+
+
+## Schedule the first fire at the server-confirmed eligibility and a
+## twelve-hour repeat after it. `args` carries `eligible_utc_millis`
+## (absolute, server-derived), `title`, `body`, `locale`, and `account`.
+## Replaces any earlier attendance schedule; answers `ok` with the
+## stored `eligible_utc` plus the held window (`base_slot`,
+## `horizon_end_unix`, `scheduled_slots`, also on duplicates) or an
+## honest `error`/`denied` receipt.
+func reminder_schedule(args: Dictionary) -> Dictionary:
+	return _native_call("moonlitReminderSchedule", args)
+
+
+## Cancel any scheduled attendance delivery and dismiss a delivered
+## attendance notification. Never touches unrelated requests.
+func reminder_cancel() -> Dictionary:
+	return _native_call("moonlitReminderCancel", {})
+
+
+## Open the app's OS notification settings so a denied player can grant
+## access by hand. Answers `ok` when the settings page opened.
+func reminder_open_settings() -> Dictionary:
+	return _native_call("moonlitReminderOpenSettings", {})
+
+
+## Pending-delivery diagnostics for QA: the native side reports what it
+## actually holds (identifiers plus trigger times), never a wish.
+func reminder_pending_diagnostics() -> Dictionary:
+	return _native_call("moonlitReminderPending", {})
+
+
+## QA only: schedule one short non-repeating test delivery in
+## `delay_seconds`, without touching the production twelve-hour rule or
+## any wallet. The isolated native harness drives this; production play
+## never calls it.
+func reminder_debug_schedule(delay_seconds: float) -> Dictionary:
+	return _native_call("moonlitReminderDebugSchedule",
+		{"delay_seconds": delay_seconds})
+
+
 func cancel_request(request_id: String) -> Dictionary:
 	if not _pending.has(request_id):
 		return {"status": STATUS_ERROR, "code": CODE_NO_PENDING_REQUEST}
@@ -465,7 +536,8 @@ func _missing_provider_keys_for(provider: String) -> Array:
 ## and delete calls keep the ordinary network window.
 func _timeout_for_method(method: String) -> float:
 	if method == "moonlitSignInProvider" \
-			or method == "moonlitLinkProvider":
+			or method == "moonlitLinkProvider" \
+			or method == "moonlitReminderRequestPermission":
 		return _interactive_timeout_seconds
 	return _request_timeout_seconds
 

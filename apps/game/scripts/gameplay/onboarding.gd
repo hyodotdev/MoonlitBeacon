@@ -16,7 +16,9 @@ extends RefCounted
 ##
 ## Static, with no autoload: the arena marks, nothing else reads. Writes
 ## happen only while `Journey.armed` is on, so tests, debug boards and
-## capture harnesses never touch the human record.
+## capture harnesses never touch the human record. The gate lodge passes
+## `durable` for its practiced gates: the lesson counts as learned from
+## an actual performance, which no journey arms while it runs.
 
 const DEFAULT_PATH: String = "user://onboarding.json"
 const SCHEMA_VERSION: int = 1
@@ -40,13 +42,14 @@ static func is_done(key: String) -> bool:
 	return bool(_done.get(key, false))
 
 
-## Record a learned tip and persist it. Unknown keys are refused.
-static func mark_done(key: String) -> void:
+## Record a learned tip and persist it. Unknown keys are refused. The
+## lodge passes durable for practiced move/dash gates; nothing else does.
+static func mark_done(key: String, durable: bool = false) -> void:
 	_ensure_loaded()
 	if key not in KEYS or _done.get(key, false):
 		return
 	_done[key] = true
-	_save()
+	_save(durable)
 
 
 ## True when every guidance tip was learned. The story strip still plays.
@@ -91,10 +94,11 @@ static func _ensure_loaded() -> void:
 			_done[key] = true
 
 
-static func _save() -> void:
+static func _save(force: bool = false) -> void:
 	# Only a human run may write the human record. Tests and capture either
-	# disarm or point `path` at a temp file; both stay silent here.
-	if not Journey.armed:
+	# disarm or point `path` at a temp file; both stay silent here. A forced
+	# write still targets `path`, which tests keep pointed at temp.
+	if not force and not Journey.armed:
 		return
 	var learned: Array[String] = []
 	for key: String in KEYS:

@@ -160,7 +160,7 @@ func _check_hero_plate() -> void:
 	score.cycles = 8
 	var panel: Control = RESULT_SCENE.instantiate() as Control
 	add_child(panel)
-	panel.show_result(true, score, false, false, 3, false,
+	panel.show_result(true, score, false, false, 3,
 		"res://resources/heroes/keeper.tres")
 	await get_tree().process_frame
 	var body := panel.get_node("HeroBody") as TextureRect

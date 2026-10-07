@@ -17,7 +17,9 @@ The implementer sandbox has no network, so these are not installed here:
 
 Measured versions: `firebase` 12.19.0,
 `@firebase/rules-unit-testing` 5.0.2, `firebase-tools` 15.32.1.
-The byte-current suite passes 38 tests, 9 suites, zero failures.
+The byte-current suite holds 88 tests in 14 suites, including the
+attendance previous-claim chain transitions; the director runs the
+emulator pass.
 
 ## Reproduce (temporary workspace; the repo lock stays untouched)
 
@@ -51,8 +53,8 @@ first or an older installed Java fails the run again. `java
 -version` above must report the selected 21+ before the emulator
 starts.
 
-Expected: 38 tests, 9 suites, zero failures (legacy intact,
-profiles, reservations, checkpoints, hall). The test builds the
+Expected: 88 tests, 14 suites, zero failures (legacy intact,
+profiles, reservations, checkpoints, hall, attendance). The test builds the
 combined ruleset in memory from the two copied rule files, so the
 repo's `firestore.rules` itself is never edited. The run is local
 only (`emulators:exec --only firestore`); nothing is deployed and
@@ -91,7 +93,7 @@ Three controls prove the suite can fail:
   ownership leg actually fires — a rules-disabled smoke test alone could
   not show that.
 
-## What the suite covers (38 cases)
+## What the suite covers (84 cases)
 
 - Legacy `/scores` public read plus valid create, invalid hero denied.
 - Legacy `/analytics_events_v1` valid create, reads denied.
@@ -126,3 +128,29 @@ Three controls prove the suite can fail:
   cycles bounded 0..99999 (the Journey cap), cross-owner write/delete
   denied, owner delete allowed, public row keys contain no UID, email,
   save, or credential.
+- Names: atomic two-half claim, one concurrent winner, mixed-case Latin
+  collision, Korean/Japanese round-trip, shared invalid matrix, private
+  row unreadable/unwritable by others, index exposing handle and public
+  ID only, unauthenticated denied. The proven owner reads an
+  authoritative missing row; other owners, the unregistered, and lists
+  stay denied.
+- Adventurer metadata: immutable except the intro bit false to true,
+  arbitrary fields denied.
+- Hall display: claimed handle only, forged/unclaimed/malformed/another
+  player's denied, backfill at the same score, downgrades denied, legacy
+  unnamed rows untouched.
+- Name deletion: lone halves denied, halves blocked under a living Hall
+  row, name-only release denied under a living canonical pair, Hall-plus
+  halves without the pair denied, canonical halves blocked while the
+  name pair stays, missing-row no-ops allowed, full named deletion (with
+  or without a Hall row) completing and freeing the name exactly once,
+  legacy unnamed deletion unchanged.
+- Attendance: owner first claim with a server stamp, authoritative
+  missing-row owner read, strangers/unregistered/lists/anonymous denied,
+  forged past/future/missing stamps denied, unregistered and stranger
+  claims denied, seeded 13h-old row claims for a new install, 11h-old
+  row holds, exactly 12h eligible, canonical halves immutable, one
+  winner per concurrent update race and first-claim race, living row
+  never deletes alone, pair halves blocked while attendance stays,
+  full deletion removing attended accounts, never-attended deletion
+  unchanged.

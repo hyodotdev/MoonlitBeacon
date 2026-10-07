@@ -51,8 +51,10 @@
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 #import <UIKit/UIKit.h>
+#import <UserNotifications/UserNotifications.h>
 
 #include "MoonlitIdentityIos.h"
+#include "MoonlitReminderPlanner.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
@@ -82,6 +84,50 @@ static NSString *const kCodeMutationInProgress = @"mutation_in_progress";
 static NSString *const kCodeAppleUnavailable = @"apple_sign_in_unavailable";
 static NSString *const kCodeGoogleUnavailable = @"google_sign_in_unavailable";
 static NSString *const kCodeSignOutFailed = @"sign_out_failed";
+static NSString *const kCodePermissionDenied = @"permission_denied";
+static NSString *const kCodeInvalidArgs = @"invalid_args";
+static NSString *const kCodeRequestBusy = @"request_busy";
+static NSString *const kStatusDenied = @"denied";
+
+// Attendance-reminder request identifiers. Deliveries are a bounded
+// horizon of owned non-repeating slots at the server eligibility plus
+// N * 43200 seconds; cancellation names exactly these plus the legacy
+// ids below and never touches unrelated pending requests.
+static NSString *const kReminderSlotPrefix =
+	@"dev.moonlitbeacon.attendance.slot-";
+// The horizon refills from the same anchor on a genuine foreground
+// visit and resets on the next attendance claim. Slot counts and the
+// refill math live in MoonlitReminderPlanner.h, shared with the
+// host-side numeric test so the shipped computation is the proven one.
+// Legacy one-shot/repeat shape plus the QA one-shot: scheduling
+// replaces their pending copies (no double delivery across the
+// migration) and cancellation removes them with the horizon.
+static NSString *const kReminderFirstId =
+	@"dev.moonlitbeacon.attendance.first";
+static NSString *const kReminderRepeatId =
+	@"dev.moonlitbeacon.attendance.repeat";
+static NSString *const kReminderDebugId =
+	@"dev.moonlitbeacon.attendance.debug";
+// App-only scheduling metadata in standardUserDefaults (declared in the
+// app PrivacyInfo.xcprivacy as CA92.1): the requested account, eligible
+// time, and locale, so identical re-schedules skip without shifting the
+// repeat anchor, plus the held window's base slot and end time and the
+// diagnostics baseline. No token, email, name, or wallet value is
+// stored here.
+static NSString *const kReminderDefaultsAccount =
+	@"dev.moonlitbeacon.reminder.account";
+static NSString *const kReminderDefaultsEligibleMillis =
+	@"dev.moonlitbeacon.reminder.eligible_millis";
+static NSString *const kReminderDefaultsLocale =
+	@"dev.moonlitbeacon.reminder.locale";
+static NSString *const kReminderDefaultsScheduledAt =
+	@"dev.moonlitbeacon.reminder.scheduled_at";
+static NSString *const kReminderDefaultsBaseSlot =
+	@"dev.moonlitbeacon.reminder.base_slot";
+static NSString *const kReminderDefaultsHorizonEnd =
+	@"dev.moonlitbeacon.reminder.horizon_end";
+static const NSTimeInterval kReminderDebugMinSeconds = 5.0;
+static const NSTimeInterval kReminderDebugMaxSeconds = 600.0;
 
 // GoogleSignIn dismissal, from GIDSignInError (the canceled code in the
 // com.google.GIDSignIn domain). Spelled as literals because the SDK's ObjC
@@ -171,7 +217,8 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 // ---------------------------------------------------------------------------
 
 @interface MoonlitIdentityWorker : NSObject <ASAuthorizationControllerDelegate,
-	ASAuthorizationControllerPresentationContextProviding>
+	ASAuthorizationControllerPresentationContextProviding,
+	UNUserNotificationCenterDelegate>
 
 @property(nonatomic, assign) MoonlitIdentityIos *owner;
 @property(nonatomic, strong) NSMutableSet<NSString *> *pending;
@@ -186,6 +233,15 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 @property(nonatomic, copy) NSString *appleRequestId;
 @property(nonatomic, copy) NSString *appleRawNonce;
 @property(nonatomic, assign) MoonlitApplePurpose applePurpose;
+// Owner of the single in-flight reminder-permission request. Separate
+// from the identity mutation slot: permission is not a Firebase
+// mutation and must never block (or be blocked by) sign-in work.
+@property(nonatomic, copy) NSString *reminderPermissionOwner;
+// Cached notification authorization status: getNotificationSettings is
+// async-only, so the synchronous status answer reads this while every
+// status call also refreshes it in the background.
+@property(nonatomic, assign) NSInteger reminderAuthStatus;
+@property(nonatomic, assign) BOOL reminderAuthKnown;
 
 @end
 
@@ -198,6 +254,22 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 		_settled = [NSMutableSet set];
 		_settledOrder = [NSMutableArray array];
 		_mutations = [NSMutableSet set];
+		_reminderAuthStatus = UNAuthorizationStatusNotDetermined;
+		_reminderAuthKnown = NO;
+		// Install the foreground-suppression delegate (only when no
+		// other delegate owns the center) and warm the cached
+		// authorization status, both on the main queue. Returning
+		// UNNotificationPresentationOptionNone matches the no-delegate
+		// default exactly, so installs that never enable reminders
+		// behave as if this delegate did not exist.
+		dispatch_async(dispatch_get_main_queue(), ^{
+			UNUserNotificationCenter *center =
+				[UNUserNotificationCenter currentNotificationCenter];
+			if (center.delegate == nil) {
+				center.delegate = self;
+			}
+			[self refreshReminderAuthStatus];
+		});
 	}
 	return self;
 }
@@ -300,6 +372,9 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 			_appleController = nil;
 			_appleRequestId = nil;
 			_appleRawNonce = nil;
+		}
+		if ([_reminderPermissionOwner isEqualToString:requestId]) {
+			_reminderPermissionOwner = nil;
 		}
 	}
 	[self rememberSettled:requestId];
@@ -530,6 +605,9 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 		[_mutations removeObject:requestId];
 		if ([_mutationOwner isEqualToString:requestId]) {
 			_mutationOwner = nil;
+		}
+		if ([_reminderPermissionOwner isEqualToString:requestId]) {
+			_reminderPermissionOwner = nil;
 		}
 	}
 	if (!live) {
@@ -1280,9 +1358,502 @@ static BOOL MoonlitForwardOpenURL(id self, SEL cmd, UIApplication *app,
 	}];
 }
 
+// ---------------------------------------------------------------------------
+// --- attendance reminders (local notifications; no Firebase) -------------------
+//
+// A bounded horizon of owned non-repeating requests at the
+// server-confirmed eligibility plus N * 43200 seconds. Every delivery
+// is anchored to eligibility, so a fresh reward and a halfway enable
+// both land on twelve-hour boundaries; a short first delay is simply
+// the first slot, never a short repeat. Elapsed slots are skipped,
+// never burst. Identical re-schedules skip while the recorded horizon
+// still covers the future, so a locale or status refresh neither
+// duplicates nor shifts deliveries; a nearly consumed horizon refills
+// from the same anchor, and a new claim resets it. Cancellation names
+// exactly the owned slots plus the legacy ids.
+
+// Reminders are for a player who is away: while the game is
+// foregrounded nothing presents. Returning none matches the no-delegate
+// default exactly, so other notifications keep their default behavior.
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+	   willPresentNotification:(UNNotification *)notification
+		 withCompletionHandler:
+			 (void (^)(UNNotificationPresentationOptions))completionHandler {
+	(void)center;
+	(void)notification;
+	completionHandler(UNNotificationPresentationOptionNone);
+}
+
+- (BOOL)reminderAuthGrantsDelivery:(NSInteger)status {
+	if (status == UNAuthorizationStatusAuthorized ||
+		status == UNAuthorizationStatusProvisional) {
+		return YES;
+	}
+	if (@available(iOS 14.0, *)) {
+		if (status == UNAuthorizationStatusEphemeral) {
+			return YES;
+		}
+	}
+	return NO;
+}
+
+- (NSString *)reminderPermissionName:(NSInteger)status {
+	if ([self reminderAuthGrantsDelivery:status]) {
+		return @"granted";
+	}
+	if (status == UNAuthorizationStatusDenied) {
+		return @"denied";
+	}
+	return @"unknown";
+}
+
+- (void)refreshReminderAuthStatus {
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	[center getNotificationSettingsWithCompletionHandler:^(
+		UNNotificationSettings *settings) {
+		@synchronized(self) {
+			self.reminderAuthStatus = settings.authorizationStatus;
+			self.reminderAuthKnown = YES;
+		}
+	}];
+}
+
+- (NSString *)reminderStatus:(NSString *)requestId {
+	// The OS read is async-only, so the verdict arrives as a bounded
+	// outcome instead of a stale cached guess: the game converges an
+	// open panel when it lands rather than reopening twice. The cache
+	// still gates the synchronous schedule path below.
+	if (![self beginRequest:requestId]) {
+		return [self alreadyPendingReceipt:requestId];
+	}
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	[center getNotificationSettingsWithCompletionHandler:^(
+		UNNotificationSettings *settings) {
+		NSInteger fresh = settings.authorizationStatus;
+		@synchronized(self) {
+			self.reminderAuthStatus = fresh;
+			self.reminderAuthKnown = YES;
+		}
+		[self finishRequest:requestId outcome:@{
+			@"status" : kStatusOk,
+			@"permission" : [self reminderPermissionName:fresh],
+			@"request_id" : requestId
+		}];
+	}];
+	return [self jsonString:@{
+		@"status" : kStatusPending,
+		@"request_id" : requestId
+	}];
+}
+
+- (NSString *)reminderRequestPermission:(NSString *)requestId {
+	if (![self beginRequest:requestId]) {
+		return [self jsonString:@{
+			@"status" : kStatusError,
+			@"code" : kCodeAlreadyPending,
+			@"request_id" : requestId
+		}];
+	}
+	@synchronized(self) {
+		if (_reminderPermissionOwner != nil) {
+			[_pending removeObject:requestId];
+			return [self jsonString:@{
+				@"status" : kStatusError,
+				@"code" : kCodeRequestBusy,
+				@"retryable" : @YES,
+				@"request_id" : requestId
+			}];
+		}
+		_reminderPermissionOwner = [requestId copy];
+	}
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	[center requestAuthorizationWithOptions:
+		(UNAuthorizationOptionAlert | UNAuthorizationOptionSound)
+		completionHandler:^(BOOL granted, NSError *_Nullable error) {
+		(void)error;
+		@synchronized(self) {
+			self.reminderAuthStatus = granted
+				? UNAuthorizationStatusAuthorized
+				: UNAuthorizationStatusDenied;
+			self.reminderAuthKnown = YES;
+		}
+		[self finishRequest:requestId outcome:@{
+			@"status" : kStatusOk,
+			@"permission" : granted ? @"granted" : @"denied",
+			@"request_id" : requestId
+		}];
+	}];
+	return [self jsonString:@{
+		@"status" : kStatusPending,
+		@"request_id" : requestId
+	}];
+}
+
+- (NSString *)reminderSchedule:(NSString *)requestId
+	args:(NSDictionary *)args {
+	long long eligibleMillis =
+		[args[@"eligible_utc_millis"] longLongValue];
+	NSString *title = [args[@"title"] isKindOfClass:[NSString class]]
+		? [args[@"title"] stringByTrimmingCharactersInSet:
+			[NSCharacterSet whitespaceAndNewlineCharacterSet]]
+		: @"";
+	NSString *body = [args[@"body"] isKindOfClass:[NSString class]]
+		? [args[@"body"] stringByTrimmingCharactersInSet:
+			[NSCharacterSet whitespaceAndNewlineCharacterSet]]
+		: @"";
+	NSString *account = [args[@"account"] isKindOfClass:[NSString class]]
+		? [args[@"account"] stringByTrimmingCharactersInSet:
+			[NSCharacterSet whitespaceAndNewlineCharacterSet]]
+		: @"";
+	NSString *locale = [args[@"locale"] isKindOfClass:[NSString class]]
+		? [args[@"locale"] stringByTrimmingCharactersInSet:
+			[NSCharacterSet whitespaceAndNewlineCharacterSet]]
+		: @"";
+	if (eligibleMillis <= 0 || title.length == 0 ||
+		body.length == 0 || account.length == 0) {
+		return [self jsonString:@{
+			@"status" : kStatusError,
+			@"code" : kCodeInvalidArgs,
+			@"retryable" : @NO,
+			@"request_id" : requestId
+		}];
+	}
+	NSInteger auth = UNAuthorizationStatusNotDetermined;
+	@synchronized(self) {
+		auth = _reminderAuthStatus;
+	}
+	if (![self reminderAuthGrantsDelivery:auth]) {
+		[self refreshReminderAuthStatus];
+		return [self jsonString:@{
+			@"status" : kStatusDenied,
+			@"permission" : [self reminderPermissionName:auth],
+			@"code" : kCodePermissionDenied,
+			@"request_id" : requestId
+		}];
+	}
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	NSString *recordedAccount =
+		[defaults stringForKey:kReminderDefaultsAccount];
+	NSNumber *recordedEligibleNumber =
+		[defaults objectForKey:kReminderDefaultsEligibleMillis];
+	long long recordedEligible =
+		[recordedEligibleNumber isKindOfClass:[NSNumber class]]
+		? [recordedEligibleNumber longLongValue]
+		: -1;
+	NSString *recordedLocale =
+		[defaults stringForKey:kReminderDefaultsLocale];
+	NSNumber *recordedBaseNumber =
+		[defaults objectForKey:kReminderDefaultsBaseSlot];
+	long long recordedBase =
+		[recordedBaseNumber isKindOfClass:[NSNumber class]]
+		? [recordedBaseNumber longLongValue]
+		: 0;
+	double recordedEnd =
+		[defaults objectForKey:kReminderDefaultsHorizonEnd] != nil
+		? [defaults doubleForKey:kReminderDefaultsHorizonEnd]
+		: 0.0;
+	NSTimeInterval now =
+		[[NSDate date] timeIntervalSince1970];
+	// Integer milliseconds throughout: the game side derives the
+	// same window from the same anchor, and the equal-time boundary
+	// must not depend on floating-point rounding.
+	long long nowMillis = (long long)(now * 1000.0);
+	// First slot not yet elapsed on this anchor (due-now counts):
+	// a refill exactly 25 days out plans from slot 50 with a full
+	// 48 future slots, never an empty window.
+	long long firstFuture = MoonlitReminderFirstFuture(
+		eligibleMillis, nowMillis);
+	BOOL identical = [recordedAccount isEqualToString:account] &&
+		recordedEligible == eligibleMillis &&
+		[recordedLocale isEqualToString:locale];
+	if (identical && recordedEnd > 0.0 &&
+		MoonlitReminderWindowHolds(recordedBase, firstFuture)) {
+		// Identical inputs with an adequate horizon: the center
+		// already holds these absolute slots, so touching them
+		// would only churn. A nearly consumed or exhausted window
+		// falls through to the refill below, still anchored to
+		// the same deadline. The receipt carries the held window
+		// so the game side keeps its known metadata instead of
+		// recording an unknown zero and re-asking forever.
+		return [self jsonString:@{
+			@"status" : kStatusOk,
+			@"eligible_millis" : @(eligibleMillis),
+			@"duplicate" : @YES,
+			@"scheduled_slots" : @(MoonlitReminderRemaining(
+				recordedBase, firstFuture)),
+			@"base_slot" : @(recordedBase),
+			@"horizon_end_unix" : @(recordedEnd),
+			@"request_id" : requestId
+		}];
+	}
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	// Replace the whole owned horizon plus any legacy pending copies,
+	// so a device migrating from the one-shot/repeat shape cannot
+	// double-deliver. Identifiers are stable ordinals 0..47 while
+	// timestamps stay eligibility + N * 43200: a refill never shifts
+	// the anchor, and re-added slots keep absolute times.
+	NSMutableArray<NSString *> *replaced =
+		[[self reminderSlotIdentifiers] mutableCopy];
+	[replaced addObjectsFromArray:@[
+		kReminderFirstId, kReminderRepeatId
+	]];
+	[center removePendingNotificationRequestsWithIdentifiers:replaced];
+	UNMutableNotificationContent *content =
+		[[UNMutableNotificationContent alloc] init];
+	content.title = title;
+	content.body = body;
+	content.sound = [UNNotificationSound defaultSound];
+	long long added = 0;
+	double lastFire = 0.0;
+	for (long long pos = 0; pos < kReminderHorizonSlots; pos++) {
+		long long slot = firstFuture + pos;
+		long long fireMs = MoonlitReminderSlotFireMs(
+			eligibleMillis, slot);
+		if (fireMs < nowMillis) {
+			// Strictly elapsed slots stay unscheduled: the past
+			// must never burst as immediate deliveries, even if
+			// the clock jumped between the window computation and
+			// this loop. A slot due exactly now schedules once;
+			// the next computation already counts it as past.
+			continue;
+		}
+		NSTimeInterval delay =
+			(NSTimeInterval)(fireMs - nowMillis) / 1000.0;
+		if (delay < 1.0) {
+			delay = 1.0;
+		}
+		UNTimeIntervalNotificationTrigger *trigger =
+			[UNTimeIntervalNotificationTrigger
+				triggerWithTimeInterval:delay
+				repeats:NO];
+		NSString *identifier = [kReminderSlotPrefix
+			stringByAppendingFormat:@"%02lld", pos];
+		UNNotificationRequest *request =
+			[UNNotificationRequest requestWithIdentifier:identifier
+				content:content
+				trigger:trigger];
+		[center addNotificationRequest:request
+			withCompletionHandler:nil];
+		added++;
+		lastFire = (double)fireMs / 1000.0;
+	}
+	[defaults setObject:account forKey:kReminderDefaultsAccount];
+	[defaults setObject:@(eligibleMillis)
+		forKey:kReminderDefaultsEligibleMillis];
+	[defaults setObject:locale forKey:kReminderDefaultsLocale];
+	[defaults setDouble:now forKey:kReminderDefaultsScheduledAt];
+	[defaults setObject:@(firstFuture) forKey:kReminderDefaultsBaseSlot];
+	[defaults setDouble:lastFire forKey:kReminderDefaultsHorizonEnd];
+	return [self jsonString:@{
+		@"status" : kStatusOk,
+		@"eligible_millis" : @(eligibleMillis),
+		@"scheduled_slots" : @(added),
+		@"base_slot" : @(firstFuture),
+		@"horizon_end_unix" : @(lastFire),
+		@"request_id" : requestId
+	}];
+}
+
+- (NSArray<NSString *> *)reminderSlotIdentifiers {
+	NSMutableArray<NSString *> *ids = [NSMutableArray
+		arrayWithCapacity:(NSUInteger)kReminderHorizonSlots];
+	for (long long slot = 0; slot < kReminderHorizonSlots; slot++) {
+		[ids addObject:[kReminderSlotPrefix
+			stringByAppendingFormat:@"%02lld", slot]];
+	}
+	return ids;
+}
+
+- (NSString *)reminderCancel:(NSString *)requestId {
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	// The whole owned horizon plus every legacy identifier. Other
+	// app notifications are never named here.
+	NSMutableArray<NSString *> *owned =
+		[[self reminderSlotIdentifiers] mutableCopy];
+	[owned addObjectsFromArray:@[
+		kReminderFirstId, kReminderRepeatId, kReminderDebugId
+	]];
+	[center removePendingNotificationRequestsWithIdentifiers:owned];
+	[center removeDeliveredNotificationsWithIdentifiers:owned];
+	NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+	[defaults removeObjectForKey:kReminderDefaultsAccount];
+	[defaults removeObjectForKey:kReminderDefaultsEligibleMillis];
+	[defaults removeObjectForKey:kReminderDefaultsLocale];
+	[defaults removeObjectForKey:kReminderDefaultsScheduledAt];
+	[defaults removeObjectForKey:kReminderDefaultsBaseSlot];
+	[defaults removeObjectForKey:kReminderDefaultsHorizonEnd];
+	return [self jsonString:@{
+		@"status" : kStatusOk,
+		@"request_id" : requestId
+	}];
+}
+
+- (NSString *)reminderOpenSettings:(NSString *)requestId {
+	dispatch_async(dispatch_get_main_queue(), ^{
+		NSURL *url = [NSURL
+			URLWithString:UIApplicationOpenSettingsURLString];
+		if (url != nil) {
+			[[UIApplication sharedApplication] openURL:url
+				options:@{}
+				completionHandler:nil];
+		}
+	});
+	return [self jsonString:@{
+		@"status" : kStatusOk,
+		@"request_id" : requestId
+	}];
+}
+
+- (NSString *)reminderPending:(NSString *)requestId {
+	if (![self beginRequest:requestId]) {
+		return [self jsonString:@{
+			@"status" : kStatusError,
+			@"code" : kCodeAlreadyPending,
+			@"request_id" : requestId
+		}];
+	}
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	[center getPendingNotificationRequestsWithCompletionHandler:^(
+		NSArray<UNNotificationRequest *> *requests) {
+		NSMutableArray *held = [NSMutableArray array];
+		long long heldSlots = 0;
+		for (UNNotificationRequest *request in requests) {
+			NSString *identifier = request.identifier;
+			BOOL owned = [identifier
+				hasPrefix:kReminderSlotPrefix] ||
+				[identifier isEqualToString:kReminderFirstId] ||
+				[identifier isEqualToString:kReminderRepeatId] ||
+				[identifier isEqualToString:kReminderDebugId];
+			if (!owned) {
+				continue;
+			}
+			if ([identifier hasPrefix:kReminderSlotPrefix]) {
+				heldSlots++;
+			}
+			UNNotificationTrigger *trigger = request.trigger;
+			NSTimeInterval interval = -1;
+			BOOL repeats = NO;
+			NSDate *next = nil;
+			if ([trigger
+				isKindOfClass:[UNTimeIntervalNotificationTrigger class]]) {
+				UNTimeIntervalNotificationTrigger *timed =
+					(UNTimeIntervalNotificationTrigger *)trigger;
+				interval = timed.timeInterval;
+				repeats = timed.repeats;
+				next = timed.nextTriggerDate;
+			} else if ([trigger
+				isKindOfClass:[UNCalendarNotificationTrigger class]]) {
+				next = ((UNCalendarNotificationTrigger *)trigger)
+					.nextTriggerDate;
+			}
+			[held addObject:@{
+				@"identifier" : identifier,
+				@"interval_seconds" : @(interval),
+				@"repeats" : @(repeats),
+				@"next_trigger_unix" : next != nil
+					? @([next timeIntervalSince1970])
+					: @(-1)
+			}];
+		}
+		NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+		NSNumber *anchorNumber =
+			[defaults objectForKey:kReminderDefaultsEligibleMillis];
+		long long anchor =
+			[anchorNumber isKindOfClass:[NSNumber class]]
+			? [anchorNumber longLongValue]
+			: -1;
+		NSNumber *baseNumber =
+			[defaults objectForKey:kReminderDefaultsBaseSlot];
+		long long base =
+			[baseNumber isKindOfClass:[NSNumber class]]
+			? [baseNumber longLongValue]
+			: 0;
+		double windowEnd =
+			[defaults objectForKey:kReminderDefaultsHorizonEnd]
+				!= nil
+			? [defaults doubleForKey:kReminderDefaultsHorizonEnd]
+			: 0.0;
+		[self finishRequest:requestId outcome:@{
+			@"status" : kStatusOk,
+			@"held" : held,
+			@"recorded" : @{
+				@"account" : [defaults
+					stringForKey:kReminderDefaultsAccount] ?: @"",
+				@"eligible_millis" : @(anchor),
+				@"locale" : [defaults
+					stringForKey:kReminderDefaultsLocale] ?: @""
+			},
+			@"horizon" : @{
+				@"anchor_eligible_millis" : @(anchor),
+				@"slot_count" : @(kReminderHorizonSlots),
+				@"base_slot" : @(base),
+				@"held_slots" : @(heldSlots),
+				@"horizon_end_unix" : @(windowEnd)
+			},
+			@"request_id" : requestId
+		}];
+	}];
+	return [self jsonString:@{
+		@"status" : kStatusPending,
+		@"request_id" : requestId
+	}];
+}
+
+- (NSString *)reminderDebugSchedule:(NSString *)requestId
+	args:(NSDictionary *)args {
+	NSInteger auth = UNAuthorizationStatusNotDetermined;
+	@synchronized(self) {
+		auth = _reminderAuthStatus;
+	}
+	if (![self reminderAuthGrantsDelivery:auth]) {
+		[self refreshReminderAuthStatus];
+		return [self jsonString:@{
+			@"status" : kStatusDenied,
+			@"permission" : [self reminderPermissionName:auth],
+			@"code" : kCodePermissionDenied,
+			@"request_id" : requestId
+		}];
+	}
+	NSTimeInterval delay = [args[@"delay_seconds"] doubleValue];
+	if (delay < kReminderDebugMinSeconds) {
+		delay = kReminderDebugMinSeconds;
+	}
+	if (delay > kReminderDebugMaxSeconds) {
+		delay = kReminderDebugMaxSeconds;
+	}
+	UNUserNotificationCenter *center =
+		[UNUserNotificationCenter currentNotificationCenter];
+	[center removePendingNotificationRequestsWithIdentifiers:@[
+		kReminderDebugId
+	]];
+	UNMutableNotificationContent *content =
+		[[UNMutableNotificationContent alloc] init];
+	content.title = @"Moonlit Beacon QA";
+	content.body = @"QA reminder";
+	content.sound = [UNNotificationSound defaultSound];
+	UNTimeIntervalNotificationTrigger *trigger =
+		[UNTimeIntervalNotificationTrigger
+			triggerWithTimeInterval:delay
+			repeats:NO];
+	UNNotificationRequest *request =
+		[UNNotificationRequest requestWithIdentifier:kReminderDebugId
+			content:content
+			trigger:trigger];
+	[center addNotificationRequest:request withCompletionHandler:nil];
+	return [self jsonString:@{
+		@"status" : kStatusOk,
+		@"fire_in_seconds" : @(delay),
+		@"request_id" : requestId
+	}];
+}
 @end
 
-// ---------------------------------------------------------------------------
 // GDExtension binding.
 // ---------------------------------------------------------------------------
 
@@ -1331,6 +1902,24 @@ void MoonlitIdentityIos::_bind_methods() {
 		"request_id", "args_json"), &MoonlitIdentityIos::moonlitDeleteAccount);
 	godot::ClassDB::bind_method(godot::D_METHOD("moonlitCancelRequest",
 		"request_id"), &MoonlitIdentityIos::moonlitCancelRequest);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderStatus",
+		"request_id", "args_json"), &MoonlitIdentityIos::moonlitReminderStatus);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderRequestPermission",
+		"request_id", "args_json"),
+		&MoonlitIdentityIos::moonlitReminderRequestPermission);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderSchedule",
+		"request_id", "args_json"),
+		&MoonlitIdentityIos::moonlitReminderSchedule);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderCancel",
+		"request_id", "args_json"), &MoonlitIdentityIos::moonlitReminderCancel);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderOpenSettings",
+		"request_id", "args_json"),
+		&MoonlitIdentityIos::moonlitReminderOpenSettings);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderPending",
+		"request_id", "args_json"), &MoonlitIdentityIos::moonlitReminderPending);
+	godot::ClassDB::bind_method(godot::D_METHOD("moonlitReminderDebugSchedule",
+		"request_id", "args_json"),
+		&MoonlitIdentityIos::moonlitReminderDebugSchedule);
 	godot::ClassDB::bind_method(godot::D_METHOD("_emit_outcome",
 		"outcome_json"), &MoonlitIdentityIos::_emit_outcome);
 	ADD_SIGNAL(godot::MethodInfo("moonlit_identity_event",
@@ -1431,6 +2020,58 @@ godot::String MoonlitIdentityIos::moonlitCancelRequest(
 	const godot::String &p_request_id) {
 	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
 	return ns_to_godot([worker cancelRequest:godot_to_ns(p_request_id)]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderStatus(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	(void)p_args_json;
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot([worker reminderStatus:godot_to_ns(p_request_id)]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderRequestPermission(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	(void)p_args_json;
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot(
+		[worker reminderRequestPermission:godot_to_ns(p_request_id)]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderSchedule(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot([worker reminderSchedule:godot_to_ns(p_request_id)
+		args:[worker parseArgs:godot_to_ns(p_args_json)]]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderCancel(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	(void)p_args_json;
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot([worker reminderCancel:godot_to_ns(p_request_id)]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderOpenSettings(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	(void)p_args_json;
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot(
+		[worker reminderOpenSettings:godot_to_ns(p_request_id)]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderPending(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	(void)p_args_json;
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot([worker reminderPending:godot_to_ns(p_request_id)]);
+}
+
+godot::String MoonlitIdentityIos::moonlitReminderDebugSchedule(
+	const godot::String &p_request_id, const godot::String &p_args_json) {
+	MoonlitIdentityWorker *worker = (__bridge MoonlitIdentityWorker *)_worker;
+	return ns_to_godot(
+		[worker reminderDebugSchedule:godot_to_ns(p_request_id)
+			args:[worker parseArgs:godot_to_ns(p_args_json)]]);
 }
 
 void MoonlitIdentityIos::_emit_outcome(

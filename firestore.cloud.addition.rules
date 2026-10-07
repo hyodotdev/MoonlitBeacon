@@ -84,6 +84,18 @@ function hallGoneAfter(publicId) {
   return !existsAfter(/databases/$(database)/documents/mb_hall_v1/$(publicId));
 }
 
+function adventurerGoneAfter(publicId) {
+  return !existsAfter(/databases/$(database)/documents/mb_adventurers_v1/$(publicId));
+}
+
+function nameGoneAfter(nameKey) {
+  return !existsAfter(/databases/$(database)/documents/mb_names_v1/$(nameKey));
+}
+
+function attendanceGoneAfter(publicId) {
+  return !existsAfter(/databases/$(database)/documents/mb_attendance_v1/$(publicId));
+}
+
 function validProfile(uid, data) {
   return data.keys().hasOnly(
       ['uid', 'public_id', 'schema', 'created_at', 'updated_at'])
@@ -111,13 +123,15 @@ match /mb_profiles_v1/{uid} {
     && reservationOwnedAfter(request.resource.data.public_id);
   allow update: if false;
   // Missing rows delete as a no-op so an interrupted deletion resumes
-  // cleanly; a living row goes only with the public row already gone and its
-  // reservation half gone too, so no crash can strand a profile claiming a
-  // freed ID.
+  // cleanly; a living row goes only with the public row already gone, its
+  // reservation half gone too, and the attendance row gone, so no crash
+  // can strand a profile claiming a freed ID or a cooldown.
   allow delete: if isSignedIn() && request.auth.uid == uid
     && (!exists(/databases/$(database)/documents/mb_profiles_v1/$(uid))
       || (hallGoneAfter(resource.data.public_id)
-        && reservationGoneAfter(resource.data.public_id)));
+        && reservationGoneAfter(resource.data.public_id)
+        && adventurerGoneAfter(resource.data.public_id)
+        && attendanceGoneAfter(resource.data.public_id)));
 }
 
 function validReservation(publicId, data) {
@@ -144,13 +158,15 @@ match /mb_reservations_v1/{publicId} {
     && profileMapsAfter(request.auth.uid, publicId);
   allow update: if false;
   // Missing rows delete as a no-op so an interrupted deletion resumes
-  // cleanly; living rows still need their owner with the public row and the
-  // profile half both gone.
+  // cleanly; living rows still need their owner with the public row, the
+  // profile half, and the attendance row all gone.
   allow delete: if isSignedIn()
     && (!exists(/databases/$(database)/documents/mb_reservations_v1/$(publicId))
       || (resource.data.uid == request.auth.uid
         && hallGoneAfter(publicId)
-        && profileGoneAfter(resource.data.uid)));
+        && profileGoneAfter(resource.data.uid)
+        && adventurerGoneAfter(publicId)
+        && attendanceGoneAfter(publicId)));
 }
 
 function validCheckpointPayload(payload) {
@@ -190,7 +206,7 @@ match /mb_checkpoints_v1/{uid} {
 function validHall(publicId, data) {
   return data.keys().hasOnly(
       ['public_id', 'hero', 'score', 'cycles', 'release', 'schema',
-        'updated_at'])
+        'updated_at', 'display'])
     && data.public_id == publicId
     && isAllowedHero(data.hero)
     && data.score is int && data.score >= 0 && data.score <= 2000000000
@@ -198,7 +214,19 @@ function validHall(publicId, data) {
     && data.release is string && data.release.size() > 0
       && data.release.size() <= 32
     && data.schema == 1
-    && isNearNow(data.updated_at);
+    && isNearNow(data.updated_at)
+    && hallDisplayBound(publicId, data);
+}
+
+// A Hall display is honest when absent (legacy and unnamed rows) or when
+// it equals the owner's own claimed adventurer name. Anything else — an
+// unclaimed, malformed, or another player's handle — is a forged display
+// and the write is denied.
+function hallDisplayBound(publicId, data) {
+  return !('display' in data.keys())
+    || (validDisplayName(data.display)
+      && exists(/databases/$(database)/documents/mb_adventurers_v1/$(publicId))
+      && get(/databases/$(database)/documents/mb_adventurers_v1/$(publicId)).data.display == data.display);
 }
 
 // Public best-score row per public ID. Reads are open; writes require the
@@ -224,4 +252,186 @@ match /mb_hall_v1/{publicId} {
   allow delete: if isSignedIn()
     && (!exists(/databases/$(database)/documents/mb_hall_v1/$(publicId))
       || ownsPublicId(publicId));
+}
+
+// Adventurer display allow-list, mirrored exactly by the client's
+// normalizer: Latin letters, digits, underscore, precomposed Hangul
+// syllables (U+AC00-U+D7A3), Hiragana (U+3041-U+3096), Katakana
+// (U+30A1-U+30FA plus the prolonged mark U+30FC), CJK ideographs
+// (U+4E00-U+9FFF), and single interior ASCII spaces. BMP-only, so
+// size() counts the same 2-12 visible characters both sides enforce.
+function validDisplayName(display) {
+  return display is string && display.size() >= 2 && display.size() <= 12
+    && display == display.trim()
+    && display.matches('^[A-Za-z0-9_가-힣ぁ-ゖァ-ヺー一-鿿]+( [A-Za-z0-9_가-힣ぁ-ゖァ-ヺー一-鿿]+)*$');
+}
+
+function validAdventurer(publicId, data) {
+  return data.keys().hasOnly(['public_id', 'uid', 'name_key', 'display',
+      'intro_complete', 'schema', 'created_at', 'updated_at'])
+    && data.public_id == publicId
+    && isSignedIn() && data.uid == request.auth.uid
+    && validDisplayName(data.display)
+    && data.name_key == data.display.lower()
+    && data.intro_complete is bool
+    && data.schema == 1
+    && isNearNow(data.created_at)
+    && isNearNow(data.updated_at);
+}
+
+// The paired name claim after the commit: same key, same display, same
+// owner. Neither half is created without the other.
+function nameClaimedAfter(publicId, nameKey, display) {
+  return existsAfter(/databases/$(database)/documents/mb_names_v1/$(nameKey))
+    && getAfter(/databases/$(database)/documents/mb_names_v1/$(nameKey)).data.public_id == publicId
+    && getAfter(/databases/$(database)/documents/mb_names_v1/$(nameKey)).data.display == display
+    && getAfter(/databases/$(database)/documents/mb_names_v1/$(nameKey)).data.name_key == nameKey;
+}
+
+// Mirror image: the name rule sees the adventurer after the commit.
+function adventurerOwnedAfter(publicId, nameKey, display) {
+  return existsAfter(/databases/$(database)/documents/mb_adventurers_v1/$(publicId))
+    && getAfter(/databases/$(database)/documents/mb_adventurers_v1/$(publicId)).data.uid == request.auth.uid
+    && getAfter(/databases/$(database)/documents/mb_adventurers_v1/$(publicId)).data.public_id == publicId
+    && getAfter(/databases/$(database)/documents/mb_adventurers_v1/$(publicId)).data.name_key == nameKey
+    && getAfter(/databases/$(database)/documents/mb_adventurers_v1/$(publicId)).data.display == display;
+}
+
+// One private adventurer row per public ID: the owner proven by the
+// canonical pair reads it — including an authoritative missing-row read,
+// since this rule never touches `resource` — nobody lists it, and creation
+// binds it to the canonical pair before and after the commit plus its name
+// half. Names are immutable: only the tutorial bit moves, false to true.
+// A living row goes only with the full account deletion: name half, public
+// row, and both canonical halves gone together, so a live name is never
+// released or stranded under a living account.
+match /mb_adventurers_v1/{publicId} {
+  allow get: if ownsPublicId(publicId);
+  allow list: if false;
+  allow create: if isSignedIn() && isValidPublicId(publicId)
+    && ownsPublicId(publicId) && ownsPublicIdAfter(publicId)
+    && validAdventurer(publicId, request.resource.data)
+    && request.resource.data.intro_complete == false
+    && nameClaimedAfter(publicId, request.resource.data.name_key,
+      request.resource.data.display);
+  allow update: if ownsPublicId(publicId) && ownsPublicIdAfter(publicId)
+    && request.resource.data.public_id == resource.data.public_id
+    && request.resource.data.uid == resource.data.uid
+    && request.resource.data.name_key == resource.data.name_key
+    && request.resource.data.display == resource.data.display
+    && resource.data.intro_complete == false
+    && request.resource.data.intro_complete == true
+    && validAdventurer(publicId, request.resource.data);
+  // Missing rows delete as a no-op so an interrupted deletion resumes
+  // cleanly; a living row goes only with the full account deletion.
+  allow delete: if isSignedIn()
+    && (!exists(/databases/$(database)/documents/mb_adventurers_v1/$(publicId))
+      || (resource.data.uid == request.auth.uid
+        && nameGoneAfter(resource.data.name_key)
+        && hallGoneAfter(publicId)
+        && reservationGoneAfter(publicId)
+        && profileGoneAfter(resource.data.uid)));
+}
+
+function validNameClaim(nameKey, data) {
+  return data.keys().hasOnly(['name_key', 'display', 'public_id', 'schema',
+      'created_at'])
+    && data.name_key == nameKey
+    && validDisplayName(data.display)
+    && data.name_key == data.display.lower()
+    && isValidPublicId(data.public_id)
+    && data.schema == 1
+    && isNearNow(data.created_at);
+}
+
+// Global name index: the already-public handle and public ID only — no
+// UID, credential, or private metadata. Any signed-in player may read one
+// known key to test a collision; listing is denied. `create` fires only
+// when the key is absent, so two owners racing for one name yield exactly
+// one winner and mixed-case Latin variants collide on one lowercased key.
+// Creation binds the claim to the caller's canonical pair plus its
+// adventurer half. A living claim goes only with the full account
+// deletion — adventurer half, public row, and both canonical halves gone
+// together — so a name is never freed under a living score or a living
+// account.
+match /mb_names_v1/{nameKey} {
+  allow get: if isSignedIn();
+  allow list: if false;
+  allow create: if isSignedIn()
+    && ownsPublicId(request.resource.data.public_id)
+    && ownsPublicIdAfter(request.resource.data.public_id)
+    && validNameClaim(nameKey, request.resource.data)
+    && adventurerOwnedAfter(request.resource.data.public_id, nameKey,
+      request.resource.data.display);
+  allow update: if false;
+  // Missing rows delete as a no-op so an interrupted deletion resumes
+  // cleanly; a living claim goes only with the full account deletion.
+  allow delete: if isSignedIn()
+    && (!exists(/databases/$(database)/documents/mb_names_v1/$(nameKey))
+      || (ownsPublicId(resource.data.public_id)
+        && adventurerGoneAfter(resource.data.public_id)
+        && hallGoneAfter(resource.data.public_id)
+        && reservationGoneAfter(resource.data.public_id)
+        && profileGoneAfter(request.auth.uid)));
+}
+
+// One private attendance row per public ID: the last claim's server
+// timestamp plus the receiving install. The owner proven by the canonical
+// pair reads it — including an authoritative missing-row read, since this
+// rule never touches `resource` — nobody lists it. The claim stamp must
+// equal the server write time, so client-forged times die here; updates
+// additionally wait out the rolling twelve hours against server time.
+// Every advance carries the overwritten row's stamp and install
+// (`prev_*`, both or neither): the carried pair must equal the old row
+// exactly, so no advance — even from another install — can erase the
+// last recoverable receipt, and first claims carry none. Deleting a
+// living row would reset the cooldown, so it goes only with both
+// canonical halves in the full account deletion.
+function validAttendance(publicId, data) {
+  return data.keys().hasOnly(['public_id', 'uid', 'install_id',
+      'last_claim_at', 'schema', 'prev_claim_at', 'prev_install_id'])
+    && data.public_id == publicId
+    && isSignedIn() && data.uid == request.auth.uid
+    && data.install_id is string
+    && data.install_id.size() >= 1 && data.install_id.size() <= 64
+    && data.schema == 1
+    && (!data.keys().hasAny(['prev_claim_at', 'prev_install_id'])
+      || (data.keys().hasAll(['prev_claim_at', 'prev_install_id'])
+        && data.prev_claim_at is timestamp
+        && data.prev_install_id is string
+        && data.prev_install_id.size() >= 1
+        && data.prev_install_id.size() <= 64));
+}
+
+match /mb_attendance_v1/{publicId} {
+  allow get: if ownsPublicId(publicId);
+  allow list: if false;
+  allow create: if isSignedIn()
+    && ownsPublicId(publicId)
+    && ownsPublicIdAfter(publicId)
+    && validAttendance(publicId, request.resource.data)
+    && request.resource.data.last_claim_at == request.time
+    && !request.resource.data.keys().hasAny(['prev_claim_at',
+      'prev_install_id']);
+  allow update: if isSignedIn()
+    && ownsPublicId(publicId)
+    && ownsPublicIdAfter(publicId)
+    && request.resource.data.public_id == resource.data.public_id
+    && request.resource.data.uid == resource.data.uid
+    && validAttendance(publicId, request.resource.data)
+    && request.resource.data.last_claim_at == request.time
+    && request.time - resource.data.last_claim_at
+      >= duration.value(43200, 's')
+    && request.resource.data.prev_claim_at
+      == resource.data.last_claim_at
+    && request.resource.data.prev_install_id
+      == resource.data.install_id;
+  // Missing rows delete as a no-op so an interrupted deletion resumes
+  // cleanly; a living row goes only with the full account deletion,
+  // never alone to reset its own cooldown.
+  allow delete: if isSignedIn()
+    && (!exists(/databases/$(database)/documents/mb_attendance_v1/$(publicId))
+      || (resource.data.uid == request.auth.uid
+        && reservationGoneAfter(publicId)
+        && profileGoneAfter(resource.data.uid)));
 }

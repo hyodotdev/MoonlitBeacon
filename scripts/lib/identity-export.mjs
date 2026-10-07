@@ -415,3 +415,340 @@ export function assertAppleSignInProfileSupport(profileEntitlements, { required 
   }
   return true;
 }
+
+// App-root privacy manifest merge for iOS exports.
+//
+// Godot 4.7.1's iOS exporter emits its own app-root PrivacyInfo.xcprivacy
+// (the engine's required-reason declarations). Registering the
+// MoonlitIdentity app-owned manifest as a loose bundle file alongside it
+// produces two Xcode outputs of the same basename and fails the build
+// with "Multiple commands produce .../MoonlitBeacon.app/PrivacyInfo
+// .xcprivacy". The export plugin therefore registers no loose manifest;
+// instead the owned export pipeline merges the app-owned UserDefaults
+// declaration into Godot's generated root manifest right after the
+// export, then verifies Xcode sees exactly one root registration.
+//
+// The merge is explicit and fail-closed: it requires the measured engine
+// reasons, adds exactly the app-owned UserDefaults reasons read from the
+// addon source, preserves every other byte of Godot's file, retains the
+// tracking state, and throws on any unexpected shape instead of guessing.
+// SDK privacy bundles travel inside their own bundles and are never
+// touched here.
+
+export const IOS_PRIVACY_MANIFEST_FILENAME = 'PrivacyInfo.xcprivacy';
+export const IDENTITY_APP_PRIVACY_API = 'NSPrivacyAccessedAPICategoryUserDefaults';
+// Measured from the Godot 4.7.1-stable generated iOS export: the engine's
+// own required-reason declarations. Pinned so a template change that drops
+// a reason fails the export loudly instead of shipping under-declared;
+// unrelated future entries are preserved, never required.
+export const GODOT_ENGINE_PRIVACY_REASONS = Object.freeze({
+  NSPrivacyAccessedAPICategoryFileTimestamp: Object.freeze(['DDA9.1', 'C617.1']),
+  NSPrivacyAccessedAPICategorySystemBootTime: Object.freeze(['35F9.1']),
+  NSPrivacyAccessedAPICategoryDiskSpace: Object.freeze(['E174.1', '85F4.1']),
+});
+
+function privacyMatchExactlyOnce(text, pattern, what) {
+  const global = pattern.flags.includes('g')
+    ? pattern
+    : new RegExp(pattern.source, `${pattern.flags}g`);
+  const matches = [...String(text).matchAll(global)];
+  if (matches.length !== 1) {
+    throw new Error(
+      `Privacy manifest ${what} must appear exactly once: found ${matches.length}.`,
+    );
+  }
+  return matches[0];
+}
+
+/** The manifest's NSPrivacyTracking boolean. Throws unless exactly one. */
+export function privacyTrackingValue(plistXml) {
+  const match = privacyMatchExactlyOnce(
+    plistXml,
+    /<key>NSPrivacyTracking<\/key>\s*<(true|false)\/>/u,
+    'NSPrivacyTracking value',
+  );
+  return match[1] === 'true';
+}
+
+function privacyArrayClose(text, openEnd) {
+  // Matching close for the `<array>` whose open tag ends at openEnd:
+  // depth-count array/dict tags; self-closing empties are rejected
+  // because a category with no reasons is invalid per Apple.
+  let depth = 1;
+  const tags = /<(\/?)(dict|array)(\s[^<>]*?)?(\/?)>/gu;
+  tags.lastIndex = openEnd;
+  let tag = tags.exec(text);
+  while (tag !== null) {
+    const full = tag[0];
+    const closing = tag[1];
+    const selfClosing = tag[4];
+    if (selfClosing === '/') {
+      throw new Error(
+        `Privacy manifest has an unexpected self-closing tag: ${full}`,
+      );
+    }
+    if (closing === '/') depth -= 1;
+    else depth += 1;
+    if (depth === 0) return tag.index;
+    tag = tags.exec(text);
+  }
+  throw new Error('Privacy manifest NSPrivacyAccessedAPITypes array never closes.');
+}
+
+/**
+ * Parsed `NSPrivacyAccessedAPITypes` entries: `{ type, reasons,
+ * reasonsClose }[]`, where reasonsClose is the absolute offset of the
+ * entry's reasons-array close tag (the reason-insertion point).
+ * Sibling keys a future schema adds inside a category dict are
+ * preserved untouched; only the two understood keys are required
+ * exactly once. A repeated category is malformed and throws.
+ */
+export function privacyApiEntries(plistXml) {
+  const text = String(plistXml ?? '');
+  const keyTag = '<key>NSPrivacyAccessedAPITypes</key>';
+  privacyMatchExactlyOnce(text, /<key>NSPrivacyAccessedAPITypes<\/key>/u, 'NSPrivacyAccessedAPITypes key');
+  const keyAt = text.indexOf(keyTag) + keyTag.length;
+  const arrayOpen = text.slice(keyAt).match(/^\s*<array>/u);
+  if (!arrayOpen) {
+    throw new Error('Privacy manifest NSPrivacyAccessedAPITypes is not an array.');
+  }
+  const bodyStart = keyAt + arrayOpen[0].length;
+  const bodyEnd = privacyArrayClose(text, bodyStart);
+  const entries = [];
+  const dicts = /<dict>|<\/dict>|<array>|<\/array>/gu;
+  let depth = 0;
+  let dictStart = -1;
+  let match = dicts.exec(text);
+  while (match !== null && match.index < bodyEnd) {
+    if (match.index < bodyStart) {
+      match = dicts.exec(text);
+      continue;
+    }
+    if (match[0] === '<dict>') {
+      if (depth === 0) dictStart = match.index;
+      depth += 1;
+    } else if (match[0] === '</dict>') {
+      depth -= 1;
+      if (depth === 0 && dictStart >= 0) {
+        entries.push({
+          start: dictStart,
+          dict: text.slice(dictStart, match.index + '</dict>'.length),
+        });
+        dictStart = -1;
+      }
+      if (depth < 0) break;
+    } else if (match[0] === '<array>') {
+      depth += 1;
+    } else {
+      depth -= 1;
+    }
+    match = dicts.exec(text);
+  }
+  if (depth !== 0 || dictStart >= 0) {
+    throw new Error('Privacy manifest NSPrivacyAccessedAPITypes entries are unbalanced.');
+  }
+  const seen = new Set();
+  return entries.map(({ start, dict }) => {
+    const type = privacyMatchExactlyOnce(
+      dict,
+      /<key>NSPrivacyAccessedAPIType<\/key>\s*<string>([^<]*)<\/string>/u,
+      'NSPrivacyAccessedAPIType value',
+    )[1];
+    if (seen.has(type)) {
+      throw new Error(`Privacy manifest repeats category ${type}.`);
+    }
+    seen.add(type);
+    const reasonsKey = '<key>NSPrivacyAccessedAPITypeReasons</key>';
+    privacyMatchExactlyOnce(dict, /<key>NSPrivacyAccessedAPITypeReasons<\/key>/u, 'NSPrivacyAccessedAPITypeReasons key');
+    const reasonsAt = dict.indexOf(reasonsKey) + reasonsKey.length;
+    const reasonsOpen = dict.slice(reasonsAt).match(/^\s*<array>/u);
+    if (!reasonsOpen) {
+      throw new Error(`Privacy manifest ${type} reasons are not an array.`);
+    }
+    const reasonsStart = reasonsAt + reasonsOpen[0].length;
+    const reasonsEnd = privacyArrayClose(dict, reasonsStart);
+    const body = dict.slice(reasonsStart, reasonsEnd);
+    if (/<(?!string>|\/string>)[a-z/][^<>]*>/u.test(body)) {
+      throw new Error(`Privacy manifest ${type} reasons hold a non-string tag.`);
+    }
+    const reasons = [...body.matchAll(/<string>([^<]*)<\/string>/gu)]
+      .map((reason) => reason[1]);
+    return { type, reasons, reasonsClose: start + reasonsEnd };
+  });
+}
+
+function privacyLineIndent(text, offset) {
+  const lineStart = text.lastIndexOf('\n', offset - 1) + 1;
+  return text.slice(lineStart, offset).match(/^[ \t]*/u)?.[0] ?? '';
+}
+
+/**
+ * Merge the app-owned UserDefaults declaration into Godot's generated
+ * app-root manifest. Returns the merged plist: Godot's bytes preserved
+ * except the inserted reasons/category, tracking retained. Byte-identical
+ * input returns byte-identical output. Throws when the generated file
+ * lost a measured engine reason, when the app source lacks its
+ * declaration or carries anything beyond UserDefaults, when the two
+ * tracking states disagree, or when either file has an unexpected shape.
+ */
+export function mergeAppPrivacyManifest({ godotPlist, appPlist }) {
+  const godotTracking = privacyTrackingValue(godotPlist);
+  const appTracking = privacyTrackingValue(appPlist);
+  if (godotTracking !== appTracking) {
+    throw new Error(
+      'Privacy manifest tracking states disagree: refusing to flip NSPrivacyTracking.',
+    );
+  }
+  const godotEntries = privacyApiEntries(godotPlist);
+  const godotByType = new Map(godotEntries.map((entry) => [entry.type, entry]));
+  for (const [type, reasons] of Object.entries(GODOT_ENGINE_PRIVACY_REASONS)) {
+    const entry = godotByType.get(type);
+    const missing = reasons.filter((reason) => !(entry?.reasons ?? []).includes(reason));
+    if (!entry || missing.length > 0) {
+      throw new Error(
+        `Generated PrivacyInfo.xcprivacy lost engine reason ${missing[0]} `
+        + `for ${type}; verify against the Godot template before updating the measured set.`,
+      );
+    }
+  }
+  const appEntries = privacyApiEntries(appPlist);
+  const unexpected = appEntries.filter((entry) => entry.type !== IDENTITY_APP_PRIVACY_API);
+  if (unexpected.length > 0) {
+    throw new Error(
+      `App privacy source carries unexpected category ${unexpected[0].type}; `
+      + 'the merger adds exactly the app-owned UserDefaults declaration.',
+    );
+  }
+  const appOwned = appEntries.find((entry) => entry.type === IDENTITY_APP_PRIVACY_API);
+  if (!appOwned || appOwned.reasons.length === 0) {
+    throw new Error('App privacy source lacks its UserDefaults declaration.');
+  }
+  const godotOwned = godotByType.get(IDENTITY_APP_PRIVACY_API);
+  const missing = appOwned.reasons.filter(
+    (reason) => !(godotOwned?.reasons ?? []).includes(reason),
+  );
+  if (missing.length === 0) return String(godotPlist);
+  const text = String(godotPlist);
+  const measured = godotEntries.find((entry) => entry.reasons.length > 0);
+  const firstDictAt = text.indexOf('<dict>', text.indexOf('<key>NSPrivacyAccessedAPITypes</key>'));
+  const dictIndent = privacyLineIndent(text, firstDictAt);
+  const firstKeyAt = text.indexOf('<key>NSPrivacyAccessedAPIType</key>');
+  const keyIndent = privacyLineIndent(text, firstKeyAt);
+  const firstReasonAt = text.indexOf('<string>', text.indexOf(
+    '<key>NSPrivacyAccessedAPITypeReasons</key>',
+  ));
+  const reasonIndent = privacyLineIndent(text, firstReasonAt);
+  if (measured === undefined || firstReasonAt < 0) {
+    throw new Error('Generated PrivacyInfo.xcprivacy carries no measurable reason indent.');
+  }
+  if (godotOwned) {
+    const lines = missing
+      .map((reason) => `${reasonIndent}<string>${reason}</string>\n`)
+      .join('');
+    return insertBeforeLine(text, godotOwned.reasonsClose, lines);
+  }
+  const outerKey = '<key>NSPrivacyAccessedAPITypes</key>';
+  const outerOpenEnd = text.indexOf('<array>', text.indexOf(outerKey)) + '<array>'.length;
+  const outerClose = privacyArrayClose(text, outerOpenEnd);
+  const dict = `${dictIndent}<dict>\n`
+    + `${keyIndent}<key>NSPrivacyAccessedAPIType</key>\n`
+    + `${keyIndent}<string>${IDENTITY_APP_PRIVACY_API}</string>\n`
+    + `${keyIndent}<key>NSPrivacyAccessedAPITypeReasons</key>\n`
+    + `${keyIndent}<array>\n`
+    + missing.map((reason) => `${reasonIndent}<string>${reason}</string>\n`).join('')
+    + `${keyIndent}</array>\n`
+    + `${dictIndent}</dict>\n`;
+  return insertBeforeLine(text, outerClose, dict);
+}
+
+// Insert lines before the line holding offset, reusing that line's own
+// indent for the displaced tag so surrounding bytes stay untouched.
+function insertBeforeLine(text, offset, insertion) {
+  const indent = privacyLineIndent(text, offset);
+  const lineStart = offset - indent.length;
+  return text.slice(0, lineStart) + insertion + indent + text.slice(offset);
+}
+
+/**
+ * `PBXFileReference` lines registering a root (non-bundle)
+ * PrivacyInfo.xcprivacy in a generated project. SDK manifests travel
+ * inside their own bundles and never match: the classifier is the
+ * entry type plus the path, never the bare filename.
+ */
+export function rootPrivacyManifestFileReferences(pbxprojSource) {
+  return String(pbxprojSource ?? '').split('\n')
+    .filter((line) => line.includes(IOS_PRIVACY_MANIFEST_FILENAME)
+      && line.includes('isa = PBXFileReference')
+      && !line.includes('.bundle'));
+}
+
+/** Exactly one app-root manifest registration, else a loud failure. */
+export function assertSingleRootPrivacyManifestRegistration(pbxprojSource) {
+  const refs = rootPrivacyManifestFileReferences(pbxprojSource);
+  if (refs.length !== 1) {
+    const mentions = String(pbxprojSource ?? '').split('\n')
+      .filter((line) => line.includes(IOS_PRIVACY_MANIFEST_FILENAME));
+    throw new Error(
+      'iOS export must register exactly one app-root PrivacyInfo.xcprivacy: '
+      + `found ${refs.length} PBXFileReference entries.\n${mentions.join('\n')}`,
+    );
+  }
+  return refs[0];
+}
+
+// Observed Godot 4.7.1 export layout: the engine manifest sits at the
+// export root, alongside MoonlitBeacon.xcodeproj — not under the scheme
+// sources directory with Info.plist.
+export function generatedIosPrivacyManifestPath(projectDir) {
+  return join(projectDir, IOS_PRIVACY_MANIFEST_FILENAME);
+}
+
+export function generatedIosPbxprojPath(projectDir, scheme) {
+  return join(projectDir, `${scheme}.xcodeproj`, 'project.pbxproj');
+}
+
+/**
+ * Merge the app-owned UserDefaults declaration into the generated
+ * app-root manifest and verify Xcode's single root registration.
+ * Returns `{ merged, manifestPath, tracking }`; `merged` is false when
+ * the generated file already carried every app-owned reason.
+ */
+export function mergeIdentityPrivacyManifestIntoGeneratedExport({
+  projectDir,
+  scheme,
+  appManifestPath,
+}) {
+  if (typeof scheme !== 'string' || scheme.length === 0) {
+    throw new Error('iOS scheme name is empty.');
+  }
+  const manifestPath = generatedIosPrivacyManifestPath(projectDir);
+  const nestedPath = join(projectDir, scheme, IOS_PRIVACY_MANIFEST_FILENAME);
+  const hasManifest = existsSync(manifestPath);
+  const hasNested = existsSync(nestedPath);
+  if (hasManifest && hasNested) {
+    throw new Error(
+      `iOS PrivacyInfo.xcprivacy is ambiguous: both ${manifestPath} and ${nestedPath} exist.`,
+    );
+  }
+  if (!hasManifest) {
+    throw new Error(
+      `iOS generated app PrivacyInfo.xcprivacy is missing: ${manifestPath}`
+      + (hasNested ? ` (the nested copy at ${nestedPath} is not the engine manifest)` : ''),
+    );
+  }
+  if (!existsSync(appManifestPath)) {
+    throw new Error(`iOS app privacy source is missing: ${appManifestPath}`);
+  }
+  const before = readFileSync(manifestPath, 'utf8');
+  const merged = mergeAppPrivacyManifest({
+    godotPlist: before,
+    appPlist: readFileSync(appManifestPath, 'utf8'),
+  });
+  if (merged !== before) writeFileSync(manifestPath, merged, { encoding: 'utf8' });
+  const pbxprojPath = generatedIosPbxprojPath(projectDir, scheme);
+  if (!existsSync(pbxprojPath)) {
+    throw new Error(`iOS generated project.pbxproj is missing: ${pbxprojPath}`);
+  }
+  assertSingleRootPrivacyManifestRegistration(readFileSync(pbxprojPath, 'utf8'));
+  return { merged: merged !== before, manifestPath, tracking: privacyTrackingValue(merged) };
+}

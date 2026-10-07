@@ -65,6 +65,9 @@ class DelayedSender extends RefCounted:
 	func queue_ok(body: String = "{}") -> void:
 		replies.append({"transport": "ok", "code": 200, "body": body})
 
+	func queue_reply(reply: Dictionary) -> void:
+		replies.append(reply.duplicate(true))
+
 	func send(method: String, url: String, _headers: Dictionary,
 			_body: String) -> Dictionary:
 		calls.append({"method": method, "url": url})
@@ -87,6 +90,109 @@ class FakeClock extends RefCounted:
 
 	func advance(msec: int) -> void:
 		now += msec
+
+
+## Recorder stand-in for the cloud coordinator on the four name routes.
+## Records every call without touching the wire; `hold_frames` parks the
+## reply so a test can retire the account mid-call and observe the stale
+## completion. Never emits: the host wires its signals like the real one.
+class NameRecorder extends Node:
+	signal account_changed(snapshot: Dictionary)
+	signal save_changed(snapshot: Dictionary)
+	signal conflict_found(info: Dictionary)
+	signal hall_changed(snapshot: Dictionary)
+	signal rank_changed(snapshot: Dictionary)
+	signal attendance_changed(snapshot: Dictionary)
+	signal dispatched
+
+	var calls: Array = []
+	var hold_frames: int = 0
+	var tree_node: Node
+
+	func close() -> void:
+		pass
+
+	# Inert stubs for production paths that can reach the live
+	# coordinator outside the name routes (snapshots for account state,
+	# a deferred best-submit from a late save ack). Only the four name
+	# routes below record; these never touch the wire.
+	func account_snapshot() -> Dictionary:
+		return {"state": "unconfigured"}
+
+	func save_snapshot() -> Dictionary:
+		return {"state": "unconfigured"}
+
+	func hall_snapshot() -> Dictionary:
+		return {"state": "unregistered", "source": "unregistered",
+			"rows": []}
+
+	func rank_snapshot() -> Dictionary:
+		return {"state": "unregistered", "source": "unregistered",
+			"rank": 0, "score": 0}
+
+	func conflict_snapshot() -> Dictionary:
+		return {}
+
+	func submit_current_best() -> Dictionary:
+		return {"status": "cancelled", "code": "recorder",
+			"retryable": false}
+
+	func refresh_rank() -> Dictionary:
+		return {"status": "cancelled", "code": "recorder",
+			"retryable": false}
+
+	func refresh_board(_limit: int = 20) -> Dictionary:
+		return {"status": "cancelled", "code": "recorder",
+			"retryable": false}
+
+	func claim_adventurer_name(display: String) -> Dictionary:
+		calls.append({"route": "claim", "display": display})
+		dispatched.emit()
+		await _hold()
+		return {"status": "ok", "display": display,
+			"key": str(display).to_lower(), "intro_complete": false,
+			"cached": true, "backfilled": false,
+			"backfill_code": "no-row"}
+
+	func fetch_adventurer_name() -> Dictionary:
+		calls.append({"route": "load"})
+		dispatched.emit()
+		await _hold()
+		return {"status": "ok", "display": "Alpha", "key": "alpha",
+			"intro_complete": false, "cached": true, "source": "cloud"}
+
+	func complete_intro() -> Dictionary:
+		calls.append({"route": "intro"})
+		dispatched.emit()
+		await _hold()
+		return {"status": "ok", "display": "Alpha", "key": "alpha",
+			"intro_complete": true, "cached": true, "source": "cloud"}
+
+	func backfill_hall_name() -> Dictionary:
+		calls.append({"route": "backfill"})
+		dispatched.emit()
+		await _hold()
+		return {"status": "ok", "code": "no-row", "backfilled": false}
+
+	func claim_attendance() -> Dictionary:
+		calls.append({"route": "attendance"})
+		dispatched.emit()
+		await _hold()
+		return {"status": "granted",
+			"receipt": "attendance:stub:1:stub", "coins": 2,
+			"granted": true, "duplicate": false,
+			"next_eligible_utc": "2026-10-07T22:00:00Z",
+			"remaining_seconds": 43200}
+
+	func attendance_snapshot() -> Dictionary:
+		return {"state": "unregistered", "source": "none",
+			"public_id": "", "receipt": "",
+			"last_claim_utc": "", "next_eligible_utc": "",
+			"remaining_seconds": -1}
+
+	func _hold() -> void:
+		for _index in hold_frames:
+			await tree_node.get_tree().process_frame
 
 
 class RoutedSender extends RefCounted:
@@ -197,6 +303,48 @@ func _run() -> void:
 	await _test_restart_keeps_id()
 	await _test_corrupt_identity_refuses_readiness()
 	await _test_canonical_adoption_durable()
+	await _test_adoption_rekey_failure_stays_guest_then_retries()
+	await _test_legacy_paid_adoption_recovers()
+	await _test_adoption_occupied_canonical_preserves_guest()
+	await _test_adoption_crash_between_rekey_and_move()
+	await _test_adoption_target_receipt_without_source_receipt()
+	await _test_adoption_occupied_target_without_source_receipt()
+	await _test_claim_name_caches_and_backfills_nothing()
+	await _test_claim_taken_keeps_identity()
+	await _test_local_guest_cannot_claim()
+	await _test_linking_keeps_claimed_name()
+	await _test_intro_complete_and_reload()
+	await _test_claim_backfills_existing_best()
+	await _test_submit_best_carries_handle()
+	await _test_claim_restore_keeps_completion_bit()
+	await _test_name_wrappers_cancel_on_token_switch()
+	await _test_claim_token_failure_sends_nothing()
+	await _test_claim_token_timeout_sends_nothing()
+	await _test_claim_shutdown_mid_wait_cancels()
+	await _test_claim_stale_completion_cancels()
+	await _test_claim_retirement_mid_wait_cancels()
+	await _test_claim_cancelled_across_failed_deletion()
+	await _test_claim_cancelled_by_earlier_failed_deletion()
+	await _test_claim_refused_while_deletion_in_flight()
+	await _test_attendance_first_claim_grants_two()
+	await _test_attendance_cooldown_grants_nothing()
+	await _test_attendance_same_install_recovers_after_uncertain_ack()
+	await _test_attendance_wallet_failure_recovers()
+	await _test_attendance_request_skips_and_double_tap()
+	await _test_attendance_receipt_flush_and_suppression()
+	await _test_attendance_foreground_and_offline_cache()
+	await _test_attendance_link_keeps_record()
+	await _test_attendance_cancelled_across_failed_deletion()
+	await _test_attendance_refused_while_deletion_in_flight()
+	await _test_attendance_backfills_before_advance()
+	await _test_attendance_other_install_advance_carries_prev()
+	await _test_attendance_cooldown_backfills_carried_prev()
+	await _test_attendance_backfill_replay_is_idempotent()
+	await _test_attendance_uncertain_advance_recovers()
+	await _test_attendance_ambiguous_backfill_skips_and_advances()
+	await _test_attendance_pruned_return_advances()
+	await _test_submit_best_pushes_hud_rank()
+	await _test_hall_named_rows_reach_panel()
 	await _test_adoption_conflict_preserves()
 	await _test_bindings_have_no_secrets()
 	await _test_offline_guest_labeled_local()
@@ -209,6 +357,15 @@ func _run() -> void:
 	await _test_fresh_guest_on_signout_preserves_slot()
 	await _test_new_save_confirmation()
 	await _test_resume_needs_save()
+	await _test_defeat_offers_no_resume()
+	await _test_stuck_revive_needs_fresh_confirmation()
+	await _test_lodge_local_guest_skips()
+	await _test_lodge_unnamed_cloud_blocked()
+	await _test_lodge_named_unfinished_recovers()
+	await _test_lodge_completed_skips()
+	await _test_lodge_exit_guards()
+	await _test_lodge_exit_ok_and_confirm()
+	await _test_lodge_exit_defeat_never_resumes()
 	await _test_double_start_refused()
 	await _test_wrong_account_entry_refused()
 	await _test_continue_reward_safety()
@@ -360,6 +517,23 @@ func _await_ready(host: Node, frames: int = 240) -> Dictionary:
 		if coord != null:
 			var snapshot: Dictionary = coord.account_snapshot()
 			if str(snapshot.get("state", "")) == "ready":
+				return snapshot
+		await get_tree().process_frame
+	var coord: Node = host.get("_coordinator") as Node
+	if coord == null:
+		return {}
+	return coord.account_snapshot()
+
+
+## Wait until the live coordinator's reservation leaves `reserving` by any
+## outcome — ready, offline, conflict, or error. For failure-path tests
+## that must observe the error snapshot instead of a ready one.
+func _await_reserve_settled(host: Node, frames: int = 120) -> Dictionary:
+	for _index in frames:
+		var coord: Node = host.get("_coordinator") as Node
+		if coord != null:
+			var snapshot: Dictionary = coord.account_snapshot()
+			if str(snapshot.get("state", "")) != "reserving":
 				return snapshot
 		await get_tree().process_frame
 	var coord: Node = host.get("_coordinator") as Node
@@ -530,6 +704,15 @@ func _test_canonical_adoption_durable() -> void:
 	host.startup()
 	var guest: String = str((host.account_state() as Dictionary).get(
 		"public_id", ""))
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_seal_and_journal(guest, "adopt-j-1", 2, 3)
+	Journey.use_account(guest)
+	# Blocked installs keep the receipt pending past the first status
+	# read, so the adoption below must carry it onto the canonical slot
+	# instead of settling it in place. Slot moves are renames and still
+	# run under the fault.
+	Journey.install_fault = Journey.InstallFault.FAIL_ALL
 	# A UID that already owns another id: the canonical one wins.
 	sender.queue_ok(_profile_body(UID_A, CANON_C))
 	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
@@ -540,6 +723,17 @@ func _test_canonical_adoption_durable() -> void:
 		host, "account_state", CANON_C)
 	_expect_equal(str(adopted.get("public_id", "")), CANON_C,
 		"adopt: canonical id wins")
+	_expect_equal(str(Vault.scoped_continue_txn().get("owner", "")), CANON_C,
+		"adopt: the guest receipt rekeys onto the canonical slot")
+	_expect_equal(int(Vault.scoped_continue_txn().get("checkpoint_id", 0)),
+		3, "adopt: the rekeyed receipt names the paid seal")
+	Journey.install_fault = Journey.InstallFault.NONE
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"adopt: the rekeyed receipt still settles")
+	_expect_equal(Vault.continue_coins, 0,
+		"adopt: the rekeyed settle charges nothing more")
+	_expect_equal(int(Journey.read_checkpoint().get("checkpoint_id", 0)), 3,
+		"adopt: the canonical slot holds the paid revive")
 	_expect_equal((host.account_state() as Dictionary).get(
 		"cloud_uid", ""), UID_A, "adopt: cloud session kept")
 	var account: Node = parts["account"]
@@ -555,6 +749,2322 @@ func _test_canonical_adoption_durable() -> void:
 	_expect_equal(str(state.get("public_id", "")), CANON_C,
 		"adopt: canonical id survives restart")
 	await _free_parts(relaunched)
+
+
+## A wallet failure during canonical adoption keeps the guest scope and
+## reports the failed move instead of adopting over a stranded receipt.
+## After the fault clears and the account restarts, the retry adopts and
+## the one paid revive lands under the canonical slot with no second
+## debit, no foreign hook, and no orphan receipt.
+func _test_adoption_rekey_failure_stays_guest_then_retries() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_seal_and_journal(guest, "fault-j-1", 5, 6)
+	Journey.use_account(guest)
+	var hooked: Array = []
+	var hook := func(info: Dictionary) -> void: hooked.append(info)
+	Journey.subscribe_stable_checkpoint(hook)
+	var vault_tmp: String = ProjectSettings.globalize_path(
+		Vault.TEMP_SAVE_PATH)
+	_occupy_dir(vault_tmp)
+	sender.queue_ok(_profile_body(UID_A, CANON_C))
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host.begin_guest()
+	var faulted: Dictionary = await _await_reserve_settled(host)
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), guest,
+		"fault-adopt: the failed move stays on the guest")
+	_expect_equal(str(faulted.get("state", "")), "error",
+		"fault-adopt: the failed move reports error, not ready")
+	_expect_equal(str(faulted.get("code", "")), "slot-move-failed",
+		"fault-adopt: the error names the failed move")
+	var coord: Node = host.get("_coordinator") as Node
+	_expect_equal(str((coord.save_snapshot() as Dictionary).get(
+		"code", "")), "slot-move-failed",
+		"fault-adopt: the save snapshot carries the failure")
+	_expect_true(FileAccess.file_exists(
+		Journey.account_main_path(guest)),
+		"fault-adopt: the guest main stays in place")
+	_expect_false(FileAccess.file_exists(
+		Journey.account_main_path(CANON_C)),
+		"fault-adopt: nothing moves into the canonical slot")
+	_expect_equal(_txn_owner_cid(guest), 6,
+		"fault-adopt: the receipt stays owned by the guest")
+	_expect_equal(Vault.continue_coins, 0,
+		"fault-adopt: the one debit stands, no second charge")
+	var gate: Dictionary = host.saved_gate_summary()
+	_expect_false(bool(gate.get("revive_stuck", true)),
+		"fault-adopt: ordinary gate reads stay unstuck")
+
+	# The restart: fault cleared, wallet reloaded, fresh host on the same
+	# storage. The retry adopts and the paid seal lands canonically.
+	_release_dir(vault_tmp)
+	Vault.load_vault()
+	_expect_equal(Vault.continue_coins, 0,
+		"fault-adopt: the reload keeps the single debit")
+	_expect_equal(_txn_owner_cid(guest), 6,
+		"fault-adopt: the reload keeps the guest receipt")
+	await _free_parts(parts)
+	var restarted: Dictionary = _make_parts()
+	var host2: Node = restarted["host"]
+	var fake2: Node = restarted["fake"]
+	var sender2: RefCounted = restarted["sender"]
+	var state2: Dictionary = (host2 as Node).startup()
+	_expect_equal(str(state2.get("public_id", "")), guest,
+		"fault-adopt: the restart restores the guest")
+	# The restart's own status reads deliver the seal that landed during
+	# the fault (its ack was what the broken wallet held back), so the
+	# retry below carries landed bytes rather than a pending receipt —
+	# the crash-window case covers a receipt still in flight.
+	var landed: Dictionary = Journey.read_checkpoint()
+	_expect_false(Journey.is_ended(landed),
+		"fault-adopt: the restart kept the landed seal")
+	_expect_equal(int(landed.get("checkpoint_id", 0)), 6,
+		"fault-adopt: the landed seal is the correct original")
+	_expect_true((Vault.continue_txn as Dictionary).is_empty(),
+		"fault-adopt: the eager delivery clears the journal")
+	_expect_equal(Vault.recover_paid_continue(), "none",
+		"fault-adopt: nothing pends after the eager delivery")
+	Journey.subscribe_stable_checkpoint(hook)
+	sender2.queue_ok(_profile_body(UID_A, CANON_C))
+	sender2.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake2.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host2.begin_guest()
+	var adopted: Dictionary = await _settle_call(
+		host2, "account_state", CANON_C)
+	_expect_equal(str(adopted.get("public_id", "")), CANON_C,
+		"fault-adopt: the retry adopts the canonical id")
+	var canon: Dictionary = Journey.read_checkpoint()
+	_expect_false(Journey.is_ended(canon),
+		"fault-adopt: the canonical slot holds the alive revive")
+	_expect_equal(int(canon.get("checkpoint_id", 0)), 6,
+		"fault-adopt: the revive is the correct original seal")
+	_expect_equal(Vault.continue_coins, 0,
+		"fault-adopt: the retry charges nothing more")
+	_expect_true(_txn_owner_cid(guest) == 0
+		and _txn_owner_cid(CANON_C) == 0,
+		"fault-adopt: no orphan receipt survives")
+	for note in hooked:
+		var heard: String = str((note as Dictionary).get("path", ""))
+		_expect_true(heard == Journey.account_main_path(guest)
+			or heard == Journey.account_main_path(CANON_C),
+			"fault-adopt: every hook stays within the adopting slots")
+	var seventh: Dictionary = _valid_checkpoint("fault-j-1", 7, 0)
+	_expect_equal(Journey.write_checkpoint(seventh), OK,
+		"fault-adopt: post-recovery play seals")
+	_expect_false(hooked.is_empty(),
+		"fault-adopt: the recovery notified at least once")
+	if not hooked.is_empty():
+		_expect_equal(str((hooked.back() as Dictionary).get("path", "")),
+			Journey.account_main_path(CANON_C),
+			"fault-adopt: routing follows the adoption")
+	Journey.unsubscribe_stable_checkpoint(hook)
+	await _free_parts(restarted)
+
+
+## A legacy receipt adopts with its slot's files: the debit rekeys onto
+## the owned account before the save migrates, then settles there. Under
+## a wallet failure the migration waits — legacy bytes and receipt stay
+## jointly in place — and the next startup converges without recharging.
+func _test_legacy_paid_adoption_recovers() -> void:
+	# Blocked installs keep each receipt pending past the status reads
+	# around it, so the adoption — not an eager settle — carries it.
+	_wipe_all()
+	_write_legacy_pair("legacy-j-1", 5)
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	Journey.use_account("")
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_journal_revive("legacy-j-1", 6)
+	Journey.install_fault = Journey.InstallFault.FAIL_ALL
+	var state: Dictionary = (host as Node).startup()
+	var guest: String = str(state.get("public_id", ""))
+	_expect_false(FileAccess.file_exists(Journey.DEFAULT_PATH),
+		"legacy-adopt: the legacy main migrates away")
+	_expect_equal(_txn_owner_cid(guest), 6,
+		"legacy-adopt: the receipt rekeys onto the owned slot")
+	Journey.install_fault = Journey.InstallFault.NONE
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"legacy-adopt: the owned receipt settles")
+	_expect_equal(int(Journey.read_checkpoint().get("checkpoint_id", 0)),
+		6, "legacy-adopt: the revive is the correct original seal")
+	_expect_equal(Vault.continue_coins, 0,
+		"legacy-adopt: the settle charges nothing more")
+	await _free_parts(parts)
+
+	# The fault half: a broken wallet holds the migration jointly — the
+	# receipt and its bytes stay in the legacy scope together, so even a
+	# rotation before the retry cannot split them across two guests.
+	# Blocked installs keep the receipt itself pending (rather than
+	# landed-but-unacked) so the retry carries receipt and bytes together;
+	# the joint hold below is still the wallet's doing — file moves are
+	# raw operations the install block does not stop.
+	_wipe_all()
+	_write_legacy_pair("legacy-j-2", 5)
+	var held: Dictionary = _make_parts()
+	var held_host: Node = held["host"]
+	Journey.use_account("")
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_journal_revive("legacy-j-2", 6)
+	Journey.install_fault = Journey.InstallFault.FAIL_ALL
+	var vault_tmp: String = ProjectSettings.globalize_path(
+		Vault.TEMP_SAVE_PATH)
+	_occupy_dir(vault_tmp)
+	var held_state: Dictionary = (held_host as Node).startup()
+	var held_guest: String = str(held_state.get("public_id", ""))
+	_expect_true(FileAccess.file_exists(Journey.DEFAULT_PATH),
+		"legacy-adopt: the failed rekey holds the migration")
+	_expect_equal(_txn_owner_cid(""), 6,
+		"legacy-adopt: the receipt stays legacy-owned")
+	_expect_false(FileAccess.file_exists(
+		Journey.account_main_path(held_guest)),
+		"legacy-adopt: the owned slot stays empty meanwhile")
+	_expect_equal(str(((held_host as Node).account_state()
+		as Dictionary).get("legacy_hold", "")), "legacy-adopt-held",
+		"legacy-adopt: the hold carries a truthful retry code")
+	(held_host as Node).sign_out()
+	var rotated: String = str(((held_host as Node).account_state()
+		as Dictionary).get("public_id", ""))
+	_expect_true(rotated != held_guest and not rotated.is_empty(),
+		"legacy-adopt: the rotation mints the next guest")
+	_expect_true(FileAccess.file_exists(Journey.DEFAULT_PATH),
+		"legacy-adopt: the rotation moves nothing while held")
+	_expect_equal(_txn_owner_cid(""), 6,
+		"legacy-adopt: the rotation keeps the legacy receipt")
+	_release_dir(vault_tmp)
+	Vault.load_vault()
+	_expect_equal(Vault.continue_coins, 0,
+		"legacy-adopt: the reload keeps the single debit")
+	_expect_equal(_txn_owner_cid(""), 6,
+		"legacy-adopt: the reload keeps the legacy receipt")
+	await _free_parts(held)
+	var retry: Dictionary = _make_parts()
+	var retry_state: Dictionary = (retry["host"] as Node).startup()
+	_expect_equal(str(retry_state.get("public_id", "")), rotated,
+		"legacy-adopt: the retry restores the rotated guest")
+	_expect_true(str(retry_state.get("legacy_hold", "")).is_empty(),
+		"legacy-adopt: the retry clears the hold code")
+	_expect_false(FileAccess.file_exists(Journey.DEFAULT_PATH),
+		"legacy-adopt: the retry migrates the save")
+	_expect_equal(_txn_owner_cid(rotated), 6,
+		"legacy-adopt: the retry rekeys the receipt with its bytes")
+	Journey.install_fault = Journey.InstallFault.NONE
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"legacy-adopt: the retry settles without recharging")
+	_expect_equal(Vault.continue_coins, 0,
+		"legacy-adopt: exactly one debit across the fault")
+	_expect_false(FileAccess.file_exists(
+		Journey.account_main_path(held_guest)),
+		"legacy-adopt: no split-brain copy lands in the first guest")
+	await _free_parts(retry)
+
+
+## A canonical slot that already holds a journey keeps it: adoption still
+## lands, the unrelated slot stays byte-identical, and the guest receipt
+## is retained (deferred) rather than rekeyed or dropped.
+func _test_adoption_occupied_canonical_preserves_guest() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_seal_and_journal(guest, "occ-j-1", 5, 6)
+	Journey.use_account(CANON_C)
+	_write_checkpoint({"journey_id": "canon-j-9", "checkpoint_id": 4,
+		"cycle": 2})
+	var canon_before: String = FileAccess.get_file_as_string(
+		Journey.account_main_path(CANON_C))
+	Journey.use_account(guest)
+	# Blocked installs keep the receipt pending past the first status
+	# read, so the adoption meets it instead of settling it in place.
+	Journey.install_fault = Journey.InstallFault.FAIL_ALL
+	sender.queue_ok(_profile_body(UID_A, CANON_C))
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host.begin_guest()
+	var adopted: Dictionary = await _settle_call(
+		host, "account_state", CANON_C)
+	_expect_equal(str(adopted.get("public_id", "")), CANON_C,
+		"occupied: adoption still lands")
+	_expect_equal(FileAccess.get_file_as_string(
+		Journey.account_main_path(CANON_C)), canon_before,
+		"occupied: the canonical slot stays byte-identical")
+	_expect_true(FileAccess.file_exists(
+		Journey.account_main_path(guest)),
+		"occupied: the guest slot stays in place")
+	_expect_equal(_txn_owner_cid(guest), 6,
+		"occupied: the guest receipt is retained")
+	_expect_equal(Vault.recover_paid_continue(), "deferred",
+		"occupied: the retained receipt defers, never imports")
+	_expect_equal(Vault.continue_coins, 0,
+		"occupied: the one debit stands")
+	Journey.install_fault = Journey.InstallFault.NONE
+	Journey.use_account(guest)
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"occupied: the retained receipt still settles in its scope")
+	_expect_equal(Vault.continue_coins, 0,
+		"occupied: the late settle charges nothing more")
+	await _free_parts(parts)
+
+
+## The rekey-first crash window converges: the receipt already owns the
+## canonical slot while its files still sit in the guest slot. Only the
+## durable state survives the death; the next adoption completes the move
+## and the paid seal lands with no second debit.
+func _test_adoption_crash_between_rekey_and_move() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_seal_and_journal(guest, "crash-j-1", 5, 6)
+	_expect_true(Vault.rekey_continue_txn_owner(guest, CANON_C),
+		"crash-window: the rekey lands first")
+	Vault.load_vault()
+	_expect_equal(_txn_owner_cid(CANON_C), 6,
+		"crash-window: only the rekeyed receipt survives the death")
+	_expect_true(FileAccess.file_exists(
+		Journey.account_main_path(guest)),
+		"crash-window: the files never moved")
+	_expect_equal(Vault.continue_coins, 0,
+		"crash-window: the death charges nothing")
+	# Blocked installs keep the receipt pending past the status reads
+	# around it, so the explicit recovery — not an eager settle — lands it.
+	Journey.install_fault = Journey.InstallFault.FAIL_ALL
+	sender.queue_ok(_profile_body(UID_A, CANON_C))
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host.begin_guest()
+	var adopted: Dictionary = await _settle_call(
+		host, "account_state", CANON_C)
+	_expect_equal(str(adopted.get("public_id", "")), CANON_C,
+		"crash-window: adoption completes the move")
+	Journey.install_fault = Journey.InstallFault.NONE
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"crash-window: the paid seal materializes canonically")
+	_expect_equal(int(Journey.read_checkpoint().get("checkpoint_id", 0)),
+		6, "crash-window: the revive is the correct original seal")
+	_expect_equal(Vault.continue_coins, 0,
+		"crash-window: the materialize charges nothing more")
+	_expect_true(_txn_owner_cid(guest) == 0
+		and _txn_owner_cid(CANON_C) == 0,
+		"crash-window: no orphan receipt survives")
+	await _free_parts(parts)
+
+
+## A canonical target holding its own pending paid receipt is occupied
+## even when the source carries no receipt: the adoption keeps the
+## unrelated source bytes out, and the target's exact acknowledged seal
+## settles from the journal with no second debit.
+func _test_adoption_target_receipt_without_source_receipt() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	# Target C's acknowledged receipt, journaled through the real API,
+	# with no surviving target files: a supported paid recovery state.
+	Journey.use_account(CANON_C)
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	var paid: Dictionary = _valid_checkpoint("d1", 6, 0)
+	_expect_true(Vault.begin_continue_txn("d1", 6,
+		JSON.stringify(paid)), "target-kept: the target debit journals")
+	_wipe_slot(CANON_C)
+	_expect_false(FileAccess.file_exists(
+		Journey.account_main_path(CANON_C)),
+		"target-kept: the target holds no files")
+	# Source A's unrelated living journey, carrying no receipt.
+	Journey.use_account(guest)
+	var living: Dictionary = _valid_checkpoint("d1-other", 2, 0)
+	_expect_equal(Journey.write_checkpoint(living), OK,
+		"target-kept: the source journey seals")
+	var source_main: String = FileAccess.get_file_as_string(
+		Journey.account_main_path(guest))
+	var source_backup: String = ""
+	if FileAccess.file_exists(Journey.account_backup_path(guest)):
+		source_backup = FileAccess.get_file_as_string(
+			Journey.account_backup_path(guest))
+	# Only durable state crosses the restart: the reload and fresh parts
+	# below prove the receipt, not test memory, drives the recovery.
+	Vault.load_vault()
+	_expect_equal(_txn_owner_cid(CANON_C), 6,
+		"target-kept: the reload retains the target receipt")
+	_expect_equal(Vault.continue_coins, 0,
+		"target-kept: the reload keeps the single debit")
+	await _free_parts(parts)
+	var restarted: Dictionary = _make_parts()
+	var host2: Node = restarted["host"]
+	var fake2: Node = restarted["fake"]
+	var sender2: RefCounted = restarted["sender"]
+	var state2: Dictionary = (host2 as Node).startup()
+	_expect_equal(str(state2.get("public_id", "")), guest,
+		"target-kept: the restart restores the source guest")
+	_expect_equal(_txn_owner_cid(CANON_C), 6,
+		"target-kept: the restart retains the target receipt")
+	sender2.queue_ok(_profile_body(UID_A, CANON_C))
+	sender2.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake2.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host2.begin_guest()
+	var adopted: Dictionary = await _settle_call(
+		host2, "account_state", CANON_C)
+	_expect_equal(str(adopted.get("public_id", "")), CANON_C,
+		"target-kept: the adoption still lands")
+	_expect_equal(Vault.recover_paid_continue(), "none",
+		"target-kept: the adoption settles the receipt eagerly")
+	var restored: Dictionary = Journey.read_checkpoint()
+	var want: Variant = JSON.parse_string(JSON.stringify(paid))
+	_expect_equal(restored, want,
+		"target-kept: the target's exact acknowledged seal restores")
+	_expect_true(_txn_owner_cid(guest) == 0
+		and _txn_owner_cid(CANON_C) == 0,
+		"target-kept: no orphan receipt survives")
+	_expect_equal(Vault.continue_coins, 0,
+		"target-kept: the recovery charges nothing more")
+	_expect_equal(FileAccess.get_file_as_string(
+		Journey.account_main_path(guest)), source_main,
+		"target-kept: the source main is retained byte-identical")
+	if source_backup.is_empty():
+		_expect_false(FileAccess.file_exists(
+			Journey.account_backup_path(guest)),
+			"target-kept: no source backup appears")
+	else:
+		_expect_equal(FileAccess.get_file_as_string(
+			Journey.account_backup_path(guest)), source_backup,
+			"target-kept: the source backup is retained byte-identical")
+	await _free_parts(restarted)
+
+
+## A canonical target holding its own journey is occupied even when the
+## source carries no receipt: neither side moves, neither loses a byte.
+func _test_adoption_occupied_target_without_source_receipt() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	Journey.use_account(CANON_C)
+	var owned: Dictionary = _valid_checkpoint("canon-own", 4, 0)
+	_expect_equal(Journey.write_checkpoint(owned), OK,
+		"bare-occupied: the target journey seals")
+	var canon_main: String = FileAccess.get_file_as_string(
+		Journey.account_main_path(CANON_C))
+	Journey.use_account(guest)
+	var living: Dictionary = _valid_checkpoint("guest-own", 2, 0)
+	_expect_equal(Journey.write_checkpoint(living), OK,
+		"bare-occupied: the source journey seals")
+	var source_main: String = FileAccess.get_file_as_string(
+		Journey.account_main_path(guest))
+	Vault.load_vault()
+	await _free_parts(parts)
+	var restarted: Dictionary = _make_parts()
+	var host2: Node = restarted["host"]
+	var fake2: Node = restarted["fake"]
+	var sender2: RefCounted = restarted["sender"]
+	var state2: Dictionary = (host2 as Node).startup()
+	_expect_equal(str(state2.get("public_id", "")), guest,
+		"bare-occupied: the restart restores the source guest")
+	sender2.queue_ok(_profile_body(UID_A, CANON_C))
+	sender2.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake2.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host2.begin_guest()
+	var adopted: Dictionary = await _settle_call(
+		host2, "account_state", CANON_C)
+	_expect_equal(str(adopted.get("public_id", "")), CANON_C,
+		"bare-occupied: the adoption still lands")
+	_expect_equal(FileAccess.get_file_as_string(
+		Journey.account_main_path(CANON_C)), canon_main,
+		"bare-occupied: the target slot stays byte-identical")
+	_expect_equal(FileAccess.get_file_as_string(
+		Journey.account_main_path(guest)), source_main,
+		"bare-occupied: the source slot stays byte-identical")
+	_expect_equal(Vault.recover_paid_continue(), "none",
+		"bare-occupied: no receipt pends anywhere")
+	_expect_true(_txn_owner_cid(guest) == 0
+		and _txn_owner_cid(CANON_C) == 0,
+		"bare-occupied: no orphan receipt survives")
+	await _free_parts(restarted)
+
+
+## Adopt a fresh guest to the canonical id through the real route.
+## Returns the parts plus the guest id; the caller owns freeing.
+func _adopt_guest_to_canonical(extra: Dictionary = {}) -> Dictionary:
+	_wipe_all()
+	_clear_name_cache()
+	_clear_attendance_cache()
+	var parts: Dictionary = _make_parts(null, extra)
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	sender.queue_ok(_profile_body(UID_A, CANON_C))
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	fake.guest_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "anonymous"}}
+	host.begin_guest()
+	await _settle_call(host, "account_state", CANON_C)
+	parts["guest"] = guest
+	return parts
+
+
+## Swap the live coordinator for a recorder without moving the account:
+## the configured UID stays, so only the instance retires. A narrow
+## white-box seam: re-injection would churn the account signals and free
+## the retired coordinator mid-test, while production retirement keeps
+## late replies observable. The retired node stays parented and is freed
+## with the host.
+func _swap_coordinator(parts: Dictionary, recorder: NameRecorder) -> void:
+	recorder.tree_node = self
+	var host: Node = parts["host"]
+	host.add_child(recorder)
+	host.set("_coordinator", recorder)
+	host._wire_signals()
+	parts["coord"] = recorder
+
+
+## Call one name route, awaited. Single-line calls: a split never parses.
+func _call_name_route(host: Node, route: String) -> Dictionary:
+	match route:
+		"claim":
+			return await host.claim_adventurer_name("Alpha")
+		"load":
+			return await host.load_adventurer_name()
+		"intro":
+			return await host.mark_intro_complete()
+	return await host.backfill_hall_name()
+
+
+## Retire the live coordinator to `recorder` mid-flight, proving the
+## request under test is parked at the token barrier first. Runs from a
+## timer or a recorder signal while the test awaits the wrapper: parking
+## the wrapper coroutine itself is impossible, since an un-awaited async
+## call is a hard error.
+func _swap_to_b(parts: Dictionary, recorder: NameRecorder,
+		label: String) -> void:
+	var host: Node = parts["host"]
+	_expect_true((host.get("_token_waiters") as Array).size() > 0,
+		"%s: the call parks at the barrier" % label)
+	_swap_coordinator(parts, recorder)
+	# The account side of the retirement: production moves the configured
+	# UID through retire/reconfigure, which would also fail the waiters.
+	host.set("_configured_uid", UID_B)
+
+
+## Hand the live slot to `recorder` for account B without parking
+## assertions: the stale-completion swap runs on dispatch, past the token.
+func _adopt_b(parts: Dictionary, recorder: NameRecorder) -> void:
+	_swap_coordinator(parts, recorder)
+	(parts["host"] as Node).set("_configured_uid", UID_B)
+
+
+## Shut the host down mid-wait, proving the request under test parked at
+## the token barrier first.
+func _shutdown_mid_wait(parts: Dictionary) -> void:
+	var host: Node = parts["host"]
+	_expect_true((host.get("_token_waiters") as Array).size() > 0,
+		"shutdown-wait: the claim parks at the barrier")
+	host.shutdown()
+
+
+## Begin the real account deletion from a timer while the test awaits
+## another wrapper. Signal-driven, since an un-awaited async call is a
+## hard error; the terminal result lands in `box["r"]` for settling.
+func _begin_deletion_async(parts: Dictionary, box: Dictionary) -> void:
+	box["r"] = await (parts["host"] as Node).delete_current_account()
+
+
+## Prove the deletion run holds its ticket with both the name request and
+## the deletion parked at the shared token barrier.
+func _assert_deletion_barrier(parts: Dictionary) -> void:
+	var host: Node = parts["host"]
+	_expect_false((host.get("_deletion_ticket") as Dictionary).is_empty(),
+		"del-barrier: the deletion run holds its ticket")
+	_expect_equal((host.get("_token_waiters") as Array).size(), 2,
+		"del-barrier: claim and deletion share the barrier")
+
+
+## Fail a real deletion fast mid-wait: prove the name request parked
+## first, hand the deletion a sync-ok token so it never shares the
+## barrier, and run it to its terminal failure on the same account.
+func _fail_deletion_fast(parts: Dictionary, box: Dictionary) -> void:
+	var host: Node = parts["host"]
+	_expect_equal((host.get("_token_waiters") as Array).size(), 1,
+		"del-gen: the claim parks before deletion begins")
+	(parts["fake"] as Node).token_receipt = {"status": "ok",
+		"id_token": "tok-ok", "token_expires_at": 4102444800000}
+	box["r"] = await host.delete_current_account()
+
+
+## Bounded wait for a detached run's terminal result.
+func _await_box_key(box: Dictionary, key: String,
+		frames: int = 180) -> bool:
+	for _index in frames:
+		if box.has(key):
+			return true
+		await get_tree().process_frame
+	return box.has(key)
+
+
+## Retire through the production path mid-flight, then hand the live slot
+## to `recorder` with the UID still dropped, the deletion/startup shape.
+func _retire_to_recorder(parts: Dictionary,
+		recorder: NameRecorder) -> void:
+	var host: Node = parts["host"]
+	_expect_true((host.get("_token_waiters") as Array).size() > 0,
+		"retire-wait: the call parks at the barrier")
+	# Read before the production retire frees the live recorder.
+	var retired: NameRecorder = parts["coord"] as NameRecorder
+	_expect_true(retired.calls.is_empty(),
+		"retire-wait: nothing dispatched before the token")
+	host._retire_coordinator()
+	_expect_equal(str(host.get("_configured_uid")), "",
+		"retire-wait: the production path drops the configured UID")
+	_swap_coordinator(parts, recorder)
+
+
+## Drop the cached token so the next wrapper must refresh through the
+## scripted adapter receipt (pending holds the barrier, an error fails
+## it). Narrow white-box seam: production drops this only on account
+## moves, which would also retire the request under test.
+func _drop_cached_token(host: Node) -> void:
+	host.set("_id_token", "")
+
+
+## Complete the held token wait through the production signal, as a
+## refreshed native token would.
+func _release_token_ok(parts: Dictionary) -> void:
+	(parts["account"] as Node).emit_signal("id_token_ready", {
+		"id_token": "tok-held-ok", "token_expires_at": 4102444800000})
+
+
+func _name_row_body(display: String, key: String,
+		intro_complete: bool) -> String:
+	return JSON.stringify({
+		"name": "projects/x/databases/(default)/documents/mb_adventurers_v1/%s"
+			% CANON_C,
+		"fields": {
+			"public_id": {"stringValue": CANON_C},
+			"uid": {"stringValue": UID_A},
+			"name_key": {"stringValue": key},
+			"display": {"stringValue": display},
+			"intro_complete": {"booleanValue": intro_complete},
+			"schema": {"integerValue": "1"},
+			"created_at": {"timestampValue": "2026-10-01T00:00:00Z"},
+			"updated_at": {"timestampValue": "2026-10-01T00:00:00Z"},
+		},
+	})
+
+
+func _hall_own_body(score: int, hero: String, cycles: int,
+		display: String = "") -> String:
+	var fields: Dictionary = {
+		"public_id": {"stringValue": CANON_C},
+		"hero": {"stringValue": hero},
+		"score": {"integerValue": str(score)},
+		"cycles": {"integerValue": str(cycles)},
+		"release": {"stringValue": "4.0.0"},
+		"schema": {"integerValue": "1"},
+		"updated_at": {"timestampValue": "2026-10-01T00:00:00Z"},
+	}
+	if not display.is_empty():
+		fields["display"] = {"stringValue": display}
+	return JSON.stringify({
+		"name": "projects/x/databases/(default)/documents/mb_hall_v1/%s"
+			% CANON_C,
+		"fields": fields,
+	})
+
+
+## The verified-name cache is a shared durable store like the vault
+## file: name tests reset it coming and going so neither earlier tests
+## nor later deletion tests observe a leaked handle.
+func _clear_name_cache() -> void:
+	Vault.verified_names = {}
+
+
+func _clear_attendance_cache() -> void:
+	Vault.attendance_marks = {}
+	Vault.attendance_floor = 0
+	Vault.attendance_next = {}
+	for key in (Vault.continue_coin_grants as Dictionary).keys():
+		if str(key).begins_with("attendance:"):
+			(Vault.continue_coin_grants as Dictionary).erase(key)
+
+
+func _commit_with(sender: RefCounted, needle: String) -> Dictionary:
+	for call in (sender.calls as Array):
+		var entry: Dictionary = call
+		if str(entry.get("url", "")).contains("documents:commit") \
+				and str(entry.get("body", "")).contains(needle):
+			return JSON.parse_string(str(entry.get("body", "")))
+	return {}
+
+
+func _test_claim_name_caches_and_backfills_nothing() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"name-claim: the claim succeeds")
+	_expect_equal(str(claimed.get("display", "")), "Luna",
+		"name-claim: the display comes back")
+	_expect_equal(str(claimed.get("key", "")), "luna",
+		"name-claim: the immutable key comes back")
+	_expect_true(bool(claimed.get("cached", false)),
+		"name-claim: the verified handle caches")
+	_expect_false(bool(claimed.get("backfilled", true)),
+		"name-claim: no best row means no backfill write")
+	_expect_equal(str(claimed.get("backfill_code", "")), "no-row",
+		"name-claim: the empty backfill names no-row")
+	_expect_equal((host as Node).verified_display_name(), "Luna",
+		"name-claim: the live handle reads synchronously")
+	_expect_equal(str((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("key", "")), "luna",
+		"name-claim: the cache keys by public ID")
+	var commit: Dictionary = _commit_with(sender, "mb_names_v1")
+	_expect_equal((commit.get("writes", []) as Array).size(), 2,
+		"name-claim: the commit carries both halves")
+	_expect_true(str(JSON.stringify(commit)).contains(
+		"mb_adventurers_v1"),
+		"name-claim: the adventurer half rides along")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_claim_taken_keeps_identity() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_reply({"transport": "ok", "code": 409, "body": "{}"})
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "conflict",
+		"name-taken: the taken name conflicts")
+	_expect_equal(str(claimed.get("code", "")), "name-taken",
+		"name-taken: the conflict names name-taken")
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), CANON_C,
+		"name-taken: the loser keeps its canonical ID")
+	_expect_true((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).is_empty(),
+		"name-taken: the loser caches nothing")
+	_expect_equal((host as Node).verified_display_name(), "",
+		"name-taken: the loser reads unnamed")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_local_guest_cannot_claim() -> void:
+	_wipe_all()
+	_clear_name_cache()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	host.startup()
+	var guest: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	var refused_claim: Dictionary = await (host as Node
+		).claim_adventurer_name("Luna")
+	_expect_equal(str(refused_claim.get("code", "")), "local-guest",
+		"name-local: claim without a session refuses")
+	var refused_load: Dictionary = await (host as Node
+		).load_adventurer_name()
+	_expect_equal(str(refused_load.get("code", "")), "local-guest",
+		"name-local: load without a session refuses")
+	var refused_intro: Dictionary = await (host as Node
+		).mark_intro_complete()
+	_expect_equal(str(refused_intro.get("code", "")), "local-guest",
+		"name-local: intro without a session refuses")
+	_expect_true((Vault.verified_name_for_account(guest)
+		as Dictionary).is_empty(),
+		"name-local: offline work certifies no name")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_linking_keeps_claimed_name() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	_write_checkpoint({"cycle": 1, "journey_id": "link-name-j-1"})
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"name-link: the guest claims first")
+	var journey_before: String = FileAccess.get_file_as_string(
+		Journey.account_main_path(CANON_C))
+	fake.link_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "google"}}
+	var linked: Dictionary = host.link_provider("google")
+	await _frames(2)
+	_expect_equal(str(linked.get("status", "")), "ok",
+		"name-link: the link succeeds")
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), CANON_C,
+		"name-link: the link keeps the canonical ID")
+	_expect_equal((host as Node).verified_display_name(), "Luna",
+		"name-link: the link keeps the verified handle")
+	_expect_equal(FileAccess.get_file_as_string(
+		Journey.account_main_path(CANON_C)), journey_before,
+		"name-link: the link keeps the journey bytes")
+	host.sign_out()
+	var rotated: String = str(((host as Node).account_state()
+		as Dictionary).get("public_id", ""))
+	_expect_true(rotated != CANON_C and not rotated.is_empty(),
+		"name-link: sign-out rotates")
+	_expect_equal((host as Node).verified_display_name(), "",
+		"name-link: the rotated guest reads unnamed")
+	_expect_equal(str((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("display", "")), "Luna",
+		"name-link: rotation never shares the old handle")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_intro_complete_and_reload() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"name-intro: the claim succeeds")
+	sender.queue_ok(_name_row_body("Luna", "luna", false))
+	sender.queue_ok("{\"writeResults\": [{}]}")
+	var done: Dictionary = await host.mark_intro_complete()
+	_expect_equal(str(done.get("status", "")), "ok",
+		"name-intro: the bit flips")
+	_expect_true(bool((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("intro_complete", false)),
+		"name-intro: the cache flips with it")
+	Vault.load_vault()
+	_expect_equal(str((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("display", "")), "Luna",
+		"name-intro: the reload keeps the handle")
+	_expect_true(bool((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("intro_complete", false)),
+		"name-intro: the reload keeps the bit")
+	sender.queue_ok(_name_row_body("Luna", "luna", true))
+	var loaded: Dictionary = await host.load_adventurer_name()
+	_expect_equal(str(loaded.get("status", "")), "ok",
+		"name-intro: the reload restores from the server too")
+	_expect_equal(str(loaded.get("display", "")), "Luna",
+		"name-intro: the restore names the same handle")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_claim_backfills_existing_best() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_ok(_hall_own_body(500,
+		"res://resources/heroes/keeper.tres", 7))
+	sender.queue_ok(_hall_own_body(500,
+		"res://resources/heroes/keeper.tres", 7))
+	sender.queue_ok("{\"writeResults\": [{}]}")
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"name-backfill: the claim succeeds")
+	_expect_true(bool(claimed.get("backfilled", false)),
+		"name-backfill: the existing best backfills")
+	var commit: Dictionary = _commit_with(sender, "mb_hall_v1")
+	var fields: Dictionary = ((commit.get("writes", []) as Array)[0]
+		as Dictionary).get("update", {}).get("fields", {})
+	_expect_equal(str(fields.get("score", {}).get("integerValue", "")),
+		"500", "name-backfill: the backfill keeps the best score")
+	_expect_equal(str(fields.get("hero", {}).get("stringValue", "")),
+		"res://resources/heroes/keeper.tres",
+		"name-backfill: the backfill keeps the saved hero")
+	_expect_equal(str(fields.get("display", {}).get("stringValue", "")),
+		"Luna", "name-backfill: the backfill attaches the handle")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_submit_best_carries_handle() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"name-submit: the claim succeeds")
+	_write_checkpoint({"cycle": 2, "journey_id": "submit-name-j-1"})
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}]}")
+	var coord: Node = host.get("_coordinator") as Node
+	var submitted: Dictionary = await coord.call("submit_current_best")
+	_expect_equal(str(submitted.get("status", "")), "ok",
+		"name-submit: the best submits")
+	var commit: Dictionary = _commit_with(sender, "mb_hall_v1")
+	var fields: Dictionary = ((commit.get("writes", []) as Array)[0]
+		as Dictionary).get("update", {}).get("fields", {})
+	_expect_equal(str(fields.get("display", {}).get("stringValue", "")),
+		"Luna", "name-submit: the production write carries the handle")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A completed name restore keeps the true tutorial bit through a claim of
+## a different ask and a local reload; a later stale incomplete same-name
+## response carries its bytes honestly but cannot regress the durable bit.
+func _test_claim_restore_keeps_completion_bit() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"name-bit: the claim succeeds")
+	_expect_false(bool(claimed.get("intro_complete", true)),
+		"name-bit: the fresh claim starts incomplete")
+	sender.queue_ok(_name_row_body("Luna", "luna", false))
+	sender.queue_ok("{\"writeResults\": [{}]}")
+	var done: Dictionary = await host.mark_intro_complete()
+	_expect_equal(str(done.get("status", "")), "ok",
+		"name-bit: the bit flips")
+	sender.queue_ok(_name_row_body("Luna", "luna", true))
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var restored: Dictionary = await host.claim_adventurer_name("Different")
+	_expect_equal(str(restored.get("status", "")), "ok",
+		"name-bit: the restore succeeds")
+	_expect_equal(str(restored.get("display", "")), "Luna",
+		"name-bit: the restore keeps the canonical handle")
+	_expect_true(bool(restored.get("intro_complete", false)),
+		"name-bit: the restore returns the real completion bit")
+	Vault.load_vault()
+	_expect_true(bool((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("intro_complete", false)),
+		"name-bit: the reload keeps the restored bit")
+	sender.queue_ok(_name_row_body("Luna", "luna", false))
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var stale: Dictionary = await host.claim_adventurer_name("Different")
+	_expect_equal(str(stale.get("status", "")), "ok",
+		"name-bit: the stale same-name claim still restores")
+	_expect_false(bool(stale.get("intro_complete", true)),
+		"name-bit: the stale result carries its own bytes")
+	_expect_true(bool((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("intro_complete", false)),
+		"name-bit: the stale response never regresses the cache")
+	Vault.load_vault()
+	_expect_true(bool((Vault.verified_name_for_account(CANON_C)
+		as Dictionary).get("intro_complete", false)),
+		"name-bit: the reload still keeps the bit")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## All four name wrappers pin to the initiating account: a token wait
+## that outlives a switch to B cancels instead of dispatching onto B.
+func _test_name_wrappers_cancel_on_token_switch() -> void:
+	for route in ["claim", "load", "intro", "backfill"]:
+		await _run_token_switch_case(route)
+
+
+func _run_token_switch_case(route: String) -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	var rec_b: NameRecorder = NameRecorder.new()
+	var label: String = "token-switch/%s" % route
+	# The swap lands strictly before the token release; the timer
+	# callbacks prove the barrier parked the call first.
+	get_tree().create_timer(0.1).timeout.connect(
+		_swap_to_b.bind(parts, rec_b, label))
+	get_tree().create_timer(0.2).timeout.connect(
+		_release_token_ok.bind(parts))
+	var result: Dictionary = await _call_name_route(host, route)
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"token-switch/%s: the retired request cancels" % route)
+	_expect_equal(str(result.get("code", "")), "account-retired",
+		"token-switch/%s: the cancel names the retirement" % route)
+	_expect_true(rec_a.calls.is_empty(),
+		"token-switch/%s: nothing dispatched before the token" % route)
+	_expect_true(rec_b.calls.is_empty(),
+		"token-switch/%s: the next account receives nothing" % route)
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A failed token refresh sends no name mutation: the claim fails with
+## the token code and the live coordinator stays silent.
+func _test_claim_token_failure_sends_nothing() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "error", "code": "token_error"}
+	var failed: Dictionary = await host.claim_adventurer_name("Alpha")
+	_expect_equal(str(failed.get("status", "")), "failure",
+		"token-fail: the claim fails with the token")
+	_expect_equal(str(failed.get("code", "")), "token_error",
+		"token-fail: the token code passes through")
+	_expect_true(rec_a.calls.is_empty(),
+		"token-fail: no mutation dispatches without a token")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A token wait that times out fails the same way: no dispatch, no name.
+func _test_claim_token_timeout_sends_nothing() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical(
+		{"token_wait_seconds": 0.05})
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	var timed_out: Dictionary = await host.claim_adventurer_name("Alpha")
+	_expect_equal(str(timed_out.get("status", "")), "failure",
+		"token-timeout: the claim fails with the token")
+	_expect_equal(str(timed_out.get("code", "")), "token_timeout",
+		"token-timeout: the timeout code passes through")
+	_expect_true(rec_a.calls.is_empty(),
+		"token-timeout: no mutation dispatches without a token")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## Shutdown during the token wait cancels the parked claim; the retired
+## coordinator receives nothing.
+func _test_claim_shutdown_mid_wait_cancels() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	get_tree().create_timer(0.1).timeout.connect(
+		_shutdown_mid_wait.bind(parts))
+	var result: Dictionary = await _call_name_route(host, "claim")
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"shutdown-wait: the parked claim cancels")
+	_expect_equal(str(result.get("code", "")), "host-closed",
+		"shutdown-wait: the cancel names the closed host")
+	_expect_true(rec_a.calls.is_empty(),
+		"shutdown-wait: the retired coordinator receives nothing")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A coordinator reply that lands after the account retired is a stale
+## completion: the wrapper cancels instead of adopting it, and the next
+## account receives nothing.
+func _test_claim_stale_completion_cancels() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	rec_a.hold_frames = 8
+	_swap_coordinator(parts, rec_a)
+	var rec_b: NameRecorder = NameRecorder.new()
+	# The swap runs synchronously on dispatch, inside A's held reply.
+	rec_a.dispatched.connect(_adopt_b.bind(parts, rec_b))
+	var changed_before: int = (_fired["changed"] as Array).size()
+	var result: Dictionary = await _call_name_route(host, "claim")
+	_expect_equal(rec_a.calls.size(), 1,
+		"stale-complete: the live coordinator receives the claim")
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"stale-complete: the late reply cancels")
+	_expect_equal(str(result.get("code", "")), "account-retired",
+		"stale-complete: the cancel names the retirement")
+	_expect_true(rec_b.calls.is_empty(),
+		"stale-complete: the next account receives nothing")
+	_expect_equal((_fired["changed"] as Array).size(), changed_before,
+		"stale-complete: the stale reply emits nothing")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## Retirement through the production path (the deletion/startup shape)
+## cancels a parked claim; the next coordinator stays silent.
+func _test_claim_retirement_mid_wait_cancels() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	var rec_b: NameRecorder = NameRecorder.new()
+	get_tree().create_timer(0.1).timeout.connect(
+		_retire_to_recorder.bind(parts, rec_b))
+	get_tree().create_timer(0.2).timeout.connect(
+		_release_token_ok.bind(parts))
+	var result: Dictionary = await _call_name_route(host, "claim")
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"retire-wait: the retired request cancels")
+	_expect_equal(str(result.get("code", "")), "account-retired",
+		"retire-wait: the cancel names the retirement")
+	_expect_true(rec_b.calls.is_empty(),
+		"retire-wait: the next coordinator receives nothing")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A claim begun before deletion stays cancelled even when the deletion
+## later fails on the same account and coordinator: the pinned deletion
+## generation retires it either way. A genuinely new request afterwards
+## proceeds on the fresh generation.
+func _test_claim_cancelled_across_failed_deletion() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	# Settle the account-level pending without releasing the host waiter,
+	# so the real deletion can begin while the claim still waits.
+	fake.auto_error = {"code": "token_error"}
+	_queue_unclaimed_adventurer(sender)
+	sender.queue_reply({"transport": "ok", "code": 403, "body": "{}"})
+	var del_box: Dictionary = {}
+	get_tree().create_timer(0.1).timeout.connect(
+		_begin_deletion_async.bind(parts, del_box))
+	get_tree().create_timer(0.15).timeout.connect(
+		_assert_deletion_barrier.bind(parts))
+	get_tree().create_timer(0.2).timeout.connect(
+		_release_token_ok.bind(parts))
+	var result: Dictionary = await _call_name_route(host, "claim")
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"del-cancel: the pre-deletion claim cancels")
+	_expect_equal(str(result.get("code", "")), "account-retired",
+		"del-cancel: the cancel names the retirement")
+	_expect_true(rec_a.calls.is_empty(),
+		"del-cancel: nothing dispatches during deletion")
+	_expect_true(await _await_box_key(del_box, "r"),
+		"del-cancel: the deletion run settles")
+	var deleted: Dictionary = del_box["r"]
+	_expect_equal(str(deleted.get("status", "")), "failure",
+		"del-cancel: the denied commit fails the run")
+	_expect_equal(str(deleted.get("code", "")), "permission-denied",
+		"del-cancel: the denial code passes through")
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), CANON_C,
+		"del-cancel: the failed run keeps the same account")
+	var retry: Dictionary = await host.claim_adventurer_name("Beta")
+	_expect_equal(str(retry.get("status", "")), "ok",
+		"del-cancel: a new request proceeds after failed deletion")
+	_expect_equal(rec_a.calls.size(), 1,
+		"del-cancel: the new request dispatches once")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A claim still parked when an earlier deletion already failed on the
+## same account and coordinator stays cancelled: the pinned deletion
+## generation retires it even though no ticket is in flight at resume.
+func _test_claim_cancelled_by_earlier_failed_deletion() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	fake.auto_error = {"code": "token_error"}
+	_queue_unclaimed_adventurer(sender)
+	sender.queue_reply({"transport": "ok", "code": 403, "body": "{}"})
+	var del_box: Dictionary = {}
+	get_tree().create_timer(0.05).timeout.connect(
+		_fail_deletion_fast.bind(parts, del_box))
+	get_tree().create_timer(0.3).timeout.connect(
+		_release_token_ok.bind(parts))
+	var result: Dictionary = await _call_name_route(host, "claim")
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"del-gen: the pre-deletion claim cancels")
+	_expect_equal(str(result.get("code", "")), "account-retired",
+		"del-gen: the cancel names the retirement")
+	_expect_true(rec_a.calls.is_empty(),
+		"del-gen: nothing dispatches after the failed run")
+	_expect_true((host.get("_deletion_ticket") as Dictionary).is_empty(),
+		"del-gen: no ticket is in flight at resume")
+	_expect_true(await _await_box_key(del_box, "r"),
+		"del-gen: the deletion run settles")
+	_expect_equal(str((del_box["r"] as Dictionary).get("status", "")),
+		"failure", "del-gen: the denied commit fails the run")
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), CANON_C,
+		"del-gen: the failed run keeps the same account")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## A new request started while deletion is in flight refuses at the sync
+## guard instead of queueing behind the destructive run.
+func _test_claim_refused_while_deletion_in_flight() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	var delayed: DelayedSender = DelayedSender.new()
+	delayed.tree_node = self
+	delayed.delay_frames = 45
+	_queue_unclaimed_adventurer(delayed)
+	delayed.queue_ok(_commit_ack_body())
+	fake.delete_receipt = {"status": "ok"}
+	host.set("_sender", delayed)
+	var del_box: Dictionary = {}
+	get_tree().create_timer(0.05).timeout.connect(
+		_begin_deletion_async.bind(parts, del_box))
+	var commit_seen: bool = false
+	for _index in 180:
+		for call in (delayed.calls as Array):
+			if str((call as Dictionary).get("url", "")).contains(
+				"documents:commit"):
+				commit_seen = true
+				break
+		if commit_seen:
+			break
+		await get_tree().process_frame
+	_expect_true(commit_seen,
+		"del-refuse: the deletion commit goes outstanding")
+	var refused: Dictionary = await host.claim_adventurer_name("Alpha")
+	_expect_equal(str(refused.get("status", "")), "failure",
+		"del-refuse: the claim refuses during deletion")
+	_expect_equal(str(refused.get("code", "")), "deletion-in-flight",
+		"del-refuse: the refusal names the flight")
+	_expect_true(rec_a.calls.is_empty(),
+		"del-refuse: nothing dispatches during deletion")
+	_expect_true(await _await_box_key(del_box, "r", 240),
+		"del-refuse: the deletion run settles")
+	_expect_equal(str((del_box["r"] as Dictionary).get("status", "")),
+		"ok", "del-refuse: the held deletion completes")
+	_expect_true(str((host.account_state() as Dictionary).get(
+		"public_id", "")) != CANON_C,
+		"del-refuse: the completed run rotates the account")
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+const ATT_NOW: int = 1791367200  # 2026-10-07T10:00:00Z.
+
+
+## Bare HUD stand-in: records attendance receipts without a scene. Carries
+## the rank calls too, so a leaked stub can never break a later rank test.
+class AttHudStub extends Node:
+	var announced: Array = []
+
+	func announce(text: String, _color: Color) -> void:
+		announced.append(text)
+
+	func clear_cloud_rank() -> void:
+		pass
+
+	func set_cloud_rank(_text: String) -> void:
+		pass
+
+
+## Bare dialogue stand-in: reports open so the receipt gate drops.
+class AttDialogueStub extends Node:
+	var open: bool = true
+
+	func is_open() -> bool:
+		return open
+
+
+func _att_rfc(seconds: int) -> String:
+	return Time.get_datetime_string_from_unix_time(maxi(seconds, 0)) \
+		.replace(" ", "T") + "Z"
+
+
+func _att_missing_body(read_time: String = "") -> String:
+	var stamp: String = read_time
+	if stamp.is_empty():
+		stamp = _att_rfc(ATT_NOW)
+	return JSON.stringify([{"missing": "mb_attendance_v1/x",
+		"readTime": stamp}])
+
+
+func _att_row_body(last_claim: String, install: String,
+		read_time: String = "", update_time: String = "",
+		prev_claim: String = "", prev_install: String = "") -> String:
+	var stamp: String = read_time
+	if stamp.is_empty():
+		stamp = _att_rfc(ATT_NOW)
+	var swapped: String = update_time
+	if swapped.is_empty():
+		swapped = last_claim
+	var fields: Dictionary = {
+		"public_id": {"stringValue": CANON_C},
+		"uid": {"stringValue": UID_A},
+		"install_id": {"stringValue": install},
+		"last_claim_at": {"timestampValue": last_claim},
+		"schema": {"integerValue": "1"},
+	}
+	if not prev_claim.is_empty():
+		fields["prev_claim_at"] = {"timestampValue": prev_claim}
+	if not prev_install.is_empty():
+		fields["prev_install_id"] = {"stringValue": prev_install}
+	return JSON.stringify([{
+		"found": {
+			"name": "projects/p/databases/(default)/documents/mb_attendance_v1/x",
+			"fields": fields,
+			"updateTime": swapped,
+		},
+		"readTime": stamp,
+	}])
+
+
+## Every attendance commit write this sender carried, oldest first, parsed
+## from the recorded request bodies.
+func _att_commit_writes(sender: RefCounted) -> Array:
+	var writes: Array = []
+	for call in (sender.calls as Array):
+		if not str((call as Dictionary).get("url", "")).contains(
+				"documents:commit"):
+			continue
+		var body: Variant = JSON.parse_string(
+			str((call as Dictionary).get("body", "")))
+		if typeof(body) != TYPE_DICTIONARY:
+			continue
+		var each: Array = (body as Dictionary).get("writes", [])
+		if each.is_empty():
+			continue
+		writes.append(each[0])
+	return writes
+
+
+func _att_commit_body(commit_time: String) -> String:
+	return JSON.stringify({"writeResults": [{}],
+		"commitTime": commit_time})
+
+
+## First attendance claim over the real stack: a missing server row plus an
+## acknowledged commit grants exactly two coins with a stable receipt, a
+## live twelve-hour deadline, one signal, and a queued HUD receipt. Reload
+## keeps the coins and the key together.
+func _test_attendance_first_claim_grants_two() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var fired: Array = []
+	host.production_attendance.connect(
+		func(snap: Dictionary) -> void: fired.append(
+			(snap as Dictionary).duplicate()))
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var calls_before: int = (sender.calls as Array).size()
+	var grants_before: int = (
+		Vault.continue_coin_grants as Dictionary).size()
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var result: Dictionary = await host.claim_attendance()
+	var receipt: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	_expect_equal(str(result.get("status", "")), "granted",
+		"att-first: the claim grants")
+	_expect_equal(int(result.get("coins", 0)), 2,
+		"att-first: the grant is exactly two")
+	_expect_equal(str(result.get("receipt", "")), receipt,
+		"att-first: the receipt names the claim")
+	_expect_true(bool(result.get("granted", false)),
+		"att-first: the wallet took the coins")
+	_expect_false(bool(result.get("duplicate", true)),
+		"att-first: the first grant is not a duplicate")
+	_expect_equal(str(result.get("next_eligible_utc", "")),
+		_att_rfc(ATT_NOW + 43200),
+		"att-first: the deadline is twelve hours out")
+	_expect_equal(int(result.get("remaining_seconds", -1)), 43200,
+		"att-first: the full cooldown remains")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-first: the balance rises by two")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		receipt, 0)), 2,
+		"att-first: the receipt lands with the coins")
+	_expect_equal((Vault.continue_coin_grants as Dictionary).size(),
+		grants_before + 1,
+		"att-first: one new grant entry only")
+	_expect_equal((sender.calls as Array).size() - calls_before, 2,
+		"att-first: one read plus one commit")
+	_expect_equal(fired.size(), 1,
+		"att-first: one attendance signal fires")
+	var first: Dictionary = (fired[0] as Dictionary) \
+		if not fired.is_empty() else {}
+	_expect_equal(str(first.get("receipt", "")), receipt,
+		"att-first: the signal carries the receipt")
+	var view: Dictionary = host.attendance_view()
+	_expect_equal(str(view.get("state", "")), "ready",
+		"att-first: the view is live")
+	_expect_equal(str(view.get("source", "")), "live",
+		"att-first: the view is server-confirmed")
+	_expect_equal(str(view.get("next_eligible_utc", "")),
+		_att_rfc(ATT_NOW + 43200),
+		"att-first: the view carries the deadline")
+	Vault.load_vault()
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-first: the reload keeps the coins")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		receipt, 0)), 2,
+		"att-first: the reload keeps the key")
+	await _free_parts(parts)
+
+
+## A row claimed eleven hours ago on another install cools down: no commit,
+## no coins, no receipt, and the live view names the remaining hour.
+func _test_attendance_cooldown_grants_nothing() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var before: int = Vault.continue_coins
+	var calls_before: int = (sender.calls as Array).size()
+	var grants_before: int = (
+		Vault.continue_coin_grants as Dictionary).size()
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW - 39600),
+		"install-other-9"))
+	var result: Dictionary = await host.request_attendance()
+	_expect_equal(str(result.get("status", "")), "cooldown",
+		"att-cool: the repeat cools down")
+	_expect_equal(int(result.get("remaining_seconds", -1)), 3600,
+		"att-cool: one hour remains")
+	_expect_equal(str(result.get("next_eligible_utc", "")),
+		_att_rfc(ATT_NOW + 3600),
+		"att-cool: the deadline names the hour")
+	_expect_false(bool(result.get("granted", false)),
+		"att-cool: nothing grants")
+	_expect_equal(Vault.continue_coins, before,
+		"att-cool: the balance holds")
+	_expect_equal((Vault.continue_coin_grants as Dictionary).size(),
+		grants_before,
+		"att-cool: no grant entry appears")
+	_expect_equal((sender.calls as Array).size() - calls_before, 1,
+		"att-cool: the read alone goes out")
+	_expect_true(str(host.get("_attendance_receipt_pending")).is_empty(),
+		"att-cool: no receipt queues")
+	var view: Dictionary = host.attendance_view()
+	_expect_equal(str(view.get("source", "")), "live",
+		"att-cool: the view is server-confirmed")
+	_expect_equal(int(view.get("remaining_seconds", -1)), 3600,
+		"att-cool: the view names the hour")
+	await _free_parts(parts)
+
+
+## An acknowledged commit without a timestamp stays uncertain: no coins
+## until the re-read proves the row is ours, then one top-up lands.
+func _test_attendance_same_install_recovers_after_uncertain_ack() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok("{}")
+	var uncertain: Dictionary = await host.claim_attendance()
+	_expect_equal(str(uncertain.get("status", "")), "failure",
+		"att-uncertain: the timeless commit fails")
+	_expect_equal(str(uncertain.get("code", "")),
+		"attendance-uncertain-ack",
+		"att-uncertain: the code names the ack")
+	_expect_equal(Vault.continue_coins, before,
+		"att-uncertain: no coins land early")
+	var interim: Dictionary = host.attendance_view()
+	_expect_equal(str(interim.get("state", "")), "offline",
+		"att-uncertain: the interim view admits the gap")
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW), install))
+	var again: Dictionary = await host.claim_attendance()
+	var receipt: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	_expect_equal(str(again.get("status", "")), "already-claimed",
+		"att-uncertain: the re-read settles")
+	_expect_true(bool(again.get("granted", false)),
+		"att-uncertain: the top-up lands")
+	_expect_equal(str(again.get("receipt", "")), receipt,
+		"att-uncertain: the receipt matches the row")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-uncertain: exactly two arrive")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		receipt, 0)), 2,
+		"att-uncertain: the key lands with the coins")
+	await _free_parts(parts)
+
+
+## A blocked wallet temp file fails the local grant without losing the
+## server claim: nothing lands, and the retry after repair grants once
+## under the same receipt.
+func _test_attendance_wallet_failure_recovers() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var receipt: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var temp: String = ProjectSettings.globalize_path(
+		Vault.TEMP_SAVE_PATH)
+	DirAccess.make_dir_recursive_absolute(temp)
+	var failed: Dictionary = await host.claim_attendance()
+	DirAccess.remove_absolute(temp)
+	_expect_equal(str(failed.get("status", "")), "failure",
+		"att-wallet: the blocked grant fails")
+	_expect_equal(str(failed.get("code", "")), "local-grant-failed",
+		"att-wallet: the code names the wallet")
+	_expect_true(bool(failed.get("server_claimed", false)),
+		"att-wallet: the server claim survives")
+	_expect_equal(str(failed.get("receipt", "")), receipt,
+		"att-wallet: the receipt names the claim")
+	_expect_equal(Vault.continue_coins, before,
+		"att-wallet: the balance holds")
+	_expect_false((Vault.continue_coin_grants as Dictionary).has(
+		receipt),
+		"att-wallet: no key lands")
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW), install))
+	var again: Dictionary = await host.claim_attendance()
+	_expect_equal(str(again.get("status", "")), "already-claimed",
+		"att-wallet: the retry settles")
+	_expect_true(bool(again.get("granted", false)),
+		"att-wallet: the retry grants")
+	_expect_equal(str(again.get("receipt", "")), receipt,
+		"att-wallet: the retry reuses the receipt")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-wallet: exactly two arrive once")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		receipt, 0)), 2,
+		"att-wallet: the key lands with the coins")
+	await _free_parts(parts)
+
+
+## Entry checks never block play: local guests, deletion, restore, and
+## overlap skip without touching the wire, and a real double tap grants
+## once from a single read plus commit.
+func _test_attendance_request_skips_and_double_tap() -> void:
+	_wipe_all()
+	_clear_name_cache()
+	_clear_attendance_cache()
+	var guest_parts: Dictionary = _make_parts()
+	var guest_host: Node = guest_parts["host"]
+	var guest_fake: Node = guest_parts["fake"]
+	var guest_sender: RefCounted = guest_parts["sender"]
+	guest_fake.guest_receipt = {"status": "error", "code": "network_error",
+		"retryable": true}
+	guest_host.startup()
+	guest_host.begin_guest()
+	var skipped: Dictionary = await guest_host.request_attendance()
+	_expect_equal(str(skipped.get("status", "")), "skipped",
+		"att-skip: the local guest skips")
+	_expect_equal(str(skipped.get("code", "")), "local-guest",
+		"att-skip: the skip names the guest")
+	_expect_true((guest_sender.calls as Array).is_empty(),
+		"att-skip: the local guest sends nothing")
+	await _free_parts(guest_parts)
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var calls_before: int = (sender.calls as Array).size()
+	host.set("_deletion_ticket", {"generation": 7})
+	var del_skip: Dictionary = await host.request_attendance()
+	_expect_equal(str(del_skip.get("code", "")), "deletion-in-flight",
+		"att-skip: deletion skips")
+	host.set("_deletion_ticket", {})
+	host.set("_restore_state", "checking")
+	var restore_skip: Dictionary = await host.request_attendance()
+	_expect_equal(str(restore_skip.get("code", "")), "restore-pending",
+		"att-skip: restore skips")
+	host.set("_restore_state", "")
+	host.set("_attendance_in_flight", true)
+	var busy_skip: Dictionary = await host.request_attendance()
+	_expect_equal(str(busy_skip.get("code", "")), "in-flight",
+		"att-skip: overlap skips")
+	host.set("_attendance_in_flight", false)
+	_expect_equal((sender.calls as Array).size(), calls_before,
+		"att-skip: the skips send nothing")
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var before: int = Vault.continue_coins
+	var tap_before: int = (sender.calls as Array).size()
+	# A detached wrapper coroutine cannot park on this Godot build, so the
+	# first tap parks at the token barrier in the test while a timer fires
+	# the second tap mid-flight; the release then lets the first land.
+	_drop_cached_token(host)
+	var fake: Node = parts["fake"]
+	fake.token_receipt = {"status": "pending"}
+	var tap_box: Dictionary = {}
+	get_tree().create_timer(0.05).timeout.connect(
+		_request_attendance_async.bind(parts, tap_box))
+	get_tree().create_timer(0.15).timeout.connect(
+		_release_token_ok.bind(parts))
+	var first: Dictionary = await host.request_attendance()
+	_expect_equal(str(first.get("status", "")), "granted",
+		"att-tap: the first tap lands")
+	_expect_true(await _await_box_key(tap_box, "r"),
+		"att-tap: the second tap settles")
+	var dup: Dictionary = tap_box["r"]
+	_expect_equal(str(dup.get("status", "")), "skipped",
+		"att-tap: the second tap skips")
+	_expect_equal(str(dup.get("code", "")), "in-flight",
+		"att-tap: the skip names the flight")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-tap: exactly two arrive")
+	_expect_equal((sender.calls as Array).size() - tap_before, 2,
+		"att-tap: one read plus one commit")
+	await _free_parts(parts)
+
+
+## Fire one entry check from a timer while the test holds another: the
+## parked call cannot run detached, so the timer carries the overlap.
+func _request_attendance_async(parts: Dictionary,
+		box: Dictionary) -> void:
+	var host: Node = parts["host"]
+	box["r"] = await host.request_attendance()
+
+
+## A granted entry claim queues a five-language receipt; the HUD shows it
+## once, while an IME field or an open NPC dialogue drops the overlay and
+## the wallet keeps the coins.
+func _test_attendance_receipt_flush_and_suppression() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var before: int = Vault.continue_coins
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var result: Dictionary = await host.request_attendance()
+	_expect_equal(str(result.get("status", "")), "granted",
+		"att-receipt: the entry claim grants")
+	var pending: String = str(host.get("_attendance_receipt_pending"))
+	_expect_false(pending.is_empty(),
+		"att-receipt: the grant queues a receipt")
+	_expect_true(pending.contains("+2"),
+		"att-receipt: the receipt names two coins")
+	var hud: AttHudStub = AttHudStub.new()
+	hud.add_to_group("moonlit_hud")
+	add_child(hud)
+	host.call("_flush_attendance_receipt")
+	_expect_equal((hud.announced as Array).size(), 1,
+		"att-receipt: the HUD shows it once")
+	var shown: String = str((hud.announced as Array)[0]) \
+		if not (hud.announced as Array).is_empty() else ""
+	_expect_equal(shown, pending,
+		"att-receipt: the HUD shows the queued text")
+	_expect_true(str(host.get("_attendance_receipt_pending")).is_empty(),
+		"att-receipt: the flush clears the queue")
+	var field: LineEdit = LineEdit.new()
+	add_child(field)
+	field.grab_focus()
+	await _frames(1)
+	host.set("_attendance_receipt_pending", "att-queued-ime")
+	host.call("_flush_attendance_receipt")
+	_expect_equal((hud.announced as Array).size(), 1,
+		"att-receipt: the IME focus drops the overlay")
+	_expect_true(str(host.get("_attendance_receipt_pending")).is_empty(),
+		"att-receipt: the dropped queue clears")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-receipt: the wallet keeps the coins")
+	field.release_focus()
+	field.queue_free()
+	var talk: AttDialogueStub = AttDialogueStub.new()
+	talk.add_to_group("moonlit_dialogue")
+	add_child(talk)
+	host.set("_attendance_receipt_pending", "att-queued-talk")
+	host.call("_flush_attendance_receipt")
+	_expect_equal((hud.announced as Array).size(), 1,
+		"att-receipt: the open dialogue drops the overlay")
+	_expect_true(str(host.get("_attendance_receipt_pending")).is_empty(),
+		"att-receipt: the dialogue drop clears")
+	hud.queue_free()
+	talk.queue_free()
+	await _free_parts(parts)
+
+
+## A foreground return re-checks without granting again, and an outage
+## grants nothing while the live deadline survives for reminders.
+func _test_attendance_foreground_and_offline_cache() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var entered: Dictionary = await host.request_attendance()
+	_expect_equal(str(entered.get("status", "")), "granted",
+		"att-fore: the entry claim grants")
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW), install))
+	var again: Dictionary = await host.notify_foreground_return()
+	_expect_equal(str(again.get("status", "")), "already-claimed",
+		"att-fore: the return re-checks")
+	_expect_false(bool(again.get("granted", true)),
+		"att-fore: no new coins land")
+	_expect_equal(str(again.get("receipt", "")),
+		str(entered.get("receipt", "")),
+		"att-fore: the re-check names the same receipt")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-fore: the balance holds")
+	sender.queue_reply({"transport": "offline", "code": 0, "body": ""})
+	var off: Dictionary = await host.request_attendance()
+	_expect_equal(str(off.get("status", "")), "offline",
+		"att-fore: the outage stays offline")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-fore: the outage grants nothing")
+	var view: Dictionary = host.attendance_view()
+	_expect_equal(str(view.get("source", "")), "live",
+		"att-fore: the live view survives")
+	_expect_equal(str(view.get("next_eligible_utc", "")),
+		_att_rfc(ATT_NOW + 43200),
+		"att-fore: the deadline survives")
+	await _free_parts(parts)
+
+
+## Linking a provider keeps the attendance record on the same canonical
+## ID without a second grant; signing out rotates to a guest with no
+## cached deadline.
+func _test_attendance_link_keeps_record() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	sender.queue_ok(_att_missing_body())
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var result: Dictionary = await host.claim_attendance()
+	_expect_equal(str(result.get("status", "")), "granted",
+		"att-link: the guest claims first")
+	fake.link_receipt = {"status": "ok", "session": {
+		"kind": "cloud", "uid": UID_A, "provider": "google"}}
+	var linked: Dictionary = host.link_provider("google")
+	await _frames(2)
+	_expect_equal(str(linked.get("status", "")), "ok",
+		"att-link: the link succeeds")
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), CANON_C,
+		"att-link: the link keeps the canonical ID")
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW), install))
+	var again: Dictionary = await host.claim_attendance()
+	_expect_equal(str(again.get("status", "")), "already-claimed",
+		"att-link: the link keeps the record")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-link: no second grant lands")
+	host.sign_out()
+	var rotated: String = str((host.account_state() as Dictionary).get(
+		"public_id", ""))
+	_expect_true(rotated != CANON_C and not rotated.is_empty(),
+		"att-link: sign-out rotates")
+	_expect_true((Vault.attendance_next_for_account(rotated)
+		as Dictionary).is_empty(),
+		"att-link: the rotated guest reads no deadline")
+	await _free_parts(parts)
+
+
+## An attendance claim parked before deletion stays cancelled even though
+## the deletion fails on the same account; a genuinely new request after
+## the failure proceeds.
+func _test_attendance_cancelled_across_failed_deletion() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var sender: RefCounted = parts["sender"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	_drop_cached_token(host)
+	fake.token_receipt = {"status": "pending"}
+	fake.auto_error = {"code": "token_error"}
+	_queue_unclaimed_adventurer(sender)
+	sender.queue_reply({"transport": "ok", "code": 403, "body": "{}"})
+	var del_box: Dictionary = {}
+	get_tree().create_timer(0.1).timeout.connect(
+		_begin_deletion_async.bind(parts, del_box))
+	get_tree().create_timer(0.15).timeout.connect(
+		_assert_deletion_barrier.bind(parts))
+	get_tree().create_timer(0.2).timeout.connect(
+		_release_token_ok.bind(parts))
+	var result: Dictionary = await host.claim_attendance()
+	_expect_equal(str(result.get("status", "")), "cancelled",
+		"att-del: the pre-deletion claim cancels")
+	_expect_equal(str(result.get("code", "")), "account-retired",
+		"att-del: the cancel names the retirement")
+	_expect_true(rec_a.calls.is_empty(),
+		"att-del: nothing dispatches during deletion")
+	_expect_true(await _await_box_key(del_box, "r"),
+		"att-del: the deletion run settles")
+	var deleted: Dictionary = del_box["r"]
+	_expect_equal(str(deleted.get("status", "")), "failure",
+		"att-del: the denied commit fails the run")
+	_expect_equal(str((host.account_state() as Dictionary).get(
+		"public_id", "")), CANON_C,
+		"att-del: the failed run keeps the same account")
+	var retry: Dictionary = await host.claim_attendance()
+	_expect_equal(str(retry.get("status", "")), "granted",
+		"att-del: a new request proceeds after failed deletion")
+	_expect_equal(rec_a.calls.size(), 1,
+		"att-del: the new request dispatches once")
+	await _free_parts(parts)
+
+
+## A fresh attendance claim refuses while a deletion commit is in flight
+## and dispatches nothing; the held deletion still completes.
+func _test_attendance_refused_while_deletion_in_flight() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var fake: Node = parts["fake"]
+	var rec_a: NameRecorder = NameRecorder.new()
+	_swap_coordinator(parts, rec_a)
+	var delayed: DelayedSender = DelayedSender.new()
+	delayed.tree_node = self
+	delayed.delay_frames = 45
+	_queue_unclaimed_adventurer(delayed)
+	delayed.queue_ok(_commit_ack_body())
+	fake.delete_receipt = {"status": "ok"}
+	host.set("_sender", delayed)
+	var del_box: Dictionary = {}
+	get_tree().create_timer(0.05).timeout.connect(
+		_begin_deletion_async.bind(parts, del_box))
+	var commit_seen: bool = false
+	for _index in 180:
+		for call in (delayed.calls as Array):
+			if str((call as Dictionary).get("url", "")).contains(
+					"documents:commit"):
+				commit_seen = true
+				break
+		if commit_seen:
+			break
+		await get_tree().process_frame
+	_expect_true(commit_seen,
+		"att-refuse: the deletion commit goes outstanding")
+	var refused: Dictionary = await host.claim_attendance()
+	_expect_equal(str(refused.get("status", "")), "failure",
+		"att-refuse: the claim refuses during deletion")
+	_expect_equal(str(refused.get("code", "")), "deletion-in-flight",
+		"att-refuse: the refusal names the flight")
+	_expect_true(rec_a.calls.is_empty(),
+		"att-refuse: nothing dispatches during deletion")
+	_expect_true(await _await_box_key(del_box, "r", 240),
+		"att-refuse: the deletion run settles")
+	_expect_equal(str((del_box["r"] as Dictionary).get("status", "")),
+		"ok", "att-refuse: the held deletion completes")
+	await _free_parts(parts)
+
+
+## A server-acknowledged reward lost to a blocked wallet save recovers
+## before the next eligible period advances: the old two coins land under
+## their own receipt, the new claim lands under the next, and the advance
+## commit carries the old stamp byte for byte with its swap intact.
+func _test_attendance_backfills_before_advance() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var stamp: String = "2026-10-06T21:00:00.75Z"
+	var first: int = ATT_NOW - 46800
+	var swapped: String = "2026-10-06T21:05:00.125Z"
+	var old_key: String = "attendance:%s:%d:%s" % [CANON_C, first,
+		install]
+	var new_key: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	sender.queue_ok(_att_missing_body(stamp))
+	sender.queue_ok(_att_commit_body(stamp))
+	var temp: String = ProjectSettings.globalize_path(
+		Vault.TEMP_SAVE_PATH)
+	DirAccess.make_dir_recursive_absolute(temp)
+	var failed: Dictionary = await host.request_attendance()
+	DirAccess.remove_absolute(temp)
+	_expect_equal(str(failed.get("status", "")), "failure",
+		"att-back: the blocked first grant fails")
+	_expect_equal(str(failed.get("receipt", "")), old_key,
+		"att-back: the failure names the earned receipt")
+	_expect_equal(Vault.continue_coins, before,
+		"att-back: nothing lands while blocked")
+	_expect_true(str(host.get("_attendance_receipt_pending")).is_empty(),
+		"att-back: no receipt queues for nothing")
+	Vault.load_vault()
+	_expect_equal(Vault.continue_coins, before,
+		"att-back: the restart keeps the honest balance")
+	sender.queue_ok(_att_row_body(stamp, install, _att_rfc(ATT_NOW),
+		swapped))
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var advanced: Dictionary = await host.request_attendance()
+	_expect_equal(str(advanced.get("status", "")), "granted",
+		"att-back: the next period advances")
+	_expect_true(bool(advanced.get("backfilled", false)),
+		"att-back: the old reward backfills first")
+	_expect_equal(str(advanced.get("backfilled_receipt", "")), old_key,
+		"att-back: the backfill names the old receipt")
+	_expect_equal(str(advanced.get("receipt", "")), new_key,
+		"att-back: the advance names the new receipt")
+	_expect_equal(Vault.continue_coins, before + 4,
+		"att-back: both earned visits land")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		old_key, 0)), 2,
+		"att-back: the old key lands with its coins")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		new_key, 0)), 2,
+		"att-back: the new key lands with its coins")
+	_expect_true(str(host.get("_attendance_receipt_pending")).contains(
+		"+4"), "att-back: the receipt names all four coins")
+	var writes: Array = _att_commit_writes(sender)
+	_expect_equal(writes.size(), 2,
+		"att-back: one create plus one advance commit")
+	var create: Dictionary = writes[0]
+	_expect_true(not ((create.get("update", {}) as Dictionary).get(
+		"fields", {}) as Dictionary).has("prev_claim_at"),
+		"att-back: the create carries no previous stamp")
+	var advance: Dictionary = writes[1]
+	_expect_equal(str((advance.get("currentDocument", {}) as Dictionary
+		).get("updateTime", "")), swapped,
+		"att-back: the advance swaps on the read updateTime")
+	var fields: Dictionary = (advance.get("update", {}) as Dictionary
+		).get("fields", {})
+	_expect_equal(str((fields.get("prev_claim_at", {}) as Dictionary
+		).get("timestampValue", "")), stamp,
+		"att-back: the advance carries the old stamp exactly")
+	_expect_equal(str((fields.get("prev_install_id", {}) as Dictionary
+		).get("stringValue", "")), install,
+		"att-back: the advance carries the old install")
+	var view: Dictionary = host.attendance_view()
+	_expect_equal(str(view.get("receipt", "")), new_key,
+		"att-back: the live view names the newest receipt")
+	await _free_parts(parts)
+
+
+## Another install's eligible row advances without granting its reward
+## into this wallet: only the new claim lands, carrying the foreign
+## stamp and install so the earning install can still recover.
+func _test_attendance_other_install_advance_carries_prev() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var old: String = _att_rfc(ATT_NOW - 46800)
+	var other: String = "install-other-9"
+	sender.queue_ok(_att_row_body(old, other))
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var advanced: Dictionary = await host.request_attendance()
+	_expect_equal(str(advanced.get("status", "")), "granted",
+		"att-xback: the foreign row advances")
+	_expect_false(bool(advanced.get("backfilled", true)),
+		"att-xback: the foreign reward never backfills here")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-xback: only the new claim lands")
+	_expect_false((Vault.continue_coin_grants as Dictionary).has(
+		"attendance:%s:%d:%s" % [CANON_C, ATT_NOW - 46800, other]),
+		"att-xback: no foreign key lands")
+	var writes: Array = _att_commit_writes(sender)
+	_expect_equal(writes.size(), 1,
+		"att-xback: one advance commit goes out")
+	var fields: Dictionary = ((writes[0] as Dictionary).get("update", {})
+		as Dictionary).get("fields", {})
+	_expect_equal(str((fields.get("prev_claim_at", {}) as Dictionary
+		).get("timestampValue", "")), old,
+		"att-xback: the advance carries the foreign stamp")
+	_expect_equal(str((fields.get("prev_install_id", {}) as Dictionary
+		).get("stringValue", "")), other,
+		"att-xback: the advance carries the foreign install")
+	_expect_true(str(host.get("_attendance_receipt_pending")).contains(
+		"+2"), "att-xback: the receipt names two coins")
+	_expect_equal(str((fields.get("install_id", {}) as Dictionary
+		).get("stringValue", "")), install,
+		"att-xback: the advance binds the receiving install")
+	await _free_parts(parts)
+
+
+## A held foreign row carrying this install's previous stamp backfills
+## it without committing: the earned two land, the cooldown stands, and
+## the receipt shows for the backfill alone.
+func _test_attendance_cooldown_backfills_carried_prev() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var calls_before: int = (sender.calls as Array).size()
+	var last: String = _att_rfc(ATT_NOW - 3600)
+	var prev: String = _att_rfc(ATT_NOW - 46800)
+	var old_key: String = "attendance:%s:%d:%s" % [CANON_C,
+		ATT_NOW - 46800, install]
+	sender.queue_ok(_att_row_body(last, "install-other-9",
+		_att_rfc(ATT_NOW), "", prev, install))
+	var held: Dictionary = await host.request_attendance()
+	_expect_equal(str(held.get("status", "")), "cooldown",
+		"att-prev: the foreign period holds")
+	_expect_true(bool(held.get("backfilled", false)),
+		"att-prev: the carried reward backfills")
+	_expect_equal(str(held.get("backfilled_receipt", "")), old_key,
+		"att-prev: the backfill names the old receipt")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-prev: exactly the earned two land")
+	_expect_equal((sender.calls as Array).size() - calls_before, 1,
+		"att-prev: the read alone goes out")
+	_expect_true(str(host.get("_attendance_receipt_pending")).contains(
+		"+2"), "att-prev: the receipt shows the backfill")
+	var view: Dictionary = host.attendance_view()
+	_expect_equal(str(view.get("receipt", "")), old_key,
+		"att-prev: the live view names the backfilled receipt")
+	await _free_parts(parts)
+
+
+## Re-reading the same carried row backfills once: the second visit
+## finds the receipt applied, grants nothing more, and the restart
+## between keeps the key with its coins.
+func _test_attendance_backfill_replay_is_idempotent() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var last: String = _att_rfc(ATT_NOW - 3600)
+	var prev: String = _att_rfc(ATT_NOW - 46800)
+	var old_key: String = "attendance:%s:%d:%s" % [CANON_C,
+		ATT_NOW - 46800, install]
+	sender.queue_ok(_att_row_body(last, "install-other-9",
+		_att_rfc(ATT_NOW), "", prev, install))
+	var held: Dictionary = await host.request_attendance()
+	_expect_true(bool(held.get("backfilled", false)),
+		"att-replay: the first visit backfills")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-replay: the earned two land")
+	Vault.load_vault()
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-replay: the restart keeps the backfill")
+	sender.queue_ok(_att_row_body(last, "install-other-9",
+		_att_rfc(ATT_NOW), "", prev, install))
+	var again: Dictionary = await host.request_attendance()
+	_expect_equal(str(again.get("status", "")), "cooldown",
+		"att-replay: the second visit still holds")
+	_expect_false(bool(again.get("backfilled", true)),
+		"att-replay: the second visit backfills nothing")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-replay: the replay adds nothing")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		old_key, 0)), 2,
+		"att-replay: the key lands exactly once")
+	await _free_parts(parts)
+
+
+## An uncertain advance commit still backfills first: the old two land
+## with their receipt while the new claim stays unknown, and the next
+## visit tops the new claim up without ever doubling the old.
+func _test_attendance_uncertain_advance_recovers() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var stamp: String = _att_rfc(ATT_NOW - 46800)
+	var old_key: String = "attendance:%s:%d:%s" % [CANON_C,
+		ATT_NOW - 46800, install]
+	var new_key: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	sender.queue_ok(_att_missing_body(stamp))
+	sender.queue_ok(_att_commit_body(stamp))
+	var temp: String = ProjectSettings.globalize_path(
+		Vault.TEMP_SAVE_PATH)
+	DirAccess.make_dir_recursive_absolute(temp)
+	var failed: Dictionary = await host.request_attendance()
+	DirAccess.remove_absolute(temp)
+	_expect_equal(str(failed.get("code", "")), "local-grant-failed",
+		"att-unadv: the blocked first grant fails")
+	sender.queue_ok(_att_row_body(stamp, install))
+	sender.queue_ok("{}")
+	var uncertain: Dictionary = await host.request_attendance()
+	_expect_equal(str(uncertain.get("code", "")),
+		"attendance-uncertain-ack",
+		"att-unadv: the timeless advance stays uncertain")
+	_expect_true(bool(uncertain.get("backfilled", false)),
+		"att-unadv: the old reward backfills anyway")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-unadv: the old two land alone")
+	_expect_true(str(host.get("_attendance_receipt_pending")).contains(
+		"+2"), "att-unadv: the receipt names the backfill")
+	host.set("_attendance_receipt_pending", "")
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW), install,
+		_att_rfc(ATT_NOW + 3600)))
+	var topped: Dictionary = await host.request_attendance()
+	_expect_equal(str(topped.get("status", "")), "already-claimed",
+		"att-unadv: the re-read settles the new claim")
+	_expect_true(bool(topped.get("granted", false)),
+		"att-unadv: the new claim tops up")
+	_expect_equal(str(topped.get("receipt", "")), new_key,
+		"att-unadv: the top-up names the new receipt")
+	_expect_equal(Vault.continue_coins, before + 4,
+		"att-unadv: both earned visits land")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		old_key, 0)), 2,
+		"att-unadv: the old key never doubles")
+	Vault.load_vault()
+	_expect_equal(Vault.continue_coins, before + 4,
+		"att-unadv: the restart keeps both visits")
+	await _free_parts(parts)
+
+
+## A backfill refused by the eviction floor is skipped, never repaid,
+## while the genuine new claim still advances: the old receipt lands
+## nothing, the new commit lands two, and the result names the skipped
+## receipt. Retired history never freezes future rewards.
+func _test_attendance_ambiguous_backfill_skips_and_advances() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	var before: int = Vault.continue_coins
+	var stamp: String = _att_rfc(ATT_NOW - 46800)
+	var old_key: String = "attendance:%s:%d:%s" % [CANON_C,
+		ATT_NOW - 46800, install]
+	var new_key: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	# Narrow white-box seam: the floor normally folds from real
+	# evictions (vault suite and the pruned-return test below);
+	# pinning it here isolates the coordinator's skip mapping.
+	Vault.attendance_floor = ATT_NOW
+	sender.queue_ok(_att_row_body(stamp, install))
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var advanced: Dictionary = await host.request_attendance()
+	Vault.attendance_floor = 0
+	_expect_equal(str(advanced.get("status", "")), "granted",
+		"att-amb: the new claim still advances")
+	_expect_false(bool(advanced.get("backfilled", true)),
+		"att-amb: the old receipt never backfills")
+	_expect_true(bool(advanced.get("backfill_skipped", false)),
+		"att-amb: the skip is reported")
+	_expect_equal(str(advanced.get("skipped_receipt", "")), old_key,
+		"att-amb: the skip names the old receipt")
+	_expect_equal(str(advanced.get("receipt", "")), new_key,
+		"att-amb: the grant names the new receipt")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-amb: only the new two land")
+	_expect_false((Vault.continue_coin_grants as Dictionary).has(
+		old_key),
+		"att-amb: the old key never lands")
+	_expect_true(str(host.get("_attendance_receipt_pending")).contains(
+		"+2"), "att-amb: the receipt names the new two")
+	sender.queue_ok(_att_row_body(_att_rfc(ATT_NOW), install,
+		_att_rfc(ATT_NOW + 3600)))
+	var again: Dictionary = await host.request_attendance()
+	_expect_equal(str(again.get("status", "")), "already-claimed",
+		"att-amb: the next visit settles the new claim")
+	_expect_false(bool(again.get("backfill_skipped", true)),
+		"att-amb: the covered stamp stays silent")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-amb: the settle adds nothing more")
+	await _free_parts(parts)
+
+
+## Ten owners claim on one install, the first owner's mark and receipt
+## prune, and that owner returns after twelve hours: the forgotten old
+## receipt is refused without repayment while the eligible new claim
+## commits and pays. Purchased keys stay intact throughout.
+func _test_attendance_pruned_return_advances() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var install: String = Vault.ensure_install_id()
+	_expect_true(bool(Vault.grant_continue_coins(5, "store-order-9")),
+		"att-prune: the purchased key lands")
+	var first: int = ATT_NOW - 46800
+	var old_key: String = "attendance:%s:%d:%s" % [CANON_C, first,
+		install]
+	var new_key: String = "attendance:%s:%d:%s" % [CANON_C, ATT_NOW,
+		install]
+	sender.queue_ok(_att_missing_body(_att_rfc(first)))
+	sender.queue_ok(_att_commit_body(_att_rfc(first)))
+	var opened: Dictionary = await host.request_attendance()
+	_expect_equal(str(opened.get("status", "")), "granted",
+		"att-prune: the first claim lands")
+	# Nine further owners grant through the real vault path; the first
+	# owner's mark and key prune past the bounds.
+	for index in 9:
+		var owner: String = "MB-prune-%d" % index
+		var step: Dictionary = Vault.grant_attendance_coins(owner,
+			first + 60 * (index + 1), install, true)
+		_expect_true(bool(step.get("granted", false)),
+			"att-prune: owner %d grants" % index)
+	_expect_false((Vault.attendance_marks as Dictionary).has(CANON_C),
+		"att-prune: the first mark prunes")
+	_expect_false((Vault.continue_coin_grants as Dictionary).has(
+		old_key),
+		"att-prune: the first key prunes")
+	Vault.load_vault()
+	var before: int = Vault.continue_coins
+	sender.queue_ok(_att_row_body(_att_rfc(first), install))
+	sender.queue_ok(_att_commit_body(_att_rfc(ATT_NOW)))
+	var returned: Dictionary = await host.request_attendance()
+	_expect_equal(str(returned.get("status", "")), "granted",
+		"att-prune: the return advances")
+	_expect_false(bool(returned.get("backfilled", true)),
+		"att-prune: the forgotten receipt is never repaid")
+	_expect_true(bool(returned.get("backfill_skipped", false)),
+		"att-prune: the skip is reported")
+	_expect_equal(str(returned.get("skipped_receipt", "")), old_key,
+		"att-prune: the skip names the old receipt")
+	_expect_equal(Vault.continue_coins, before + 2,
+		"att-prune: exactly the new two land")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		new_key, 0)), 2,
+		"att-prune: the new key lands with its coins")
+	_expect_equal(int((Vault.continue_coin_grants as Dictionary).get(
+		"store-order-9", 0)), 5,
+		"att-prune: the purchase stays intact")
+	await _free_parts(parts)
+
+
+## Best completion reaches HUD standing again: after a submit, the Arena
+## rank chip shows the refreshed standing without another rank pull.
+func _test_submit_best_pushes_hud_rank() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}, {}]}")
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	var claimed: Dictionary = await host.claim_adventurer_name("Luna")
+	_expect_equal(str(claimed.get("status", "")), "ok",
+		"submit-hud: the claim succeeds")
+	sender.queue_ok(_own_row_body(CANON_C, 7000))
+	sender.queue_ok(_rank_body(1))
+	var view: Dictionary = await host.request_rank()
+	_expect_equal(int(view.get("rank", 0)), 2,
+		"submit-hud: the standing refreshes")
+	var hud: Control = HUD_SCENE.instantiate() as Control
+	add_child(hud)
+	await _frames(2)
+	var rank: Label = hud.get_node("RightPanel/Row/Rank") as Label
+	# A late rank push can light the chip before the submit runs; clear
+	# it and prove a quiet window first, so only the submit can relight.
+	hud.clear_cloud_rank()
+	await _frames(5)
+	_expect_false(rank.visible, "submit-hud: the cleared chip stays dark")
+	_write_checkpoint({"cycle": 2, "journey_id": "submit-hud-j-1"})
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+	sender.queue_ok("{\"writeResults\": [{}]}")
+	await host._submit_best()
+	_expect_true(rank.visible and rank.text.begins_with("#2 · "),
+		"submit-hud: the submit pushes the standing to the chip")
+	var commit: Dictionary = _commit_with(sender, "mb_hall_v1")
+	var live: Node = host.get("_coordinator") as Node
+	var expected: Dictionary = live._derive_hall_row(
+		Journey.read_checkpoint())
+	var fields: Dictionary = ((commit.get("writes", []) as Array)[0]
+		as Dictionary).get("update", {}).get("fields", {})
+	_expect_equal(str(fields.get("display", {}).get("stringValue", "")),
+		"Luna", "submit-hud: the write carries the verified handle")
+	_expect_equal(str(fields.get("hero", {}).get("stringValue", "")),
+		str(expected.get("hero", "")),
+		"submit-hud: the write carries the saved hero")
+	_expect_equal(int(fields.get("score", {}).get("integerValue", "0")),
+		int(expected.get("score", 0)),
+		"submit-hud: the write carries the saved score")
+	_expect_equal(int(fields.get("cycles", {}).get("integerValue", "0")),
+		int(expected.get("cycles", 0)),
+		"submit-hud: the write carries the saved cycles")
+	hud.queue_free()
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+## Verified handles travel the production board path into the real panel:
+## maximum-length Korean and Japanese handles read on the headline, the
+## stable MB ID keeps its own line, and unnamed rows keep the honest
+## rank-and-score fallback.
+func _test_hall_named_rows_reach_panel() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var sender: RefCounted = parts["sender"]
+	var korean12: String = "달빛기사단달빛기사단달빛"
+	var japanese12: String = "ルミールミールミールミー"
+	_expect_equal(korean12.length(), 12, "panel: the Korean handle is max")
+	_expect_equal(japanese12.length(), 12,
+		"panel: the Japanese handle is max")
+	sender.reset()
+	sender.queue_ok(_board_body([
+		[OTHER_ID, Vault.HEROES[0], 9000, korean12],
+		[CANON_D, "warden", 8000, japanese12],
+		[CANON_C, Vault.HEROES[0], 7000],
+	]))
+	var view: Dictionary = await host.request_hall()
+	var rows: Array = view.get("rows", [])
+	_expect_equal(rows.size(), 3, "panel: three board rows mapped")
+	_expect_equal(str((rows[0] as Dictionary).get("display", "")), korean12,
+		"panel: the mapper keeps the Korean handle")
+	_expect_equal(str((rows[2] as Dictionary).get("display", "")), "",
+		"panel: the unnamed row maps no handle")
+	var panel: GateHallPanel = GateHallPanel.new()
+	add_child(panel)
+	await _frames(1)
+	panel.show_rows(rows)
+	_expect_equal(panel.row_count(), 3, "panel: three real rows render")
+	var first: Label = panel.get_node(
+		"Card/Stack/Rows/RowsBox/HallRow0/Line/Middle/Headline") as Label
+	_expect_equal(first.text, "#1 · 9000 · " + korean12,
+		"panel: the Korean handle reads on the headline")
+	var first_id: Label = panel.get_node(
+		"Card/Stack/Rows/RowsBox/HallRow0/Line/Middle/IdLine") as Label
+	_expect_equal(first_id.text, OTHER_ID,
+		"panel: the stable ID keeps its own line")
+	var second: Label = panel.get_node(
+		"Card/Stack/Rows/RowsBox/HallRow1/Line/Middle/Headline") as Label
+	_expect_equal(second.text, "#2 · 8000 · " + japanese12,
+		"panel: the Japanese handle reads on the headline")
+	var third: Label = panel.get_node(
+		"Card/Stack/Rows/RowsBox/HallRow2/Line/Middle/Headline") as Label
+	_expect_equal(third.text, "#3 · 7000",
+		"panel: the unnamed row keeps its honest fallback")
+	var row_box: Control = panel.get_node(
+		"Card/Stack/Rows/RowsBox/HallRow0") as Control
+	_expect_equal(row_box.custom_minimum_size.y,
+		GateHallPanel.ROW_MIN_HEIGHT,
+		"panel: the named row keeps the row height")
+	panel.queue_free()
+	await _free_parts(parts)
 
 
 func _test_adoption_conflict_preserves() -> void:
@@ -767,10 +3277,19 @@ func _test_token_retirement_on_switch() -> void:
 	await _settle_call(host, "account_state", CANON_C)
 	_expect_equal(host.supply_token(), "fake-id-token",
 		"token: live token supplied")
+	Vault.continue_coins = 1
+	Vault.save_vault()
+	_seal_and_journal(CANON_C, "token-j-1", 2, 3)
+	_expect_equal(Vault.continue_coins, 0,
+		"token: the debit journals before sign-out")
 	var fetches: int = (fake.calls as Array).count("get_id_token")
 	host.sign_out()
 	_expect_true(host.supply_token().is_empty(),
 		"token: retired on sign-out")
+	_expect_equal(Vault.recover_paid_continue(), "deferred",
+		"token: sign-out defers the old receipt instead of dropping it")
+	_expect_equal(_txn_owner_cid(CANON_C), 3,
+		"token: the old receipt survives the rotation")
 	fake.guest_receipt = {"status": "ok", "session": {
 		"kind": "cloud", "uid": UID_B, "provider": "anonymous"}}
 	sender.reset()
@@ -782,6 +3301,14 @@ func _test_token_retirement_on_switch() -> void:
 		"token: refreshed for the new account")
 	_expect_equal(host.supply_token(), "fake-id-token",
 		"token: new account serves its own token")
+	_expect_equal(Vault.recover_paid_continue(), "deferred",
+		"token: the refresh keeps deferring the old receipt")
+	_expect_equal(_txn_owner_cid(CANON_C), 3,
+		"token: the refresh leaves the old receipt alone")
+	_expect_equal(_txn_owner_cid(CANON_D), 0,
+		"token: the new scope journals nothing of its own")
+	_expect_true(bool(Vault.clear_continue_txn_for_owner(CANON_C)),
+		"token: cleanup drops the retained receipt")
 	await _free_parts(parts)
 
 
@@ -900,6 +3427,246 @@ func _test_resume_needs_save() -> void:
 		"resume: resume pending")
 	_expect_true(bool((host.saved_gate_summary() as Dictionary).get(
 		"has_save", false)), "resume: summary reports the save")
+	await _free_parts(parts)
+
+
+## A sealed defeat offers no resume: the saved-gate summary reports no save,
+## planning a resume is refused like an empty slot, and a fresh expedition
+## needs no erase confirmation because nothing resumable waits.
+func _test_defeat_offers_no_resume() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	host.startup()
+	_write_checkpoint({"cycle": 4, "journey_id": "defeat-j-1",
+		"ended": true})
+	_expect_false(bool((host.saved_gate_summary() as Dictionary).get(
+		"has_save", true)), "defeat: summary reports no save")
+	var refused: Dictionary = host.plan_entry(false, true)
+	_expect_equal(str(refused.get("code", "")), "no_save",
+		"defeat: resume refused for a sealed run")
+	_expect_false(Journey.armed, "defeat: nothing armed by the refusal")
+	var fresh: Dictionary = host.plan_entry(true, false)
+	_expect_equal(str(fresh.get("status", "")), "ok",
+		"defeat: fresh over a sealed run needs no confirmation")
+	_expect_equal(Journey.pending, Journey.Pending.FRESH,
+		"defeat: fresh pending")
+	await _free_parts(parts)
+
+
+## A paid revive stranded behind failing writes is not a save, but a fresh
+## expedition over it still asks first — the paid coin is only ever
+## abandoned explicitly. Once the writes heal, the same entry recovers the
+## paid seal and resumes it without another charge.
+func _test_stuck_revive_needs_fresh_confirmation() -> void:
+	_wipe_all()
+	_release_dir(ProjectSettings.globalize_path(Journey.path + ".tmp"))
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	host.startup()
+	_write_checkpoint({"cycle": 4, "journey_id": "stuck-j-1",
+		"checkpoint_id": 2, "ended": true})
+	Vault.continue_coins = 2
+	Vault.continue_txn = {}
+	var seal: Dictionary = _valid_checkpoint("stuck-j-1", 3, 9)
+	_expect_true(Vault.begin_continue_txn("stuck-j-1", 3,
+		JSON.stringify(seal)), "stuck: the debit journals its seal")
+	_occupy_dir(ProjectSettings.globalize_path(Journey.path + ".tmp"))
+	var summary: Dictionary = host.saved_gate_summary()
+	_expect_false(bool(summary.get("has_save", true)),
+		"stuck: summary reports no save")
+	_expect_true(bool(summary.get("revive_stuck", false)),
+		"stuck: summary names the stuck revive")
+	var refused: Dictionary = host.plan_entry(false, true)
+	_expect_equal(str(refused.get("code", "")), "no_save",
+		"stuck: resume refused while the seal cannot land")
+	var needs_confirm: Dictionary = host.plan_entry(true, false)
+	_expect_equal(str(needs_confirm.get("code", "")), "needs_confirmation",
+		"stuck: fresh over a stuck revive asks first")
+	_release_dir(ProjectSettings.globalize_path(Journey.path + ".tmp"))
+	var planned: Dictionary = host.plan_entry(false, true)
+	_expect_equal(str(planned.get("status", "")), "ok",
+		"stuck: resume plans after recovery")
+	_expect_true(Journey.has_valid_checkpoint(),
+		"stuck: the recovered seal is resumable")
+	_expect_equal(Vault.continue_coins, 1,
+		"stuck: recovery charges nothing more")
+	_expect_true((Vault.continue_txn as Dictionary).is_empty(),
+		"stuck: recovery clears the journal")
+	await _free_parts(parts)
+
+
+## Occupy a path as a directory so the next write there fails. Always paired
+## with `_release_dir`, and released again at the next test start.
+func _occupy_dir(absolute: String) -> void:
+	if FileAccess.file_exists(absolute):
+		DirAccess.remove_absolute(absolute)
+	DirAccess.make_dir_absolute(absolute)
+
+
+func _release_dir(absolute: String) -> void:
+	if DirAccess.dir_exists_absolute(absolute):
+		DirAccess.remove_absolute(absolute)
+
+
+func _test_lodge_local_guest_skips() -> void:
+	_wipe_all()
+	var parts: Dictionary = _make_parts()
+	var host: Node = parts["host"]
+	host.startup()
+	_expect_false(host.needs_lodge_lesson(),
+		"lodge: a local guest settles no claim")
+	var planned: Dictionary = host.plan_entry(true, true)
+	_expect_equal(str(planned.get("status", "")), "ok",
+		"lodge: a local guest still enters the arena")
+	_expect_true(str(planned.get("arena", "")).ends_with("arena.tscn"),
+		"lodge: the local plan names the arena")
+	host.cancel_entry_plan()
+	await _free_parts(parts)
+
+
+func _test_lodge_unnamed_cloud_blocked() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	_expect_true(host.needs_lodge_lesson(),
+		"lodge: an unnamed cloud account needs the lesson")
+	var refused: Dictionary = host.plan_entry(true, true)
+	_expect_equal(str(refused.get("code", "")), "needs_lodge",
+		"lodge: the arena refuses before the lesson")
+	_expect_false(Journey.armed, "lodge: the refusal arms nothing")
+	var visit: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("status", "")), "ok",
+		"lodge: the visit plans")
+	_expect_true(str(visit.get("lodge", "")).ends_with("gate_lodge.tscn"),
+		"lodge: the visit names the lodge scene")
+	_expect_true(bool(visit.get("needs_name", false)),
+		"lodge: the visit reports the missing name")
+	_expect_false(Journey.armed, "lodge: the visit arms no journey")
+	_expect_equal(Journey.pending, Journey.Pending.NONE,
+		"lodge: the visit pends nothing")
+	var again: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(again.get("code", "")), "entry_in_flight",
+		"lodge: a second visit refuses while one holds")
+	host.cancel_entry_plan()
+	_expect_false(Journey.armed, "lodge: the cancel arms nothing")
+	await _free_parts(parts)
+
+
+func _test_lodge_named_unfinished_recovers() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", false),
+		"lodge: the unfinished handle caches")
+	_expect_true(host.needs_lodge_lesson(),
+		"lodge: a named unfinished account still needs the lesson")
+	_expect_equal(host.verified_display_name(), "Luna",
+		"lodge: the claimed handle recovers synchronously")
+	var visit: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("status", "")), "ok",
+		"lodge: the unfinished visit plans")
+	_expect_false(bool(visit.get("needs_name", true)),
+		"lodge: the visit reports the name settled")
+	host.cancel_entry_plan()
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_lodge_completed_skips() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", true),
+		"lodge: the completed handle caches")
+	_expect_false(host.needs_lodge_lesson(),
+		"lodge: a completed account skips the lesson")
+	var visit: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("code", "")), "lodge_complete",
+		"lodge: a completed account cannot plan a visit")
+	var planned: Dictionary = host.plan_entry(true, true)
+	_expect_equal(str(planned.get("status", "")), "ok",
+		"lodge: a completed account enters the arena directly")
+	host.cancel_entry_plan()
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_lodge_exit_guards() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	var naked: Dictionary = host.plan_lodge_exit(true, true)
+	_expect_equal(str(naked.get("code", "")), "no_lodge_plan",
+		"lodge: no exit without a live visit")
+	var visit: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("status", "")), "ok",
+		"lodge: the guarded visit plans")
+	var early: Dictionary = host.plan_lodge_exit(true, true)
+	_expect_equal(str(early.get("code", "")), "needs_lodge",
+		"lodge: an exit before the seal still refuses")
+	_expect_false(Journey.armed, "lodge: the early exit arms nothing")
+	var held: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(held.get("code", "")), "entry_in_flight",
+		"lodge: the refused exit keeps the visit hold")
+	host.cancel_entry_plan()
+	await _free_parts(parts)
+
+
+func _test_lodge_exit_ok_and_confirm() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", true),
+		"lodge: the departing handle caches")
+	_write_checkpoint({"cycle": 3, "journey_id": "lodge-j-1"})
+	var visit: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("code", "")), "lodge_complete",
+		"lodge: a completed account cannot plan a visit")
+	_clear_name_cache()
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", false),
+		"lodge: the exit test reopens the lesson bit")
+	visit = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("status", "")), "ok",
+		"lodge: the exit visit plans")
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", true),
+		"lodge: the seal lands before departure")
+	var unconfirmed: Dictionary = host.plan_lodge_exit(true, false)
+	_expect_equal(str(unconfirmed.get("code", "")), "needs_confirmation",
+		"lodge: fresh over a save still asks first")
+	var held: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(held.get("code", "")), "entry_in_flight",
+		"lodge: the refused exit keeps the visit hold")
+	var resume: Dictionary = host.plan_lodge_exit(false, true)
+	_expect_equal(str(resume.get("status", "")), "ok",
+		"lodge: the sealed resume departs")
+	_expect_true(str(resume.get("arena", "")).ends_with("arena.tscn"),
+		"lodge: the departure names the arena")
+	_expect_true(host.confirm_entry_account(CANON_C),
+		"lodge: the departure confirms the same account")
+	_expect_true(Journey.armed, "lodge: the departure arms the journey")
+	_expect_equal(Journey.pending, Journey.Pending.RESUME,
+		"lodge: the resume pends")
+	host.cancel_entry_plan()
+	_clear_name_cache()
+	await _free_parts(parts)
+
+
+func _test_lodge_exit_defeat_never_resumes() -> void:
+	var parts: Dictionary = await _adopt_guest_to_canonical()
+	var host: Node = parts["host"]
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", false),
+		"lodge: the defeated visit caches its handle")
+	_write_checkpoint({"cycle": 4, "journey_id": "lodge-defeat-j-1",
+		"ended": true})
+	var visit: Dictionary = host.plan_lodge_entry()
+	_expect_equal(str(visit.get("status", "")), "ok",
+		"lodge: the defeated visit plans")
+	_expect_true(Vault.cache_verified_name(CANON_C, "Luna", "luna", true),
+		"lodge: the seal lands after the defeat")
+	var resume: Dictionary = host.plan_lodge_exit(false, true)
+	_expect_equal(str(resume.get("code", "")), "no_save",
+		"lodge: the sealed run never resumes from the lodge")
+	var fresh: Dictionary = host.plan_lodge_exit(true, false)
+	_expect_equal(str(fresh.get("status", "")), "ok",
+		"lodge: fresh over a sealed run needs no confirmation")
+	host.cancel_entry_plan()
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -2231,21 +4998,34 @@ func _expected_commit_documents(uid: String, public_id: String) -> Array:
 	return [
 		"%s/mb_hall_v1/%s" % [root, public_id],
 		"%s/mb_checkpoints_v1/%s" % [root, uid],
+		"%s/mb_attendance_v1/%s" % [root, public_id],
 		"%s/mb_reservations_v1/%s" % [root, public_id],
 		"%s/mb_profiles_v1/%s" % [root, uid],
 	]
 
 
-## Asserts the wire holds the atomic four-row deletion commit: a single
-## POST to `documents:commit` carrying exactly the four owned deletes with
-## no preconditions. Sequential or incomplete shapes fail here.
+## Queues the name-resolution lookup an unnamed account's deletion
+## performs before its atomic commit: no adventurer row exists.
+func _queue_unclaimed_adventurer(sender: RefCounted) -> void:
+	sender.queue_reply({"transport": "ok", "code": 404, "body": "{}"})
+
+
+## Asserts the wire holds one name lookup plus the atomic four-row
+## deletion commit: a single POST to `documents:commit` carrying exactly
+## the four owned deletes with no preconditions. Sequential or incomplete
+## shapes fail here.
 func _expect_commit_shape(sender: RefCounted, uid: String,
 		public_id: String, label: String) -> void:
 	var calls: Array = sender.calls
-	_expect_equal(calls.size(), 1, label + ": one commit, never four deletes")
-	if calls.is_empty():
+	_expect_equal(calls.size(), 2,
+		label + ": one lookup plus one commit, never five deletes")
+	if calls.size() < 2:
 		return
-	var call: Dictionary = calls[0]
+	_expect_equal(str((calls[0] as Dictionary).get("method", "")), "GET",
+		label + ": deletion resolves the name first")
+	_expect_true(str((calls[0] as Dictionary).get("url", "")).contains(
+		"mb_adventurers_v1"), label + ": lookup reads the adventurer row")
+	var call: Dictionary = calls[1]
 	_expect_equal(str(call.get("method", "")), "POST",
 		label + ": deletion commits via POST")
 	_expect_true(str(call.get("url", "")).contains("documents:commit"),
@@ -2256,15 +5036,15 @@ func _expect_commit_shape(sender: RefCounted, uid: String,
 	if typeof(parsed) != TYPE_DICTIONARY:
 		return
 	var writes: Array = (parsed as Dictionary).get("writes", [])
-	_expect_equal(writes.size(), 4,
-		label + ": commit carries all four deletes")
+	_expect_equal(writes.size(), 5,
+		label + ": commit carries all five deletes")
 	var names: Array = []
 	for write in writes:
 		names.append(str((write as Dictionary).get("delete", "")))
 		_expect_false((write as Dictionary).has("currentDocument"),
 			label + ": no preconditions, missing rows are no-ops")
 	_expect_equal(names, _expected_commit_documents(uid, public_id),
-		label + ": exact four owned documents in plan order")
+		label + ": exact five owned documents in plan order")
 	_expect_no_delete_calls(sender, label)
 
 
@@ -2303,10 +5083,19 @@ func _test_delete_pending_success_cleans_up() -> void:
 	await _sign_in_cloud(parts, UID_A, CANON_C)
 	_write_checkpoint({"cycle": 3, "journey_id": "gone-j-1"})
 	_write_decoy_slot()
+	Vault.continue_coins = 2
+	Vault.save_vault()
+	_seal_and_journal(CANON_C, "gone-j-1", 4, 5)
+	Journey.use_account(OTHER_ID)
+	_seal_and_journal(OTHER_ID, "spared-j-1", 2, 3)
+	Journey.use_account(CANON_C)
+	_expect_equal(Vault.continue_coins, 0,
+		"delete: both scopes journal before deletion")
 	var shards_before: int = Vault.shards
 	var settled_before: Array = (Vault.settled_journeys as Array).duplicate()
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2332,8 +5121,10 @@ func _test_delete_pending_success_cleans_up() -> void:
 		"delete: seam records the acknowledgement")
 	var planned: Dictionary = HOST_SCRIPT.delete_commit_request(
 		UID_A, CANON_C)
-	_expect_equal(str(planned.get("body", "")),
-		str(((sender.calls as Array)[0] as Dictionary).get("body", "")),
+	var wire_calls: Array = sender.calls as Array
+	_expect_equal(str(planned.get("body", "")), str(
+		(wire_calls[wire_calls.size() - 1] as Dictionary).get(
+			"body", "")),
 		"delete: seam body matches the wire bytes")
 	_expect_false(FileAccess.file_exists(
 		Journey.account_main_path(CANON_C)),
@@ -2346,6 +5137,18 @@ func _test_delete_pending_success_cleans_up() -> void:
 	_expect_true(FileAccess.file_exists(
 		Journey.account_main_path(OTHER_ID)),
 		"delete: other account slot untouched")
+	Journey.use_account(OTHER_ID)
+	_expect_equal(int(Vault.scoped_continue_txn().get("checkpoint_id", 0)),
+		3, "delete: the spared scope keeps its receipt")
+	_expect_equal(Vault.recover_paid_continue(), "recovered",
+		"delete: the spared receipt still settles")
+	_expect_equal(Vault.continue_coins, 0,
+		"delete: the spared settle charges nothing more")
+	Journey.use_account(CANON_C)
+	_expect_true(Vault.scoped_continue_txn().is_empty(),
+		"delete: the deleted scope keeps no receipt")
+	_expect_equal(Vault.continue_coins, 0,
+		"delete: two debits total, none refunded, none doubled")
 	_expect_equal(Vault.shards, shards_before,
 		"delete: vault shards untouched")
 	_expect_equal(Vault.settled_journeys, settled_before,
@@ -2366,6 +5169,7 @@ func _test_delete_commit_denied_stops() -> void:
 	_write_checkpoint({"cycle": 2, "journey_id": "stay-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_reply({"transport": "ok", "code": 403, "body": "{}"})
 	var result: Dictionary = await host.delete_current_account()
 	_expect_equal(str(result.get("status", "")), "failure",
@@ -2375,8 +5179,8 @@ func _test_delete_commit_denied_stops() -> void:
 	_expect_equal(str(result.get("failed_step", "")), "commit",
 		"delete-fail: names the refused atomic commit")
 	_expect_equal(result.get("remaining", []),
-		["hall", "checkpoint", "reservation", "profile"],
-		"delete-fail: all four steps remain for a clean retry")
+		["hall", "checkpoint", "attendance", "reservation", "profile"],
+		"delete-fail: all five steps remain for a clean retry")
 	_expect_commit_shape(sender, UID_A, CANON_C, "delete-fail")
 	_expect_false((fake.calls as Array).has("delete_account"),
 		"delete-fail: native never called after a cloud refusal")
@@ -2392,6 +5196,7 @@ func _test_delete_commit_denied_stops() -> void:
 		"delete-fail: seam records the denial")
 	# A truthful retry succeeds once the commit acknowledges.
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "ok"}
 	var retry: Dictionary = await host.delete_current_account()
@@ -2435,6 +5240,7 @@ func _test_delete_commit_timeout_preserves() -> void:
 		"delete-timeout-commit: seam records the timeout")
 	# The retry repeats the identical four-row shape and finishes.
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "ok"}
 	var retry: Dictionary = await host.delete_current_account()
@@ -2455,6 +5261,7 @@ func _test_delete_native_sync_error_preserves() -> void:
 	_write_checkpoint({"cycle": 2, "journey_id": "sync-err-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "error", "code": "native_misfire",
 		"retryable": true}
@@ -2473,6 +5280,7 @@ func _test_delete_native_sync_error_preserves() -> void:
 	# rows (missing rows are server no-ops) and finishes.
 	var first_documents: Array = _commit_documents(sender)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "ok"}
 	var retry: Dictionary = await host.delete_current_account()
@@ -2494,6 +5302,7 @@ func _test_delete_native_sync_cancel_preserves() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "sync-cancel-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	# The native sheet dismissed before anything began: a sync
 	# cancellation after the acknowledged commit.
@@ -2521,6 +5330,7 @@ func _test_delete_duplicate_taps_single_commit() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "double-tap-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2528,7 +5338,7 @@ func _test_delete_duplicate_taps_single_commit() -> void:
 	var second: Dictionary = await host.delete_current_account()
 	_expect_equal(str(second.get("code", "")), "deletion_in_flight",
 		"delete-taps: second tap retired while the first owns the op")
-	_expect_equal((sender.calls as Array).size(), 1,
+	_expect_equal((sender.calls as Array).size(), 2,
 		"delete-taps: duplicate tap sends no second commit")
 	fake.complete_session(_pending_request_id(fake),
 		{"kind": "local_guest"})
@@ -2554,6 +5364,7 @@ func _test_delete_native_error_preserves_and_retries() -> void:
 	_write_checkpoint({"cycle": 2, "journey_id": "reauth-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2584,6 +5395,7 @@ func _test_delete_native_error_preserves_and_retries() -> void:
 	host.begin_guest()
 	await _frames(5)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "ok"}
 	var retry: Dictionary = await host.delete_current_account()
@@ -2605,6 +5417,7 @@ func _test_delete_cancel_preserves() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "cancel-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2632,6 +5445,7 @@ func _test_delete_draining_then_success() -> void:
 	await _sign_in_cloud(parts, UID_A, CANON_C)
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	fake.cancel_status = "draining"
@@ -2662,6 +5476,7 @@ func _test_delete_rejects_switch_and_start() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "locked-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2707,6 +5522,7 @@ func _test_delete_account_move_aborts() -> void:
 	await _await_ready(host)
 	await _frames(30)
 	delayed.reset()
+	_queue_unclaimed_adventurer(delayed)
 	delayed.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2720,11 +5536,11 @@ func _test_delete_account_move_aborts() -> void:
 	_expect_equal((delayed.calls as Array).size(), 1,
 		"delete-move: moved account sends nothing more")
 	var only_call: Dictionary = (delayed.calls as Array)[0]
-	_expect_equal(str(only_call.get("method", "")), "POST",
-		"delete-move: the single in-flight call is the commit")
+	_expect_equal(str(only_call.get("method", "")), "GET",
+		"delete-move: the single in-flight call is the lookup")
 	_expect_true(str(only_call.get("url", "")).contains(
-		"documents:commit"),
-		"delete-move: in-flight call hits the commit endpoint")
+		"mb_adventurers_v1"),
+		"delete-move: in-flight call reads the adventurer row")
 	_expect_false((fake.calls as Array).has("delete_account"),
 		"delete-move: native never runs for a moved account")
 	_expect_true(FileAccess.file_exists(
@@ -2747,6 +5563,7 @@ func _test_delete_timeout_preserves_and_late_completion_safe() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "timeout-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var started_msec: int = Time.get_ticks_msec()
@@ -2788,6 +5605,7 @@ func _test_delete_frames_before_deadline_harmless() -> void:
 	await _sign_in_cloud(parts, UID_A, CANON_C)
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2816,6 +5634,7 @@ func _test_delete_success_just_before_deadline() -> void:
 	_write_checkpoint({"cycle": 2, "journey_id": "near-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -2847,6 +5666,7 @@ func _test_delete_late_terminal_safe_for_next_run() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "retry-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var first_box: Dictionary = _launch_delete(host)
@@ -2869,6 +5689,7 @@ func _test_delete_late_terminal_safe_for_next_run() -> void:
 	# A truthful retry starts a new generation with its own native wait.
 	# Its commit repeats the acknowledged one over already absent rows.
 	var first_documents: Array = _commit_documents(sender)
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	var box: Dictionary = _launch_delete(host)
 	await _frames(5)
@@ -2891,8 +5712,8 @@ func _test_delete_late_terminal_safe_for_next_run() -> void:
 		"delete-retry: genuine terminal finishes the retry")
 	_expect_equal((fake.calls as Array).count("delete_account"), 2,
 		"delete-retry: exactly two native attempts ran")
-	_expect_equal((sender.calls as Array).size(), 2,
-		"delete-retry: one commit per run, nothing more")
+	_expect_equal((sender.calls as Array).size(), 4,
+		"delete-retry: one lookup plus one commit per run, nothing more")
 	_expect_equal(_commit_documents(sender), first_documents,
 		"delete-retry: retry repeats the identical four deletes")
 	await _free_parts(parts)
@@ -2910,6 +5731,7 @@ func _test_delete_expired_run_deletes_no_other_account() -> void:
 	_write_checkpoint({"cycle": 1, "journey_id": "other-j-1"})
 	await _frames(20)
 	sender.reset()
+	_queue_unclaimed_adventurer(sender)
 	sender.queue_ok(_commit_ack_body())
 	fake.delete_receipt = {"status": "pending"}
 	var box: Dictionary = _launch_delete(host)
@@ -3500,6 +6322,8 @@ func _test_restore_blocks_fresh_until_remote_read() -> void:
 	host.begin_guest()
 	var pending: bool = await _await_restore_pending(host)
 	_expect_true(pending, "restore-block: empty slot owns the check")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var refused: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(refused.get("code", "")), "cloud_restore_pending",
 		"restore-block: fresh refused while checking")
@@ -3519,6 +6343,7 @@ func _test_restore_blocks_fresh_until_remote_read() -> void:
 	_expect_equal(Journey.pending, Journey.Pending.RESUME,
 		"restore-block: resume pends")
 	await _await_sender_idle(routed)
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -3635,6 +6460,8 @@ func _test_restore_not_found_unlocks_fresh() -> void:
 		"restore-404: authoritative empty is not a failure")
 	_expect_true((_fired["error"] as Array).is_empty(),
 		"restore-404: no error on clean empty")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-404: fresh unlocks after not-found")
@@ -3649,6 +6476,7 @@ func _test_restore_not_found_unlocks_fresh() -> void:
 	_expect_false((gate.get_node("Content/StatusCard/Ready/StartRow/Resume"
 		) as Button).visible, "restore-404: no Continue without a save")
 	entry.queue_free()
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -3773,6 +6601,8 @@ func _test_restore_explicit_offline() -> void:
 		) as Label).text,
 		GateEntryStrings.text("gate.save.offline_unknown"),
 		"restore-decide: card says the save is unchecked")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-decide: fresh unlocks after the decision")
@@ -3788,6 +6618,7 @@ func _test_restore_explicit_offline() -> void:
 	_expect_false(bool(clean.get("restore_failed", true)),
 		"restore-decide: no failure after clean resolve")
 	entry.queue_free()
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -3878,10 +6709,13 @@ func _test_restore_switch_retires_late_result() -> void:
 		"restore-switch: A's late valid bytes install nowhere")
 	_expect_true(Journey.read_checkpoint().is_empty(),
 		"restore-switch: B slot honestly empty after not-found")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_D, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-switch: B plans fresh after its own resolve")
 	await _await_sender_idle(routed)
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -3907,10 +6741,13 @@ func _test_restore_duplicate_ready_restarts_nothing() -> void:
 	await _frames(10)
 	_expect_equal(_checkpoint_calls(sender).size(), pulls,
 		"restore-dupe: resolved duplicate sends no pull")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-dupe: entry stays unlocked after duplicate")
 	host.cancel_entry_plan()
+	_clear_name_cache()
 	await _free_parts(parts)
 	# While failed, a duplicate neither re-checks nor clears the failure.
 	_wipe_all()
@@ -3992,6 +6829,8 @@ func _test_restore_local_resume_needs_no_cloud() -> void:
 		codes.append(str((err as Dictionary).get("code", "")))
 	_expect_false(codes.has("save_check_failed"),
 		"restore-local: the check never ran over a local save")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(false, true)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-local: resume plans at once")
@@ -3999,6 +6838,7 @@ func _test_restore_local_resume_needs_no_cloud() -> void:
 		"restore-local: resume pends")
 	_expect_equal(int((host.saved_gate_summary() as Dictionary).get(
 		"cycle", 0)), 4, "restore-local: local cycle intact")
+	_clear_name_cache()
 	await _free_parts(parts)
 	# A local-only guest never checks at all, even fully offline.
 	_wipe_all()
@@ -4054,6 +6894,8 @@ func _test_restore_timeout_is_bounded() -> void:
 		"restore-timeout: elapsed expiry fails honestly")
 	_expect_equal(str(failed.get("restore_code", "")), "restore_timeout",
 		"restore-timeout: reason names the timeout")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var refused: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(refused.get("code", "")), "cloud_restore_unresolved",
 		"restore-timeout: fresh refused while unresolved")
@@ -4089,6 +6931,7 @@ func _test_restore_timeout_is_bounded() -> void:
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-timeout: fresh plans after the new resolve")
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -4138,11 +6981,14 @@ func _test_restore_claim_identity_never_reused() -> void:
 	hung.release_checkpoint_call(2,
 		{"transport": "ok", "code": 404, "body": "{}"})
 	await _settle_restore(host)
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-claim: newer resolve unlocks fresh")
 	_expect_equal(_checkpoint_calls(hung).size(), 2,
 		"restore-claim: one pull per attempt")
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -4275,12 +7121,15 @@ func _test_restore_relogin_starts_new_generation() -> void:
 	hung.release_checkpoint_call(2,
 		{"transport": "ok", "code": 404, "body": "{}"})
 	await _settle_restore(host)
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-relogin: newer resolve unlocks fresh")
 	_expect_true((gate.get_node("Content/StatusCard/Ready") as Control
 		).visible, "restore-relogin: newer resolve shows the card")
 	entry.queue_free()
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -4329,6 +7178,8 @@ func _test_restore_timeout_offline_before_orphan() -> void:
 		"restore-timed-offline: offline decision recorded")
 	_expect_true((gate.get_node("Content/StatusCard/Ready") as Control
 		).visible, "restore-timed-offline: offline shows the card")
+	# Settled handle: restore tests judge the restore gate, not the lodge.
+	Vault.cache_verified_name(CANON_C, "Luna", "luna", true)
 	var planned: Dictionary = host.plan_entry(true, false)
 	_expect_equal(str(planned.get("status", "")), "ok",
 		"restore-timed-offline: fresh plans while held")
@@ -4350,6 +7201,7 @@ func _test_restore_timeout_offline_before_orphan() -> void:
 	_expect_equal(_checkpoint_calls(hung).size(), 1,
 		"restore-timed-offline: only the retired pull was sent")
 	entry.queue_free()
+	_clear_name_cache()
 	await _free_parts(parts)
 
 
@@ -4448,6 +7300,62 @@ func _write_checkpoint(extra: Dictionary) -> void:
 	_expect_equal(error, OK, "helper: checkpoint writes")
 
 
+## Checkpoint id of one owner's journaled entry, flat or parked, or 0
+## when the owner holds nothing. Reads without switching the scope.
+func _txn_owner_cid(owner: String) -> int:
+	if not (Vault.continue_txn as Dictionary).is_empty() \
+			and str((Vault.continue_txn as Dictionary).get("owner", "")) \
+				== owner:
+		return int((Vault.continue_txn as Dictionary).get(
+			"checkpoint_id", 0))
+	var parked: Variant = (Vault.get("continue_txn_parked") as Dictionary
+		).get(owner)
+	if parked is Dictionary:
+		return int((parked as Dictionary).get("checkpoint_id", 0))
+	return 0
+
+
+## Seal a defeat and journal its paid revive in one scope, through the
+## real API. The caller owns the active account before and after.
+func _seal_and_journal(owner: String, journey: String, seal_id: int,
+		revive_id: int) -> void:
+	Journey.use_account(owner)
+	var alive: Dictionary = _valid_checkpoint(journey, seal_id, 0)
+	_expect_equal(Journey.write_checkpoint(alive), OK,
+		"helper: the alive seal writes")
+	var sealed: Dictionary = alive.duplicate(true)
+	sealed["ended"] = true
+	_expect_equal(Journey.write_checkpoint(sealed), OK,
+		"helper: the defeat seals")
+	var revive: Dictionary = _valid_checkpoint(journey, revive_id, 0)
+	_expect_true(Vault.begin_continue_txn(journey, revive_id,
+		JSON.stringify(revive)), "helper: the debit journals")
+
+
+## Seal a legacy defeat's file pair without journaling. Split from the
+## debit because the coordinator swap inside `_make_parts` settles any
+## journal already pending in the active scope; legacy tests plant the
+## files first, build parts, then journal just before the startup under
+## test.
+func _write_legacy_pair(journey: String, seal_id: int) -> void:
+	Journey.use_account("")
+	var alive: Dictionary = _valid_checkpoint(journey, seal_id, 0)
+	_expect_equal(Journey.write_checkpoint(alive), OK,
+		"helper: the legacy seal writes")
+	var sealed: Dictionary = alive.duplicate(true)
+	sealed["ended"] = true
+	_expect_equal(Journey.write_checkpoint(sealed), OK,
+		"helper: the legacy defeat seals")
+
+
+## Journal one paid revive in the currently active scope, through the
+## real API. The caller funds the coin first.
+func _journal_revive(journey: String, revive_id: int) -> void:
+	var revive: Dictionary = _valid_checkpoint(journey, revive_id, 0)
+	_expect_true(Vault.begin_continue_txn(journey, revive_id,
+		JSON.stringify(revive)), "helper: the debit journals")
+
+
 func _valid_checkpoint(journey: Variant, checkpoint_id: int,
 		shards: int, extra: Dictionary = {}) -> Dictionary:
 	var checkpoint: Dictionary = {
@@ -4510,14 +7418,17 @@ func _remote_body(uid: String, revision: int, payload: String,
 func _board_body(rows: Array) -> String:
 	var entries: Array = []
 	for row in rows:
-		entries.append({"document": {"fields": {
+		var fields: Dictionary = {
 			"public_id": {"stringValue": str((row as Array)[0])},
 			"hero": {"stringValue": str((row as Array)[1])},
 			"score": {"integerValue": str(int((row as Array)[2]))},
 			"cycles": {"integerValue": "3"},
 			"release": {"stringValue": "4.0.0"},
 			"updated_at": {"timestampValue": "2026-10-01T00:00:00Z"},
-		}}})
+		}
+		if (row as Array).size() > 3:
+			fields["display"] = {"stringValue": str((row as Array)[3])}
+		entries.append({"document": {"fields": fields}})
 	return JSON.stringify(entries)
 
 

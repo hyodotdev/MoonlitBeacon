@@ -83,20 +83,22 @@ func hall_relative_path(public_id: String) -> String:
 
 
 func hall_body(public_id: String, hero: String, score: int, cycles: int,
-		release: String) -> Dictionary:
-	return {
-		"fields": {
-			"public_id": CloudSchema.encode_string(public_id),
-			"hero": CloudSchema.encode_string(
-				CloudSchema.canonical_hero(hero)),
-			"score": CloudSchema.encode_int(score),
-			"cycles": CloudSchema.encode_int(cycles),
-			"release": CloudSchema.encode_string(release),
-			"schema": CloudSchema.encode_int(CloudSchema.SCHEMA_VERSION),
-			"updated_at": CloudSchema.encode_timestamp_rfc3339(
-				CloudSchema.now_rfc3339()),
-		}
+		release: String, display: String = "") -> Dictionary:
+	var fields: Dictionary = {
+		"public_id": CloudSchema.encode_string(public_id),
+		"hero": CloudSchema.encode_string(
+			CloudSchema.canonical_hero(hero)),
+		"score": CloudSchema.encode_int(score),
+		"cycles": CloudSchema.encode_int(cycles),
+		"release": CloudSchema.encode_string(release),
+		"schema": CloudSchema.encode_int(CloudSchema.SCHEMA_VERSION),
+		"updated_at": CloudSchema.encode_timestamp_rfc3339(
+			CloudSchema.now_rfc3339()),
 	}
+	if not display.is_empty():
+		fields[CloudSchema.HALL_DISPLAY_FIELD] = \
+			CloudSchema.encode_string(display)
+	return {"fields": fields}
 
 
 func top_query_body(limit: int) -> Dictionary:
@@ -172,6 +174,8 @@ func parse_row(body: String) -> Dictionary:
 		"release": CloudSchema.decode_string(fields, "release"),
 		"schema": CloudSchema.decode_int(fields, "schema"),
 		"updated_at": CloudSchema.decode_timestamp(fields, "updated_at"),
+		"display": CloudSchema.decode_string(
+			fields, CloudSchema.HALL_DISPLAY_FIELD),
 	}
 	if not CloudSchema.is_valid_public_id(str(row.get("public_id", ""))):
 		return {"status": "failure", "code": "bad-hall-row",
@@ -181,9 +185,13 @@ func parse_row(body: String) -> Dictionary:
 
 ## Submits a candidate best. Reads the current row first so a lower score is
 ## reported as not-best without a doomed write. Equal scores are idempotent:
-## the retry overwrites the same document and succeeds.
+## the retry overwrites the same document and succeeds. `display` carries
+## the caller's verified handle when one is cached, else stays empty for an
+## unnamed row; anything else fails before any request, and the server
+## re-binds a display to the claimed name pair before it lands.
 func submit_best(transport: RefCounted, public_id: String, hero: String,
-		score: int, cycles: int, release: String) -> Dictionary:
+		score: int, cycles: int, release: String,
+		display: String = "") -> Dictionary:
 	if not CloudSchema.is_valid_public_id(public_id):
 		return {"status": "failure", "code": "invalid-public-id",
 			"retryable": false}
@@ -195,13 +203,19 @@ func submit_best(transport: RefCounted, public_id: String, hero: String,
 	if not bool(row_check.get("ok", false)):
 		return {"status": "failure", "code": str(row_check.get("error", "")),
 			"retryable": false}
+	if not display.is_empty() and not bool(
+			CloudSchema.normalize_adventurer_name(display).get(
+				"ok", false)):
+		return {"status": "failure", "code": "invalid-name",
+			"retryable": false}
 	if transport == null or not transport.has_method("post"):
 		return {"status": "unconfigured", "code": "missing-transport",
 			"retryable": false}
 	var current: Dictionary = await fetch_own(transport, public_id)
+	var effective_display: String = display
 	if str(current.get("status", "")) == "ok":
-		var best: int = int((current.get("row", {}) as Dictionary).get(
-			"score", 0))
+		var stored: Dictionary = current.get("row", {}) as Dictionary
+		var best: int = int(stored.get("score", 0))
 		if score < best:
 			# The server holds a better row (ours or another
 			# device's): drop every cache so the next rank
@@ -210,6 +224,11 @@ func submit_best(transport: RefCounted, public_id: String, hero: String,
 			clear_cache()
 			return {"status": "failure", "code": "not-best",
 				"retryable": false, "best": best}
+		if effective_display.is_empty():
+			# Our own row already carries our verified handle
+			# (claimed on another device): keep it rather than
+			# overwrite it away from a cold cache.
+			effective_display = str(stored.get("display", ""))
 	elif str(current.get("code", "")) != "not-found":
 		return current
 	var commit_body: Dictionary = {
@@ -219,7 +238,8 @@ func submit_best(transport: RefCounted, public_id: String, hero: String,
 					"name": CloudSchema.document_name(
 						CloudSchema.HALL_COLLECTION, public_id),
 					"fields": (hall_body(public_id, hero, score, cycles,
-						release) as Dictionary)["fields"],
+						release,
+						effective_display) as Dictionary)["fields"],
 				},
 			}
 		]
@@ -240,6 +260,42 @@ func submit_best(transport: RefCounted, public_id: String, hero: String,
 		return reply
 	clear_cache()
 	return {"status": "ok", "score": score, "public_id": public_id}
+
+
+## Attach a verified handle to the account's existing best row at its own
+## score. Uses the row's saved hero and cycles — never the currently
+## selected hero — and writes nothing when no row exists, so backfill
+## invents no zero-score record and can never downgrade a newer best: a
+## higher server score reports `not-best` and the retry re-reads it.
+func backfill_display(transport: RefCounted, public_id: String,
+		display: String) -> Dictionary:
+	if not CloudSchema.is_valid_public_id(public_id):
+		return {"status": "failure", "code": "invalid-public-id",
+			"retryable": false}
+	if not bool(CloudSchema.normalize_adventurer_name(
+			display).get("ok", false)):
+		return {"status": "failure", "code": "invalid-name",
+			"retryable": false}
+	if not _account_allows(public_id):
+		return {"status": "cancelled", "code": "account-changed",
+			"retryable": false}
+	var current: Dictionary = await fetch_own(transport, public_id)
+	if str(current.get("status", "")) != "ok":
+		if str(current.get("code", "")) == "not-found":
+			return {"status": "ok", "backfilled": false,
+				"code": "no-row"}
+		return current
+	var stored: Dictionary = current.get("row", {}) as Dictionary
+	if str(stored.get("display", "")) == display:
+		return {"status": "ok", "backfilled": false,
+			"code": "already-named"}
+	var submitted: Dictionary = await submit_best(transport, public_id,
+		str(stored.get("hero", "")), int(stored.get("score", 0)),
+		int(stored.get("cycles", 0)),
+		str(stored.get("release", "")), display)
+	if str(submitted.get("status", "")) == "ok":
+		submitted["backfilled"] = true
+	return submitted
 
 
 ## Top-board read with cache and throttle. `now_msec` is injected so tests
@@ -304,6 +360,8 @@ func parse_top_rows(body: String) -> Dictionary:
 			"cycles": CloudSchema.decode_int(fields, "cycles"),
 			"release": CloudSchema.decode_string(fields, "release"),
 			"updated_at": CloudSchema.decode_timestamp(fields, "updated_at"),
+			"display": CloudSchema.decode_string(
+				fields, CloudSchema.HALL_DISPLAY_FIELD),
 		})
 	return {"status": "ok", "rows": rows, "source": "live"}
 

@@ -1986,7 +1986,12 @@ test('objc apple revoke success deletes exactly once, delete errors stay errors'
   // only on success — and a retired request drops without either.
   const start = objc.indexOf('- (void)deleteFirebaseUserAfterReauth:');
   assert.ok(start > 0, 'objc must define deleteFirebaseUserAfterReauth');
-  const end = objc.indexOf('@end', start);
+  // The body ends at the next method definition or the implementation
+  // end, whichever comes first: later methods (such as reminders) must
+  // not leak into this method's terminal count.
+  const atEnd = objc.indexOf('@end', start);
+  const nextMethod = objc.indexOf('\n- (', start);
+  const end = nextMethod > start && nextMethod < atEnd ? nextMethod : atEnd;
   assert.ok(end > start, 'deleteFirebaseUserAfterReauth body is bounded');
   const body = objc.slice(start, end);
   assert.ok(body.indexOf('isLive:') < body.indexOf('deleteWithCompletion'),

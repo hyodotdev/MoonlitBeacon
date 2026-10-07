@@ -65,6 +65,18 @@ const KEY = /\b[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+\b/g;
 // Looks like a key but is not. Engine constants and node names.
 const NOT_KEYS = /^(?:[A-Z]+_[A-Z0-9_]*(?:MODE|FILTER|PRESET|DIRECTION|ALIGNMENT|MASK|LAYER)|SUB_RESOURCE|EXT_RESOURCE|GD_SCENE|PACKED[A-Z0-9]*ARRAY|STYLE_BOX[A-Z_]*|NODE_PATH)$/;
 
+// Firestore's server-timestamp transform writes its wire enum as a plain
+// string (`"setToServerValue": "REQUEST_TIME"`), which the scan below would
+// read as a UI key. It is protocol, never displayed copy, so that exact
+// occurrence is skipped: the direct value of the field, or the expected
+// value in a wrapped `.get("setToServerValue", default)` assertion, whose
+// tail lands on the same line. Merely naming the field earlier on a line
+// exempts nothing: any other REQUEST_TIME on the line — a stored label, a
+// warning literal, a tr() argument — stays checked, as does any other key.
+const SERVER_VALUE_DIRECT = /"setToServerValue"\s*:\s*$/;
+const SERVER_VALUE_ASSERTED = /"setToServerValue"\s*,\s*"[^"]*"\s*\)\)\s*,\s*$/;
+const SERVER_VALUE_REQUEST_TIME = 'REQUEST_TIME';
+
 // The vendored godot-iap addon never uses the game's keys; its env-var names look like keys.
 const VENDORED_IAP = join(GAME, 'addons', 'godot-iap');
 
@@ -90,7 +102,17 @@ for (const file of walk(GAME)) {
     // through. Strip comments before scanning.
     const code = /\.gd$/.test(file) ? line.split('#')[0] : line;
     const scene = line.match(/^text = "([A-Z][A-Z0-9_]*)"$/);
-    const literals = [...code.matchAll(/"([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)"/g)].map((m) => m[1]);
+    const literals = [];
+    for (const match of code.matchAll(/"([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)"/g)) {
+      const before = code.slice(0, match.index);
+      if (
+        match[1] === SERVER_VALUE_REQUEST_TIME
+        && (SERVER_VALUE_DIRECT.test(before) || SERVER_VALUE_ASSERTED.test(before))
+      ) {
+        continue;
+      }
+      literals.push(match[1]);
+    }
     const found = scene ? [scene[1], ...literals] : literals;
     for (const key of found) {
       if (NOT_KEYS.test(key) || !KEY.test(key)) continue;

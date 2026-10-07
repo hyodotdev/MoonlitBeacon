@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="moonlit_reminder_channel_name">출석 보상</string>
+    <string name="moonlit_reminder_channel_desc">출석 코인을 받을 수 있을 때 알려 드립니다</string>
+</resources>

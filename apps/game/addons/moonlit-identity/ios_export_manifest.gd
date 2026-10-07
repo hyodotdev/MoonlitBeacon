@@ -41,6 +41,7 @@ const SYSTEM_FRAMEWORKS: Array[String] = [
 	"SafariServices",
 	"Security",
 	"SystemConfiguration",
+	"UserNotifications",
 	"WebKit",
 ]
 const LINKER_FLAGS: String = "-ObjC -lz"
@@ -230,6 +231,35 @@ static func missing_required_bundles(resources_dir: String) -> PackedStringArray
 static func bundle_has_manifest(bundle_dir: String) -> bool:
 	return FileAccess.file_exists(
 		bundle_dir + "/" + PRIVACY_MANIFEST_FILE)
+
+
+## App-owned privacy declaration for the reminder worker's own
+## `NSUserDefaults` keys (scheduled account/eligible/locale plus the
+## diagnostics baseline, `dev.moonlitbeacon.reminder.*`). Reason CA92.1:
+## reading and writing values the app itself stored. This file is the
+## merge source: the owned export pipeline merges it into Godot's
+## generated app-root manifest (a loose registration would duplicate
+## Godot's own file and fail Xcode); the Firebase/Google SDK manifests
+## travel untouched inside their own bundles above.
+const APP_PRIVACY_MANIFEST_PATH: String = \
+	"res://addons/moonlit-identity/ios/PrivacyInfo.xcprivacy"
+const APP_PRIVACY_API: String = \
+	"NSPrivacyAccessedAPICategoryUserDefaults"
+const APP_PRIVACY_REASON: String = "CA92.1"
+
+
+static func app_privacy_manifest_path() -> String:
+	return APP_PRIVACY_MANIFEST_PATH
+
+
+## True when the app declaration exists and names exactly the accessed
+## API category plus its required reason.
+static func app_privacy_manifest_ready(
+		path: String = APP_PRIVACY_MANIFEST_PATH) -> bool:
+	if path.is_empty() or not FileAccess.file_exists(path):
+		return false
+	var text: String = FileAccess.get_file_as_string(path)
+	return APP_PRIVACY_API in text and APP_PRIVACY_REASON in text
 
 
 static func _child_paths(parent_dir: String, suffix: String) -> PackedStringArray:

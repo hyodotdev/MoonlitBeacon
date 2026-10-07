@@ -40,6 +40,9 @@ func _run() -> void:
 	await _test_deletion_plan_order()
 	await _test_full_deletion_is_one_atomic_commit()
 	await _test_missing_rows_are_commit_no_ops()
+	await _test_named_deletion_removes_the_pair()
+	await _test_named_key_skips_resolution()
+	await _test_failed_resolution_stops_before_any_delete()
 	await _test_failure_applies_nothing()
 	await _test_offline_reports_remaining()
 	_test_local_store_round_trip()
@@ -68,34 +71,57 @@ func _test_deletion_plan_order() -> void:
 	for entry in plan:
 		steps.append(str((entry as Dictionary).get("step", "")))
 	_expect_equal(steps,
-		["hall", "checkpoint", "reservation", "profile"],
+		["hall", "checkpoint", "attendance", "reservation", "profile"],
 		"deletion runs Hall first and profile last")
 	_expect_true(str((plan[0] as Dictionary).get("path", "")).contains(
 		"mb_hall_v1/%s" % PUBLIC_ID), "Hall step targets the public row")
-	_expect_true(str((plan[3] as Dictionary).get("path", "")).contains(
+	_expect_true(str((plan[2] as Dictionary).get("path", "")).contains(
+		"mb_attendance_v1/%s" % PUBLIC_ID),
+		"attendance step targets the public row")
+	_expect_true(str((plan[4] as Dictionary).get("path", "")).contains(
 		"mb_profiles_v1/%s" % UID), "profile step targets the UID row")
+
+
+func _adventurer_get_body(key: String) -> String:
+	return JSON.stringify({
+		"name": "projects/%s/databases/(default)/documents/mb_adventurers_v1/%s"
+			% [PROJECT_ID, PUBLIC_ID],
+		"fields": {
+			"public_id": {"stringValue": PUBLIC_ID},
+			"uid": {"stringValue": UID},
+			"name_key": {"stringValue": key},
+			"display": {"stringValue": "Luna"},
+			"intro_complete": {"booleanValue": true},
+			"schema": {"integerValue": "1"},
+			"created_at": {"timestampValue": "2026-10-01T00:00:00Z"},
+			"updated_at": {"timestampValue": "2026-10-01T00:00:00Z"},
+		},
+	})
 
 
 func _test_full_deletion_is_one_atomic_commit() -> void:
 	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
-	sender.call("queue_ok", "{\"writeResults\":[{},{},{},{}]}")
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{},{},{},{},{}]}")
 	var account: RefCounted = ACCOUNT_SCRIPT.new()
 	var result: Dictionary = await account.call("delete_account_data",
 		_new_transport(sender), UID, PUBLIC_ID)
 	_expect_equal(result.get("status", ""), "ok", "full deletion ok")
 	_expect_equal(result.get("completed", []),
-		["hall", "checkpoint", "reservation", "profile"],
-		"all four steps complete together")
+		["hall", "checkpoint", "attendance", "reservation", "profile"],
+		"all five steps complete together")
 	_expect_equal(result.get("remaining", []), [],
 		"acknowledged commit leaves nothing remaining")
-	_expect_equal(sender.calls.size(), 1, "one commit, never four deletes")
+	_expect_equal(sender.calls.size(), 2,
+		"one name lookup plus one commit, never five deletes")
 	var call: Dictionary = sender.call("last_call")
 	_expect_equal(call.get("method", ""), "POST", "deletion commits via POST")
 	_expect_true(str(call.get("url", "")).contains("documents:commit"),
 		"deletion hits the commit endpoint")
 	var writes: Array = JSON.parse_string(str(call.get("body", ""))).get(
 		"writes", [])
-	_expect_equal(writes.size(), 4, "commit carries all four deletes")
+	_expect_equal(writes.size(), 5, "commit carries all five deletes")
 	var names: Array[String] = []
 	for write in writes:
 		names.append(str((write as Dictionary).get("delete", "")))
@@ -103,9 +129,11 @@ func _test_full_deletion_is_one_atomic_commit() -> void:
 		"Hall row deleted in the commit")
 	_expect_true(names[1].contains("mb_checkpoints_v1/%s" % UID),
 		"checkpoint deleted in the commit")
-	_expect_true(names[2].contains("mb_reservations_v1/%s" % PUBLIC_ID),
+	_expect_true(names[2].contains("mb_attendance_v1/%s" % PUBLIC_ID),
+		"attendance row deleted in the commit")
+	_expect_true(names[3].contains("mb_reservations_v1/%s" % PUBLIC_ID),
 		"reservation deleted in the commit")
-	_expect_true(names[3].contains("mb_profiles_v1/%s" % UID),
+	_expect_true(names[4].contains("mb_profiles_v1/%s" % UID),
 		"profile deleted in the commit")
 	for write in writes:
 		_expect_false((write as Dictionary).has("currentDocument"),
@@ -114,16 +142,84 @@ func _test_full_deletion_is_one_atomic_commit() -> void:
 
 func _test_missing_rows_are_commit_no_ops() -> void:
 	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
-	sender.call("queue_ok", "{\"writeResults\":[{},{},{},{}]}")
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{},{},{},{},{}]}")
 	var account: RefCounted = ACCOUNT_SCRIPT.new()
 	var result: Dictionary = await account.call("delete_account_data",
 		_new_transport(sender), UID, PUBLIC_ID)
 	_expect_equal(result.get("status", ""), "ok",
 		"repeat over missing rows still finishes ok")
-	_expect_equal((result.get("completed", []) as Array).size(), 4,
+	_expect_equal((result.get("completed", []) as Array).size(), 5,
 		"missing rows count as completed")
+	_expect_equal(sender.calls.size(), 2,
+		"repeat deletion is still one lookup plus a single commit")
+
+
+func _test_named_deletion_removes_the_pair() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_ok", _adventurer_get_body("luna"))
+	sender.call("queue_ok",
+		"{\"writeResults\":[{},{},{},{},{},{},{}]}")
+	var account: RefCounted = ACCOUNT_SCRIPT.new()
+	var result: Dictionary = await account.call("delete_account_data",
+		_new_transport(sender), UID, PUBLIC_ID)
+	_expect_equal(result.get("status", ""), "ok", "named deletion ok")
+	_expect_equal(result.get("completed", []),
+		["hall", "name", "adventurer", "checkpoint", "attendance",
+			"reservation", "profile"],
+		"all seven steps complete together")
+	var writes: Array = JSON.parse_string(str(
+		sender.call("last_call").get("body", ""))).get("writes", [])
+	_expect_equal(writes.size(), 7, "commit carries all seven deletes")
+	var names: Array[String] = []
+	for write in writes:
+		names.append(str((write as Dictionary).get("delete", "")))
+	_expect_true(names[0].contains("mb_hall_v1/%s" % PUBLIC_ID),
+		"Hall row goes first")
+	_expect_true(names[1].contains("mb_names_v1/luna"),
+		"name claim goes with the commit")
+	_expect_true(names[2].contains("mb_adventurers_v1/%s" % PUBLIC_ID),
+		"adventurer row goes with the commit")
+	_expect_true(names[3].contains("mb_checkpoints_v1/%s" % UID),
+		"checkpoint still goes")
+	_expect_true(names[4].contains("mb_attendance_v1/%s" % PUBLIC_ID),
+		"attendance goes with the commit")
+	_expect_true(names[5].contains("mb_reservations_v1/%s" % PUBLIC_ID),
+		"reservation still goes")
+	_expect_true(names[6].contains("mb_profiles_v1/%s" % UID),
+		"profile still goes last")
+
+
+func _test_named_key_skips_resolution() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_ok",
+		"{\"writeResults\":[{},{},{},{},{},{},{}]}")
+	var account: RefCounted = ACCOUNT_SCRIPT.new()
+	var result: Dictionary = await account.call("delete_account_data",
+		_new_transport(sender), UID, PUBLIC_ID, "luna")
+	_expect_equal(result.get("status", ""), "ok",
+		"keyed deletion ok")
 	_expect_equal(sender.calls.size(), 1,
-		"repeat deletion is still a single commit")
+		"a known key commits without a lookup")
+	var writes: Array = JSON.parse_string(str(
+		sender.call("last_call").get("body", ""))).get("writes", [])
+	_expect_equal(writes.size(), 7, "keyed commit carries all seven deletes")
+
+
+func _test_failed_resolution_stops_before_any_delete() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_reply", {"transport": "ok", "code": 400,
+		"body": "bad"})
+	var account: RefCounted = ACCOUNT_SCRIPT.new()
+	var result: Dictionary = await account.call("delete_account_data",
+		_new_transport(sender), UID, PUBLIC_ID)
+	_expect_equal(result.get("status", ""), "failure",
+		"failed resolution reports failure")
+	_expect_equal(result.get("completed", []), [],
+		"failed resolution completes nothing")
+	_expect_equal(sender.calls.size(), 1,
+		"failed resolution never reaches the commit")
 
 
 func _test_failure_applies_nothing() -> void:
@@ -140,8 +236,8 @@ func _test_failure_applies_nothing() -> void:
 	_expect_equal(result.get("completed", []), [],
 		"atomic failure completes nothing: no stranded profile")
 	_expect_equal(result.get("remaining", []),
-		["hall", "checkpoint", "reservation", "profile"],
-		"all four steps remain for a clean retry")
+		["hall", "checkpoint", "attendance", "reservation", "profile"],
+		"all five steps remain for a clean retry")
 
 
 func _test_offline_reports_remaining() -> void:
@@ -155,8 +251,8 @@ func _test_offline_reports_remaining() -> void:
 		"offline deletion reports offline")
 	_expect_equal(result.get("completed", []), [],
 		"offline completes nothing")
-	_expect_equal((result.get("remaining", []) as Array).size(), 4,
-		"offline keeps all four steps remaining")
+	_expect_equal((result.get("remaining", []) as Array).size(), 5,
+		"offline keeps all five steps remaining")
 
 
 func _test_local_store_round_trip() -> void:

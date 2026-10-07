@@ -44,6 +44,13 @@ func _init() -> void:
 	_test_hero_purchase()
 	_test_hero_source_grant_and_revoke()
 	_test_continue_coin_grant_atomicity()
+	_test_continue_txn_atomicity()
+	_test_prepare_receipt_move()
+	_test_lodge_progress()
+	_test_verified_name_cache()
+	_test_verified_name_intro_monotone()
+	_test_attendance_wallet()
+	_test_attendance_cross_owner_prune()
 	_test_score_settlement()
 	_test_versioned_primary_beats_backup()
 	_test_backup_recovery()
@@ -61,6 +68,10 @@ func _init() -> void:
 
 func _new_vault() -> Node:
 	return VAULT_SCRIPT.new() as Node
+
+
+func _orphan_node_count() -> int:
+	return int(Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT))
 
 
 func _test_hero_visual_assets() -> void:
@@ -179,6 +190,544 @@ func _test_boon_purchase() -> void:
 	vault.free()
 
 
+## A paid continue journals its debit and exact revive seal in one atomic
+## save: the balance and the journal land together, a retry of the same
+## attempt charges nothing more, a failed save changes neither, and a new
+## journey clears the moot journal (restoring it when its own save fails).
+func _test_continue_txn_atomicity() -> void:
+	var orphans_before: int = _orphan_node_count()
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	vault.continue_coins = 2
+	_expect_true(vault.begin_continue_txn(7, 3, "{\"seal\":true}"),
+		"begin journals the debit and its seal")
+	_expect_equal(vault.continue_coins, 1, "begin debits exactly one coin")
+	_expect_equal(int(vault.continue_txn.get("checkpoint_id", 0)), 3,
+		"begin names the revive seal")
+	vault.continue_coins = 0
+	_expect_true(vault.begin_continue_txn(7, 3, "{\"seal\":true}"),
+		"a retry reuses the journaled attempt")
+	_expect_equal(vault.continue_coins, 0,
+		"a retry charges nothing more")
+	_expect_false(vault.begin_continue_txn(7, 4, "{\"seal\":true}"),
+		"a different attempt needs its own coin")
+	_expect_false(vault.begin_continue_txn(0, 4, "{\"seal\":true}"),
+		"a bad journey id is refused")
+	_expect_false(vault.begin_continue_txn(7, -1, "{\"seal\":true}"),
+		"a bad seal id is refused")
+	_expect_false(vault.begin_continue_txn(7, 4, ""),
+		"an empty seal is refused")
+
+	# The debit and the journal persist across a reload together.
+	_remove_save_target()
+	var first: Node = _new_vault()
+	first.load_vault()
+	first.continue_coins = 2
+	_expect_true(first.begin_continue_txn("rABC", 5, "{\"seal\":5}"),
+		"a string journey begins")
+	var second: Node = _new_vault()
+	second.load_vault()
+	_expect_equal(second.continue_coins, 1, "a reload keeps the debit")
+	_expect_equal(str(second.continue_txn.get("journey_id", "")), "rABC",
+		"a reload keeps the journal journey")
+	_expect_equal(int(second.continue_txn.get("checkpoint_id", 0)), 5,
+		"a reload keeps the journal seal id")
+	_expect_equal(str(second.continue_txn.get("seal", "")), "{\"seal\":5}",
+		"a reload keeps the journal seal")
+	_expect_true(second.ack_continue_txn(), "ack clears the journal")
+	_expect_true((second.continue_txn as Dictionary).is_empty(),
+		"the journal stays cleared in memory")
+	var third: Node = _new_vault()
+	third.load_vault()
+	_expect_true((third.continue_txn as Dictionary).is_empty(),
+		"a reload keeps the ack")
+	_expect_true(third.ack_continue_txn(), "acking nothing acks true")
+
+	# A malformed journal drops on load instead of forging a revive.
+	for bad_txn in [{"journey_id": "", "checkpoint_id": 5, "seal": "x"},
+			{"journey_id": 7, "checkpoint_id": "5", "seal": "x"},
+			{"journey_id": 7, "checkpoint_id": 5, "seal": 9}]:
+		_remove_save_target()
+		var seed: ConfigFile = ConfigFile.new()
+		seed.set_value("vault", "schema_version", 5)
+		seed.set_value("vault", "continue_txn", bad_txn)
+		seed.save(_save_absolute)
+		var loaded: Node = _new_vault()
+		loaded.load_vault()
+		_expect_true((loaded.continue_txn as Dictionary).is_empty(),
+			"a malformed journal drops on load: %s" % str(bad_txn))
+		loaded.free()
+
+	# A failing save reverts the debit and the journal together, and a
+	# failing ack keeps the journal for the next recovery.
+	_remove_save_target()
+	var failing: Node = FAILING_VAULT_SCRIPT.new() as Node
+	failing.load_vault()
+	_expect_false(failing.begin_continue_txn(9, 1, "{\"s\":1}"),
+		"begin fails when the save fails")
+	_expect_equal(failing.continue_coins, 2,
+		"a failed begin keeps the balance")
+	_expect_true((failing.continue_txn as Dictionary).is_empty(),
+		"a failed begin journals nothing")
+	failing.continue_txn = {
+		"journey_id": 9, "checkpoint_id": 1, "seal": "{\"s\":1}"}
+	_expect_false(failing.ack_continue_txn(),
+		"ack fails when the save fails")
+	_expect_false((failing.continue_txn as Dictionary).is_empty(),
+		"a failed ack keeps the journal")
+
+	# A new journey clears the moot journal — unless its own save fails,
+	# which restores it like the sequence.
+	_remove_save_target()
+	var fresh: Node = _new_vault()
+	fresh.load_vault()
+	fresh.continue_coins = 2
+	_expect_true(fresh.begin_continue_txn(11, 2, "{\"s\":2}"),
+		"the old journey journals first")
+	_expect_true(fresh.begin_journey() is int, "the new journey issues")
+	_expect_true((fresh.continue_txn as Dictionary).is_empty(),
+		"a new journey clears the journal")
+	var failing_fresh: Node = FAILING_VAULT_SCRIPT.new() as Node
+	failing_fresh.load_vault()
+	failing_fresh.continue_txn = {
+		"journey_id": 11, "checkpoint_id": 2, "seal": "{\"s\":2}"}
+	_expect_true(failing_fresh.begin_journey() is String,
+		"a failed issue falls back without saving")
+	_expect_false((failing_fresh.continue_txn as Dictionary).is_empty(),
+		"a failed issue restores the journal")
+	vault.free()
+	first.free()
+	second.free()
+	third.free()
+	failing.free()
+	fresh.free()
+	failing_fresh.free()
+	_expect_equal(_orphan_node_count(), orphans_before,
+		"continue txn frees every temporary vault")
+
+
+## Moving a receipt ahead of its slot's files reports one honest outcome:
+## `ready` (nothing pending, or the rekey landed), `kept` (the target
+## holds its own receipt or journey — the source stays), or `failed` (the
+## rekey could not save — the caller must not move files).
+func _test_prepare_receipt_move() -> void:
+	var orphans_before: int = _orphan_node_count()
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	_expect_equal(str(vault.call("prepare_receipt_move", "", "MB-x")),
+		"ready", "prepare: nothing pending is ready")
+	vault.continue_coins = 2
+	_expect_true(vault.begin_continue_txn(7, 3, "{\"seal\":true}"),
+		"prepare: the debit journals")
+	# Instance vaults journal under the global legacy scope here.
+	_expect_equal(str(vault.call("prepare_receipt_move", "", "MB-x")),
+		"ready", "prepare: the rekey onto an empty slot lands")
+	_expect_equal(str(vault.continue_txn.get("owner", "")), "MB-x",
+		"prepare: the entry now owns the target")
+	_expect_equal(vault.continue_coins, 1,
+		"prepare: the rekey charges nothing")
+	var reloaded: Node = _new_vault()
+	reloaded.load_vault()
+	_expect_equal(str(reloaded.continue_txn.get("owner", "")), "MB-x",
+		"prepare: the rekey survives reload")
+
+	# A target holding its own receipt keeps both entries in place.
+	reloaded.continue_txn_parked = {"MB-x": {
+		"owner": "MB-x", "journey_id": 7, "checkpoint_id": 3,
+		"seal": "{\"seal\":true}"}}
+	reloaded.continue_txn = {"owner": "", "journey_id": 9,
+		"checkpoint_id": 1, "seal": "{\"s\":1}"}
+	_expect_equal(str(reloaded.call("prepare_receipt_move", "", "MB-x")),
+		"kept", "prepare: an owned target keeps the source")
+	_expect_equal(str(reloaded.continue_txn.get("owner", "")), "",
+		"prepare: the kept entry stays put")
+
+	# A target holding a journey but no receipt is kept too: settling
+	# against a foreign journey would stale-clear the receipt.
+	reloaded.continue_txn_parked = {}
+	var occupant: String = ProjectSettings.globalize_path(
+		Journey.account_main_path("MB-y"))
+	var writer: FileAccess = FileAccess.open(
+		Journey.account_main_path("MB-y"), FileAccess.WRITE)
+	writer.store_string("{\"slot\":true}")
+	writer.close()
+	_expect_equal(str(reloaded.call("prepare_receipt_move", "", "MB-y")),
+		"kept", "prepare: a journey-occupied target keeps the source")
+	DirAccess.remove_absolute(occupant)
+	_expect_equal(str(reloaded.call("prepare_receipt_move", "", "MB-y")),
+		"ready", "prepare: the freed slot adopts afterwards")
+
+	# A target holding its own receipt or journey is occupied even when
+	# the source carries no receipt: importing unrelated source bytes
+	# over it would stale-clear the target's paid recovery.
+	reloaded.continue_txn = {}
+	reloaded.continue_txn_parked = {"MB-x": {
+		"owner": "MB-x", "journey_id": 7, "checkpoint_id": 3,
+		"seal": "{\"seal\":true}"}}
+	_expect_equal(str(reloaded.call(
+		"prepare_receipt_move", "MB-s", "MB-x")), "kept",
+		"prepare: a receipt-held target keeps a receiptless source")
+	reloaded.continue_txn_parked = {}
+	writer = FileAccess.open(
+		Journey.account_main_path("MB-y"), FileAccess.WRITE)
+	writer.store_string("{\"slot\":true}")
+	writer.close()
+	_expect_equal(str(reloaded.call(
+		"prepare_receipt_move", "MB-s", "MB-y")), "kept",
+		"prepare: a journey-held target keeps a receiptless source")
+	DirAccess.remove_absolute(occupant)
+	_expect_equal(str(reloaded.call(
+		"prepare_receipt_move", "MB-s", "MB-y")), "ready",
+		"prepare: the freed target takes a receiptless source")
+
+	# A rekey that cannot save fails loudly and restores the entry.
+	_remove_save_target()
+	var failing: Node = FAILING_VAULT_SCRIPT.new() as Node
+	failing.load_vault()
+	failing.continue_txn = {"owner": "", "journey_id": 9,
+		"checkpoint_id": 1, "seal": "{\"s\":1}"}
+	_expect_equal(str(failing.call("prepare_receipt_move", "", "MB-z")),
+		"failed", "prepare: an unsavable rekey fails")
+	_expect_equal(str(failing.continue_txn.get("owner", "")), "",
+		"prepare: the failed rekey restores the owner")
+	vault.free()
+	reloaded.free()
+	failing.free()
+	_expect_equal(_orphan_node_count(), orphans_before,
+		"prepare frees every temporary vault")
+
+
+func _test_lodge_progress() -> void:
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	_expect_equal(vault.call("lodge_progress_for_account", "MB-1"),
+		{"move": false, "dash": false},
+		"lodge: gates start unlearned")
+	_expect_false(bool(vault.call("mark_lodge_gate", "MB-1", "swim")),
+		"lodge: unknown gates refuse without a save")
+	_expect_false(bool(vault.call("mark_lodge_gate", "", "move")),
+		"lodge: an empty scope refuses")
+	_expect_true(bool(vault.call("mark_lodge_gate", "MB-1", "move")),
+		"lodge: the move gate marks")
+	_expect_true(bool(vault.call("mark_lodge_gate", "MB-1", "move")),
+		"lodge: re-practice stays true")
+	_expect_equal(vault.call("lodge_progress_for_account", "MB-1"),
+		{"move": true, "dash": false},
+		"lodge: the practiced gate reads back")
+	var reloaded: Node = _new_vault()
+	reloaded.load_vault()
+	_expect_equal(reloaded.call("lodge_progress_for_account", "MB-1"),
+		{"move": true, "dash": false},
+		"lodge: the gate survives reload")
+	_expect_true(bool(vault.call("mark_lodge_gate", "MB-1", "dash")),
+		"lodge: the dash gate marks")
+	for index in 10:
+		_expect_true(bool(vault.call("mark_lodge_gate",
+			"MB-g%d" % index, "move")),
+			"lodge: scope %d marks" % index)
+	var scoped: Dictionary = vault.get("lodge_progress") as Dictionary
+	_expect_equal(scoped.size(), 8, "lodge: the scopes stay bounded")
+	_expect_false(scoped.has("MB-1"), "lodge: the oldest scope evicts")
+	_expect_false(scoped.has("MB-g0"), "lodge: eviction runs oldest-first")
+	_expect_true(scoped.has("MB-g2"), "lodge: newer scopes survive")
+	_expect_true(scoped.has("MB-g9"), "lodge: the newest scope survives")
+	_expect_true(bool(vault.call("clear_lodge_for_owner", "MB-g9")),
+		"lodge: one scope clears")
+	_expect_equal(vault.call("lodge_progress_for_account", "MB-g9"),
+		{"move": false, "dash": false},
+		"lodge: the cleared scope reads unlearned")
+	_expect_true((vault.get("lodge_progress") as Dictionary).has("MB-g8"),
+		"lodge: the clear keeps every other scope")
+	vault.set("lodge_progress", {"MB-x": "garbage", "": {"move": true}})
+	vault.save_vault()
+	var scrubbed: Node = _new_vault()
+	scrubbed.load_vault()
+	_expect_false((scrubbed.get("lodge_progress") as Dictionary).has(
+		"MB-x"), "lodge: a malformed entry drops on load")
+	vault.free()
+	reloaded.free()
+	scrubbed.free()
+	_remove_save_target()
+
+
+func _test_verified_name_cache() -> void:
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	_expect_true((vault.call("verified_name_for_account", "MB-x")
+		as Dictionary).is_empty(), "cache: unknown account reads empty")
+	_expect_true(bool(vault.call("cache_verified_name", "MB-x",
+		"Luna", "luna", false)), "cache: the verified handle stores")
+	_expect_equal(str((vault.call("verified_name_for_account", "MB-x")
+		as Dictionary).get("display", "")), "Luna",
+		"cache: the owning scope reads its handle")
+	_expect_true((vault.call("verified_name_for_account", "MB-y")
+		as Dictionary).is_empty(),
+		"cache: separate accounts never share")
+	_expect_false(bool(vault.call("cache_verified_name", "MB-y",
+		"Luna", "bob", false)),
+		"cache: a mismatched key refuses")
+	_expect_false(bool(vault.call("cache_verified_name", "MB-y",
+		"x", "x", false)), "cache: a short display refuses")
+	_expect_true(bool(vault.call("cache_verified_name", "MB-x",
+		"Luna", "luna", true)),
+		"cache: the intro flip re-stores")
+	_expect_true(bool((vault.call("verified_name_for_account", "MB-x")
+		as Dictionary).get("intro_complete", false)),
+		"cache: the intro flip reads back")
+	for index in 10:
+		_expect_true(bool(vault.call("cache_verified_name",
+			"MB-fill-%d" % index, "Name%d" % index,
+			"name%d" % index, false)),
+			"cache: fill entry stores")
+	_expect_true(int((vault.get("verified_names") as Dictionary).size())
+		<= 8, "cache: the bound holds")
+	_expect_true((vault.call("verified_name_for_account", "MB-x")
+		as Dictionary).is_empty(),
+		"cache: the oldest entry evicts first")
+	var reloaded: Node = _new_vault()
+	reloaded.load_vault()
+	_expect_equal(str((reloaded.call("verified_name_for_account",
+		"MB-fill-9") as Dictionary).get("display", "")), "Name9",
+		"cache: handles survive reload")
+	_expect_true(bool(reloaded.call(
+		"clear_verified_name_for_owner", "MB-fill-9")),
+		"cache: the owner clears")
+	_expect_true((reloaded.call("verified_name_for_account",
+		"MB-fill-9") as Dictionary).is_empty(),
+		"cache: the cleared owner reads empty")
+	_expect_equal(str((reloaded.call("verified_name_for_account",
+		"MB-fill-8") as Dictionary).get("display", "")), "Name8",
+		"cache: clearing drops only the deleted scope")
+	reloaded.free()
+	vault.free()
+
+
+func _test_verified_name_intro_monotone() -> void:
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	_expect_true(bool(vault.call("cache_verified_name", "MB-m",
+		"Luna", "luna", true)), "monotone: the completion stores")
+	_expect_true(bool(vault.call("cache_verified_name", "MB-m",
+		"Luna", "luna", false)),
+		"monotone: a late incomplete same-name write still lands")
+	_expect_true(bool((vault.call("verified_name_for_account", "MB-m")
+		as Dictionary).get("intro_complete", false)),
+		"monotone: the stored completion never regresses")
+	_expect_true(bool(vault.call("cache_verified_name", "MB-n",
+		"Luna", "luna", false)),
+		"monotone: an unrelated account starts incomplete")
+	_expect_false(bool((vault.call("verified_name_for_account", "MB-n")
+		as Dictionary).get("intro_complete", true)),
+		"monotone: the new scope reads incomplete")
+	var reloaded: Node = _new_vault()
+	reloaded.load_vault()
+	_expect_true(bool((reloaded.call("verified_name_for_account", "MB-m")
+		as Dictionary).get("intro_complete", false)),
+		"monotone: the completion survives reload")
+	reloaded.free()
+	vault.free()
+
+
+func _test_attendance_wallet() -> void:
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	var install: String = str(vault.call("ensure_install_id"))
+	_expect_equal(install.length(), 32, "attend: the install id is 32 hex")
+	_expect_equal(str(vault.call("ensure_install_id")), install,
+		"attend: the install id is stable")
+	var before: int = int(vault.continue_coins)
+	var first: Dictionary = vault.call("grant_attendance_coins",
+		"MB-m", 1000000, install)
+	_expect_equal(str(first.get("status", "")), "ok",
+		"attend: the first grant lands")
+	_expect_true(bool(first.get("granted", false)),
+		"attend: the first grant is new")
+	_expect_equal(int(vault.continue_coins), before + 2,
+		"attend: the grant adds exactly two")
+	var key: String = str(first.get("key", ""))
+	_expect_true(key.begins_with("attendance:MB-m:1000000:"),
+		"attend: the receipt key derives from row plus install")
+	var again: Dictionary = vault.call("grant_attendance_coins",
+		"MB-m", 1000000, install)
+	_expect_true(bool(again.get("duplicate", false)),
+		"attend: the same key grants idempotently")
+	_expect_equal(int(vault.continue_coins), before + 2,
+		"attend: the duplicate adds nothing")
+	var older: Dictionary = vault.call("grant_attendance_coins",
+		"MB-m", 999000, install)
+	_expect_true(bool(older.get("duplicate", false)),
+		"attend: an older key hits the watermark")
+	_expect_equal(int(vault.continue_coins), before + 2,
+		"attend: the watermark adds nothing")
+	var sibling: Dictionary = vault.call("grant_attendance_coins",
+		"MB-n", 1000000, install)
+	_expect_true(bool(sibling.get("granted", false)),
+		"attend: another account grants on its own mark")
+	_expect_true(bool(vault.call("cache_attendance_next", "MB-m",
+		"2026-10-08T02:00:00Z", 3600, 1000000)),
+		"attend: the deadline caches")
+	_expect_equal(str((vault.call("attendance_next_for_account", "MB-m")
+		as Dictionary).get("next_utc", "")), "2026-10-08T02:00:00Z",
+		"attend: the cached deadline reads back")
+	var reloaded: Node = _new_vault()
+	reloaded.load_vault()
+	_expect_equal(str(reloaded.call("ensure_install_id")), install,
+		"attend: the install id survives reload")
+	_expect_equal(int(reloaded.continue_coins), before + 4,
+		"attend: the balances survive reload")
+	_expect_true((reloaded.get("continue_coin_grants")
+		as Dictionary).has(key),
+		"attend: the receipt survives with its coins")
+	_expect_true(bool((reloaded.call("grant_attendance_coins",
+		"MB-m", 999000, install) as Dictionary).get("duplicate", false)),
+		"attend: the watermark survives reload")
+	reloaded.free()
+
+	# Bounded replay: purchases never evict, pruned receipts never regrant.
+	_expect_true(bool(vault.call("grant_continue_coins", 5,
+		"store-order-1")), "attend: the purchased key lands")
+	for index in 12:
+		var stamp: int = 2000000 + index * 43200
+		var step: Dictionary = vault.call("grant_attendance_coins",
+			"MB-m", stamp, install)
+		_expect_true(bool(step.get("granted", false)),
+			"attend: period %d grants" % index)
+	var grants: Dictionary = vault.get(
+		"continue_coin_grants") as Dictionary
+	_expect_true(grants.has("store-order-1"),
+		"attend: pruning never evicts a purchase")
+	_expect_equal(int(grants["store-order-1"]), 5,
+		"attend: the purchase keeps its count")
+	var kept: int = 0
+	for grant_key in grants:
+		if str(grant_key).begins_with("attendance:"):
+			kept += 1
+	_expect_equal(kept, 8, "attend: only the newest eight receipts stay")
+	_expect_true(not grants.has(key),
+		"attend: the oldest receipt prunes away")
+	var reprised: Dictionary = vault.call("grant_attendance_coins",
+		"MB-m", 1000000, install)
+	_expect_true(bool(reprised.get("duplicate", false)),
+		"attend: the pruned receipt never grants again")
+
+	# Failed saves grant nothing and keep nothing half-written.
+	_remove_save_target()
+	var failing: Node = FAILING_VAULT_SCRIPT.new() as Node
+	failing.load_vault()
+	_expect_equal(str(failing.call("ensure_install_id")), "",
+		"attend: an undurable install stays hidden")
+	var failed_before: int = int(failing.continue_coins)
+	var denied: Dictionary = failing.call("grant_attendance_coins",
+		"MB-m", 3000000, install)
+	_expect_equal(str(denied.get("status", "")), "failure",
+		"attend: an unsavable grant fails")
+	_expect_equal(int(failing.continue_coins), failed_before,
+		"attend: the failed grant keeps the balance")
+	_expect_true((failing.get("continue_coin_grants")
+		as Dictionary).is_empty(),
+		"attend: the failed grant keeps no key")
+	failing.free()
+
+	# Deletion clears one scope's marks and deadline, never its receipts.
+	_expect_true(bool(vault.call("clear_attendance_for_owner", "MB-m")),
+		"attend: the owner clears")
+	_expect_true((vault.get("attendance_marks") as Dictionary).has(
+		"MB-n"), "attend: the sibling mark survives")
+	_expect_true((vault.call("attendance_next_for_account", "MB-m")
+		as Dictionary).is_empty(),
+		"attend: the cleared deadline reads empty")
+	vault.free()
+
+
+## Ten owners grant one minute apart, then the vault reloads: the first
+## owner's identical old receipt must never grant again even though its
+## key and mark both pruned, while a genuine new account, a new period,
+## and a same-second fresh tie still grant. The purchased receipt stays.
+func _test_attendance_cross_owner_prune() -> void:
+	_remove_save_target()
+	var vault: Node = _new_vault()
+	vault.load_vault()
+	var install: String = str(vault.call("ensure_install_id"))
+	_expect_true(bool(vault.call("grant_continue_coins", 5,
+		"store-order-9")), "attend-x: the purchased key lands")
+	var before: int = int(vault.continue_coins)
+	var base: int = 1791000000
+	for index in 10:
+		var owner: String = "MB-x%d" % index
+		var step: Dictionary = vault.call("grant_attendance_coins",
+			owner, base + index * 60, install)
+		_expect_true(bool(step.get("granted", false)),
+			"attend-x: owner %d grants" % index)
+	_expect_equal(int(vault.continue_coins), before + 20,
+		"attend-x: ten owners add twenty")
+	var reloaded: Node = _new_vault()
+	reloaded.load_vault()
+	_expect_equal(int(reloaded.continue_coins), before + 20,
+		"attend-x: the balances survive reload")
+	_expect_equal(int((reloaded.get("continue_coin_grants")
+		as Dictionary).get("store-order-9", 0)), 5,
+		"attend-x: the purchase survives reload")
+	var replay: Dictionary = reloaded.call("grant_attendance_coins",
+		"MB-x0", base, install)
+	_expect_equal(str(replay.get("status", "")), "failure",
+		"attend-x: the evicted receipt never grants again")
+	_expect_equal(str(replay.get("code", "")),
+		"attendance-replay-ambiguous",
+		"attend-x: the refusal names the eviction")
+	_expect_equal(int(reloaded.continue_coins), before + 20,
+		"attend-x: the replay adds nothing")
+	var fresh: Dictionary = reloaded.call("grant_attendance_coins",
+		"MB-new", base + 600, install)
+	_expect_true(bool(fresh.get("granted", false)),
+		"attend-x: a genuine new account grants")
+	var period: Dictionary = reloaded.call("grant_attendance_coins",
+		"MB-x9", base + 540 + 43200, install)
+	_expect_true(bool(period.get("granted", false)),
+		"attend-x: a genuine new period grants")
+	# A blocked save rolls the eviction back with the balance and keys.
+	DirAccess.make_dir_recursive_absolute(_temp_absolute)
+	var blocked: Dictionary = vault.call("grant_attendance_coins",
+		"MB-blocked", base + 600, install)
+	DirAccess.remove_absolute(_temp_absolute)
+	_expect_equal(str(blocked.get("status", "")), "failure",
+		"attend-x: the blocked grant fails")
+	_expect_equal(int(vault.continue_coins), before + 20,
+		"attend-x: the blocked grant keeps the balance")
+	_expect_equal(int(vault.get("attendance_floor")), base + 60,
+		"attend-x: the failed eviction leaves the floor")
+	var strict_tie: Dictionary = reloaded.call(
+		"grant_attendance_coins", "MB-tie", base, install, false)
+	_expect_equal(str(strict_tie.get("status", "")), "failure",
+		"attend-x: an uncertain same-second tie fails closed")
+	_expect_equal(int(reloaded.continue_coins), before + 24,
+		"attend-x: only the genuine grants land")
+	var tie: Dictionary = reloaded.call(
+		"grant_attendance_coins", "MB-tie", base, install, true)
+	_expect_true(bool(tie.get("granted", false)),
+		"attend-x: a fresh same-second tie grants")
+	_expect_equal(int(reloaded.continue_coins), before + 26,
+		"attend-x: the fresh tie adds two")
+	var tie_again: Dictionary = reloaded.call(
+		"grant_attendance_coins", "MB-tie", base, install, true)
+	_expect_true(bool(tie_again.get("duplicate", false)),
+		"attend-x: the fresh tie stays idempotent")
+	_expect_true(bool(reloaded.call("attendance_receipt_applied",
+		"MB-x9", base + 540 + 43200, install)),
+		"attend-x: the applied receipt reads applied")
+	_expect_false(bool(reloaded.call("attendance_receipt_applied",
+		"MB-x0", base, install)),
+		"attend-x: the evicted receipt reads unapplied")
+	_expect_false(bool(reloaded.call("attendance_receipt_applied",
+		"MB-ghost", base, install)),
+		"attend-x: the unknown receipt reads unapplied")
+	reloaded.free()
+	vault.free()
 func _test_score_settlement() -> void:
 	_remove_save_target()
 	var vault: Node = _new_vault()

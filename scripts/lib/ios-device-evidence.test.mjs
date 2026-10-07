@@ -1541,6 +1541,20 @@ test('settings and persistent data must be byte-exact including presence', () =>
     () => assertByteExactRestoration(Buffer.from('a'), Buffer.from('b'), 'records.cfg'),
     /byte-exact/u,
   );
+  // The reminder off sentinel is ordinary preserved bytes: a minted or
+  // altered mark across the capture is detected, never ignored.
+  assert.throws(
+    () => assertByteExactRestoration(
+      null, Buffer.from('disabled\n'), 'attendance_reminders.disabled',
+    ),
+    /presence changed/u,
+  );
+  assert.throws(
+    () => assertByteExactRestoration(
+      Buffer.from('disabled\n'), Buffer.from('disabled'), 'attendance_reminders.disabled',
+    ),
+    /byte-exact/u,
+  );
 });
 
 test('iOS persistent data requires matching file lists and bytes across both snapshots', () => {
@@ -1573,6 +1587,7 @@ test('keeps the production user save-file inventory and captures only the isolat
     'analytics.json',
     'analytics.json.tmp',
     'analytics_consent.revoked',
+    'attendance_reminders.disabled',
     'chronicle.json',
     'chronicle.json.tmp',
     'iap_entitlements.cfg',
@@ -1631,6 +1646,7 @@ test('keeps the production user save-file inventory and captures only the isolat
     'analytics.json',
     'analytics.json.tmp',
     'analytics_consent.revoked',
+    'attendance_reminders.disabled',
     'chronicle.json',
     'iap_entitlements.cfg',
     'journey.json',

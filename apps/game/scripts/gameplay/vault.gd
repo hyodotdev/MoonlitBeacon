@@ -1,5 +1,7 @@
 extends Node
 
+const CloudSchema: Script = preload("res://scripts/cloud/cloud_schema.gd")
+
 ## Moon vault — what survives a run.
 ##
 ## `Records` knows only a high score. This holds **what makes the next run
@@ -219,8 +221,17 @@ func award(score: int) -> int:
 func begin_journey() -> Variant:
 	journey_seq_issued += 1
 	var seq: int = journey_seq_issued
+	# A new journey moots this scope's journaled continue: it names a
+	# journey that no longer runs. Other scopes' receipts are untouched —
+	# only a confirmed fresh action in their own scope abandons them.
+	# Restored below if the save fails, like the sequence.
+	var moot_flat: Dictionary = continue_txn.duplicate(true)
+	var moot_parked: Dictionary = continue_txn_parked.duplicate(true)
+	_clear_scoped_txn()
 	if save_vault() != OK:
 		journey_seq_issued = seq - 1
+		continue_txn = moot_flat
+		continue_txn_parked = moot_parked
 		var fallback: String = "r%x%x" % [
 			int(Time.get_unix_time_from_system()) % 0xffffff, abs(randi())]
 		_issued_fallback_ids[fallback] = true
@@ -918,6 +929,19 @@ const MAX_CONTINUE_COIN_GRANT: int = 10
 var continue_coins: int = STARTING_COINS
 ## Grant count per transaction key. Atomic with the balance in one file so crashes neither double nor drop grants.
 var continue_coin_grants: Dictionary = {}
+## One in-flight paid continue per account scope: `owner`, `journey_id`,
+## `checkpoint_id` and the exact `seal` text the debit paid for. Atomic
+## with the balance in one save, like the grants: the debit and its journal
+## land together, so a crash can only strand a paid seal — settled by
+## `recover_paid_continue()` without another charge — never an unpaid alive
+## checkpoint. The flat entry holds one scope's receipt; receipts journaled
+## while another scope's entry sits flat park in `continue_txn_parked`.
+## Every read and settle goes through `scoped_continue_txn()`, so a scope
+## never sees, spends, or clears another scope's receipt.
+var continue_txn: Dictionary = {}
+## Parked receipts by owning scope: `owner` to the same flat entry shape.
+## Persisted and loaded with the flat entry, same validation.
+var continue_txn_parked: Dictionary = {}
 
 
 ## Grant coins. Only `Shop` calls this after a real payment is verified.
@@ -969,10 +993,718 @@ func spend_continue_coin() -> bool:
 	return true
 
 
+## Owning scope of one journal entry. Entries journaled before ownership
+## default to the active scope, so in-memory round-2 shapes keep working;
+## persisted entries always carry an explicit owner after load validation.
+func _txn_owner(entry: Dictionary) -> String:
+	return str(entry.get("owner", Journey.active_account))
+
+
+## The pending entry owned by the active slot, flat or parked. Empty when
+## this scope paid for nothing pending. The only read entry points use.
+func scoped_continue_txn() -> Dictionary:
+	if not continue_txn.is_empty() \
+			and _txn_owner(continue_txn) == Journey.active_account:
+		return continue_txn
+	var parked: Variant = continue_txn_parked.get(Journey.active_account)
+	if parked is Dictionary and not (parked as Dictionary).is_empty():
+		return parked as Dictionary
+	return {}
+
+
+## True when any scope other than the active one holds a pending receipt.
+func _has_foreign_txn() -> bool:
+	if not continue_txn.is_empty() \
+			and _txn_owner(continue_txn) != Journey.active_account:
+		return true
+	for key in continue_txn_parked:
+		var parked: Variant = continue_txn_parked[key]
+		if str(key) != Journey.active_account and parked is Dictionary \
+				and not (parked as Dictionary).is_empty():
+			return true
+	return false
+
+
+## Clear only the active scope's entry. Returns true when something was
+## cleared; the caller saves. Split out so `ack_continue_txn()` and
+## `begin_journey()` share one scoped clear with one rollback each.
+func _clear_scoped_txn() -> bool:
+	if not continue_txn.is_empty() \
+			and _txn_owner(continue_txn) == Journey.active_account:
+		continue_txn = {}
+		return true
+	if continue_txn_parked.has(Journey.active_account):
+		continue_txn_parked.erase(Journey.active_account)
+		return true
+	return false
+
+
+## Debit one coin for a journey revive, journaling the exact alive seal the
+## coin paid for under the active scope. The balance and the journal land
+## in one atomic save: a failed save changes neither. Retrying the exact
+## acknowledged bytes is a no-op that returns true without charging again;
+## a rival attempt — different seal, or anything pending in this scope —
+## refuses without touching the original receipt. The caller writes the
+## seal only after this returns true, then clears it with `ack_continue_txn()`.
+func begin_continue_txn(journey_id: Variant, checkpoint_id: int,
+		seal_text: String) -> bool:
+	var owner: String = Journey.active_account
+	var current: Dictionary = scoped_continue_txn()
+	if not current.is_empty():
+		if current.get("journey_id") == journey_id \
+				and int(current.get("checkpoint_id", -1)) == checkpoint_id \
+				and str(current.get("seal", "")) == seal_text:
+			return true
+		return false
+	if continue_coins <= 0:
+		return false
+	if _normalize_loaded_journey_id(journey_id) == null:
+		return false
+	if checkpoint_id < 0 or checkpoint_id > JOURNEY_CHECKPOINT_CAP:
+		return false
+	if seal_text.is_empty():
+		return false
+	var previous_flat: Dictionary = continue_txn.duplicate(true)
+	var previous_parked: Dictionary = continue_txn_parked.duplicate(true)
+	continue_coins -= 1
+	var entry: Dictionary = {
+		"owner": owner,
+		"journey_id": journey_id,
+		"checkpoint_id": checkpoint_id,
+		"seal": seal_text,
+	}
+	if continue_txn.is_empty() or _txn_owner(continue_txn) == owner:
+		continue_txn = entry
+	else:
+		continue_txn_parked[owner] = entry
+	if save_vault() != OK:
+		continue_coins += 1
+		continue_txn = previous_flat
+		continue_txn_parked = previous_parked
+		return false
+	changed.emit()
+	return true
+
+
+## Clear the active scope's journaled continue once its seal has landed.
+## Idempotent: an empty scope acks true. A failed save keeps the journal,
+## and the next recovery settles it again — the seal it names is already
+## on disk, so the retry only clears, never rewrites or recharges. Other
+## scopes' receipts are never touched.
+func ack_continue_txn() -> bool:
+	var previous_flat: Dictionary = continue_txn.duplicate(true)
+	var previous_parked: Dictionary = continue_txn_parked.duplicate(true)
+	if not _clear_scoped_txn():
+		return true
+	if save_vault() != OK:
+		continue_txn = previous_flat
+		continue_txn_parked = previous_parked
+		return false
+	return true
+
+
+## Settle the active scope's interrupted paid continue against the journey
+## files: a stranded paid seal materializes, a delivered or moot one just
+## clears. Returns the Journey settlement code (`recovered`, `delivered`,
+## `stale`, `none`, or `failed`), or `deferred` when only another scope
+## holds a receipt — deferred touches no file, notifies nothing, and keeps
+## the foreign receipt for its own scope. The journal clears on the first
+## three codes, best effort, and a lingering journal converges on the next
+## pass because the seal it names is already on disk by then.
+func recover_paid_continue() -> String:
+	var current: Dictionary = scoped_continue_txn()
+	if current.is_empty():
+		return "deferred" if _has_foreign_txn() else "none"
+	var code: String = Journey.settle_continue_txn(current)
+	if code == "recovered" or code == "delivered" or code == "stale":
+		ack_continue_txn()
+	return code
+
+
+## Carry one scope's receipt onto its slot's new owner after the slot's
+## files moved. Refuses when the target scope already holds a receipt, so
+## a move into an occupied slot keeps both. True when nothing pends under
+## the old owner, when both owners match, or when the rekey lands; a
+## failed save restores the entry where it was.
+func rekey_continue_txn_owner(from_owner: String, to_owner: String) -> bool:
+	if from_owner == to_owner:
+		return true
+	var from_flat: bool = not continue_txn.is_empty() \
+		and _txn_owner(continue_txn) == from_owner
+	var from_parked: Variant = continue_txn_parked.get(from_owner)
+	var has_parked: bool = from_parked is Dictionary \
+		and not (from_parked as Dictionary).is_empty()
+	if not from_flat and not has_parked:
+		return true
+	var target_flat: bool = not continue_txn.is_empty() \
+		and _txn_owner(continue_txn) == to_owner
+	var target_parked: Variant = continue_txn_parked.get(to_owner)
+	if target_flat or (target_parked is Dictionary \
+			and not (target_parked as Dictionary).is_empty()):
+		return false
+	var previous_flat: Dictionary = continue_txn.duplicate(true)
+	var previous_parked: Dictionary = continue_txn_parked.duplicate(true)
+	var entry: Dictionary
+	if from_flat:
+		entry = continue_txn
+		continue_txn = {}
+	else:
+		entry = (from_parked as Dictionary).duplicate(true)
+		continue_txn_parked.erase(from_owner)
+	entry["owner"] = to_owner
+	if continue_txn.is_empty():
+		continue_txn = entry
+	else:
+		continue_txn_parked[to_owner] = entry
+	if save_vault() != OK:
+		continue_txn = previous_flat
+		continue_txn_parked = previous_parked
+		return false
+	return true
+
+
+## Rekey-first gate for a slot move: carry `from_owner`'s receipt onto
+## `to_owner` BEFORE any file moves, so a crash between the two leaves the
+## receipt ahead of its bytes — the retry completes the move instead of
+## stranding a paid revive. The target's own pending receipt or journey is
+## occupied even when the source carries nothing: importing unrelated
+## source bytes over it would stale-clear a paid recovery, so the source
+## stays and the adoption keeps both sides. Returns `ready` when the
+## target is free and nothing pends under the old owner, or when the
+## rekey lands; `kept` when the target holds its own receipt or journey —
+## the source stays, adopt without moving, and a receipt already ahead of
+## its bytes (the crash-window resume) settles from the journal without
+## needing the file move; `failed` when the rekey could not save — the
+## caller must not move files.
+func prepare_receipt_move(from_owner: String, to_owner: String) -> String:
+	if from_owner == to_owner:
+		return "ready"
+	var target_flat: bool = not continue_txn.is_empty() \
+		and _txn_owner(continue_txn) == to_owner
+	var target_parked: Variant = continue_txn_parked.get(to_owner)
+	if target_flat or (target_parked is Dictionary \
+			and not (target_parked as Dictionary).is_empty()):
+		return "kept"
+	if not to_owner.is_empty() and FileAccess.file_exists(
+			Journey.account_main_path(to_owner)):
+		return "kept"
+	var from_flat: bool = not continue_txn.is_empty() \
+		and _txn_owner(continue_txn) == from_owner
+	var from_parked: Variant = continue_txn_parked.get(from_owner)
+	var has_from: bool = from_flat or (from_parked is Dictionary \
+		and not (from_parked as Dictionary).is_empty())
+	if not has_from:
+		return "ready"
+	return "ready" if rekey_continue_txn_owner(from_owner, to_owner) \
+		else "failed"
+
+
+## Migrate the legacy save into `owner`'s slot jointly with its paid
+## receipt, rekey-first: the receipt rekeys onto the owner BEFORE any file
+## moves, so every failure or death between the steps retries cleanly — a
+## failed rekey migrates nothing, and a receipt already ahead only waits
+## for its bytes. An occupied slot keeps files and receipt jointly legacy
+## (deferred, never imported); a legacy receipt with no legacy files left
+## is never adopted blindly — its bytes belong to another slot or none.
+## Returns `ok` with `moved_main`, `moved_backup`, `kept`, and `code`.
+func adopt_legacy_slot(owner: String) -> Dictionary:
+	var result: Dictionary = {"moved_main": false, "moved_backup": false,
+		"kept": false, "ok": true, "code": ""}
+	if owner.is_empty():
+		result["ok"] = false
+		result["code"] = "legacy-adopt-refused"
+		return result
+	if not FileAccess.file_exists(Journey.DEFAULT_PATH) \
+			and not FileAccess.file_exists(Journey.DEFAULT_BACKUP_PATH):
+		return result
+	if FileAccess.file_exists(Journey.account_main_path(owner)):
+		result["kept"] = true
+		return result
+	var readiness: String = prepare_receipt_move("", owner)
+	if readiness == "failed":
+		result["ok"] = false
+		result["code"] = "legacy-adopt-held"
+		return result
+	if readiness == "kept":
+		# The slot's main is missing but the owner holds its own receipt:
+		# the same joint hold as an occupied slot — adopt nothing, lose
+		# nothing, and converge once that receipt settles.
+		result["kept"] = true
+		return result
+	var migration: Dictionary = Journey.migrate_legacy_to_account(owner)
+	result["moved_main"] = bool(migration.get("moved_main", false))
+	result["moved_backup"] = bool(migration.get("moved_backup", false))
+	if not bool(migration.get("ok", false)):
+		result["ok"] = false
+		result["code"] = "legacy-move-failed"
+		return result
+	return result
+
+
+## Verified adventurer names by owning public ID: `display`, `key`, and
+## `intro_complete`. Written only from server-acknowledged states, so an
+## entry always names a globally claimed handle; separate accounts never
+## share, and the arena reads the active account's entry only. Bounded;
+## the oldest-inserted entry evicts first. Holds no token, email, or
+## identity profile. Entries are shape-checked here and re-verified by
+## the server on every write, so a hand-edited cache can only mislabel
+## local text, never forge a claim.
+const MAX_VERIFIED_NAMES: int = 8
+var verified_names: Dictionary = {}
+
+
+## One account's verified handle, or empty when it claimed nothing (or
+## nothing verified yet). The caller names the scope explicitly, so an
+## account switch can never leak another account's handle.
+func verified_name_for_account(public_id: String) -> Dictionary:
+	var entry: Variant = verified_names.get(public_id)
+	if entry is Dictionary and not (entry as Dictionary).is_empty():
+		return (entry as Dictionary).duplicate(true)
+	return {}
+
+
+## Remember a server-acknowledged handle. Refuses malformed entries and
+## restores the cache when the save fails, so a failed write never
+## certifies a name offline that the server never saw. The tutorial bit is
+## monotone per name: a late incomplete same-name response never clears a
+## stored completion. A different scope or a different key starts over.
+func cache_verified_name(public_id: String, display: String,
+		key: String, intro_complete: bool) -> bool:
+	if public_id.is_empty() or display.is_empty() or key.is_empty():
+		return false
+	if key != display.to_lower():
+		return false
+	if display.length() < 2 or display.length() > 12:
+		return false
+	var stored: Dictionary = verified_names.get(public_id, {})
+	if not stored.is_empty() and str(stored.get("key", "")) == key \
+			and bool(stored.get("intro_complete", false)):
+		intro_complete = true
+	var previous: Dictionary = verified_names.duplicate(true)
+	verified_names[public_id] = {
+		"display": display,
+		"key": key,
+		"intro_complete": intro_complete,
+	}
+	while verified_names.size() > MAX_VERIFIED_NAMES:
+		verified_names.erase(verified_names.keys()[0])
+	if save_vault() != OK:
+		verified_names = previous
+		return false
+	return true
+
+
+## Drop one deleted account's handle and keep every other scope's. True
+## when nothing is cached under the owner or when the clear lands; a
+## failed save restores the entry.
+func clear_verified_name_for_owner(owner: String) -> bool:
+	if not verified_names.has(owner):
+		return true
+	var previous: Dictionary = verified_names.duplicate(true)
+	verified_names.erase(owner)
+	if save_vault() != OK:
+		verified_names = previous
+		return false
+	return true
+
+
+## This install's durable attendance binding: a random hex string minted
+## once and persisted. Server attendance rows record it as the receiving
+## install, so one grant lands in exactly one wallet. Never a token,
+## email, or identity profile; the pending value stays hidden until its
+## save lands, exactly like a public ID.
+var install_id: String = ""
+var _pending_install_id: String = ""
+
+## Attendance receipt watermark per public ID: `{key, seconds}` of the
+## newest locally granted claim. Bounds the wallet ledger: attendance
+## receipt keys past the newest few prune, and the watermark (not the
+## pruned key) stops them from ever granting again.
+const MAX_ATTENDANCE_MARKS: int = 8
+var attendance_marks: Dictionary = {}
+
+## Global attendance floor: the highest claim seconds folded out of an
+## evicted owner watermark. Owner marks prune past eight accounts, and an
+## evicted mark alone would re-arm its receipt; the floor keeps the
+## bounded ledger safe instead. Any strict (non-fresh) grant at or below
+## the floor for an untracked owner fails closed as ambiguous: it may be
+## a replay of a forgotten grant, and the wallet stays playable and
+## untouched rather than guessing. Fresh server commits bypass the floor
+## (their conditional write proves novelty), so same-second cross-owner
+## ties still grant.
+var attendance_floor: int = 0
+
+## Last server-confirmed attendance deadline per public ID, for display
+## and reminder scheduling only: `{next_utc, remaining, confirmed_at}`.
+## Never an authority to grant coins; only a live server read grants.
+var attendance_next: Dictionary = {}
+
+## Lodge lesson practice gates per canonical public ID: `{move, dash}`.
+## Sticky per account so a restart resumes practice instead of re-teaching
+## finished gates; re-practising a dropped gate costs no coins and is safe.
+var lodge_progress: Dictionary = {}
+
+
+## Durable install binding, minted on first use. Returns "" while the
+## mint is not yet durable: callers fail closed rather than binding a
+## claim to an identity that changes on relaunch.
+func ensure_install_id() -> String:
+	if not install_id.is_empty():
+		return install_id
+	if _pending_install_id.is_empty():
+		var crypto: Crypto = Crypto.new()
+		_pending_install_id = crypto.generate_random_bytes(
+			16).hex_encode()
+	install_id = _pending_install_id
+	if save_vault() != OK:
+		install_id = ""
+		return ""
+	_pending_install_id = ""
+	return install_id
+
+
+## Grant one acknowledged attendance claim: exactly two coins under the
+## stable derived receipt key. Idempotent by key, duplicate at or below
+## the owner watermark (a pruned receipt never grants again), pruned to
+## the newest few attendance keys with purchased keys never evicted, and
+## rolled back whole when the single atomic save fails. An untracked
+## owner at or below the eviction floor fails closed as ambiguous unless
+## `fresh_commit` carries the server's novelty proof (a just-landed
+## conditional commit, whose twelve-hour rule makes the receipt unique),
+## so same-second cross-owner ties still grant. Returns `{status, key,
+## granted, duplicate}`.
+func grant_attendance_coins(public_id: String, claim_seconds: int,
+		receiving_install: String, fresh_commit: bool = false) -> Dictionary:
+	if public_id.is_empty() or claim_seconds <= 0 \
+			or not CloudSchema.is_valid_install_id(receiving_install):
+		return {"status": "failure", "code": "invalid-attendance-grant",
+			"key": "", "granted": false, "duplicate": false}
+	var key: String = CloudSchema.attendance_receipt_key(
+		public_id, claim_seconds, receiving_install)
+	if continue_coin_grants.has(key):
+		_repair_attendance_mark(public_id, key, claim_seconds)
+		return {"status": "ok", "key": key, "granted": false,
+			"duplicate": true}
+	var mark: Dictionary = attendance_marks.get(public_id, {})
+	if not mark.is_empty() \
+			and claim_seconds <= int(mark.get("seconds", 0)):
+		return {"status": "ok", "key": key, "granted": false,
+			"duplicate": true}
+	if mark.is_empty() and not fresh_commit \
+			and claim_seconds <= attendance_floor:
+		return {"status": "failure",
+			"code": "attendance-replay-ambiguous",
+			"key": key, "granted": false, "duplicate": false}
+	var previous_coins: int = continue_coins
+	var previous_grants: Dictionary = continue_coin_grants.duplicate(true)
+	var previous_marks: Dictionary = attendance_marks.duplicate(true)
+	var previous_floor: int = attendance_floor
+	continue_coins += CloudSchema.ATTENDANCE_GRANT_COINS
+	continue_coin_grants[key] = CloudSchema.ATTENDANCE_GRANT_COINS
+	attendance_marks[public_id] = {"key": key, "seconds": claim_seconds}
+	_prune_attendance_keys()
+	while attendance_marks.size() > MAX_ATTENDANCE_MARKS:
+		_drop_oldest_attendance_mark()
+	if save_vault() != OK:
+		continue_coins = previous_coins
+		continue_coin_grants = previous_grants
+		attendance_marks = previous_marks
+		attendance_floor = previous_floor
+		return {"status": "failure", "code": "attendance-save-failed",
+			"key": key, "granted": false, "duplicate": false}
+	changed.emit()
+	return {"status": "ok", "key": key, "granted": true,
+		"duplicate": false}
+
+
+## True when this wallet already holds one receipt: its key is present,
+## or its owner watermark already covers its seconds. Per owner, granted
+## seconds advance monotonically (a claim commits only after the previous
+## reward applied), so a covered stamp can only be the same claim back
+## for a top-up, never a new reward.
+func attendance_receipt_applied(public_id: String, claim_seconds: int,
+		receiving_install: String) -> bool:
+	if public_id.is_empty() or claim_seconds <= 0:
+		return false
+	var key: String = CloudSchema.attendance_receipt_key(
+		public_id, claim_seconds, receiving_install)
+	if continue_coin_grants.has(key):
+		return true
+	var mark: Dictionary = attendance_marks.get(public_id, {})
+	return not mark.is_empty() \
+		and claim_seconds <= int(mark.get("seconds", 0))
+
+
+## A present receipt key proves its grant: if the owner watermark went
+## missing or lower (eviction, hand edit), restore it so pruned older
+## keys stay refused. Best effort after the proven grant stands.
+func _repair_attendance_mark(public_id: String, key: String,
+		claim_seconds: int) -> void:
+	var mark: Dictionary = attendance_marks.get(public_id, {})
+	if not mark.is_empty() \
+			and int(mark.get("seconds", 0)) >= claim_seconds:
+		return
+	attendance_marks[public_id] = {"key": key, "seconds": claim_seconds}
+	while attendance_marks.size() > MAX_ATTENDANCE_MARKS:
+		_drop_oldest_attendance_mark()
+	if save_vault() != OK:
+		attendance_marks.erase(public_id)
+		if not mark.is_empty():
+			attendance_marks[public_id] = mark
+
+
+## Drop the oldest owner watermark, folding its seconds into the global
+## floor first. A mark is never dropped without folding: the floor keeps
+## refusing the forgotten seconds after the owner entry is gone.
+func _drop_oldest_attendance_mark() -> void:
+	if attendance_marks.is_empty():
+		return
+	var oldest_key: String = str(attendance_marks.keys()[0])
+	var oldest: Dictionary = attendance_marks.get(oldest_key, {})
+	attendance_floor = maxi(attendance_floor,
+		int(oldest.get("seconds", 0)))
+	attendance_marks.erase(oldest_key)
+
+
+## Keep the newest few attendance receipt keys across all scopes, oldest
+## first by embedded claim seconds. Only `attendance:`-prefixed keys are
+## candidates: purchased transaction keys are never evicted.
+func _prune_attendance_keys() -> void:
+	var candidates: Array = []
+	for key in continue_coin_grants:
+		var seconds: int = CloudSchema.attendance_key_seconds(
+			str(key))
+		if seconds > 0:
+			candidates.append({"key": str(key), "seconds": seconds})
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.get("seconds", 0)) < int(b.get("seconds", 0)))
+	while candidates.size() > CloudSchema.MAX_ATTENDANCE_KEYS:
+		var oldest: Dictionary = candidates.pop_front()
+		continue_coin_grants.erase(str(oldest.get("key", "")))
+
+
+## Remember the last server-confirmed deadline for display and reminder
+## scheduling. Display only: reads never consult this cache.
+func cache_attendance_next(public_id: String, next_utc: String,
+		remaining: int, confirmed_at: int) -> bool:
+	if public_id.is_empty() or next_utc.is_empty():
+		return false
+	if remaining < 0 \
+			or remaining > CloudSchema.ATTENDANCE_COOLDOWN_SECONDS:
+		return false
+	if confirmed_at <= 0:
+		return false
+	var previous: Dictionary = attendance_next.duplicate(true)
+	attendance_next[public_id] = {"next_utc": next_utc,
+		"remaining": remaining, "confirmed_at": confirmed_at}
+	while attendance_next.size() > MAX_ATTENDANCE_MARKS:
+		attendance_next.erase(attendance_next.keys()[0])
+	if save_vault() != OK:
+		attendance_next = previous
+		return false
+	return true
+
+
+## Lodge practice gates for one account: `{move, dash}`. Missing gates
+## read false, so a pruned entry only re-teaches, never breaks setup.
+func lodge_progress_for_account(public_id: String) -> Dictionary:
+	var gates: Dictionary = {"move": false, "dash": false}
+	var entry: Variant = lodge_progress.get(public_id)
+	if entry is Dictionary:
+		gates["move"] = bool((entry as Dictionary).get("move", false))
+		gates["dash"] = bool((entry as Dictionary).get("dash", false))
+	return gates
+
+
+## Mark one practiced gate sticky for the account. Re-practising is a
+## no-op write of the same true; unknown gates refuse without a save.
+func mark_lodge_gate(public_id: String, gate: String) -> bool:
+	if public_id.is_empty() or (gate != "move" and gate != "dash"):
+		return false
+	var previous: Dictionary = lodge_progress.duplicate(true)
+	var gates: Dictionary = lodge_progress_for_account(public_id)
+	gates[gate] = true
+	lodge_progress[public_id] = gates
+	while lodge_progress.size() > MAX_ATTENDANCE_MARKS:
+		lodge_progress.erase(lodge_progress.keys()[0])
+	if save_vault() != OK:
+		lodge_progress = previous
+		return false
+	return true
+
+
+## Drop one deleted account's lesson gates and keep every other scope's.
+## A failed save restores the entry.
+func clear_lodge_for_owner(owner: String) -> bool:
+	var previous: Dictionary = lodge_progress.duplicate(true)
+	lodge_progress.erase(owner)
+	if save_vault() != OK:
+		lodge_progress = previous
+		return false
+	return true
+
+
+## Last confirmed deadline for one account, or {} when never confirmed.
+func attendance_next_for_account(public_id: String) -> Dictionary:
+	var entry: Variant = attendance_next.get(public_id)
+	if not entry is Dictionary:
+		return {}
+	return (entry as Dictionary).duplicate()
+
+
+## Drop one deleted account's attendance state and keep every other
+## scope's. Grant keys stay: they back the device balance and prune by
+## bound; the marks and deadline cache for the gone account go, with the
+## mark's seconds folded into the floor like any eviction.
+func clear_attendance_for_owner(owner: String) -> bool:
+	var previous_marks: Dictionary = attendance_marks.duplicate(true)
+	var previous_next: Dictionary = attendance_next.duplicate(true)
+	var previous_floor: int = attendance_floor
+	var dropped: Dictionary = attendance_marks.get(owner, {})
+	if not dropped.is_empty():
+		attendance_floor = maxi(attendance_floor,
+			int(dropped.get("seconds", 0)))
+	attendance_marks.erase(owner)
+	attendance_next.erase(owner)
+	if save_vault() != OK:
+		attendance_marks = previous_marks
+		attendance_next = previous_next
+		attendance_floor = previous_floor
+		return false
+	return true
+
+
+## One persisted handle, validated or dropped. Malformed entries drop, so
+## a hand-edited cache can only lose a handle, never forge or share one.
+func _validated_name_entry(raw: Variant) -> Dictionary:
+	if not raw is Dictionary:
+		return {}
+	var candidate: Dictionary = raw as Dictionary
+	var display: String = str(candidate.get("display", ""))
+	var key: String = str(candidate.get("key", ""))
+	if display.is_empty() or key.is_empty():
+		return {}
+	if key != display.to_lower():
+		return {}
+	if display.length() < 2 or display.length() > 12:
+		return {}
+	return {
+		"display": display,
+		"key": key,
+		"intro_complete": bool(candidate.get("intro_complete", false)),
+	}
+
+
+## One persisted attendance watermark, validated or dropped. The key
+## must carry the same seconds it claims, or a hand edit could re-arm an
+## older receipt.
+func _validated_attendance_mark(raw: Variant) -> Dictionary:
+	if not raw is Dictionary:
+		return {}
+	var candidate: Dictionary = raw as Dictionary
+	var key: String = str(candidate.get("key", ""))
+	var seconds: int = int(candidate.get("seconds", 0))
+	if CloudSchema.attendance_key_seconds(key) != seconds:
+		return {}
+	if seconds <= 0:
+		return {}
+	return {"key": key, "seconds": seconds}
+
+
+## One persisted deadline cache entry, validated or dropped. Display
+## only, so a bad entry simply loses a cached time.
+func _validated_attendance_next(raw: Variant) -> Dictionary:
+	if not raw is Dictionary:
+		return {}
+	var candidate: Dictionary = raw as Dictionary
+	var next_utc: String = str(candidate.get("next_utc", ""))
+	var remaining: int = int(candidate.get("remaining", -1))
+	var confirmed_at: int = int(candidate.get("confirmed_at", 0))
+	if next_utc.is_empty() or remaining < 0 \
+			or remaining > CloudSchema.ATTENDANCE_COOLDOWN_SECONDS:
+		return {}
+	if confirmed_at <= 0:
+		return {}
+	return {"next_utc": next_utc, "remaining": remaining,
+		"confirmed_at": confirmed_at}
+
+
+## One persisted lesson-gate entry, validated or dropped. Malformed
+## entries drop, so a hand-edited wallet only re-teaches a gate.
+func _validated_lodge_progress(raw: Variant) -> Dictionary:
+	if not raw is Dictionary:
+		return {}
+	var candidate: Dictionary = raw as Dictionary
+	return {"move": bool(candidate.get("move", false)),
+		"dash": bool(candidate.get("dash", false))}
+
+
+## Drop one deleted account's receipt and keep every other scope's. True
+## when nothing pends under the owner or when the clear lands; a failed
+## save restores the entry.
+func clear_continue_txn_for_owner(owner: String) -> bool:
+	var previous_flat: Dictionary = continue_txn.duplicate(true)
+	var previous_parked: Dictionary = continue_txn_parked.duplicate(true)
+	var cleared: bool = false
+	if not continue_txn.is_empty() and _txn_owner(continue_txn) == owner:
+		continue_txn = {}
+		cleared = true
+	if continue_txn_parked.has(owner):
+		continue_txn_parked.erase(owner)
+		cleared = true
+	if not cleared:
+		return true
+	if save_vault() != OK:
+		continue_txn = previous_flat
+		continue_txn_parked = previous_parked
+		return false
+	return true
+
+
+## One persisted journal entry, validated or dropped. Ownerless entries
+## predate ownership and load under the legacy scope; `allow_ownerless`
+## stamps them instead of dropping. Malformed entries drop, so a
+## hand-edited journal can only lose a pending revive, never mint a coin
+## or forge a seal (recovery revalidates the bytes).
+func _validated_txn_entry(raw: Variant, allow_ownerless: bool) -> Dictionary:
+	if not raw is Dictionary:
+		return {}
+	var candidate: Dictionary = raw as Dictionary
+	var txn_owner: Variant = candidate.get("owner")
+	if txn_owner == null and allow_ownerless:
+		txn_owner = ""
+	if not txn_owner is String:
+		return {}
+	var txn_journey: Variant = _normalize_loaded_journey_id(
+		candidate.get("journey_id"))
+	var txn_cid: Variant = candidate.get("checkpoint_id")
+	var txn_seal: Variant = candidate.get("seal")
+	if txn_journey == null or not txn_cid is int \
+			or int(txn_cid) < 0 \
+			or int(txn_cid) > JOURNEY_CHECKPOINT_CAP \
+			or not txn_seal is String or str(txn_seal).is_empty():
+		return {}
+	return {
+		"owner": str(txn_owner),
+		"journey_id": txn_journey,
+		"checkpoint_id": int(txn_cid),
+		"seal": str(txn_seal),
+	}
+
+
 func load_vault() -> void:
 	shards = 0
 	continue_coins = STARTING_COINS
 	continue_coin_grants.clear()
+	continue_txn = {}
+	continue_txn_parked = {}
+	verified_names = {}
+	install_id = ""
+	_pending_install_id = ""
+	attendance_marks = {}
+	attendance_floor = 0
+	attendance_next = {}
+	lodge_progress = {}
 	ranks.clear()
 	opened.clear()
 	hero_sources.clear()
@@ -996,6 +1728,84 @@ func load_vault() -> void:
 				if not transaction_key.is_empty() \
 						and count > 0 and count <= MAX_CONTINUE_COIN_GRANT:
 					continue_coin_grants[transaction_key] = count
+	# The continue journal is optional in every schema: old saves predate
+	# it and load with nothing pending. Validation lives in
+	# `_validated_txn_entry`, shared by the flat and parked entries.
+	var saved_txn: Variant = file.get_value(SECTION, "continue_txn", {})
+	if saved_txn is Dictionary:
+		var flat: Dictionary = _validated_txn_entry(
+			(saved_txn as Dictionary), true)
+		if not flat.is_empty():
+			continue_txn = flat
+	var saved_parked: Variant = file.get_value(
+		SECTION, "continue_txn_parked", {})
+	if saved_parked is Dictionary:
+		for key in (saved_parked as Dictionary):
+			var parked: Dictionary = _validated_txn_entry(
+				(saved_parked as Dictionary)[key], false)
+			if parked.is_empty():
+				continue
+			if str(parked.get("owner", "")) != str(key):
+				continue
+			continue_txn_parked[str(key)] = parked
+	# Verified handles are optional in every schema like the journal:
+	# old saves predate them and load unnamed. Malformed entries drop.
+	var saved_names: Variant = file.get_value(
+		SECTION, "verified_names", {})
+	if saved_names is Dictionary:
+		for key in (saved_names as Dictionary):
+			if verified_names.size() >= MAX_VERIFIED_NAMES:
+				break
+			var handle: Dictionary = _validated_name_entry(
+				(saved_names as Dictionary)[key])
+			if handle.is_empty() or str(key).is_empty():
+				continue
+			verified_names[str(key)] = handle
+	# Attendance state is optional in every schema like handles: old saves
+	# predate it and mint an install binding on first use. Malformed
+	# entries drop; valid marks past the cap fold into the floor instead,
+	# so loading never re-arms a pruned receipt.
+	var saved_install: String = str(file.get_value(
+		SECTION, "install_id", ""))
+	if CloudSchema.is_valid_install_id(saved_install):
+		install_id = saved_install
+	attendance_floor = maxi(
+		int(file.get_value(SECTION, "attendance_floor", 0)), 0)
+	var saved_marks: Variant = file.get_value(
+		SECTION, "attendance_marks", {})
+	if saved_marks is Dictionary:
+		for key in (saved_marks as Dictionary):
+			var mark: Dictionary = _validated_attendance_mark(
+				(saved_marks as Dictionary)[key])
+			if mark.is_empty() or str(key).is_empty():
+				continue
+			if attendance_marks.size() >= MAX_ATTENDANCE_MARKS:
+				attendance_floor = maxi(attendance_floor,
+					int(mark.get("seconds", 0)))
+				continue
+			attendance_marks[str(key)] = mark
+	var saved_next: Variant = file.get_value(
+		SECTION, "attendance_next", {})
+	if saved_next is Dictionary:
+		for key in (saved_next as Dictionary):
+			if attendance_next.size() >= MAX_ATTENDANCE_MARKS:
+				break
+			var deadline: Dictionary = _validated_attendance_next(
+				(saved_next as Dictionary)[key])
+			if deadline.is_empty() or str(key).is_empty():
+				continue
+			attendance_next[str(key)] = deadline
+	var saved_lodge: Variant = file.get_value(
+		SECTION, "lodge_progress", {})
+	if saved_lodge is Dictionary:
+		for key in (saved_lodge as Dictionary):
+			if lodge_progress.size() >= MAX_ATTENDANCE_MARKS:
+				break
+			var gates: Dictionary = _validated_lodge_progress(
+				(saved_lodge as Dictionary)[key])
+			if gates.is_empty() or str(key).is_empty():
+				continue
+			lodge_progress[str(key)] = gates
 	if saved_version >= 3:
 		var saved_sources: Variant = file.get_value(SECTION, "hero_sources", {})
 		if saved_sources is Dictionary:
@@ -1078,6 +1888,14 @@ func save_vault() -> Error:
 	file.set_value(SECTION, "shards", shards)
 	file.set_value(SECTION, "continue_coins", continue_coins)
 	file.set_value(SECTION, "continue_coin_grants", continue_coin_grants)
+	file.set_value(SECTION, "continue_txn", continue_txn)
+	file.set_value(SECTION, "continue_txn_parked", continue_txn_parked)
+	file.set_value(SECTION, "verified_names", verified_names)
+	file.set_value(SECTION, "install_id", install_id)
+	file.set_value(SECTION, "attendance_marks", attendance_marks)
+	file.set_value(SECTION, "attendance_floor", attendance_floor)
+	file.set_value(SECTION, "attendance_next", attendance_next)
+	file.set_value(SECTION, "lodge_progress", lodge_progress)
 	file.set_value(SECTION, "hero", chosen)
 	file.set_value(SECTION, "opened", opened)
 	file.set_value(SECTION, "hero_sources", hero_sources)

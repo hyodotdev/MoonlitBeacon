@@ -45,6 +45,7 @@ var _swapping: bool = false
 var _load_path: String = ""
 var _load_account: String = ""
 var _load_fresh: bool = false
+var _load_is_lodge: bool = false
 var _fresh_confirmed: bool = false
 var _busy_provider: String = ""
 var _error_hold: String = ""
@@ -369,10 +370,33 @@ func _begin_planned_entry(fresh: bool) -> void:
 	if status != "ok":
 		if str(plan.get("code", "")) == "needs_confirmation":
 			_show_confirm()
+			return
+		if str(plan.get("code", "")) == "needs_lodge":
+			_begin_lodge_visit(host)
+			return
 		return
 	_fresh_confirmed = false
 	_load_fresh = fresh
+	_load_is_lodge = false
 	_load_path = str(plan.get("arena", ""))
+	_load_account = str(plan.get("account_id", ""))
+	_sfx.play()
+	_entry.load_scene(_load_path, GateEntryStrings.text(
+		"gate.loading.preparing"))
+
+
+## Detour an unsettled account through the gate lodge. The lodge plan
+## holds the same entry lock as an Arena plan, and the lodge's own
+## departure choice supersedes the title button that led here.
+func _begin_lodge_visit(host: Node) -> void:
+	var plan: Dictionary = host.plan_lodge_entry()
+	if str(plan.get("status", "")) != "ok":
+		_refresh_identity()
+		return
+	_fresh_confirmed = false
+	_load_fresh = false
+	_load_is_lodge = true
+	_load_path = str(plan.get("lodge", ""))
 	_load_account = str(plan.get("account_id", ""))
 	_sfx.play()
 	_entry.load_scene(_load_path, GateEntryStrings.text(
@@ -394,6 +418,7 @@ func _on_loading_finished(path: String, packed: PackedScene,
 		host.cancel_entry_plan()
 		_load_path = ""
 		_load_account = ""
+		_load_is_lodge = false
 		_refresh_identity()
 		return
 	_swapping = true
@@ -429,11 +454,16 @@ func _on_loading_retry(_path: String) -> void:
 	var host: Node = _host()
 	if host == null:
 		return
-	var plan: Dictionary = host.plan_entry(_load_fresh, true)
+	var plan: Dictionary
+	if _load_is_lodge:
+		plan = host.plan_lodge_entry()
+	else:
+		plan = host.plan_entry(_load_fresh, true)
 	if str(plan.get("status", "")) != "ok":
 		host.cancel_entry_plan()
 		_load_path = ""
 		_load_account = ""
+		_load_is_lodge = false
 
 
 func _on_loading_return() -> void:
@@ -443,6 +473,7 @@ func _on_loading_return() -> void:
 	host.cancel_entry_plan()
 	_load_path = ""
 	_load_account = ""
+	_load_is_lodge = false
 	_refresh_identity()
 
 

@@ -4611,6 +4611,83 @@
         "cell_height": 168,
         "allow_blank_frames": false
       }
+    },
+    {
+      "id": "lodge.room.wide",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/world/lodge/room_wide.png",
+      "width": 1881,
+      "height": 836,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 152681,
+      "max_alpha_levels": 1
+    },
+    {
+      "id": "lodge.room.tablet",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/world/lodge/room_tablet.png",
+      "width": 1448,
+      "height": 1086,
+      "alpha_mode": "opaque",
+      "max_visible_rgb_colors": 154114,
+      "max_alpha_levels": 1
+    },
+    {
+      "id": "lodge.lumi.front",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/actors/lumi/front.png",
+      "width": 335,
+      "height": 869,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 57570,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "lodge.lumi.rear",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/actors/lumi/rear.png",
+      "width": 336,
+      "height": 869,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 43556,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "lodge.lumi.left",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/actors/lumi/left.png",
+      "width": 262,
+      "height": 869,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 51673,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "lodge.lumi.right",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/actors/lumi/right.png",
+      "width": 247,
+      "height": 869,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 49474,
+      "max_alpha_levels": 256
+    },
+    {
+      "id": "lodge.lumi.bust",
+      "category": "lodge",
+      "status": "final",
+      "path": "assets/custom/actors/lumi/bust.png",
+      "width": 260,
+      "height": 320,
+      "alpha_mode": "graded",
+      "max_visible_rgb_colors": 30284,
+      "max_alpha_levels": 256
     }
   ]
 }

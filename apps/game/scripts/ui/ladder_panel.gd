@@ -25,6 +25,14 @@ const BOARD_FONT: Font = preload(
 
 ## Record waiting to be submitted. Empty means view-only.
 var _pending: Dictionary = {}
+## Verified account handle for this submit, or "" for the classic typed
+## name. A verified submit publishes the stored handle only: the entry
+## shows it read-only and the widget text is never trusted.
+var _verified_handle: String = ""
+## Fields of the last legacy global upload this panel started, or empty
+## when the last submit stayed local. Verified submits never upload: the
+## owned Hall carries that account's record.
+var _last_global_upload: Dictionary = {}
 var _mine: int = -1
 ## Global board. Empty means draw local.
 var _global: Array = []
@@ -68,9 +76,41 @@ func ask(score: int, rank_letter: String, cycles: int, hero_id: String,
 		_hero_name(hero_id), Ladder.current_version(), score]
 	_pending_summary.visible = true
 	_entry.visible = true
+	_verified_handle = ""
+	_last_global_upload = {}
+	_name.editable = true
 	# Prefill the last name. **Make people type every time and they skip submit on run two.**
 	_name.text = Ladder.last_name
 	_name.select_all()
+	_draw_board()
+	_show()
+
+
+## Record under a verified account handle. The result screen calls this
+## for a named production player instead of `ask`: the handle shows
+## read-only, submit publishes the stored handle locally, and no legacy
+## global upload runs — the owned Hall carries this account's record.
+func ask_named(handle: String, score: int, rank_letter: String,
+		cycles: int, hero_id: String, run_id: String = "") -> void:
+	_accept_global = false
+	_global = []
+	_pending = {
+		"score": score,
+		"rank": rank_letter,
+		"cycles": cycles,
+		"hero": hero_id,
+		"run_id": run_id,
+	}
+	_mine = -1
+	_title.text = tr("LADDER_NEW")
+	_pending_summary.text = tr("LADDER_PENDING") % [
+		_hero_name(hero_id), Ladder.current_version(), score]
+	_pending_summary.visible = true
+	_entry.visible = true
+	_verified_handle = handle
+	_last_global_upload = {}
+	_name.text = handle
+	_name.editable = false
 	_draw_board()
 	_show()
 
@@ -80,6 +120,8 @@ func view() -> void:
 	_accept_global = true
 	_global = []
 	_pending = {}
+	_verified_handle = ""
+	_last_global_upload = {}
 	_mine = -1
 	_title.text = tr("LADDER_TITLE")
 	_pending_summary.visible = false
@@ -113,7 +155,8 @@ func close() -> void:
 func _on_submit() -> bool:
 	if _pending.is_empty():
 		return true
-	var player: String = _name.text
+	var player: String = _verified_handle \
+		if not _verified_handle.is_empty() else _name.text
 	var hero: String = str(_pending.get("hero", ""))
 	var score: int = int(_pending.get("score", 0))
 	var letter: String = str(_pending.get("rank", "D"))
@@ -130,11 +173,21 @@ func _on_submit() -> bool:
 		_entry.visible = true
 		_name.grab_focus()
 		return false
-	# Upload globally too. Failure is a no-op — it already lives locally.
-	GlobalLadder.submit(Ladder.last_name, hero, score, letter, cycles, run_id)
+	if _verified_handle.is_empty():
+		# Upload globally too. Failure is a no-op — it already lives locally.
+		_last_global_upload = {
+			"name": Ladder.last_name,
+			"hero": hero,
+			"score": score,
+			"rank": letter,
+			"cycles": cycles,
+		}
+		GlobalLadder.submit(
+			Ladder.last_name, hero, score, letter, cycles, run_id)
 	_accept_global = false
 	_global = []
 	_pending = {}
+	_verified_handle = ""
 	_pending_summary.visible = false
 	_entry.visible = false
 	_title.text = tr("LADDER_TITLE")

@@ -9,9 +9,24 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="dev.moonlitbeacon.identity">
     <uses-sdk android:minSdkVersion="23" />
+    <!-- Attendance reminders: runtime notification permission (33+ only;
+      install-time on older releases) plus boot re-arm for the inexact
+      twelve-hour alarm. No exact-alarm privilege is requested. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <application>
         <meta-data
             android:name="org.godotengine.plugin.v2.MoonlitIdentity"
             android:value="dev.moonlitbeacon.identity.MoonlitIdentityPlugin" />
+        <!-- Alarm, QA, and boot delivery for attendance reminders. The
+          receiver is not exported: only the app's own alarms and the
+          system boot broadcast reach it. -->
+        <receiver
+            android:name="dev.moonlitbeacon.identity.MoonlitReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

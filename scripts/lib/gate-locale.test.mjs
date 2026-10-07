@@ -50,6 +50,14 @@ test('gate table keeps its locale columns, cells, and key shape', () => {
   assert.ok(seen.size > 0, 'gate table ships keys');
 });
 
+// Complete keys only: the bare "gate." prefix and trailing-dot namespace
+// prefixes ("gate.lodge.") in begins_with guards are filters, not keys.
+function completeGateKeys(code) {
+  return [...code.matchAll(/"((?:gate\.[a-z0-9_]+[a-z0-9_.]*))"/gu)]
+    .map((match) => match[1])
+    .filter((key) => !key.endsWith('.'));
+}
+
 test('every gate key used in code and scenes exists in the table', () => {
   const { rows } = readCsvTable();
   const table = new Set(rows.map((cells) => cells[0]));
@@ -69,11 +77,7 @@ test('every gate key used in code and scenes exists in the table', () => {
       // Strip GDScript comments; the loader's own doc comment names the
       // table path, not a key.
       const code = /\.gd$/.test(file) ? line.split('#')[0] : line;
-      // Full keys only: the bare "gate." prefix in begins_with guards is
-      // not a key.
-      const found = [...code.matchAll(/"((?:gate\.[a-z0-9_]+[a-z0-9_.]*))"/gu)]
-        .map((match) => match[1]);
-      for (const key of found) {
+      for (const key of completeGateKeys(code)) {
         if (!used.has(key)) used.set(key, `${rel(file)}:${index + 1}`);
       }
     });
@@ -85,6 +89,29 @@ test('every gate key used in code and scenes exists in the table', () => {
       `${where}: ${key} is not in the gate table — the key will show on screen`,
     );
   }
+});
+
+test('complete-key recognition ignores namespace prefixes but keeps misspellings', () => {
+  assert.deepEqual(
+    completeGateKeys('if not str(cells[0]).begins_with("gate.lodge."):'),
+    [],
+    'trailing-dot namespace prefix is a filter, not a key',
+  );
+  assert.deepEqual(
+    completeGateKeys('if not text_value.begins_with("gate."):'),
+    [],
+    'bare gate prefix is a filter, not a key',
+  );
+  assert.deepEqual(
+    completeGateKeys('GateEntryStrings.text("gate.lodge.named_ok")'),
+    ['gate.lodge.named_ok'],
+    'complete used key stays checked',
+  );
+  assert.deepEqual(
+    completeGateKeys('GateEntryStrings.text("gate.lodg.named_ok")'),
+    ['gate.lodg.named_ok'],
+    'misspelled complete key stays checked so the table test rejects it',
+  );
 });
 
 test('project.godot registers every gate translation resource', () => {

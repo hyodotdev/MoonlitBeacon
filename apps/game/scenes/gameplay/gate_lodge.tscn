@@ -1,0 +1,36 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/gate_lodge.gd" id="lodge"]
+[ext_resource type="Script" path="res://scripts/actors/lumi_guide.gd" id="lumi"]
+[ext_resource type="PackedScene" path="res://scenes/actors/player.tscn" id="player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/virtual_stick.tscn" id="stick"]
+[ext_resource type="PackedScene" path="res://scenes/ui/dash_button.tscn" id="dashbtn"]
+
+[node name="GateLodge" type="Node2D"]
+y_sort_enabled = true
+script = ExtResource("lodge")
+
+[node name="Room" type="Sprite2D" parent="."]
+z_index = -100
+texture_filter = 2
+
+[node name="Lumi" type="Node2D" parent="."]
+script = ExtResource("lumi")
+
+[node name="Player" parent="." instance=ExtResource("player")]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+; Physics callback (0): the project interpolates physics and the idle
+; default warns on every instantiation.
+process_callback = 0
+
+[node name="Ui" type="CanvasLayer" parent="."]
+
+[node name="MoveStick" parent="Ui" instance=ExtResource("stick")]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 0.0
+grow_horizontal = 2
+
+[node name="Dash" parent="Ui" instance=ExtResource("dashbtn")]

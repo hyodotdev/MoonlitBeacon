@@ -4748,8 +4748,8 @@ test('Python capture persistence contract matches the Node producer including Ch
   const root = mkdtempSync(join(tmpdir(), 'moonlit-persistence-contract-'));
   try {
     const producer = [...ANDROID_CAPTURE_PERSISTENT_FILES];
-    assert.equal(producer.length, 32);
-    assert.deepEqual(producer.slice(3, 5), ['chronicle.json', 'chronicle.json.tmp']);
+    assert.equal(producer.length, 33);
+    assert.deepEqual(producer.slice(4, 6), ['chronicle.json', 'chronicle.json.tmp']);
     assert.deepEqual([...IOS_CODE_PERSISTENT_FILES], producer);
     const probe = String.raw`
 import base64
@@ -4792,7 +4792,7 @@ if ios != producer:
         f"(missing={sorted(set(producer) - set(ios))}, "
         f"stale={sorted(set(ios) - set(producer))})"
     )
-if android[3:5] != ["chronicle.json", "chronicle.json.tmp"]:
+if android[4:6] != ["chronicle.json", "chronicle.json.tmp"]:
     raise RuntimeError("Chronicle entries are out of order in the consumer")
 
 capture_root = root / "builds/shots/store-localized"
@@ -4923,6 +4923,13 @@ rejected("chronicle.json dropped from before map",
          lambda value: value["persistent_data_sha256_before"].pop("chronicle.json"))
 rejected("chronicle.json.tmp dropped from restored map",
          lambda value: value["persistent_data_sha256_restored"].pop("chronicle.json.tmp"))
+rejected("attendance sentinel dropped from file list",
+         lambda value: value["persistent_data_files"].remove("attendance_reminders.disabled"))
+rejected("attendance sentinel dropped from before map",
+         lambda value: value["persistent_data_sha256_before"].pop("attendance_reminders.disabled"))
+def tamper_sentinel_restored(value):
+    value["persistent_data_sha256_restored"]["attendance_reminders.disabled"] = "c" * 64
+rejected("attendance sentinel restored hash changed", tamper_sentinel_restored)
 def tamper_chronicle_restored(value):
     value["persistent_data_sha256_restored"]["chronicle.json.tmp"] = "c" * 64
 rejected("chronicle.json.tmp restored hash changed", tamper_chronicle_restored)
@@ -4971,6 +4978,11 @@ ios_rejected("chronicle.json dropped from iOS file list", {
         name for name in ios_files if name != "chronicle.json"
     ],
 })
+ios_rejected("attendance sentinel dropped from iOS file list", {
+    "persistent_data_files": [
+        name for name in ios_files if name != "attendance_reminders.disabled"
+    ],
+})
 ios_before = dict(ios_hashes)
 ios_before.pop("chronicle.json.tmp")
 ios_rejected("chronicle.json.tmp dropped from iOS before map", {
@@ -4998,8 +5010,8 @@ print(json.dumps({"android": len(android), "ios": len(ios)}))
     );
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
     assert.deepEqual(JSON.parse(result.stdout.trim().split('\n').at(-1)), {
-      android: 32,
-      ios: 32,
+      android: 33,
+      ios: 33,
     });
   } finally {
     rmSync(root, { recursive: true, force: true });

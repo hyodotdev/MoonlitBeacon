@@ -26,6 +26,7 @@ signal production_changed(state: Dictionary)
 signal production_conflict(local: Dictionary, cloud: Dictionary)
 signal production_hall(rows: Array, meta: Dictionary)
 signal production_error(error: Dictionary)
+signal production_attendance(snapshot: Dictionary)
 
 const ACCOUNT_SCRIPT: Script = preload("res://scripts/net/player_account.gd")
 const ADAPTER_SCRIPT: Script = preload(
@@ -41,8 +42,11 @@ const TRANSPORT_SCRIPT: Script = preload(
 const SCHEMA_SCRIPT: Script = preload("res://scripts/cloud/cloud_schema.gd")
 const FIREBASE_SCRIPT: Script = preload(
 	"res://scripts/net/firebase_config.gd")
+const REMINDERS_SCRIPT: Script = preload(
+	"res://scripts/gameplay/attendance_reminders.gd")
 
 const ARENA_SCENE: String = "res://scenes/gameplay/arena.tscn"
+const LODGE_SCENE: String = "res://scenes/gameplay/gate_lodge.tscn"
 const RELEASE_TAG: String = "4.0.0"
 const TOKEN_REFRESH_MARGIN_SECONDS: float = 60.0
 const TOKEN_WAIT_SECONDS: float = 15.0
@@ -87,6 +91,16 @@ var _draining: bool = false
 var _draining_provider: String = ""
 var _deletion_generation: int = 0
 var _deletion_ticket: Dictionary = {}
+## Single attendance check owner: entry, foreground, and explicit calls
+## share one claim; overlapping triggers skip instead of queueing.
+var _attendance_in_flight: bool = false
+## Granted-coins receipt awaiting a HUD: gate-time grants queue here and
+## show on arena entry; arena-time grants flush immediately.
+var _attendance_receipt_pending: String = ""
+## Local reminder controller, owned here so it outlives scene changes.
+## Reads the attendance view and the MoonlitIdentity bridge; inert
+## without a native side.
+var _reminders: Node = null
 var _deletion_waiters: Array = []
 var _entry_in_flight: bool = false
 ## Initial empty-slot cloud check. Owned synchronously in `_adopted_canonical`
@@ -100,6 +114,11 @@ var _restore_generation: int = 0
 ## until an explicit retry or offline decision; `offline` is that decision.
 var _restore_state: String = "none"
 var _restore_code: String = ""
+## Legacy joint-adoption hold: "" when the legacy save needs nothing or
+## migrated cleanly, else the `adopt_legacy_slot` code (`legacy-adopt-held`,
+## `legacy-move-failed`) the next startup retries. The bytes and receipt
+## wait jointly on disk, so ordinary play is unaffected.
+var _legacy_hold_code: String = ""
 ## Checkpoint-read claim. One fetch runs at a time, so retries can never
 ## stack parallel pulls. The counter is monotonic and never reset — the
 ## open slot below is what clears — so a retired completion can never
@@ -132,8 +151,25 @@ func _init() -> void:
 
 func _ready() -> void:
 	_build_services()
+	_build_reminder_controller()
 	if get_tree() != null:
 		get_tree().scene_changed.connect(_on_scene_changed)
+
+
+## The owned reminder controller for settings and QA. Null only before
+## `_ready` or in bare unit constructions that never entered a tree.
+func reminder_controller() -> Node:
+	return _reminders
+
+
+func _build_reminder_controller() -> void:
+	if _reminders != null and is_instance_valid(_reminders):
+		return
+	_reminders = REMINDERS_SCRIPT.new()
+	_reminders.name = "AttendanceReminders"
+	add_child(_reminders)
+	_reminders.configure(self,
+		get_node_or_null("/root/MoonlitIdentity"))
 
 
 func _exit_tree() -> void:
@@ -219,11 +255,27 @@ func startup() -> Dictionary:
 	_started = true
 	_startup_ticks = Time.get_ticks_msec()
 	Journey.use_account(public_id)
-	Journey.migrate_legacy_to_account(public_id)
+	_run_legacy_adoption(public_id)
 	_account.call("refresh_session")
 	_maybe_configure_cloud()
+	_watch_foreground_returns()
 	production_changed.emit(account_state())
 	return account_state()
+
+
+## Foreground returns re-check attendance once each. Window focus exists
+## only on a real display; headless runs (tests, harnesses) drive
+## `notify_foreground_return` explicitly instead of auto-firing.
+func _watch_foreground_returns() -> void:
+	if not is_inside_tree():
+		return
+	if DisplayServer.get_name() == "headless":
+		return
+	var root: Window = get_tree().root
+	if root == null:
+		return
+	if not root.focus_entered.is_connected(notify_foreground_return):
+		root.focus_entered.connect(notify_foreground_return)
 
 
 ## True once `startup()` landed a durable ID.
@@ -269,6 +321,7 @@ func account_state() -> Dictionary:
 		"restore_failed": restore_live and _restore_state == "failed",
 		"restore_offline": restore_live and _restore_state == "offline",
 		"restore_code": _restore_code if restore_live else "",
+		"legacy_hold": _legacy_hold_code,
 		"account": coord,
 		"save": save,
 	}
@@ -680,18 +733,25 @@ func flush_saves() -> Dictionary:
 
 
 ## What the saved gate holds: hero, wave, and display lines. Empty when no
-## valid checkpoint exists. The hero resource loads only from an already
-## validated checkpoint path, never from a raw string.
+## valid checkpoint exists, or when the journey already sealed its defeat:
+## a sealed run offers a fresh expedition, never a free continuation. The
+## hero resource loads only from an already validated checkpoint path, never
+## from a raw string.
 func saved_gate_summary() -> Dictionary:
+	var recovery: String = Vault.recover_paid_continue()
 	var data: Dictionary = Journey.read_checkpoint()
-	if data.is_empty():
-		return {"has_save": false}
+	if data.is_empty() or Journey.is_ended(data):
+		# A stuck paid revive is not a save, but it is not nothing either:
+		# a fresh expedition over it still asks first, so the paid coin is
+		# only ever abandoned explicitly.
+		return {"has_save": false, "revive_stuck": recovery == "failed"}
 	var info: Dictionary = Journey.summary(data)
 	if info.is_empty():
-		return {"has_save": false}
+		return {"has_save": false, "revive_stuck": recovery == "failed"}
 	var hero: Hero = load(str(info.get("hero_path", ""))) as Hero
 	return {
 		"has_save": true,
+		"revive_stuck": false,
 		"cycle": int(info.get("cycle", 1)),
 		"zone_index": int(info.get("zone_index", 0)),
 		"terrain": int(info.get("terrain", 0)),
@@ -704,10 +764,12 @@ func saved_gate_summary() -> Dictionary:
 	}
 
 
-## Plan one Arena entry. Fresh over an existing save needs `confirmed`;
-## resume needs a valid checkpoint; a second plan while one is in flight
-## is refused. On success the Journey is armed and the caller loads the
-## returned scene through the loading overlay.
+## Plan one Arena entry. Fresh over an existing save — or over a paid
+## revive stuck behind failing writes — needs `confirmed`; resume needs a
+## valid checkpoint; a second plan while one is in flight is refused. A
+## stranded paid seal settles before anything plans, so the revive greets
+## the entry instead of a refusal. On success the Journey is armed and the
+## caller loads the returned scene through the loading overlay.
 func plan_entry(fresh: bool, confirmed: bool) -> Dictionary:
 	if not _started or not _account.call("is_identity_ready"):
 		return {"status": "refused", "code": "identity_not_ready"}
@@ -719,9 +781,13 @@ func plan_entry(fresh: bool, confirmed: bool) -> Dictionary:
 		return {"status": "refused", "code": "login_in_flight"}
 	if _restore_blocks_entry():
 		return {"status": "refused", "code": _restore_block_code()}
+	if needs_lodge_lesson():
+		return {"status": "refused", "code": "needs_lodge"}
 	var account_id: String = _account.call("public_id")
 	var saved: Dictionary = saved_gate_summary()
-	if fresh and bool(saved.get("has_save", false)) and not confirmed:
+	if fresh and not confirmed \
+			and (bool(saved.get("has_save", false)) \
+				or bool(saved.get("revive_stuck", false))):
 		return {"status": "refused", "code": "needs_confirmation"}
 	if not fresh and not bool(saved.get("has_save", false)):
 		return {"status": "refused", "code": "no_save"}
@@ -736,6 +802,79 @@ func plan_entry(fresh: bool, confirmed: bool) -> Dictionary:
 	return {"status": "ok", "arena": ARENA_SCENE, "fresh": fresh,
 		"account_id": account_id,
 		"hero_path": str(saved.get("hero_path", ""))}
+
+
+## True when the live account must visit the gate lodge before the Arena:
+## a cloud-linked account whose durable cache holds no verified handle or
+## no acknowledged lesson bit. Synchronous, from the vault cache only, so
+## plan_entry refuses the Arena for unsettled accounts even offline. A
+## local-only guest has no claim to settle and plays unnamed as before.
+func needs_lodge_lesson() -> bool:
+	if _vault == null or not _cloud_session_present():
+		return false
+	if _account == null:
+		return false
+	var public_id: String = _account.call("public_id")
+	if public_id.is_empty():
+		return false
+	var entry: Dictionary = _vault.call("verified_name_for_account",
+		public_id)
+	if str(entry.get("display", "")).is_empty():
+		return true
+	return not bool(entry.get("intro_complete", false))
+
+
+## Plan one lodge visit. Same guards as an Arena plan, but the lesson is
+## not an expedition: no journey arms, no title stamp lands, no save is
+## touched. Refuses when the account already settled, so completed
+## accounts plan the Arena directly. The visit holds the entry lock until
+## plan_lodge_exit or cancel_entry_plan releases it.
+func plan_lodge_entry() -> Dictionary:
+	if not _started or not _account.call("is_identity_ready"):
+		return {"status": "refused", "code": "identity_not_ready"}
+	if not _deletion_ticket.is_empty():
+		return {"status": "refused", "code": "deletion_in_flight"}
+	if _entry_in_flight:
+		return {"status": "refused", "code": "entry_in_flight"}
+	if _account_has_pending():
+		return {"status": "refused", "code": "login_in_flight"}
+	if _restore_blocks_entry():
+		return {"status": "refused", "code": _restore_block_code()}
+	if not needs_lodge_lesson():
+		return {"status": "refused", "code": "lodge_complete"}
+	var account_id: String = _account.call("public_id")
+	_entry_in_flight = true
+	_planned_account = account_id
+	production_changed.emit(account_state())
+	return {"status": "ok", "lodge": LODGE_SCENE, "account_id": account_id,
+		"needs_name": verified_display_name().is_empty()}
+
+
+## Leave the lodge for the Arena after the lesson settled. Requires the
+## live lodge plan on the same account and a settled account: a
+## double tap before the acknowledgement lands still refuses. Releases
+## the lodge hold, then plans exactly like the title would, so Resume
+## versus confirmed fresh departure keeps its defeat-safe meaning and a
+## defeated journey never resumes its sealed stage from here either.
+func plan_lodge_exit(fresh: bool, confirmed: bool) -> Dictionary:
+	if not _entry_in_flight:
+		return {"status": "refused", "code": "no_lodge_plan"}
+	if _account_has_pending():
+		return {"status": "refused", "code": "login_in_flight"}
+	if _planned_account.is_empty() \
+		or _planned_account != _account.call("public_id"):
+		return {"status": "refused", "code": "account_moved"}
+	if needs_lodge_lesson():
+		return {"status": "refused", "code": "needs_lodge"}
+	var held: String = _planned_account
+	_entry_in_flight = false
+	_planned_account = ""
+	var planned: Dictionary = plan_entry(fresh, confirmed)
+	if str(planned.get("status", "")) != "ok":
+		_entry_in_flight = true
+		_planned_account = held
+		return planned
+	return planned
 
 
 ## True when a planned entry may still swap: same plan, same account, and
@@ -1034,6 +1173,7 @@ func _wire_signals() -> void:
 		_coordinator.conflict_found.connect(_on_coordinator_conflict)
 		_coordinator.hall_changed.connect(_on_coordinator_hall)
 		_coordinator.rank_changed.connect(_on_coordinator_rank)
+		_coordinator.attendance_changed.connect(_on_coordinator_attendance)
 
 
 func _on_account_changed(state: Dictionary) -> void:
@@ -1093,6 +1233,16 @@ func _on_id_token_ready(token: Dictionary) -> void:
 	production_changed.emit(account_state())
 
 
+## Adopt the legacy save jointly with its paid receipt, honoring the hold:
+## a failed joint adoption migrates nothing and records its code for the
+## next startup's retry instead of proceeding over a split receipt.
+func _run_legacy_adoption(public_id: String) -> void:
+	_legacy_hold_code = ""
+	var adoption: Dictionary = Vault.adopt_legacy_slot(public_id)
+	if not bool(adoption.get("ok", false)):
+		_legacy_hold_code = str(adoption.get("code", "legacy-adopt-held"))
+
+
 ## The live account moved (sign-in, sign-out, switch, delete): retire the
 ## in-memory token, repoint the Journey slot, and reconfigure the cloud
 ## for the new session. Old slots and old replies stay untouched.
@@ -1122,7 +1272,7 @@ func _on_account_env_changed() -> void:
 	if public_id.is_empty():
 		return
 	Journey.use_account(public_id)
-	Journey.migrate_legacy_to_account(public_id)
+	_run_legacy_adoption(public_id)
 	_maybe_configure_cloud()
 
 
@@ -1559,12 +1709,22 @@ func _on_coordinator_rank(_snapshot: Dictionary) -> void:
 	_push_rank_to_hud()
 
 
+func _on_coordinator_attendance(snapshot: Dictionary) -> void:
+	if _closing:
+		return
+	production_attendance.emit((snapshot as Dictionary).duplicate())
+
+
 func _conflict_option(summary: Dictionary, tag_key: String) -> Dictionary:
 	var gate_text: String = str(summary.get("gate", ""))
 	var cycles: int = int(summary.get("cycles", 0))
+	var ended_marker: Variant = summary.get("ended", false)
 	var detail: String = ""
+	if ended_marker is bool and bool(ended_marker):
+		detail = GateEntryStrings.text("gate.conflict.ended")
 	if not gate_text.is_empty():
-		detail = gate_text
+		detail = gate_text if detail.is_empty() \
+			else "%s · %s" % [detail, gate_text]
 	if cycles > 0:
 		var cycle_text: String = "%d" % cycles
 		detail = cycle_text if detail.is_empty() \
@@ -1591,6 +1751,309 @@ func _submit_best() -> void:
 		return
 	await _coordinator.call("submit_current_best")
 	_push_rank_to_hud()
+
+
+## The live account's verified adventurer handle from the durable cache,
+## or "" when it claimed nothing (or nothing verified yet). Synchronous:
+## the arena and the lodge read this without starting any request.
+func verified_display_name() -> String:
+	if _vault == null:
+		return ""
+	var public_id: String = _account.call("public_id")
+	if public_id.is_empty():
+		return ""
+	return str((_vault.call("verified_name_for_account", public_id)
+		as Dictionary).get("display", ""))
+
+
+## Claim an adventurer name for the live cloud account, restoring the one
+## it already owns. Needs the cloud session: a local-only guest gets
+## `local-guest`, never a certified global claim. A verified claim also
+## attaches to the existing best row; see the coordinator result legs.
+## The ticket pins the call to the initiating account: a token wait that
+## outlives a switch, deletion, or shutdown cancels instead of dispatching
+## onto the next account, and a failed token sends no mutation.
+func claim_adventurer_name(raw_display: String) -> Dictionary:
+	if not _cloud_session_present():
+		return {"status": "failure", "code": "local-guest",
+			"retryable": false}
+	if _coordinator == null or _configured_uid.is_empty():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	if not _deletion_ticket.is_empty():
+		return {"status": "failure", "code": "deletion-in-flight",
+			"retryable": true}
+	var ticket: Dictionary = _name_ticket()
+	var token: Dictionary = await ensure_token(false)
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	if str(token.get("status", "")) != "ok":
+		return {"status": "failure",
+			"code": str(token.get("code", "token_error")),
+			"retryable": false}
+	var claimed: Dictionary = await _coordinator.call(
+		"claim_adventurer_name", raw_display)
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	production_changed.emit(account_state())
+	return claimed
+
+
+## Reload the live account's claimed name into its offline cache. Pinned
+## to the initiating account exactly like a claim.
+func load_adventurer_name() -> Dictionary:
+	if not _cloud_session_present():
+		return {"status": "failure", "code": "local-guest",
+			"retryable": false}
+	if _coordinator == null or _configured_uid.is_empty():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	if not _deletion_ticket.is_empty():
+		return {"status": "failure", "code": "deletion-in-flight",
+			"retryable": true}
+	var ticket: Dictionary = _name_ticket()
+	var token: Dictionary = await ensure_token(false)
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	if str(token.get("status", "")) != "ok":
+		return {"status": "failure",
+			"code": str(token.get("code", "token_error")),
+			"retryable": false}
+	var loaded: Dictionary = await _coordinator.call(
+		"fetch_adventurer_name")
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	production_changed.emit(account_state())
+	return loaded
+
+
+## Flip the tutorial bit on the live account's claimed name. Idempotent,
+## and pinned to the initiating account exactly like a claim.
+func mark_intro_complete() -> Dictionary:
+	if not _cloud_session_present():
+		return {"status": "failure", "code": "local-guest",
+			"retryable": false}
+	if _coordinator == null or _configured_uid.is_empty():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	if not _deletion_ticket.is_empty():
+		return {"status": "failure", "code": "deletion-in-flight",
+			"retryable": true}
+	var ticket: Dictionary = _name_ticket()
+	var token: Dictionary = await ensure_token(false)
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	if str(token.get("status", "")) != "ok":
+		return {"status": "failure",
+			"code": str(token.get("code", "token_error")),
+			"retryable": false}
+	var done: Dictionary = await _coordinator.call("complete_intro")
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	production_changed.emit(account_state())
+	return done
+
+
+## Attach the live account's verified handle to its existing best row.
+## Pinned to the initiating account exactly like a claim.
+func backfill_hall_name() -> Dictionary:
+	if not _cloud_session_present():
+		return {"status": "failure", "code": "local-guest",
+			"retryable": false}
+	if _coordinator == null or _configured_uid.is_empty():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	if not _deletion_ticket.is_empty():
+		return {"status": "failure", "code": "deletion-in-flight",
+			"retryable": true}
+	var ticket: Dictionary = _name_ticket()
+	var token: Dictionary = await ensure_token(false)
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	if str(token.get("status", "")) != "ok":
+		return {"status": "failure",
+			"code": str(token.get("code", "token_error")),
+			"retryable": false}
+	var filled: Dictionary = await _coordinator.call(
+		"backfill_hall_name")
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	production_changed.emit(account_state())
+	return filled
+
+
+## A name request's account/coordinator lifetime ticket, captured BEFORE
+## the token await: the coordinator instance that must receive the call,
+## the UID it was configured for, and the deletion generation. Pinning the
+## generation retires requests across a deletion run even when the UID and
+## coordinator stay put: a request begun before deletion stays cancelled
+## even if the deletion later fails on the same account.
+func _name_ticket() -> Dictionary:
+	return {"coordinator": _coordinator, "uid": _configured_uid,
+		"deletion": _deletion_generation}
+
+
+## True while the ticket's coordinator is still the live one, still valid,
+## and still configured for the ticket's UID on an open host with no
+## deletion in flight and no deletion run since capture. A switch,
+## reconfig, deletion begin, or shutdown retires it; a failed deletion
+## still retires requests begun before it, while genuinely new requests
+## capture the fresh generation and proceed.
+func _name_ticket_live(ticket: Dictionary) -> bool:
+	if _closing:
+		return false
+	if not _deletion_ticket.is_empty():
+		return false
+	if int(ticket.get("deletion", -1)) != _deletion_generation:
+		return false
+	if _coordinator == null or not is_instance_valid(_coordinator):
+		return false
+	var wanted: Variant = ticket.get("coordinator")
+	if wanted == null or not is_instance_valid(wanted):
+		return false
+	if not is_same(_coordinator, wanted):
+		return false
+	var uid: String = str(ticket.get("uid", ""))
+	return not uid.is_empty() and uid == _configured_uid
+
+
+## Cancellation for a retired ticket: the host closed, or the initiating
+## account moved on. Neither dispatches nor emits for the next account.
+func _name_stale_result() -> Dictionary:
+	if _closing:
+		return {"status": "cancelled", "code": "host-closed",
+			"retryable": false}
+	return {"status": "cancelled", "code": "account-retired",
+		"retryable": false}
+
+
+## Claim this attendance period for the live cloud account: two continue
+## coins at most once per rolling twelve hours of server time. Pinned to
+## the initiating account exactly like a name claim: a token wait that
+## outlives a switch, deletion, or shutdown cancels instead of dispatching
+## onto the next account, and a failed token sends no mutation. See the
+## coordinator result legs: granted, already-claimed, cooldown, offline,
+## and local-grant-failed recovery.
+func claim_attendance() -> Dictionary:
+	if not _cloud_session_present():
+		return {"status": "failure", "code": "local-guest",
+			"retryable": false}
+	if _coordinator == null or _configured_uid.is_empty():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	if not _deletion_ticket.is_empty():
+		return {"status": "failure", "code": "deletion-in-flight",
+			"retryable": true}
+	var ticket: Dictionary = _name_ticket()
+	var token: Dictionary = await ensure_token(false)
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	if str(token.get("status", "")) != "ok":
+		return {"status": "failure",
+			"code": str(token.get("code", "token_error")),
+			"retryable": false}
+	var claimed: Dictionary = await _coordinator.call(
+		"claim_attendance")
+	if not _name_ticket_live(ticket):
+		return _name_stale_result()
+	production_changed.emit(account_state())
+	return claimed
+
+
+## Current attendance view for the reminder controller: absolute
+## server-confirmed deadline plus bounded server-derived remaining.
+## Cached deadlines arrive labeled and grant nothing.
+func attendance_view() -> Dictionary:
+	if _coordinator == null or not is_instance_valid(_coordinator):
+		return {"state": "unregistered", "source": "none",
+			"public_id": _configured_uid, "receipt": "",
+			"last_claim_utc": "",
+			"next_eligible_utc": "", "remaining_seconds": -1}
+	return _coordinator.call("attendance_snapshot")
+
+
+## One bounded nonblocking attendance check for genuine account entry,
+## foreground return, and explicit calls. Skips (never errors, never
+## blocks play) for local guests, unready accounts, in-flight deletion
+## or restore checks, and overlapping triggers. Shows the receipt only
+## for coins newly granted by this call.
+func request_attendance() -> Dictionary:
+	if _closing:
+		return {"status": "cancelled", "code": "host-closed",
+			"retryable": false}
+	if not _cloud_session_present():
+		return {"status": "skipped", "code": "local-guest"}
+	if _coordinator == null or _configured_uid.is_empty():
+		return {"status": "skipped", "code": "account-not-ready"}
+	if not _deletion_ticket.is_empty():
+		return {"status": "skipped", "code": "deletion-in-flight"}
+	if _restore_state == "checking" or _restore_fetch_open != 0:
+		return {"status": "skipped", "code": "restore-pending"}
+	if _attendance_in_flight:
+		return {"status": "skipped", "code": "in-flight"}
+	_attendance_in_flight = true
+	var result: Dictionary = await claim_attendance()
+	_attendance_in_flight = false
+	var fresh_coins: int = 0
+	if bool(result.get("granted", false)):
+		fresh_coins += SCHEMA_SCRIPT.ATTENDANCE_GRANT_COINS
+	if bool(result.get("backfilled", false)):
+		fresh_coins += SCHEMA_SCRIPT.ATTENDANCE_GRANT_COINS
+	if fresh_coins > 0:
+		_attendance_receipt_pending = tr("ATTENDANCE_RECEIPT") % [
+			fresh_coins]
+		_flush_attendance_receipt()
+	return result
+
+
+## Foreground return: one bounded attendance check. Connected to window
+## focus on real displays; headless runs drive this explicitly instead.
+func notify_foreground_return() -> Dictionary:
+	return await request_attendance()
+
+
+## Show a queued granted-coins receipt on the HUD. Gate-time grants wait
+## for arena entry; an IME field or an open NPC dialogue drops this
+## receipt instead of overlaying it — the wallet already holds the coins
+## and the snapshot retains the deadline.
+func _flush_attendance_receipt() -> void:
+	if _attendance_receipt_pending.is_empty():
+		return
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	if tree.get_nodes_in_group("moonlit_hud").is_empty():
+		return
+	if _attendance_overlay_blocked(tree):
+		_attendance_receipt_pending = ""
+		return
+	var offer: String = ""
+	if _reminders != null and is_instance_valid(_reminders):
+		offer = str(_reminders.call("offer_for_receipt"))
+	var offered: bool = false
+	for hud in tree.get_nodes_in_group("moonlit_hud"):
+		if not offer.is_empty() and not offered \
+				and (hud as Node).has_method("announce_offer"):
+			hud.call("announce_offer", _attendance_receipt_pending,
+				offer, Callable(_reminders, "user_enable"))
+			offered = true
+		else:
+			hud.call("announce", _attendance_receipt_pending,
+				Color(1.0, 0.86, 0.5, 1))
+	_attendance_receipt_pending = ""
+
+
+## True while a receipt must not overlay: a text field holds focus (an
+## IME may be composing a name) or an NPC dialogue scene is open.
+func _attendance_overlay_blocked(tree: SceneTree) -> bool:
+	var focus: Control = tree.root.gui_get_focus_owner()
+	if focus is LineEdit or focus is TextEdit:
+		return true
+	for member in tree.get_nodes_in_group("moonlit_dialogue"):
+		if (member as Node).has_method("is_open") \
+				and bool(member.call("is_open")):
+			return true
+	return false
 
 
 func _store_token(receipt: Dictionary) -> void:
@@ -1708,6 +2171,7 @@ func _map_hall_rows(rows: Array) -> Array:
 			"rank": standing,
 			"score": score,
 			"id": str(row.get("public_id", "")),
+			"display": str(row.get("display", "")),
 			"hero": hero,
 			"hero_name": "",
 		})
@@ -1740,8 +2204,9 @@ func _rank_source_label(source: String) -> String:
 	return GateEntryStrings.text("gate.rank.unregistered")
 
 
-## Delete our four owned cloud rows (Hall, checkpoint, reservation, and
-## profile) in ONE atomic `documents:commit` through the owned CloudAccount
+## Delete our five owned cloud rows (Hall, checkpoint, attendance,
+## reservation, and profile) in ONE atomic `documents:commit` through the
+## owned CloudAccount
 ## helper on the real transport. The live owned-cloud rules require the
 ## profile and reservation halves to go together with the Hall row already
 ## gone; sequential DELETEs are denied there, so the single commit is the
@@ -1765,9 +2230,13 @@ func _delete_owned_cloud_rows(uid: String, public_id: String,
 		Callable(self, "supply_token"), Callable(_sender, "send"))
 	transport.call("set_account_uid", uid)
 	var helper: RefCounted = CLOUD_ACCOUNT_SCRIPT.new()
+	var cached_key: String = ""
+	if _vault != null:
+		cached_key = str((_vault.call("verified_name_for_account",
+			public_id) as Dictionary).get("key", ""))
 	var reply: Dictionary = await helper.call("delete_account_data",
-		transport, uid, public_id)
-	_last_delete_commit = delete_commit_request(uid, public_id)
+		transport, uid, public_id, cached_key)
+	_last_delete_commit = delete_commit_request(uid, public_id, cached_key)
 	_last_delete_commit["reply_status"] = str(reply.get("status", ""))
 	_last_delete_commit["reply_code"] = str(reply.get("code", ""))
 	if not _ticket_live(ticket):
@@ -1784,12 +2253,13 @@ func _delete_owned_cloud_rows(uid: String, public_id: String,
 
 ## The exact deletion commit account removal sends, built by the same
 ## CloudAccount helper the run uses, without sending it: method, relative
-## path, JSON body, and the four owned document names in commit order.
+## path, JSON body, and the owned document names in commit order (seven
+## when the account claimed a name, five for unnamed accounts).
 ## The director replays this shape against the real Firebase emulator.
-static func delete_commit_request(uid: String,
-		public_id: String) -> Dictionary:
+static func delete_commit_request(uid: String, public_id: String,
+		name_key: String = "") -> Dictionary:
 	var body: Dictionary = CLOUD_ACCOUNT_SCRIPT.deletion_commit_body(
-		uid, public_id)
+		uid, public_id, name_key)
 	var names: Array = []
 	for write in (body.get("writes", []) as Array):
 		names.append(str((write as Dictionary).get("delete", "")))
@@ -1815,6 +2285,17 @@ func _remove_account_slot(public_id: String) -> void:
 		if FileAccess.file_exists(path):
 			DirAccess.remove_absolute(
 				ProjectSettings.globalize_path(path))
+	# The deleted scope's pending receipt goes with its slot; every other
+	# scope's receipt stays. Best effort like the file removals: on a
+	# failed save the entry lingers, owned by a scope that no longer
+	# activates, so it defers everywhere instead of resurrecting.
+	Vault.clear_continue_txn_for_owner(public_id)
+	# The deleted scope's verified handle goes with it too, so a local
+	# nickname can never outlive its account's deletion.
+	Vault.clear_verified_name_for_owner(public_id)
+	# The deleted scope's attendance watermark and cached deadline go
+	# with it; its granted coins stay in the device wallet ledger.
+	Vault.clear_attendance_for_owner(public_id)
 
 
 ## A 401/403 from the wire means the token died: refresh once and let the
@@ -1836,3 +2317,5 @@ func _on_scene_changed() -> void:
 		_planned_account = ""
 		_handoff_ticks = Time.get_ticks_msec()
 		_push_rank_to_hud()
+		_flush_attendance_receipt()
+		request_attendance.call_deferred()

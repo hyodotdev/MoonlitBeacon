@@ -87,6 +87,10 @@ var _banner_visible_before_suppression: bool = false
 ## Freeze the banner only while store device capture reads a verified frame.
 ## Only an Arena on a debug APK that consumed an explicit request file can turn this on.
 var _debug_capture_banner_locked: bool = false
+## One-time reminder offer chip under the banner. Built on demand so the
+## combat HUD carries no extra node until the first receipt offers one.
+var _offer_button: WorldButton = null
+var _offer_callback: Callable = Callable()
 
 ## Secondary stat lines rest dim and pop to full only when their value changes.
 ##
@@ -649,9 +653,27 @@ func set_cycle(value: int) -> void:
 ## Default 1.5s is tuned for in-combat notices. A first-learn sentence needs
 ## time to read; on device people said "the tutorial never shows" — it did,
 ## then vanished as soon as they started moving.
+## Receipt plus a one-time reminder offer chip. Accept runs the given
+## callback (the reminder controller's enable flow, which may request OS
+## permission); ignoring it plays on: the chip fades with the banner.
+func announce_offer(text: String, offer_text: String,
+		on_accept: Callable, hold: float = 4.0) -> void:
+	announce(text, Color(1.0, 0.86, 0.5, 1), hold)
+	_offer_callback = on_accept
+	_ensure_offer_button()
+	_offer_button.text = offer_text
+	_offer_button.visible = true
+	_offer_button.modulate.a = 0.0
+	var pop: Tween = create_tween()
+	pop.tween_property(_offer_button, "modulate:a", 1.0, 0.18)
+	if _banner_tween != null and _banner_tween.is_valid():
+		_banner_tween.chain().tween_callback(_hide_offer)
+
+
 func announce(text: String, tone: Color, hold: float = 1.5) -> void:
 	if _debug_capture_banner_locked:
 		return
+	_hide_offer()
 	if _banner_tween != null and _banner_tween.is_valid():
 		_banner_tween.kill()
 	_banner.text = text
@@ -689,6 +711,46 @@ func announce(text: String, tone: Color, hold: float = 1.5) -> void:
 ## Hide the center banner briefly so it does not show through the pause title.
 ## Tree and Tween are paused too, so keep visibility instead of deleting, and
 ## resume from remaining time.
+func _ensure_offer_button() -> void:
+	if _offer_button != null:
+		return
+	_offer_button = WorldButton.new()
+	_offer_button.kind = "steel"
+	_offer_button.visible = false
+	_offer_button.set_anchors_preset(Control.PRESET_CENTER)
+	_offer_button.anchor_left = 0.5
+	_offer_button.anchor_top = 0.5
+	_offer_button.anchor_right = 0.5
+	_offer_button.anchor_bottom = 0.5
+	_offer_button.offset_left = -110.0
+	_offer_button.offset_top = 92.0
+	_offer_button.offset_right = 110.0
+	_offer_button.offset_bottom = 124.0
+	_offer_button.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_offer_button.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_offer_button.add_theme_font_override(
+		"font", _banner.get_theme_font("font"))
+	_offer_button.add_theme_font_size_override("font_size", 13)
+	_offer_button.add_theme_color_override(
+		"font_color", Color(0.92, 0.9, 0.98, 1))
+	_offer_button.pressed.connect(_on_offer_pressed)
+	add_child(_offer_button)
+
+
+func _on_offer_pressed() -> void:
+	var callback: Callable = _offer_callback
+	_offer_callback = Callable()
+	_hide_offer()
+	if callback.is_valid():
+		callback.call()
+
+
+func _hide_offer() -> void:
+	_offer_callback = Callable()
+	if _offer_button != null:
+		_offer_button.visible = false
+
+
 func set_banner_suppressed(value: bool) -> void:
 	if _banner_suppressed == value:
 		return

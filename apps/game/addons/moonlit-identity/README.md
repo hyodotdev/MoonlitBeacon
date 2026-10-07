@@ -122,6 +122,73 @@ Firebase initializes from the staged public client config carried in each
 call's payload. Without it, calls answer `not_configured` instead of
 throwing — for guests as well as providers.
 
+## Attendance reminders (same natives, separate API)
+
+Local notifications only — no Firebase, no provider gating, no cloud.
+The game side is `scripts/gameplay/attendance_reminders.gd` (owned by
+the production host) plus a Settings row; both natives expose the same
+seven methods on the same `(request_id, args_json)` receipt contract:
+
+- `moonlitReminderStatus` — live OS state: `permission`
+  (`granted`/`denied`/`unknown`), whether this install asked the OS to
+  hold a delivery (persisted intent, never a token probe), and
+  (Android) whether this process started from the reminder's launch
+  action. `permission` weighs the app-global switch, the 33+ runtime
+  grant, and the attendance channel together. Async on iOS (`pending`
+  + signal) with a fresh OS read, because `getNotificationSettings`
+  is async-only.
+- `moonlitReminderRequestPermission` — the OS sheet; `pending`, then one
+  terminal outcome with the resulting `permission`. Uses the
+  interactive (human) timeout like the provider sheets.
+- `moonlitReminderSchedule` — first fire at `eligible_utc_millis`
+  (absolute, server-derived) plus the twelve-hour repeat; replaces any
+  earlier attendance schedule. Identical inputs skip without shifting
+  the repeat anchor, unless the held window runs low (iOS refills 48
+  future slots from the same anchor and reports `base_slot` /
+  `horizon_end_unix`; Android reports `-1` for its unbounded alarm).
+- `moonlitReminderCancel` — cancels the scheduled delivery and dismisses
+  a delivered one. Names exactly this app's attendance identifiers.
+- `moonlitReminderOpenSettings` — opens the app's OS notification
+  settings page.
+- `moonlitReminderPending` — trigger facts plus the persisted
+  schedule mirror for QA (Android separates intent from token
+  existence; iOS reports the held horizon window). Async on iOS
+  (`pending` + signal).
+- `moonlitReminderDebugSchedule` — QA only: one short (5–600 s)
+  non-repeating delivery. Never touches the production twelve-hour
+  rule or any wallet.
+
+When the Android activity is between lifecycles every entry point
+answers retryable `error` (`no_activity`) instead of guessing: the
+game keeps its owned delivery and retries on the next refresh.
+
+Android holds one inexact `RTC_WAKEUP` alarm (`setInexactRepeating`,
+no exact-alarm privilege, no foreground service) re-armed after reboot
+from a SharedPreferences mirror; delivery re-checks the persisted
+opt-out, the runtime permission, the localized channel state, and
+whether the game is foregrounded (a fresh resume record or a
+foreground-ranked process — a stale record never suppresses alone).
+The small icon is a monochrome beacon vector; the channel name ships
+in the game's five languages. iOS holds a bounded horizon of 48
+non-repeating slot requests at eligibility plus N * 43200 seconds (24
+days, under the 64-request OS budget): every delivery is anchored to
+eligibility, elapsed slots are skipped rather than burst, identical
+refreshes skip while the horizon is live, and a nearly consumed
+horizon refills from the same anchor. Cancellation names the whole
+horizon plus the legacy one-shot/repeat/debug ids. Foreground
+presentation is suppressed through a delegate installed only when
+none owns the center; returning none matches the no-delegate default.
+Scheduling metadata (account, eligible time, locale) lives in
+app-only `NSUserDefaults` keys declared by the app's own
+`ios/PrivacyInfo.xcprivacy` (reason CA92.1). Godot 4.7.1 emits its
+own app-root manifest, so the export plugin registers no loose copy
+(a second same-basename output fails Xcode); instead the owned
+export pipeline (`node scripts/ios.mjs`, every export path) merges
+this file's UserDefaults declaration into Godot's generated root
+manifest and verifies the single registration, while the SDK
+bundles keep their untouched manifests. No token, email, name, or
+wallet value crosses this API.
+
 ## Build commands (director runs these)
 
 ```bash

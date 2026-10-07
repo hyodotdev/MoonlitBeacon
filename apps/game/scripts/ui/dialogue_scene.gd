@@ -38,6 +38,7 @@ var _open: bool = false
 
 
 func _ready() -> void:
+	add_to_group("moonlit_dialogue")
 	visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	set_process(false)

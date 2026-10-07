@@ -27,7 +27,11 @@ extends Node
 ##   remote summaries (sizes and digests, never payloads or credentials).
 ##   The host picks local or remote explicitly, and the rejected version is
 ##   preserved to a recovery file first — the actually overwritten remote
-##   bytes when it advanced again mid-choice.
+##   bytes when it advanced again mid-choice. The one automatic rule is
+##   same-journey defeat precedence: a sealed defeat outranks a stale alive
+##   payload of the same journey without a dialog, reported explicitly as
+##   `defeat-kept` or `defeat-adopted`, so no sync path silently resumes a
+##   run that already ended. Different journeys still choose explicitly.
 ## - Downloads validate completely through `Journey.validate()` before any
 ##   install. Malformed, oversized, or ledger-carrying payloads are refused
 ##   with the local files untouched.
@@ -53,6 +57,7 @@ signal save_changed(snapshot: Dictionary)
 signal conflict_found(info: Dictionary)
 signal hall_changed(snapshot: Dictionary)
 signal rank_changed(snapshot: Dictionary)
+signal attendance_changed(snapshot: Dictionary)
 
 const CloudSchema: Script = preload("res://scripts/cloud/cloud_schema.gd")
 const TransportScript: Script = preload(
@@ -62,6 +67,9 @@ const IdentityScript: Script = preload(
 const CheckpointScript: Script = preload(
 	"res://scripts/cloud/cloud_checkpoint.gd")
 const HallScript: Script = preload("res://scripts/cloud/cloud_hall.gd")
+const NameScript: Script = preload("res://scripts/cloud/cloud_name.gd")
+const AttendanceScript: Script = preload(
+	"res://scripts/cloud/cloud_attendance.gd")
 const VaultScript: Script = preload("res://scripts/gameplay/vault.gd")
 
 ## Upload attempts per flush for retryable failures. Conflicts, offline,
@@ -75,6 +83,8 @@ var _transport: RefCounted
 var _identity: RefCounted
 var _checkpoint: RefCounted
 var _hall: RefCounted
+var _names: RefCounted
+var _attendance: RefCounted
 
 var _generation: int = 0
 var _closed: bool = false
@@ -119,6 +129,7 @@ var _floor_code: String = ""
 var _revision_error: String = ""
 var _hall_snapshot: Dictionary = {}
 var _rank_snapshot: Dictionary = {}
+var _attendance_snapshot: Dictionary = {}
 
 
 func _init() -> void:
@@ -126,6 +137,8 @@ func _init() -> void:
 	_identity = IdentityScript.new()
 	_checkpoint = CheckpointScript.new()
 	_hall = HallScript.new()
+	_names = NameScript.new()
+	_attendance = AttendanceScript.new()
 	_hall_snapshot = {
 		"state": "unregistered", "source": "unregistered", "rows": [],
 		"last_submit": {},
@@ -241,7 +254,7 @@ func configure_host(config: Dictionary) -> Dictionary:
 	}
 	_partition_key = guest_id
 	Journey.use_account(guest_id)
-	_last_migration = Journey.migrate_legacy_to_account(guest_id)
+	_last_migration = _vault.call("adopt_legacy_slot", guest_id) as Dictionary
 	_load_revision_file()
 	_reconcile_active_receipt_floor()
 	_subscribe_hook()
@@ -349,8 +362,11 @@ func flush() -> Dictionary:
 ## validates the complete download through `Journey`, preserves ours,
 ## installs theirs — remapping an imported integer journey id into this
 ## device's receipt namespace — and floors its receipt with zero granted.
-## Anything else is refused and the conflict stays open. Reports busy
-## while a flush owns the upload.
+## Anything else is refused and the conflict stays open. A choice that would
+## silently resume a sealed same-journey run is likewise refused (as
+## `defeat-kept`), as is a choice committing or installing a death its
+## journey already revived past (as `stale-ended-retired`), with the
+## conflict left open. Reports busy while a flush owns the upload.
 func resolve_conflict(choice: String) -> Dictionary:
 	var captured: int = _generation
 	if _closed:
@@ -385,12 +401,15 @@ func cancel_pending_restore() -> void:
 
 ## Pull the cloud checkpoint down safely. Installs only into an empty or
 ## install-identical slot; a differing local journey becomes an explicit
-## conflict instead of a silent overwrite. A fresh install floors its
-## receipt with zero granted — remapping an imported integer journey id
-## first, so history never mints and never aliases a local receipt — and
-## adopts the remote as the new sync baseline. Reports busy while a flush
-## owns the upload. Each call claims the next restore epoch at start, so
-## a newer read preempts any older attempt still in flight.
+## conflict instead of a silent overwrite — except a same-journey defeat,
+## which wins outright (`defeat-kept` locally, `defeat-adopted` from the
+## server) so a stale payload can never resurrect a sealed run. A fresh
+## install floors its receipt with zero granted — remapping an imported
+## integer journey id first, so history never mints and never aliases a
+## local receipt — and adopts the remote as the new sync baseline. Reports
+## busy while a flush owns the upload. Each call claims the next restore
+## epoch at start, so a newer read preempts any older attempt still in
+## flight.
 func restore_from_cloud() -> Dictionary:
 	var captured: int = _generation
 	if _closed:
@@ -437,6 +456,11 @@ func restore_from_cloud() -> Dictionary:
 		return {"status": "ok", "code": "already-in-sync",
 			"revision": int(remote.get("revision", 0))}
 	if not effective_text.is_empty():
+		var settled: Dictionary = _settle_defeat_download(
+			captured, restore_epoch, effective_text, remote,
+			remote_text, install_text, install_data)
+		if not settled.is_empty():
+			return settled
 		_open_download_conflict(effective_text, remote)
 		return {"status": "conflict", "code": "restore-differs",
 			"retryable": false,
@@ -486,6 +510,203 @@ func restore_from_cloud() -> Dictionary:
 		"remapped": bool(prepared.get("remapped", false))}
 
 
+## Same-journey defeat precedence for a download that differs from the local
+## journey. Returns `{}` when the normal explicit conflict must open (both
+## sides alive, both sealed, different journeys, or a seal strictly newer
+## than the other side's defeat without an acknowledged baseline — genuine
+## concurrent progress). Otherwise the terminal state wins without a dialog:
+## a local seal keeps `defeat-kept` with the files untouched, a remote seal
+## installs as `defeat-adopted` with the superseded alive bytes preserved
+## to recovery first, and a stale remote seal against our acknowledged
+## newer alive seal retires as `stale-ended-retired` with the files
+## untouched. Journey identity compares the downloaded bytes before
+## receipt-namespace remapping, so one device's own lineage always matches;
+## a cross-device sequence collision resolves to the defeat and the
+## surviving journey stays on the server for an explicit fresh-start
+## conflict afterwards.
+func _settle_defeat_download(captured: int, restore_epoch: int,
+		effective_text: String, remote: Dictionary, remote_text: String,
+		install_text: String, install_data: Dictionary) -> Dictionary:
+	var local_meta: Dictionary = _defeat_meta(effective_text)
+	var remote_meta: Dictionary = _defeat_meta(remote_text)
+	if local_meta.is_empty() or remote_meta.is_empty():
+		return {}
+	if str(local_meta.get("journey", "")) != str(remote_meta.get("journey", "")):
+		return {}
+	var local_ended: bool = bool(local_meta.get("ended", false))
+	var remote_ended: bool = bool(remote_meta.get("ended", false))
+	if local_ended == remote_ended:
+		return {}
+	var local_cid: int = int(local_meta.get("checkpoint_id", 0))
+	var remote_cid: int = int(remote_meta.get("checkpoint_id", 0))
+	if local_ended and remote_cid > local_cid:
+		return {}
+	if remote_ended and local_cid > remote_cid:
+		# Our alive seal is strictly newer than the downloaded death. Only
+		# an acknowledged seal retires it outright: an unflushed revive
+		# still opens the explicit dialog, where the guarded resolve
+		# refuses the stale death and rebases the live seal instead.
+		if _baseline_revision >= 1 \
+				and _baseline_digest == effective_text.sha256_text():
+			return {"status": "ok", "code": "stale-ended-retired",
+				"remote_revision": int(remote.get("revision", 0))}
+		return {}
+	if local_ended:
+		return {"status": "ok", "code": "defeat-kept",
+			"remote_revision": int(remote.get("revision", 0))}
+	return _adopt_remote_defeat(captured, restore_epoch, effective_text,
+		remote, remote_text, install_text, install_data)
+
+
+## Install a same-journey remote defeat over stale local alive bytes. Mirrors
+## the empty-slot install: the superseded bytes are preserved first, a
+## retired read installs nothing, and the receipt floors with zero granted.
+func _adopt_remote_defeat(captured: int, restore_epoch: int,
+		effective_text: String, remote: Dictionary, remote_text: String,
+		install_text: String, install_data: Dictionary) -> Dictionary:
+	if not effective_text.is_empty() and not _write_rejected(
+			"local", effective_text):
+		return {"status": "failure", "code": "recovery-save-failed",
+			"retryable": false}
+	if install_text != remote_text and not _write_rejected(
+			"remote", remote_text):
+		return {"status": "failure", "code": "recovery-save-failed",
+			"retryable": false}
+	if _stale(captured) or restore_epoch != _restore_epoch:
+		return _cancelled_stale()
+	_installing_remote = true
+	var installed: Error = Journey.write_checkpoint_text(install_text)
+	_installing_remote = false
+	if _stale(captured) or restore_epoch != _restore_epoch:
+		return _cancelled_stale()
+	if installed != OK:
+		_save_state = "error"
+		_save_code = "restore-install-failed"
+		save_changed.emit(save_snapshot())
+		return {"status": "failure", "code": "restore-install-failed",
+			"retryable": false}
+	var floored: Dictionary = _floor_from_checkpoint(install_data, "restore")
+	if str(floored.get("code", "")) == "floor-save-failed":
+		_save_state = "error"
+		_save_code = "floor-save-failed"
+		save_changed.emit(save_snapshot())
+		return {"status": "failure", "code": "floor-save-failed",
+			"retryable": true}
+	_adopt_baseline(int(remote.get("revision", 0)), remote_text)
+	_save_state = "acked"
+	_save_code = ""
+	save_changed.emit(save_snapshot())
+	return {"status": "ok", "code": "defeat-adopted",
+		"revision": _known_remote_revision,
+		"remapped": install_text != remote_text,
+		"local_preserved": not effective_text.is_empty()}
+
+
+## Journey identity, checkpoint id and defeat marker of one checkpoint
+## payload, or `{}` when the bytes are not a checkpoint at all. Parsed
+## numbers arrive as floats, so whole floats count as integers exactly like
+## the Journey validator counts them; the journey key keeps ints and strings
+## in separate namespaces so id `5` never aliases id `"5"`.
+func _defeat_meta(text: String) -> Dictionary:
+	var decoded: Dictionary = CloudSchema.parse_json_value(text)
+	if not bool(decoded.get("ok", false)) \
+			or typeof(decoded.get("value")) != TYPE_DICTIONARY:
+		return {}
+	var data: Dictionary = decoded.get("value")
+	var journey: Variant = data.get("journey_id", null)
+	var key: String = ""
+	if journey is int:
+		key = "i%d" % int(journey)
+	elif journey is float and journey == floor(journey):
+		key = "i%d" % int(journey)
+	elif journey is String and not str(journey).is_empty():
+		key = "s%s" % str(journey)
+	else:
+		return {}
+	var cid: Variant = data.get("checkpoint_id", null)
+	var checkpoint_id: int = -1
+	if cid is int:
+		checkpoint_id = int(cid)
+	elif cid is float and cid == floor(cid):
+		checkpoint_id = int(cid)
+	else:
+		return {}
+	var marker: Variant = data.get("ended", false)
+	return {
+		"journey": key,
+		"checkpoint_id": checkpoint_id,
+		"ended": marker is bool and bool(marker),
+	}
+
+
+## True when installing the download would silently resume a sealed run: the
+## current local bytes hold the same journey's defeat and the download is
+## that journey alive at no newer seal.
+func _download_resurrects(local_text: String, remote_text: String) -> bool:
+	var local_meta: Dictionary = _defeat_meta(local_text)
+	var remote_meta: Dictionary = _defeat_meta(remote_text)
+	if local_meta.is_empty() or remote_meta.is_empty():
+		return false
+	if str(local_meta.get("journey", "")) != str(remote_meta.get("journey", "")):
+		return false
+	return bool(local_meta.get("ended", false)) \
+		and not bool(remote_meta.get("ended", false)) \
+		and int(remote_meta.get("checkpoint_id", 0)) \
+			<= int(local_meta.get("checkpoint_id", 0))
+
+
+## True when uploading the local bytes would silently resurrect a sealed run
+## on the server: the fresh remote holds the same journey's defeat and the
+## local bytes are that journey alive at no newer seal.
+func _upload_resurrects(local_text: String, remote_text: String) -> bool:
+	var local_meta: Dictionary = _defeat_meta(local_text)
+	var remote_meta: Dictionary = _defeat_meta(remote_text)
+	if local_meta.is_empty() or remote_meta.is_empty():
+		return false
+	if str(local_meta.get("journey", "")) != str(remote_meta.get("journey", "")):
+		return false
+	return not bool(local_meta.get("ended", false)) \
+		and bool(remote_meta.get("ended", false)) \
+		and int(local_meta.get("checkpoint_id", 0)) \
+			<= int(remote_meta.get("checkpoint_id", 0))
+
+
+## True when uploading the local bytes would commit a stale death over the
+## journey's acknowledged newer seal: the payload is ended, the fresh
+## remote is that journey alive at a strictly newer seal (the paid revive
+## already landed there), so the ended candidate retires instead.
+func _upload_commits_stale_death(payload: String,
+		fresh_text: String) -> bool:
+	var local_meta: Dictionary = _defeat_meta(payload)
+	var remote_meta: Dictionary = _defeat_meta(fresh_text)
+	if local_meta.is_empty() or remote_meta.is_empty():
+		return false
+	if str(local_meta.get("journey", "")) != str(remote_meta.get("journey", "")):
+		return false
+	return bool(local_meta.get("ended", false)) \
+		and not bool(remote_meta.get("ended", false)) \
+		and int(remote_meta.get("checkpoint_id", 0)) \
+			> int(local_meta.get("checkpoint_id", 0))
+
+
+## True when installing the download would lay a stale death over the
+## journey's newer alive seal: the download is ended, the current local
+## bytes are that journey alive at a strictly newer seal, so the ended
+## candidate retires instead.
+func _download_installs_stale_death(local_text: String,
+		remote_text: String) -> bool:
+	var local_meta: Dictionary = _defeat_meta(local_text)
+	var remote_meta: Dictionary = _defeat_meta(remote_text)
+	if local_meta.is_empty() or remote_meta.is_empty():
+		return false
+	if str(local_meta.get("journey", "")) != str(remote_meta.get("journey", "")):
+		return false
+	return not bool(local_meta.get("ended", false)) \
+		and bool(remote_meta.get("ended", false)) \
+		and int(local_meta.get("checkpoint_id", 0)) \
+			> int(remote_meta.get("checkpoint_id", 0))
+
+
 ## Submit the active checkpoint's actual hero, score, and cycles as our
 ## single best Hall row. Reads the local checkpoint only; the row is the
 ## one document our public ID owns, so retries overwrite it idempotently.
@@ -512,10 +733,14 @@ func submit_current_best() -> Dictionary:
 		return {"status": "failure",
 			"code": str(row_check.get("error", "invalid-row")),
 			"retryable": false}
+	var display: String = ""
+	if _vault != null:
+		display = str((_vault.call("verified_name_for_account",
+			_canonical_id) as Dictionary).get("display", ""))
 	var result: Dictionary = await _hall.call("submit_best", _transport,
 		_canonical_id, str(derived.get("hero", "")),
 		int(derived.get("score", 0)), int(derived.get("cycles", 0)),
-		_release)
+		_release, display)
 	if _stale(captured):
 		return _cancelled_stale()
 	if str(result.get("status", "")) == "ok":
@@ -540,6 +765,453 @@ func submit_current_best() -> Dictionary:
 		_hall_snapshot["state"] = "error"
 	hall_changed.emit(hall_snapshot())
 	return result
+
+
+## Claim an adventurer name for the ready account, or restore the one it
+## already owns. A verified claim is cached for offline use and attached
+## to the existing best row at its own score; the claim stands even when
+## the cache write or the backfill fails, and the result says which leg
+## did not land (`cached`, `backfilled`, `backfill_code`) so the lodge
+## can retry exactly that leg.
+func claim_adventurer_name(raw_display: String) -> Dictionary:
+	var captured: int = _generation
+	if _closed:
+		return {"status": "cancelled", "code": "coordinator-closed",
+			"retryable": false}
+	if not account_ready():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	var claimed: Dictionary = await _names.call("claim_name", _transport,
+		_uid, _canonical_id, raw_display)
+	if _stale(captured):
+		return _cancelled_stale()
+	if str(claimed.get("status", "")) != "ok":
+		return claimed
+	claimed["cached"] = _cache_verified_name(claimed)
+	var backfilled: Dictionary = await _hall.call("backfill_display",
+		_transport, _canonical_id, str(claimed.get("display", "")))
+	if _stale(captured):
+		return _cancelled_stale()
+	claimed["backfilled"] = bool(backfilled.get("backfilled", false))
+	claimed["backfill_code"] = str(backfilled.get("code",
+		backfilled.get("status", "")))
+	return claimed
+
+
+## Reload the ready account's claimed name and refresh its offline cache.
+## A recovered row never adopts another account: fetching names the exact
+## UID and public ID, and a mismatched row reports instead of applying.
+func fetch_adventurer_name() -> Dictionary:
+	var captured: int = _generation
+	if _closed:
+		return {"status": "cancelled", "code": "coordinator-closed",
+			"retryable": false}
+	if not account_ready():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	var loaded: Dictionary = await _names.call("fetch_adventurer",
+		_transport, _uid, _canonical_id)
+	if _stale(captured):
+		return _cancelled_stale()
+	if str(loaded.get("status", "")) != "ok":
+		return loaded
+	loaded["cached"] = _cache_verified_name(loaded)
+	return loaded
+
+
+## Flip the tutorial bit on the ready account's claimed name. Idempotent:
+## double taps and uncertain acknowledgements converge on one row.
+func complete_intro() -> Dictionary:
+	var captured: int = _generation
+	if _closed:
+		return {"status": "cancelled", "code": "coordinator-closed",
+			"retryable": false}
+	if not account_ready():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	var done: Dictionary = await _names.call("mark_intro_complete",
+		_transport, _uid, _canonical_id)
+	if _stale(captured):
+		return _cancelled_stale()
+	if str(done.get("status", "")) != "ok":
+		return done
+	done["cached"] = _cache_verified_name(done)
+	return done
+
+
+## Attach the ready account's verified handle to its existing best row at
+## the row's own score. Resolves a cold cache from the server once; writes
+## nothing when no best row exists yet.
+func backfill_hall_name() -> Dictionary:
+	var captured: int = _generation
+	if _closed:
+		return {"status": "cancelled", "code": "coordinator-closed",
+			"retryable": false}
+	if not account_ready():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	var display: String = ""
+	if _vault != null:
+		display = str((_vault.call("verified_name_for_account",
+			_canonical_id) as Dictionary).get("display", ""))
+	if display.is_empty():
+		var loaded: Dictionary = await fetch_adventurer_name()
+		if _stale(captured):
+			return _cancelled_stale()
+		if str(loaded.get("status", "")) != "ok":
+			return loaded
+		display = str(loaded.get("display", ""))
+	return await _hall.call("backfill_display", _transport,
+		_canonical_id, display)
+
+
+## Claim this attendance period: one server-conditional claim, then exactly
+## one local grant of two coins under the stable derived receipt key.
+##
+## Returns `granted` with `{receipt, coins, next_eligible_utc,
+## remaining_seconds}` for a new claim, `already-claimed` when this install
+## already received the current period (topping up a missing local grant
+## after an uncertain ack or a failed wallet write), or `cooldown` when
+## another install holds the period. An eligible advance first backfills
+## every owned still-unapplied reward named by the read row, then commits
+## carrying the row; results name any backfill in `backfilled` plus
+## `backfilled_receipt`. Offline, denied, and conflict-race replies pass
+## through honestly and grant nothing; a failed local wallet write after
+## a server ack returns `local-grant-failed` with `server_claimed` so the
+## next trigger recovers without loss or replay.
+func claim_attendance() -> Dictionary:
+	var captured: int = _generation
+	if _closed:
+		return {"status": "cancelled", "code": "coordinator-closed",
+			"retryable": false}
+	if not account_ready():
+		return {"status": "unregistered", "code": "account-not-ready",
+			"retryable": false}
+	var install_id: String = ""
+	if _vault != null:
+		install_id = str(_vault.call("ensure_install_id"))
+	if install_id.is_empty():
+		return {"status": "failure", "code": "attendance-no-install",
+			"retryable": true}
+	var claimed: Dictionary = await _attendance.call("claim_attendance",
+		_transport, _uid, _canonical_id, install_id)
+	if _stale(captured):
+		return _cancelled_stale()
+	var state: String = str(claimed.get("status", ""))
+	if state == "ok":
+		return _grant_attendance_claim(claimed, install_id, captured)
+	if state == "already-claimed":
+		return _settle_attendance_hold(claimed, install_id, captured)
+	if state == "eligible":
+		return await _advance_attendance_claim(
+			claimed, install_id, captured)
+	if _stale(captured):
+		return _cancelled_stale()
+	_serve_attendance_offline()
+	return claimed
+
+
+## Advance one eligible period: backfill every owned still-unapplied
+## reward on the read row first, then commit carrying the row. A failed
+## wallet save stops before the commit so the server row keeps the
+## recoverable receipt; an ambiguous forgotten receipt is skipped (named,
+## never repaid) while the genuine new claim still progresses. The wallet
+## already holds every backfilled coin.
+func _advance_attendance_claim(row: Dictionary, install_id: String,
+		captured: int) -> Dictionary:
+	var backfill: Dictionary = _backfill_attendance_claims(
+		row, install_id, true)
+	if _stale(captured):
+		return _cancelled_stale()
+	if str(backfill.get("status", "")) == "failure":
+		return _pending_attendance_receipt(row, backfill)
+	var advanced: Dictionary = await _attendance.call("commit_advance",
+		_transport, _uid, _canonical_id, install_id,
+		str(row.get("update_time", "")),
+		str(row.get("last_claim_rfc", "")),
+		str(row.get("install_id", "")))
+	if _stale(captured):
+		return _cancelled_stale()
+	var settled: Dictionary = advanced
+	if str(advanced.get("status", "")) != "ok":
+		_serve_attendance_offline()
+	else:
+		settled = _grant_attendance_claim(
+			advanced, install_id, captured)
+	if str(settled.get("status", "")) != "cancelled":
+		settled["backfilled"] = bool(backfill.get("backfilled", false))
+		settled["backfilled_receipt"] = str(
+			backfill.get("receipt", ""))
+		settled["backfill_skipped"] = bool(
+			backfill.get("skipped", false))
+		settled["skipped_receipt"] = str(
+			backfill.get("skipped_receipt", ""))
+	return settled
+
+
+## Apply owned still-unapplied rewards named by a read row: its current
+## stamp when this install received it (`include_last`), plus any carried
+## previous stamp from this install. Each grant is strict (a re-read
+## carries no fresh proof), so a replay past the eviction floor refuses
+## instead of paying twice. A refused old receipt is SKIPPED, never
+## repaid, and the caller still proceeds: bounded retired history must
+## not freeze genuinely new rewards. Only a failed wallet save stops the
+## caller (the row keeps the recoverable receipt). Returns `{backfilled,
+## receipt, skipped, skipped_receipt}` naming the newest landed backfill
+## and the newest skipped old receipt, or `{status: failure, code,
+## receipt, retryable}` when a save fails.
+func _backfill_attendance_claims(row: Dictionary, install_id: String,
+		include_last: bool) -> Dictionary:
+	var summary: Dictionary = {"backfilled": false, "receipt": "",
+		"skipped": false, "skipped_receipt": ""}
+	var candidates: Array = []
+	if include_last \
+			and str(row.get("install_id", "")) == install_id \
+			and not install_id.is_empty():
+		candidates.append(int(row.get("last_claim_at", 0)))
+	if str(row.get("prev_install_id", "")) == install_id \
+			and not install_id.is_empty():
+		candidates.append(int(row.get("prev_claim_at", 0)))
+	var pending: Array = []
+	for seconds in candidates:
+		if int(seconds) <= 0:
+			continue
+		if _vault != null and bool(_vault.call(
+				"attendance_receipt_applied", _canonical_id,
+				int(seconds), install_id)):
+			continue
+		pending.append(int(seconds))
+	if pending.is_empty():
+		return summary
+	if _vault == null:
+		return {"status": "failure", "code": "attendance-no-vault",
+			"receipt": "", "retryable": false}
+	for seconds in pending:
+		var receipt: String = CloudSchema.attendance_receipt_key(
+			_canonical_id, seconds, install_id)
+		var granted: Dictionary = _vault.call("grant_attendance_coins",
+			_canonical_id, seconds, install_id, false)
+		if str(granted.get("status", "")) != "ok":
+			if str(granted.get("code", "")) \
+					== "attendance-replay-ambiguous":
+				summary["skipped"] = true
+				summary["skipped_receipt"] = receipt
+				continue
+			var mapped: Dictionary = _vault_grant_failure(granted)
+			return {"status": "failure",
+				"code": str(mapped.get("code", "")),
+				"receipt": receipt,
+				"retryable": bool(mapped.get("retryable", false))}
+		if bool(granted.get("granted", false)):
+			summary["backfilled"] = true
+			summary["receipt"] = receipt
+	return summary
+
+
+## Publish the live snapshot for a pending earned receipt the wallet
+## could not take yet, and report it honestly: the server row already
+## acknowledged these coins, the deadline is eligible now, and retry may
+## recover them (a failed save) or never can (an eviction ambiguity).
+func _pending_attendance_receipt(row: Dictionary,
+		backfill: Dictionary) -> Dictionary:
+	var last_seconds: int = int(row.get("last_claim_at", 0))
+	var receipt: String = str(backfill.get("receipt", ""))
+	var pending: Dictionary = {
+		"next_eligible_utc": CloudSchema.rfc3339_from_unix(
+			last_seconds + CloudSchema.ATTENDANCE_COOLDOWN_SECONDS),
+		"remaining_seconds": 0,
+		"server_now": int(row.get("server_now", last_seconds)),
+	}
+	_cache_attendance_deadline(pending)
+	_publish_attendance_snapshot(pending, receipt, last_seconds)
+	return {"status": "failure", "code": str(backfill.get("code", "")),
+		"server_claimed": true, "receipt": receipt,
+		"next_eligible_utc": str(pending.get("next_eligible_utc", "")),
+		"remaining_seconds": 0,
+		"retryable": bool(backfill.get("retryable", false))}
+
+
+## Map a vault grant failure to its honest caller code. An eviction-floor
+## ambiguity is terminal (no retry can resolve forgotten history); a
+## failed save stays retryable under the established code.
+static func _vault_grant_failure(granted: Dictionary) -> Dictionary:
+	if str(granted.get("code", "")) == "attendance-replay-ambiguous":
+		return {"code": "attendance-replay-ambiguous",
+			"retryable": false}
+	return {"code": "local-grant-failed", "retryable": true}
+
+
+## Apply a landed server claim to the local wallet exactly once, then
+## publish the confirmed deadline. The just-landed commit is fresh proof,
+## so same-second cross-owner ties still grant; a failed wallet write
+## keeps the server truth and reports recovery-by-retry, never a loss.
+func _grant_attendance_claim(claimed: Dictionary, install_id: String,
+		captured: int) -> Dictionary:
+	var claim_seconds: int = int(claimed.get("claim_seconds", 0))
+	var receipt: String = CloudSchema.attendance_receipt_key(
+		_canonical_id, claim_seconds, install_id)
+	var granted: Dictionary = {"status": "failure",
+		"code": "attendance-no-vault", "granted": false,
+		"duplicate": false}
+	if _vault != null:
+		granted = _vault.call("grant_attendance_coins", _canonical_id,
+			claim_seconds, install_id, true)
+	if _stale(captured):
+		return _cancelled_stale()
+	_cache_attendance_deadline(claimed)
+	_publish_attendance_snapshot(claimed, receipt, claim_seconds)
+	if str(granted.get("status", "")) != "ok":
+		var mapped: Dictionary = _vault_grant_failure(granted)
+		return {"status": "failure",
+			"code": str(mapped.get("code", "")),
+			"server_claimed": true, "receipt": receipt,
+			"claim_seconds": claim_seconds,
+			"next_eligible_utc": str(claimed.get(
+				"next_eligible_utc", "")),
+			"remaining_seconds": int(claimed.get(
+				"remaining_seconds", 0)),
+			"retryable": bool(mapped.get("retryable", false))}
+	return {"status": "granted", "receipt": receipt,
+		"coins": CloudSchema.ATTENDANCE_GRANT_COINS,
+		"granted": bool(granted.get("granted", false)),
+		"duplicate": bool(granted.get("duplicate", false)),
+		"next_eligible_utc": str(claimed.get("next_eligible_utc", "")),
+		"remaining_seconds": int(claimed.get("remaining_seconds", 0))}
+
+
+## Settle a held period. Ours (double tap, uncertain ack, recovery):
+## ensure the local grant under the row's own key, idempotently.
+## Another install's: deadline only, never a grant into this wallet.
+## Either way, a carried previous stamp from this install backfills
+## first, so another install's advance never strands our reward.
+func _settle_attendance_hold(claimed: Dictionary, install_id: String,
+		captured: int) -> Dictionary:
+	_cache_attendance_deadline(claimed)
+	var backfill: Dictionary = _backfill_attendance_claims(
+		claimed, install_id, false)
+	if _stale(captured):
+		return _cancelled_stale()
+	if str(backfill.get("status", "")) == "failure":
+		claimed["status"] = "failure"
+		claimed["code"] = str(backfill.get("code", ""))
+		claimed["server_claimed"] = true
+		claimed["receipt"] = str(backfill.get("receipt", ""))
+		claimed["retryable"] = bool(backfill.get("retryable", false))
+		_publish_attendance_snapshot(claimed,
+			str(backfill.get("receipt", "")),
+			int(claimed.get("last_claim_at", 0)))
+		return claimed
+	claimed["backfilled"] = bool(backfill.get("backfilled", false))
+	claimed["backfilled_receipt"] = str(backfill.get("receipt", ""))
+	claimed["backfill_skipped"] = bool(backfill.get("skipped", false))
+	claimed["skipped_receipt"] = str(
+		backfill.get("skipped_receipt", ""))
+	if not bool(claimed.get("mine", false)):
+		_publish_attendance_snapshot(claimed,
+			str(backfill.get("receipt", "")),
+			int(claimed.get("last_claim_at", 0)))
+		claimed["status"] = "cooldown"
+		return claimed
+	var claim_seconds: int = int(claimed.get("last_claim_at", 0))
+	var receipt: String = CloudSchema.attendance_receipt_key(
+		_canonical_id, claim_seconds, install_id)
+	var granted: Dictionary = {"status": "failure",
+		"code": "attendance-no-vault", "granted": false,
+		"duplicate": false}
+	if _vault != null:
+		granted = _vault.call("grant_attendance_coins", _canonical_id,
+			claim_seconds, install_id)
+	if _stale(captured):
+		return _cancelled_stale()
+	_publish_attendance_snapshot(claimed, receipt, claim_seconds)
+	if str(granted.get("status", "")) != "ok":
+		var mapped: Dictionary = _vault_grant_failure(granted)
+		claimed["status"] = "failure"
+		claimed["code"] = str(mapped.get("code", ""))
+		claimed["server_claimed"] = true
+		claimed["receipt"] = receipt
+		claimed["retryable"] = bool(mapped.get("retryable", false))
+		return claimed
+	claimed["receipt"] = receipt
+	claimed["coins"] = CloudSchema.ATTENDANCE_GRANT_COINS
+	claimed["granted"] = bool(granted.get("granted", false))
+	return claimed
+
+
+## Best-effort deadline cache for display and reminder scheduling. The
+## claim path never reads it back: only a live server read grants.
+func _cache_attendance_deadline(claimed: Dictionary) -> void:
+	if _vault == null:
+		return
+	_vault.call("cache_attendance_next", _canonical_id,
+		str(claimed.get("next_eligible_utc", "")),
+		int(claimed.get("remaining_seconds", 0)),
+		int(claimed.get("server_now",
+			claimed.get("claim_seconds",
+				claimed.get("last_claim_at", 0)))))
+
+
+## Publish the live attendance snapshot for the reminder controller and
+## any deadline display. Absolute server-confirmed UTC plus bounded
+## server-derived remaining: no grant capability rides along.
+func _publish_attendance_snapshot(claimed: Dictionary, receipt: String,
+		claim_seconds: int) -> void:
+	var last_utc: String = ""
+	if claim_seconds > 0:
+		last_utc = CloudSchema.rfc3339_from_unix(claim_seconds)
+	_attendance_snapshot = {"state": "ready", "source": "live",
+		"public_id": _canonical_id, "receipt": receipt,
+		"last_claim_utc": last_utc,
+		"next_eligible_utc": str(claimed.get("next_eligible_utc", "")),
+		"remaining_seconds": int(claimed.get("remaining_seconds", -1))}
+	attendance_changed.emit(_attendance_snapshot.duplicate())
+
+
+## Offline or errored reads keep the last live snapshot when one exists;
+## otherwise they serve the cached deadline labeled as cache, which can
+## schedule a reminder but never mint coins.
+func _serve_attendance_offline() -> void:
+	if str(_attendance_snapshot.get("source", "")) == "live":
+		return
+	var cached: Dictionary = {}
+	if _vault != null:
+		cached = _vault.call("attendance_next_for_account",
+			_canonical_id)
+	if cached.is_empty():
+		_attendance_snapshot = {"state": "offline", "source": "none",
+			"public_id": _canonical_id, "receipt": "",
+			"last_claim_utc": "",
+			"next_eligible_utc": "", "remaining_seconds": -1}
+	else:
+		_attendance_snapshot = {"state": "offline", "source": "cache",
+			"public_id": _canonical_id, "receipt": "",
+			"last_claim_utc": "",
+			"next_eligible_utc": str(cached.get("next_utc", "")),
+			"remaining_seconds": int(cached.get("remaining", -1))}
+	attendance_changed.emit(_attendance_snapshot.duplicate())
+
+
+## Current attendance view for the reminder controller. Live values win;
+## cached deadlines arrive labeled and grant nothing.
+func attendance_snapshot() -> Dictionary:
+	if _attendance_snapshot.is_empty():
+		return {"state": "unregistered", "source": "none",
+			"public_id": _canonical_id, "receipt": "",
+			"last_claim_utc": "",
+			"next_eligible_utc": "", "remaining_seconds": -1}
+	return _attendance_snapshot.duplicate()
+
+
+## Remember one verified claim result in the account-partitioned durable
+## cache. Best effort: the server already acknowledged the name, so a
+## failed local write only skips the offline copy, which the next load
+## restores from the server.
+func _cache_verified_name(claimed: Dictionary) -> bool:
+	if _vault == null:
+		return false
+	return bool(_vault.call("cache_verified_name", _canonical_id,
+		str(claimed.get("display", "")), str(claimed.get("key", "")),
+		bool(claimed.get("intro_complete", false))))
 
 
 ## Refresh the public top board. Results label their source; failures keep
@@ -773,7 +1445,15 @@ func _reserve_async(captured: int) -> void:
 	if status == "ok":
 		_canonical_id = str(result.get("public_id", ""))
 		if _canonical_id != _partition_key:
-			_move_slot_to_canonical()
+			var migration: Dictionary = _move_slot_to_canonical()
+			if not bool(migration.get("ok", false)):
+				_account_state = "error"
+				_account_code = "slot-move-failed"
+				_save_state = "error"
+				_save_code = "slot-move-failed"
+				account_changed.emit(account_snapshot())
+				save_changed.emit(save_snapshot())
+				return
 		_hall.call("set_account", _canonical_id)
 		_reconcile_active_receipt_floor()
 		_account_state = "ready"
@@ -808,22 +1488,38 @@ func _reserve_async(captured: int) -> void:
 	save_changed.emit(save_snapshot())
 
 
-## Move an offline guest slot under its canonical id once known. Files only
-## move into an empty canonical slot; a canonical slot that already holds a
-## journey keeps it and the guest slot stays in place, preserved but unused,
-## so nothing is ever overwritten or lost.
-func _move_slot_to_canonical() -> void:
+## Move an offline guest slot under its canonical id once known,
+## rekey-first: the pending receipt rekeys onto the canonical slot BEFORE
+## any file moves, so a crash between the two leaves the receipt ahead of
+## its bytes and the retry completes the move. A failure holds the move —
+## guest files and receipt stay jointly in place — and reports `ok: false`
+## instead of adopting over a stranded receipt. Files only move into an
+## empty canonical slot; a canonical slot that already holds a journey
+## keeps it and the guest slot stays in place, preserved but deferred.
+func _move_slot_to_canonical() -> Dictionary:
 	if _canonical_id.is_empty() or _partition_key.is_empty():
-		return
+		return {"ok": true, "moved": []}
 	if _canonical_id == _partition_key:
-		return
+		return {"ok": true, "moved": []}
+	var readiness: String = str(_vault.call("prepare_receipt_move",
+		_partition_key, _canonical_id))
+	if readiness == "failed":
+		_save_code = "slot-move-failed"
+		return {"ok": false, "moved": [], "code": "slot-move-failed"}
+	if readiness == "kept":
+		_partition_key = _canonical_id
+		Journey.use_account(_canonical_id)
+		_load_revision_file()
+		return {"ok": true, "moved": [], "kept": true}
 	var moved: Dictionary = Journey.move_account_slot(
 		_partition_key, _canonical_id)
 	if not bool(moved.get("ok", false)):
 		_save_code = "slot-move-failed"
+		return {"ok": false, "moved": [], "code": "slot-move-failed"}
 	_partition_key = _canonical_id
 	Journey.use_account(_canonical_id)
 	_load_revision_file()
+	return {"ok": true, "moved": moved.get("moved", []), "kept": false}
 
 
 ## Queue the current local checkpoint once the account is ready, so offline
@@ -1163,6 +1859,27 @@ func _resolve_keep_local(captured: int) -> Dictionary:
 	if first_status == "ok" and not _write_rejected("remote", first_text):
 		return {"status": "failure", "code": "recovery-save-failed",
 			"retryable": false}
+	if first_status == "ok" and _upload_resurrects(payload, first_text):
+		# The fresh remote sealed this journey's defeat after the dialog
+		# opened (or the dialog predates the death). Rebasing our stale
+		# alive bytes over it would resurrect the run on the server, so
+		# the local choice is refused and the conflict stays open.
+		_save_state = "conflict"
+		_save_code = "defeat-kept"
+		save_changed.emit(save_snapshot())
+		return {"status": "failure", "code": "defeat-kept",
+			"retryable": false}
+	if first_status == "ok" \
+			and _upload_commits_stale_death(payload, first_text):
+		# The dialog's ended candidate predates the acknowledged revive
+		# the fresh remote already holds. Committing the stale death over
+		# the newer alive seal would resurrect it remotely, so the local
+		# choice retires and the conflict stays open for the live side.
+		_save_state = "conflict"
+		_save_code = "stale-ended-retired"
+		save_changed.emit(save_snapshot())
+		return {"status": "failure", "code": "stale-ended-retired",
+			"retryable": false}
 	var result: Dictionary = await _checkpoint.call(
 		"choose_local", _transport, _uid, payload)
 	if _stale(captured):
@@ -1216,6 +1933,26 @@ func _resolve_keep_remote(captured: int) -> Dictionary:
 	if not bool(checked.get("ok", false)):
 		return {"status": "failure",
 			"code": str(checked.get("error", "invalid-remote-payload")),
+			"retryable": false}
+	if _download_resurrects(_read_effective_bytes(), remote_text):
+		# The local file sealed this journey's defeat after the dialog
+		# opened (or the dialog predates the death). Installing the stale
+		# alive download would resume the sealed run, so the remote choice
+		# is refused and the conflict stays open.
+		_save_state = "conflict"
+		_save_code = "defeat-kept"
+		save_changed.emit(save_snapshot())
+		return {"status": "failure", "code": "defeat-kept",
+			"retryable": false}
+	if _download_installs_stale_death(_read_effective_bytes(), remote_text):
+		# The download's ended candidate predates our newer alive seal of
+		# the same journey. Installing the stale death over the live seal
+		# would end a run that already revived past it, so the remote
+		# choice retires and the conflict stays open for the live side.
+		_save_state = "conflict"
+		_save_code = "stale-ended-retired"
+		save_changed.emit(save_snapshot())
+		return {"status": "failure", "code": "stale-ended-retired",
 			"retryable": false}
 	var prepared: Dictionary = _prepare_install(
 		checked.get("data", {}) as Dictionary, remote_text)
