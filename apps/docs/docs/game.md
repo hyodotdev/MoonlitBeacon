@@ -77,11 +77,25 @@ screen as it looked when that lesson was finished.
    gate, so Continue resumes at the next cycle with the build intact.
 9. Returning shows cycle, beacons, survival time, level, kill score, and
    rank. Moon shards and records carry into the next run. Hitting 0
-   health keeps the banked journey and offers Retry from the last gate
-   with the growth earned before that segment; the lost segment's kills,
-   score and rewards grant nothing, so no number of retries can farm
-   them. A paid continue coin still revives in place instead, and is
-   never spent just to resume the saved journey.
+   health seals the journey: the final score settles once into shards
+   and records, and the save is marked ended, so neither the title, a
+   relaunch, nor a cloud restore can resume the defeated run. The seal is
+   mirrored into the backup copy, so even a damaged save file still reads
+   ended rather than reviving an older checkpoint. The loss screen offers
+   three honest roads: spend one continue coin to revive where you fell
+   with hero, Wave, score and growth intact; start over from the
+   beginning with a new journey; or return to the title. Coins are never
+   spent just to resume a saved journey. The coin is charged to the purse
+   before the revive exists: a crash mid-continue either keeps the sealed
+   defeat with the coin untouched, or recovers the paid revive on the
+   next launch without charging again. If the paid revive cannot open,
+   the title says so and asks before anything starts. A paid revive
+   belongs to the account that paid: switching accounts never moves it
+   into another save — it waits until its own account returns. When
+   signing in folds a guest save into an existing account, a waiting paid
+   revive folds with it and still costs nothing more. With no coins left
+   but a paid revive waiting, the loss screen offers a save retry instead
+   of the shop.
 
 ## 3. Exact shipping-version scope
 
@@ -481,7 +495,7 @@ return, and stays hidden on defeat.
 | `analytics.json` | allowed events not yet sent after consent. Max 200 events / 14 days; revoked consent deletes immediately |
 | `player_identity.cfg` | durable player ID (`MB-` + 32 hex), minted before the first play and shown in full on the moon gate |
 | `player_bindings.cfg` | which player ID each signed-in account plays under, keyed by hashed account reference only |
-| `journey.<id>.json` | one saved gate per player ID: cycle, hero, relics, growth and score counters, plus backup, revision and rejected-copy files |
+| `journey.<id>.json` | one saved gate per player ID: cycle, hero, relics, growth and score counters, plus backup, revision and rejected-copy files; a run that ended in defeat keeps an ended marker instead of a resumable gate |
 
 A missing or corrupt save still launches with defaults.
 
@@ -516,12 +530,39 @@ result.
   fresh guest ID; the previous account's ID, binding, and save stay on the
   device.
 - **Continue where you stopped.** The gate resumes the last saved gate with
-  its hero, relics, and growth. Starting over with a save in place asks
-  first. Retrying a gate is free; continue coins only resume where you fell.
+  its hero, relics, and growth, but only while the run is still alive: a
+  journey that ended in defeat is marked ended and offers a fresh start
+  instead of a free continuation. Starting over with a live save in place
+  asks first. Continue coins only revive where you fell, one coin per
+  revive, and quitting mid-run always keeps the live gate resumable.
+- **Coming back pays two coins.** A signed-in account that returns after
+  twelve hours gets two continue coins, at most once per twelve hours
+  since the last claim; days away still pay two, never a stockpile.
+  Claiming needs a connection, and the game plays on without the grant
+  when offline. On phones, Settings can also switch on a local reminder
+  when the next two coins are ready: one notice at eligibility, then
+  roughly every twelve hours while away, up to 24 days of scheduled
+  notices that refresh whenever the game is opened. Notices stay
+  silent while the game is open, never grant coins by themselves, and
+  turning them off in Settings cancels everything scheduled.
+- **First login opens the gate lodge.** A cloud account that never chose
+  its public handle or finished the lesson meets Lumi, the Lantern
+  Keeper, in the gate refuge after sign-in: pick the 2–12 character
+  handle the register and Hall will remember, walk and dash once on the
+  open floor, then step through the moon gate. The lesson touches no
+  saved run and spends no coins; a living journey still offers Resume
+  against a confirmed fresh start afterwards, and finished accounts
+  skip the lodge entirely. Local guests play straight through as before.
 - **The Hall shows real ranks.** Rows carry the actual hero, score, and full
   player ID, each labeled live, cached, or offline. Equal scores share one
   standing, and the rank chip in the Arena agrees with the board. Local
   bests stay on the device ladder and are never mixed into the cloud board.
+  A signed-in account can also claim one permanent public game handle of
+  2–12 letters, digits, or Chinese/Japanese/Korean characters; claiming
+  needs a connection, and afterwards the handle shows on that account's
+  Hall row on every device, including the Hall panel headline next to the
+  rank and score. Handles cannot be renamed or moved, and rows
+  claimed before handles existed still render honestly without one.
 - **Conflicts and offline states are explicit.** When the device save and the
   cloud save differ, the gate shows both and waits for a pick; the rejected
   side is preserved for recovery first. Nothing is overwritten silently, and
@@ -538,8 +579,9 @@ it upload name, character, app version, score, rank, and cycle, and
 fetch global top records. That name/rank upload is not the current
 Hall. The active 4.0.0 Hall (`mb_hall_v1`) keeps one row per public ID
 carrying the public ID, the canonical hero path, score, cycles,
-release, schema, and update time — never the legacy name or a rank
-field. Standing is derived from the scores, so equal scores share one
+release, schema, and update time — never the legacy typed name or a rank
+field — plus the account's claimed public handle when it has one.
+Standing is derived from the scores, so equal scores share one
 rank. Missing connection or a failed request leaves play and local
 records working. Android export has the internet permission on for this
 optional feature.
@@ -711,15 +753,17 @@ The current 4.0.0 entry instead identifies each player with the
 durable player ID — as a local guest, optionally registered in
 the background, or through Google/Apple sign-in where genuinely
 configured — and the owned Hall keeps one row per public ID with
-no typed name. Unconnected play still shows only local records.
+no typed name, only the account's claimed public handle when it has
+one. Unconnected play still shows only local records.
 
 Seven non-consumables are implemented: Moonlit Supporter, five companion
 heroes, and the Lantern Colors pack, plus three consumable continue-coin
 SKUs (1, 5, and 10). The free Moonlit Warden alone can play every region
 and cycle. Paid heroes are balanced options with different starting
 relics and visuals, not a power ladder by price. Continue coins are an
-optional convenience that resumes a run where you fell; you can start a
-new run immediately without them. Past Hero Bundle buyers still restore
+optional convenience that resumes a run where you fell; signed-in
+accounts also earn two free coins per twelve-hour return, and you can
+start a new run immediately without them. Past Hero Bundle buyers still restore
 Shadow Dancer and Beacon Keeper after that SKU left the new-sale list.
 All 10 sale products are registered on both stores. Product and verification
 boundaries are in [Monetization design](./monetize.md).
@@ -732,6 +776,7 @@ GATE ──→ PLAYING ⇄ PAUSED
   ├─ Shrine   ├─ guardian → loot → return → RESULT → record → restart
   ├─ Hall     │                    └─ continue → next cycle → PLAYING
   └─ Account  └─ health 0 → RESULT ──→ coin continue → PLAYING
+                                       └─ start over → fresh journey
 ```
 
 Android **Back** sends `PLAYING` to `PAUSED`.

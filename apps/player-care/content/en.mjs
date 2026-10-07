@@ -79,6 +79,8 @@ export const CONTENT = {
 <li>Saves land on the device first; uploads follow in the background.</li>
 <li>Saves never carry purchase or balance records.</li>
 <li>Downloads are fully checked before install, and a differing cloud copy waits for you to choose which side to keep.</li>
+<li>Signed-in accounts also hold one private attendance record (last claim time) that paces the free continue-coin reward; it never appears in the Hall.</li>
+<li>On phones, Settings can switch on a local reminder when the next attendance coins are ready. The notice is scheduled on the device from the last claim time and carries neither account references, tokens, nor personal data; it grants no coins by itself and is cancelled entirely by turning it off in Settings. Notices repeat roughly every twelve hours while away, up to 48 scheduled notices that refresh whenever the game is opened.</li>
 </ul>`,
     },
     {
@@ -86,9 +88,10 @@ export const CONTENT = {
       num: '5',
       h: 'Hall board',
       html: `<ul class="tight">
-<li>The Hall keeps one best entry per player ID: player ID, hero, score, progress, app version, and update time.</li>
+<li>The Hall keeps one best entry per player ID: player ID, hero, score, progress, app version, update time, and — once claimed — the account's public game handle.</li>
 <li>Board reads are public; only the owning account may write its entry. Scores only increase, and standing is derived from scores so equal scores share one rank.</li>
-<li>No name, email, account reference, token, or save appears in a Hall entry.</li>
+<li>Each account may claim one permanent public handle of 2–12 letters, digits, or Chinese/Japanese/Korean characters. Claiming needs a connection; afterwards the handle shows on the account's Hall entry on every device. Handles cannot be renamed or moved to another account.</li>
+<li>The handle is a game name, not a real name, and it is the only name in a Hall entry. No email, account reference, token, or save appears in one.</li>
 </ul>`,
     },
     {
@@ -96,11 +99,11 @@ export const CONTENT = {
       num: '6',
       h: 'Deletion',
       html: `<ul class="tight">
-<li>Delete your cloud account from the game's account settings. Deletion first removes its Hall entry, cloud save, reservation, and profile together in one verified step; only after that confirmation is the sign-in itself deleted.</li>
+<li>Delete your cloud account from the game's account settings. Deletion first removes its Hall entry, claimed name and adventurer record, attendance record, cloud save, reservation, and profile together in one verified step; only after that confirmation is the sign-in itself deleted.</li>
 <li>On iOS, deleting an Apple-linked account may ask you to confirm again through the Apple sign-in sheet.</li>
 <li>Signing out ends the sign-in session and switches to a fresh guest ID; it deletes nothing on the device or in the cloud.</li>
 <li>Deleting your cloud account removes its cloud records and sign-in, its local journey save files, and its on-device account binding; other accounts' local saves and separate on-device files such as purchases, Vault, and settings remain.</li>
-<li>Account, checkpoint, and Hall records have no configured automatic expiry: they remain until the account is deleted.</li>
+<li>Account, name, checkpoint, attendance, and Hall records have no configured automatic expiry: they remain until the account is deleted.</li>
 <li>You can also request access, correction, or deletion of your data by email at <a href="${mailto}">${SUPPORT_EMAIL}</a>. Include your player ID.</li>
 <li>Support requests are matched to your records through your player ID; deletion requests that concern purchase records are forwarded to the purchase-verification processor.</li>
 </ul>`,
@@ -112,7 +115,7 @@ export const CONTENT = {
       html: `<ul class="tight">
 <li>Guest play works offline as a device-only guest and is never shown as a registered cloud account.</li>
 <li>If background sign-up fails, or the build has no sign-in setup, play continues anyway. Builds without sign-in setup make no registration attempt and show no error.</li>
-<li>Sign-in, cloud saves, the Hall, the store, and purchase verification need an internet connection.</li>
+<li>Sign-in, cloud saves, the Hall, attendance claims, the store, and purchase verification need an internet connection.</li>
 </ul>`,
     },
     {
@@ -225,6 +228,8 @@ export const CONTENT = {
       html: `<ul class="tight">
 <li>Core play and local records work offline as a guest.</li>
 <li>Loading store products, purchasing, purchase verification, sign-in, cloud saves, and the Hall need an internet connection.</li>
+<li>Returning after twelve hours grants two continue coins; claiming needs a connection, and offline play continues without the grant.</li>
+<li>On phones, Settings can switch on a local reminder when the next two coins are ready; turning it off cancels it. The notice never grants coins by itself.</li>
 <li>There are no ads.</li>
 </ul>`,
     },
