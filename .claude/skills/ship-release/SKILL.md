@@ -126,6 +126,16 @@ committed versionCode.
 
 ### App Store
 
+**Default release option: automatic immediately after approval.** The user
+asked on 2026-10-08 to use “Automatically release this version” for future
+iOS releases. Set and verify App Store version `releaseType=AFTER_APPROVAL`
+before review submission; never rely on an inherited manual setting. Do
+not select the scheduled-date option. Record the remote readback in the
+release evidence. This is a standing release preference, not authorization
+for an otherwise unrequested submission, cancellation or immediate release
+of an older approved build. Existing task authorization still governs
+which version is submitted.
+
 ```bash
 export MOONLIT_ASC_KEY_ID=<10 characters>
 export MOONLIT_ASC_ISSUER_ID=<UUID>

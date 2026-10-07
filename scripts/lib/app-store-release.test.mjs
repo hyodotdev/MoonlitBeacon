@@ -24,6 +24,7 @@ import {
   APP_STORE_FRESH_CAPTURE_EVIDENCE,
   APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
   APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
+  APP_STORE_VERSION_RELEASE_TYPE,
   DEFAULT_MANIFEST_RELATIVE_PATH,
   APP_AVAILABILITY_REQUIREMENTS,
   IAP_BASE_PRICES,
@@ -1711,6 +1712,7 @@ test('remote audit creates from released-only 2.1.0/2.0.0 history regardless of 
       copyright: payload.release.copyright,
       platform: 'IOS',
       versionString: payload.release.version,
+      releaseType: APP_STORE_VERSION_RELEASE_TYPE,
     });
     assert.equal(audit.plan.some((entry) => (
       entry.code === 'ASC_APP_STORE_VERSION_CREATE_UNSAFE'
@@ -1834,6 +1836,7 @@ test('DEVELOPER_REJECTED iOS version updates versionString/copyright on the same
   assert.deepEqual(entry.changes, {
     versionString: { current: '1.0.0', desired: '1.0.1' },
     copyright: { current: '2025 Hyo Jang', desired: '2026 Hyo Jang' },
+    releaseType: { current: null, desired: APP_STORE_VERSION_RELEASE_TYPE },
   });
   assert.equal(audit.plan.some((candidate) => (
     candidate.target === 'appStoreVersion' && candidate.action === 'create'
@@ -1859,6 +1862,7 @@ test('DEVELOPER_REJECTED iOS version updates versionString/copyright on the same
   assert.deepEqual(patches[0].body.data.attributes, {
     copyright: '2026 Hyo Jang',
     versionString: '1.0.1',
+    releaseType: APP_STORE_VERSION_RELEASE_TYPE,
   });
   assert.equal(Object.hasOwn(patches[0].body.data.attributes, 'platform'), false);
   await assert.rejects(applyPlanEntry({
@@ -1964,6 +1968,7 @@ test('version selection prefers exact lookup and does not create when ambiguous/
       copyright: payload.release.copyright,
       platform: 'IOS',
       versionString: payload.release.version,
+      releaseType: APP_STORE_VERSION_RELEASE_TYPE,
     });
   }
 });
@@ -3397,6 +3402,7 @@ test('review submission GET-revalidates the app version and 10 IAPs excluding he
         iapVersionIds,
         iapVersionStates,
         versionId: 'version-101',
+        versionReleaseType: APP_STORE_VERSION_RELEASE_TYPE,
       },
     };
     const items = [];
@@ -3572,6 +3578,7 @@ test('review submission items require the linkage include and keep the exact ele
         iapVersionIds,
         iapVersionStates,
         versionId: 'version-101',
+        versionReleaseType: APP_STORE_VERSION_RELEASE_TYPE,
       },
     };
     const reviewConfirmation = appStoreConfirmationToken(manifest, 'review');
@@ -4515,6 +4522,7 @@ function createReviewTransitionClient(payload, {
       copyright: payload.release.copyright,
       platform: 'IOS',
       versionString: payload.release.version,
+      releaseType: APP_STORE_VERSION_RELEASE_TYPE,
     }, 'appStoreVersions');
   }
 
@@ -5953,6 +5961,7 @@ test('reuse review submission keeps the 11-target and linked-build readback', ()
         iapVersionIds,
         iapVersionStates,
         versionId: 'version-400',
+        versionReleaseType: APP_STORE_VERSION_RELEASE_TYPE,
       },
     };
     const items = [];
@@ -6061,3 +6070,320 @@ test('bare local-only reuse preparation parses and reports zero remote work', ()
       /remote requests: 0 \(default command is local-only\)/u,
     );
   }));
+
+test('future iOS releases default to AFTER_APPROVAL without a scheduled date', async () => {
+  await withTempRoot(async (root) => {
+    const payload = fixturePayload(root);
+    assert.equal(APP_STORE_VERSION_RELEASE_TYPE, 'AFTER_APPROVAL');
+    assert.equal(payload.release.releaseType, 'AFTER_APPROVAL');
+    const manifest = createAppStoreReleaseManifest(payload);
+    assert.equal(verifyAppStoreReleaseManifest(manifest, payload), true);
+    for (const bad of ['MANUAL', 'SCHEDULED', null, undefined, '']) {
+      const tampered = structuredClone(payload);
+      tampered.release.releaseType = bad;
+      assert.throws(
+        () => verifyAppStoreReleaseManifest(
+          createAppStoreReleaseManifest(tampered),
+        ),
+        /release type must be AFTER_APPROVAL/u,
+      );
+    }
+  });
+
+  const createPayload = minimalReleasePayload();
+  const createClient = versionAuditClient({
+    allVersions: realReleasedHistory(),
+  });
+  const createAudit = await auditAppStoreConnectRelease({
+    payload: createPayload,
+    client: createClient,
+  });
+  const createEntry = createAudit.plan.find((entry) => (
+    entry.target === 'appStoreVersion' && entry.action === 'create'
+  ));
+  assert.deepEqual(createEntry.desired, {
+    copyright: createPayload.release.copyright,
+    platform: 'IOS',
+    versionString: createPayload.release.version,
+    releaseType: 'AFTER_APPROVAL',
+  });
+  assert.equal(
+    Object.hasOwn(createEntry.desired, 'earliestReleaseDate'),
+    false,
+  );
+  const versionQueries = createClient.paths.filter((path) => (
+    path.includes('/appStoreVersions?')
+  ));
+  assert.ok(versionQueries.length >= 1);
+  for (const query of versionQueries) {
+    assert.match(
+      decodeURIComponent(query),
+      /fields\[appStoreVersions\][^]*releaseType/u,
+    );
+  }
+
+  for (const [state, remoteType] of [
+    ['PREPARE_FOR_SUBMISSION', 'MANUAL'],
+    ['DEVELOPER_REJECTED', 'SCHEDULED'],
+  ]) {
+    const payload = minimalReleasePayload();
+    const client = versionAuditClient({
+      exactVersions: [resource('editable-version', {
+        appVersionState: state,
+        copyright: payload.release.copyright,
+        platform: 'IOS',
+        versionString: payload.release.version,
+        releaseType: remoteType,
+      })],
+    });
+    const audit = await auditAppStoreConnectRelease({ payload, client });
+    assert.equal(audit.remote.versionReleaseType, remoteType);
+    const entry = audit.plan.find((candidate) => (
+      candidate.target === 'appStoreVersion'
+    ));
+    assert.equal(entry.action, 'update');
+    assert.deepEqual(entry.changes.releaseType, {
+      current: remoteType,
+      desired: 'AFTER_APPROVAL',
+    });
+    assert.equal(Object.hasOwn(entry.changes, 'earliestReleaseDate'), false);
+    const patches = [];
+    await applyPlanEntry({
+      client: {
+        async patch(path, body) {
+          patches.push({ body, path });
+        },
+      },
+      entry,
+      payload,
+    });
+    assert.equal(patches[0].path, '/v1/appStoreVersions/editable-version');
+    assert.equal(
+      patches[0].body.data.attributes.releaseType,
+      'AFTER_APPROVAL',
+    );
+    assert.equal(
+      Object.hasOwn(patches[0].body.data.attributes, 'earliestReleaseDate'),
+      false,
+    );
+  }
+
+  const idemPayload = minimalReleasePayload();
+  const idemAudit = await auditAppStoreConnectRelease({
+    payload: idemPayload,
+    client: versionAuditClient({
+      exactVersions: [resource('matching-version', {
+        appVersionState: 'PREPARE_FOR_SUBMISSION',
+        copyright: idemPayload.release.copyright,
+        platform: 'IOS',
+        versionString: idemPayload.release.version,
+        releaseType: 'AFTER_APPROVAL',
+      })],
+    }),
+  });
+  const idemEntry = idemAudit.plan.find((candidate) => (
+    candidate.target === 'appStoreVersion'
+  ));
+  assert.equal(idemEntry.action, 'none');
+  assert.equal(idemAudit.remote.versionReleaseType, 'AFTER_APPROVAL');
+});
+
+test('automatic-release readback blocks review submission on mismatch', () =>
+  withTempRoot(async (root) => {
+    const payload = fixturePayload(root);
+    payload.release.version = '1.0.1';
+    payload.release.buildNumber = '3';
+    const manifest = createAppStoreReleaseManifest(payload);
+    const reviewConfirmation = appStoreConfirmationToken(manifest, 'review');
+    const iapVersionIds = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId, index) => [productId, `iap-version-${index}`],
+    ));
+    const iapVersionStates = Object.fromEntries(IAP_PRODUCT_IDS.map(
+      (productId) => [productId, 'PREPARE_FOR_SUBMISSION'],
+    ));
+    function convergedAuditWithReleaseType(releaseType) {
+      return {
+        appId: payload.release.appId,
+        mode: 'GET_ONLY_REMOTE_APPLY_PREFLIGHT',
+        plan: [
+          ...IAP_PRODUCT_IDS.map((productId) => ({
+            action: 'none',
+            identifier: productId,
+            remoteState: 'READY_TO_SUBMIT',
+            target: 'inAppPurchase',
+          })),
+          {
+            action: 'none',
+            buildId: 'build-3',
+            identifier: 'IOS/1.0.1(3)',
+            target: 'buildAssociation',
+          },
+        ],
+        remote: {
+          iapVersionIds,
+          iapVersionStates,
+          versionId: 'version-101',
+          ...(releaseType === undefined ? {} : {
+            versionReleaseType: releaseType,
+          }),
+        },
+      };
+    }
+
+    const items = [];
+    const good = await submitAppStoreConnectReview({
+      audit: convergedAuditWithReleaseType('AFTER_APPROVAL'),
+      client: {
+        async post(path, body) {
+          if (path === '/v1/reviewSubmissions') {
+            return {
+              data: resource('submission-1', { state: 'READY_FOR_REVIEW' }),
+            };
+          }
+          items.push(body.data);
+          return { data: resource(`item-${items.length}`, {}) };
+        },
+        async patch(path, body) {
+          assert.equal(path, '/v1/reviewSubmissions/submission-1');
+          assert.deepEqual(body.data.attributes, { submitted: true });
+          return {
+            data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }),
+          };
+        },
+      },
+      getClient: {
+        async get(path) {
+          if (path.includes('/reviewSubmissions/submission-1?')) {
+            return {
+              data: resource('submission-1', { state: 'WAITING_FOR_REVIEW' }),
+            };
+          }
+          if (path.includes('/appStoreVersions/version-101/build?')) {
+            return { data: resource('build-3', { version: '3' }) };
+          }
+          assert.fail(`unexpected GET: ${path}`);
+        },
+        async getAll(path) {
+          if (path.includes('/reviewSubmissions?')) return [];
+          if (path.includes('/reviewSubmissions/submission-1/items?')) {
+            return items.map((item, index) => ({
+              id: `item-${index}`,
+              relationships: item.relationships,
+            }));
+          }
+          assert.fail(`unexpected GET: ${path}`);
+        },
+      },
+      manifest,
+      reviewConfirmation,
+    });
+    assert.equal(good.submitted, true);
+    assert.equal(items.length, IAP_PRODUCT_IDS.length + 1);
+
+    for (const bad of ['MANUAL', 'SCHEDULED', null, undefined, 'UNKNOWN', '']) {
+      let posts = 0;
+      let patches = 0;
+      await assert.rejects(
+        submitAppStoreConnectReview({
+          audit: convergedAuditWithReleaseType(bad),
+          client: {
+            async post() {
+              posts += 1;
+              throw new Error('must not POST on bad automatic-release readback');
+            },
+            async patch() {
+              patches += 1;
+              throw new Error('must not PATCH on bad automatic-release readback');
+            },
+          },
+          getClient: {
+            async get() {
+              assert.fail('must not read beyond the automatic-release guard');
+            },
+            async getAll() {
+              assert.fail('must not read beyond the automatic-release guard');
+            },
+          },
+          manifest,
+          reviewConfirmation,
+        }),
+        /ASC_AUTOMATIC_RELEASE_NOT_VERIFIED/u,
+      );
+      assert.equal(posts, 0);
+      assert.equal(patches, 0);
+    }
+  }));
+
+test('read-only review and published versions refuse releaseType mutation', async () => {
+  const payload = minimalReleasePayload();
+  for (const state of READ_ONLY_REVIEW_APP_VERSION_STATES) {
+    const versionAttributes = {
+      appVersionState: state,
+      copyright: payload.release.copyright,
+      platform: 'IOS',
+      versionString: payload.release.version,
+      releaseType: 'MANUAL',
+    };
+    const blocked = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({
+        exactVersions: [resource('review-version', versionAttributes)],
+      }),
+    });
+    assert.ok(blocked.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE'
+      && entry.action === 'unresolved'
+    )), state);
+    assert.equal(blocked.plan.some((entry) => (
+      entry.target === 'appStoreVersion'
+      && ['create', 'update'].includes(entry.action)
+    )), false, state);
+
+    const allowed = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({
+        exactVersions: [resource('review-version', versionAttributes)],
+      }),
+      allowReadOnlyReviewVersion: true,
+    });
+    const entry = allowed.plan.find((candidate) => (
+      candidate.target === 'appStoreVersion'
+    ));
+    assert.equal(entry.action, 'update', state);
+    assert.deepEqual(entry.changes.releaseType, {
+      current: 'MANUAL',
+      desired: 'AFTER_APPROVAL',
+    }, state);
+    assert.throws(
+      () => assertEditableAppStoreVersionState(state),
+      /ASC_VERSION_NOT_EDITABLE/u,
+    );
+  }
+
+  for (const state of ['READY_FOR_DISTRIBUTION', 'REPLACED_WITH_NEW_VERSION']) {
+    const audit = await auditAppStoreConnectRelease({
+      payload,
+      client: versionAuditClient({
+        exactVersions: [resource('published-version', {
+          appVersionState: state,
+          platform: 'IOS',
+          versionString: payload.release.version,
+          releaseType: 'MANUAL',
+        })],
+      }),
+      allowReadOnlyReviewVersion: true,
+    });
+    assert.ok(audit.plan.some((entry) => (
+      entry.code === 'ASC_APP_STORE_VERSION_NOT_ADOPTABLE'
+      && entry.action === 'unresolved'
+    )), state);
+    assert.equal(audit.plan.some((entry) => (
+      entry.target === 'appStoreVersion'
+      && ['create', 'update'].includes(entry.action)
+    )), false, state);
+    assert.throws(
+      () => assertEditableAppStoreVersionState(state),
+      /ASC_VERSION_NOT_EDITABLE/u,
+    );
+  }
+});

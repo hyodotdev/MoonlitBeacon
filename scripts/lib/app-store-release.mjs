@@ -56,6 +56,8 @@ export const READ_ONLY_REVIEW_APP_VERSION_STATES = Object.freeze([
   'COMPLETING',
 ]);
 
+export const APP_STORE_VERSION_RELEASE_TYPE = 'AFTER_APPROVAL';
+
 const RELEASED_APP_VERSION_STATES = new Set([
   'READY_FOR_DISTRIBUTION',
   'REPLACED_WITH_NEW_VERSION',
@@ -1547,6 +1549,7 @@ export function buildAppStoreReleasePayload({
       version: storeVersion,
       buildNumber: releaseMetadata.buildVersion,
       copyright: parseCopyright(markdown),
+      releaseType: APP_STORE_VERSION_RELEASE_TYPE,
       availability: APP_AVAILABILITY_REQUIREMENTS,
     },
     sources: [
@@ -1755,6 +1758,14 @@ export function verifyAppStoreReleaseManifest(
     !== canonicalJson(APP_AVAILABILITY_REQUIREMENTS)
   ) {
     throw new Error('App Store availability-country gate is invalid.');
+  }
+  if (
+    manifest.payload.release?.releaseType
+    !== APP_STORE_VERSION_RELEASE_TYPE
+  ) {
+    throw new Error(
+      'App Store version release type must be AFTER_APPROVAL for automatic release after approval.',
+    );
   }
   return true;
 }
@@ -2421,7 +2432,7 @@ export async function auditAppStoreConnectRelease({
       ['filter[platform]', 'IOS'],
       ['filter[versionString]', version],
       ['fields[appStoreVersions]',
-        'platform,versionString,appStoreState,appVersionState,copyright'],
+        'platform,versionString,appStoreState,appVersionState,copyright,releaseType'],
       ['limit', '2'],
     ],
   ));
@@ -2453,7 +2464,7 @@ export async function auditAppStoreConnectRelease({
       [
         ['filter[platform]', 'IOS'],
         ['fields[appStoreVersions]',
-          'platform,versionString,appStoreState,appVersionState,copyright'],
+          'platform,versionString,appStoreState,appVersionState,copyright,releaseType'],
         ['limit', '200'],
       ],
     ));
@@ -2557,6 +2568,7 @@ export async function auditAppStoreConnectRelease({
         {
           versionString: version,
           copyright: payload.release.copyright,
+          releaseType: APP_STORE_VERSION_RELEASE_TYPE,
         },
         versionResource,
       );
@@ -2607,6 +2619,7 @@ export async function auditAppStoreConnectRelease({
         platform: 'IOS',
         versionString: version,
         copyright: payload.release.copyright,
+        releaseType: APP_STORE_VERSION_RELEASE_TYPE,
       },
       prerequisites: [],
     });
@@ -2931,6 +2944,7 @@ export async function auditAppStoreConnectRelease({
       versionId: versionResource?.id ?? null,
       versionState: versionResource ? appVersionState(versionResource) : null,
       versionString: attributes(versionResource).versionString ?? null,
+      versionReleaseType: attributes(versionResource).releaseType ?? null,
       iapProductIds: Object.fromEntries(remoteProducts
         .filter((product) => IAP_PRODUCT_IDS.includes(attributes(product).productId))
         .map((product) => [attributes(product).productId, product.id])),
