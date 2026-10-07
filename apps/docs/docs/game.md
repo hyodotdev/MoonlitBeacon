@@ -19,7 +19,7 @@ title: The game we are making
 | Controls | full-screen floating move stick / bottom-right dash button / auto-attack |
 | Engine | Godot 4.7.1 Standard, GDScript |
 | Run length | you can cash out after each guardian — keep going after an 8-cycle official win |
-| Project version | 4.0.0 (iOS build 12 / Android versionCode 17) |
+| Project version | 4.0.1 (iOS build 15 / Android versionCode 20) |
 
 ### One-line pitch
 
@@ -39,7 +39,12 @@ screen as it looked when that lesson was finished.
 1. Tap the title and choose how to enter: continue as a guest on this
    installation, or with Google / Apple sign-in where configured.
    Starting means you accept the in-app Terms and have read the Privacy
-   Policy, both linked on the same card. Pick a character at the shrine,
+   Policy, both linked on the same card. A cloud account entering for
+   the first time meets Lumi in the gate lodge before anything else:
+   claim one unique adventurer name, practice movement and dash on the
+   open floor, then step through the moon gate. A completed guide
+   lesson skips the lodge afterwards, while interrupted practice
+   returns to it. Pick a character at the shrine,
    and spend collected moon shards on permanent boons. If a journey is
    saved, the gate offers Resume back through the last gate with the
    saved hero; starting over needs a confirmation first so the saved
