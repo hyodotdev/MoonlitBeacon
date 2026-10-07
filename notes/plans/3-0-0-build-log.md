@@ -2194,3 +2194,71 @@ asserts; removing the submission guard fails the new readback test.
 Author default noted in `notes/release/iap-store-setup.md`. What bit:
 nothing — existing create/submit/read-only fixtures needed the new
 field added to keep their other guarantees.
+
+## 4.0.1 store update: brief 231 (2026-10-07)
+
+iOS 4.0.0 build 14 was already READY_FOR_DISTRIBUTION and Android
+4.0.0 code 19 PUBLISHED on internal and production, so the lodge and
+attendance work ships as 4.0.1 / Android 20 / iOS 15. Identity only:
+`project.godot`, both Android presets plus the iOS application keys,
+and the store-page itch rows; every other preset and project value
+is byte-identical. `buildAppStoreReviewNotes` now walks a fresh
+guest through the gate lodge (Lumi, unique name over a connection,
+walk-and-dash practice, moon-gate departure) before the Arena, then
+covers cached-name offline re-entry, living resume, sealed defeat,
+one-coin revive, rolling twelve-hour attendance, and optional local
+reminders — ten IAP IDs, restore guidance, no demo password, and the
+4,000 bound intact. Five-language What's New names the new
+room/name/attendance/defeat changes within the 500-character Play
+limit. The binary-only planner now permits a strictly newer
+`major.minor.patch` display version with the current five-language
+notes alongside same-version replacement (which keeps retained
+notes); downgrades, malformed versions, listing drift, and identity
+mismatches refuse before mutation, historical internal release and
+ordered gallery hashes still re-verify before any change, and the
+proposed identity plus notes bind into tokens and the receipt
+(schema 2). Privacy audit §9 scopes the new name/attendance rows
+and Hall alias over the untouched 4.0.0 record. App Store suites 85
+green, Play package 94 green; room-guidance removal and downgrade
+acceptance both fail their focused tests and pass after byte-exact
+restoration. What bit: the `project.godot` bump moves the capture
+fingerprint, so `check:store-screenshots` goes red by design while
+the gallery is deliberately reused, never recaptured.
+
+## 4.0.1 review-boundary corrections: brief 232 (2026-10-07)
+
+Evidence review corrected four round-1 wordings without touching game,
+counters, listings, or guards. The lodge name form offers confirmation
+and retry with no unnamed opt-out, so privacy §9 now separates required
+online naming (unique nickname before practice and departure) from the
+error/unconfigured local-only escape, and records the director's saved
+Play Name→required correction as saved in Publishing overview, not yet
+sent for review; Apple declarations are unchanged. Review guidance is
+conditional on a verified name AND a completed guide lesson for both
+the generated Apple notes and the Play paste paragraph, with
+interrupted practice returning to the lodge; the Play paragraph is 417
+characters against the measured 500-character console cap. The
+binary-only display parser now rejects leading-zero versions per
+semver specification 2 (`04.0.1` malformed, `4.0.1` and `0.0.0`
+valid), with current- and retained-identity regressions. App Store
+suites 85 green, Play package 94 green; restoring the old parser
+fails the new malformed regression. What bit: the first conditional
+wording pushed the generated Apple notes past 4,000 characters and
+failed 31 tests at once, so the Returning paragraph was tightened to
+land at 3,958 with fixture names.
+
+## 4.0.1 prose alignment: brief 233 (2026-10-07)
+
+The ten rewritten What's New blocks still said returning accounts
+skip the lodge unconditionally. All ten now require a completed
+guide lesson and send interrupted practice back to the lodge, with
+the five translations kept paired; the longest Play block (English)
+is 472 characters against the 500 limit. The public reference's
+version row now reads 4.0.1 / iOS 15 / Android 20 and its run flow
+opens with the first-entry lodge visit, while the dated 3.0.0
+history stays historical and nothing claims 4.0.1 is published or
+reviewed. The App Store CLI help's retained-gallery sequence is now
+version-neutral with no argument or implementation change. Metadata
+validation, both release suites, hygiene, and the docs build pass.
+What bit: nothing — the English block needed a length check before
+committing to the longer conditional sentence.

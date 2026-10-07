@@ -16,9 +16,9 @@ store-review submit.
 | Item | Value |
 | --- | --- |
 | Title | 달빛 봉화 (Moonlit Beacon) |
-| Version | 4.0.0 |
+| Version | 4.0.1 |
 | Platform | Android (arm64-v8a, Android 7.0+) |
-| File | `MoonlitBeacon-4.0.0.apk` |
+| File | `MoonlitBeacon-4.0.1.apk` |
 | Category | Action · Arcade |
 | Tags | `painted-art`, `top-down`, `survivor`, `roguelite`, `mobile`, `godot` |
 | Price | Free |
@@ -582,121 +582,111 @@ Source and course: https://github.com/hyodotdev/MoonlitBeacon
 ## Google Play release notes — English (`en-US`)
 
 ```text
-Moonlit Beacon 4.0.0
+Moonlit Beacon 4.0.1
 
-- Enter as a guest, or with Google/Apple sign-in where configured.
-- The gate resumes your saved checkpoint with hero, relics, and growth.
-- Your cloud account keeps a copy and asks before either side wins.
-- Best hero and score join the Hall board under your player ID.
-- A painted night world with redrawn heroes, spirits, and guardians.
+- First entry opens the gate lodge: meet Lumi, claim a unique adventurer name, practice movement and dash, then depart.
+- A completed guide lesson skips the lodge and resumes the living gate; interrupted practice returns there, and defeated runs stay sealed.
+- Attendance grants two continue coins per rolling twelve hours, at most once per twelve hours.
+- One coin revives where you fell; optional Settings reminders never grant coins by themselves.
 ```
 
 ## Google Play release notes — Korean (`ko-KR`)
 
 ```text
-달빛 봉화 4.0.0
+달빛 봉화 4.0.1
 
-- 게스트로 들어가거나, 준비된 기기에서 Google/Apple로 로그인하세요.
-- 관문이 영웅·유물·성장과 함께 저장된 이야기를 이어줍니다.
-- 계정의 클라우드 사본은 어느 쪽을 쓸지 먼저 묻습니다.
-- 최고 영웅과 점수가 플레이어 ID로 전당에 오릅니다.
-- 손으로 그린 듯한 밤 지형과 다시 그린 영웅·정령·수호자.
+- 첫 입장은 관문 등불 방부터: 루미를 만나 고유한 모험가 이름을 정하고 이동과 대시를 연습한 뒤 출발하세요.
+- 첫 안내를 마친 계정은 등불 방을 건너뛰고 살아 있는 관문을 이어가고, 중단된 연습은 등불 방으로 돌아가며, 패배한 여정은 봉인된 채 남습니다.
+- 출석은 12시간마다 이어하기 코인 2개씩, 최대 12시간에 한 번 받을 수 있습니다.
+- 코인 1개로 쓰러진 자리에서 부활합니다. 설정의 출석 알림은 코인을 주지 않습니다.
 ```
 
 ## Google Play release notes — Japanese (`ja-JP`)
 
 ```text
-月明かりの烽火 4.0.0
+月明かりの烽火 4.0.1
 
-- ゲストで入るか、対応端末ではGoogle/Appleでログイン。
-- 関門が英雄・遺物・成長とともに保存場所から再開します。
-- クラウド保存はどちらを使うか先に確認します。
-- 最良の英雄とスコアがプレイヤーIDで殿堂入りします。
-- 手描き風の夜の地形と描き直した英雄・精霊・守護者。
+- 初回は門の灯の部屋から:ルミに会い、唯一の冒険者の名を登録し、移動とダッシュを練習して出発。
+- 案内を終えたアカウントは部屋を飛ばして進行中の関門を再開し、中断した練習は部屋に戻り、敗北した旅は封印のままです。
+- 出席は12時間ごとにコンティニューコイン2枚、最大12時間に一度受け取れます。
+- コイン1枚で倒れた場所から復活。設定の出席リマインダーはコインを配りません。
 ```
 
 ## Google Play release notes — Simplified Chinese (`zh-CN`)
 
 ```text
-月光烽火 4.0.0
+月光烽火 4.0.1
 
-- 以游客进入，或在已配置设备上使用 Google/Apple 登录。
-- 月之门带着英雄、遗物与成长从存档处继续。
-- 云存档在使用哪一侧之前会先征求确认。
-- 最佳英雄与分数以玩家 ID 登上殿堂榜。
-- 手绘风月夜地形与重绘的英雄、精灵、守护者。
+- 首次进入先到关口灯室:见露米，登记唯一的冒险者名字，练习移动与冲刺后再出发。
+- 完成引导的账号跳过灯室，继续进行中的月之门；中断的练习会回到灯室，战败的旅程保持封印。
+- 签到每十二小时可领2枚继续游戏金币，十二小时内最多领取一次。
+- 1枚金币可在倒下处复活。设置中的签到提醒不会发放金币。
 ```
 
 ## Google Play release notes — Traditional Chinese (`zh-TW`)
 
 ```text
-月光烽火 4.0.0
+月光烽火 4.0.1
 
-- 以訪客進入，或在已設定裝置上使用 Google/Apple 登入。
-- 月之門帶著英雄、遺物與成長從存檔處繼續。
-- 雲存檔在使用哪一側之前會先徵求確認。
-- 最佳英雄與分數以玩家 ID 登上殿堂榜。
-- 手繪風月夜地形與重繪的英雄、精靈、守護者。
+- 首次進入先到關口燈室:見露米，登記唯一的冒險者名字，練習移動與衝刺後再出發。
+- 完成引導的帳號跳過燈室，繼續進行中的月之門；中斷的練習會回到燈室，戰敗的旅程保持封印。
+- 簽到每十二小時可領2枚繼續遊戲金幣，十二小時內最多領取一次。
+- 1枚金幣可在倒下處復活。設定中的簽到提醒不會發放金幣。
 ```
 
 ## App Store What's New — English (`en-US`)
 
 ```text
-Moonlit Beacon 4.0.0
+Moonlit Beacon 4.0.1
 
-- Enter as a guest, or with Google/Apple sign-in where configured.
-- The gate resumes your saved checkpoint with hero, relics, and growth.
-- Your cloud account keeps a copy and asks before either side wins.
-- Best hero and score join the Hall board under your player ID.
-- A painted night world with redrawn heroes, spirits, and guardians.
+- First entry opens the gate lodge: meet Lumi, claim a unique adventurer name, practice movement and dash, then depart.
+- A completed guide lesson skips the lodge and resumes the living gate; interrupted practice returns there, and defeated runs stay sealed.
+- Attendance grants two continue coins per rolling twelve hours, at most once per twelve hours.
+- One coin revives where you fell; optional Settings reminders never grant coins by themselves.
 ```
 
 ## App Store What's New — Korean (`ko`)
 
 ```text
-달빛 봉화 4.0.0
+달빛 봉화 4.0.1
 
-- 게스트로 들어가거나, 준비된 기기에서 Google/Apple로 로그인하세요.
-- 관문이 영웅·유물·성장과 함께 저장된 이야기를 이어줍니다.
-- 계정의 클라우드 사본은 어느 쪽을 쓸지 먼저 묻습니다.
-- 최고 영웅과 점수가 플레이어 ID로 전당에 오릅니다.
-- 손으로 그린 듯한 밤 지형과 다시 그린 영웅·정령·수호자.
+- 첫 입장은 관문 등불 방부터: 루미를 만나 고유한 모험가 이름을 정하고 이동과 대시를 연습한 뒤 출발하세요.
+- 첫 안내를 마친 계정은 등불 방을 건너뛰고 살아 있는 관문을 이어가고, 중단된 연습은 등불 방으로 돌아가며, 패배한 여정은 봉인된 채 남습니다.
+- 출석은 12시간마다 이어하기 코인 2개씩, 최대 12시간에 한 번 받을 수 있습니다.
+- 코인 1개로 쓰러진 자리에서 부활합니다. 설정의 출석 알림은 코인을 주지 않습니다.
 ```
 
 ## App Store What's New — Japanese (`ja`)
 
 ```text
-月明かりの烽火 4.0.0
+月明かりの烽火 4.0.1
 
-- ゲストで入るか、対応端末ではGoogle/Appleでログイン。
-- 関門が英雄・遺物・成長とともに保存場所から再開します。
-- クラウド保存はどちらを使うか先に確認します。
-- 最良の英雄とスコアがプレイヤーIDで殿堂入りします。
-- 手描き風の夜の地形と描き直した英雄・精霊・守護者。
+- 初回は門の灯の部屋から:ルミに会い、唯一の冒険者の名を登録し、移動とダッシュを練習して出発。
+- 案内を終えたアカウントは部屋を飛ばして進行中の関門を再開し、中断した練習は部屋に戻り、敗北した旅は封印のままです。
+- 出席は12時間ごとにコンティニューコイン2枚、最大12時間に一度受け取れます。
+- コイン1枚で倒れた場所から復活。設定の出席リマインダーはコインを配りません。
 ```
 
 ## App Store What's New — Simplified Chinese (`zh-Hans`)
 
 ```text
-月光烽火 4.0.0
+月光烽火 4.0.1
 
-- 以游客进入，或在已配置设备上使用 Google/Apple 登录。
-- 月之门带着英雄、遗物与成长从存档处继续。
-- 云存档在使用哪一侧之前会先征求确认。
-- 最佳英雄与分数以玩家 ID 登上殿堂榜。
-- 手绘风月夜地形与重绘的英雄、精灵、守护者。
+- 首次进入先到关口灯室:见露米，登记唯一的冒险者名字，练习移动与冲刺后再出发。
+- 完成引导的账号跳过灯室，继续进行中的月之门；中断的练习会回到灯室，战败的旅程保持封印。
+- 签到每十二小时可领2枚继续游戏金币，十二小时内最多领取一次。
+- 1枚金币可在倒下处复活。设置中的签到提醒不会发放金币。
 ```
 
 ## App Store What's New — Traditional Chinese (`zh-Hant`)
 
 ```text
-月光烽火 4.0.0
+月光烽火 4.0.1
 
-- 以訪客進入，或在已設定裝置上使用 Google/Apple 登入。
-- 月之門帶著英雄、遺物與成長從存檔處繼續。
-- 雲存檔在使用哪一側之前會先徵求確認。
-- 最佳英雄與分數以玩家 ID 登上殿堂榜。
-- 手繪風月夜地形與重繪的英雄、精靈、守護者。
+- 首次進入先到關口燈室:見露米，登記唯一的冒險者名字，練習移動與衝刺後再出發。
+- 完成引導的帳號跳過燈室，繼續進行中的月之門；中斷的練習會回到燈室，戰敗的旅程保持封印。
+- 簽到每十二小時可領2枚繼續遊戲金幣，十二小時內最多領取一次。
+- 1枚金幣可在倒下處復活。設定中的簽到提醒不會發放金幣。
 ```
 
 ## Bug reports
