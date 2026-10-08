@@ -26,6 +26,7 @@ func _ready() -> void:
 	_test_board_then_shrine()
 	_test_board_then_restart()
 	_test_record_button()
+	_test_named_record_button()
 	_test_without_board()
 	await _test_store_handoff_ends_current_run()
 	await _test_title_handoff()
@@ -256,6 +257,42 @@ func _test_record_button() -> void:
 	arena.request_record()
 	_expect_equal(ladder.last_run_id, first_run_id, "result after continue still uses the same run ID")
 	_expect_equal(ladder.last_score, 65400, "passes a higher final score after continue")
+	_free_route_parts(parts)
+
+
+func _test_named_record_button() -> void:
+	var parts: Dictionary = _route_parts(32100)
+	var arena: Node = parts["arena"]
+	var result: Control = parts["result"]
+	var ladder: Control = parts["ladder"]
+	var account: String = "MB-route-named-00000000000000001"
+	Journey.use_account(account)
+	Vault.verified_names = {}
+	Vault.cache_verified_name(account, "Luna", "luna", true)
+	result.visible = true
+	arena.request_record()
+	_expect_equal(ladder.ask_named_count, 1,
+		"named record routes to the verified handle without a re-ask")
+	_expect_equal(ladder.last_handle, "Luna",
+		"named record carries the account handle")
+	_expect_equal(ladder.ask_count, 0,
+		"named record never opens the typed name")
+	arena.complete_ladder()
+	# An account switch mid-result re-reads the new scope: the other
+	# account has no cached handle, so it gets the classic typed name.
+	var stranger: String = "MB-route-stranger-0000000000002"
+	Journey.use_account(stranger)
+	result.visible = true
+	arena.request_record()
+	_expect_equal(ladder.ask_count, 1,
+		"switched account falls back to the typed name")
+	_expect_equal(ladder.ask_named_count, 1,
+		"switched account issues no second named ask")
+	_expect_equal(str((Vault.verified_name_for_account(account)
+		as Dictionary).get("display", "")), "Luna",
+		"the switch never moves the other handle")
+	Vault.verified_names = {}
+	Journey.use_account("")
 	_free_route_parts(parts)
 
 

@@ -56,6 +56,8 @@ export const READ_ONLY_REVIEW_APP_VERSION_STATES = Object.freeze([
   'COMPLETING',
 ]);
 
+export const APP_STORE_VERSION_RELEASE_TYPE = 'AFTER_APPROVAL';
+
 const RELEASED_APP_VERSION_STATES = new Set([
   'READY_FOR_DISTRIBUTION',
   'REPLACED_WITH_NEW_VERSION',
@@ -751,11 +753,30 @@ export function buildAppStoreReviewNotes(products) {
     '',
     'Entry: Launch the app and tap the title screen (Tap to start) to open '
       + 'the entry card, then choose Continue as guest: the game issues a '
-      + 'permanent player ID shown on the identity card. From that card, '
-      + 'tap New expedition to play, or Resume the gate when a saved '
-      + 'checkpoint is listed. No developer demo account or password is '
-      + 'needed: reviewers reach the game, Store, Restore purchases, and '
-      + 'resume fully as guest.',
+      + 'permanent player ID shown on the identity card. A first entry does '
+      + 'not go straight to the Arena: it visits the gate lodge, where Lumi '
+      + 'the Lantern Keeper greets the hero. Claim one unique adventurer '
+      + 'name there (it needs a connection and cannot be renamed later), '
+      + 'walk and dash once on the open floor, then step through the moon '
+      + 'gate to depart. No developer demo account or password is needed: '
+      + 'reviewers reach the game, Store, Restore purchases, and resume '
+      + 'fully as guest.',
+    '',
+    'Returning accounts: a settled name is cached on the device and still '
+      + 'identifies the account when offline. A verified name plus a '
+      + 'completed guide lesson skips the lodge; interrupted practice '
+      + 'returns to the lodge. From the identity card, tap New expedition '
+      + 'to play, or Resume the gate when a living saved checkpoint is '
+      + 'listed. A journey that ended in defeat is sealed and never '
+      + 'resumes; the loss screen instead offers a one-coin revive where '
+      + 'the hero fell, a fresh start, or the title.',
+    '',
+    'Attendance: a signed-in account may claim two continue coins per '
+      + 'rolling twelve hours, at most once per twelve hours since the '
+      + 'last claim; claiming needs a connection and the game plays on '
+      + 'without the grant when offline. Settings offers an optional '
+      + 'local reminder for the next grant: it never grants coins by '
+      + 'itself, and switching it off cancels the scheduled notices.',
     '',
     'Sign in with Google and Sign in with Apple are optional ways to link '
       + 'or recover the same account; neither is required for core play or '
@@ -1547,6 +1568,7 @@ export function buildAppStoreReleasePayload({
       version: storeVersion,
       buildNumber: releaseMetadata.buildVersion,
       copyright: parseCopyright(markdown),
+      releaseType: APP_STORE_VERSION_RELEASE_TYPE,
       availability: APP_AVAILABILITY_REQUIREMENTS,
     },
     sources: [
@@ -1755,6 +1777,14 @@ export function verifyAppStoreReleaseManifest(
     !== canonicalJson(APP_AVAILABILITY_REQUIREMENTS)
   ) {
     throw new Error('App Store availability-country gate is invalid.');
+  }
+  if (
+    manifest.payload.release?.releaseType
+    !== APP_STORE_VERSION_RELEASE_TYPE
+  ) {
+    throw new Error(
+      'App Store version release type must be AFTER_APPROVAL for automatic release after approval.',
+    );
   }
   return true;
 }
@@ -2421,7 +2451,7 @@ export async function auditAppStoreConnectRelease({
       ['filter[platform]', 'IOS'],
       ['filter[versionString]', version],
       ['fields[appStoreVersions]',
-        'platform,versionString,appStoreState,appVersionState,copyright'],
+        'platform,versionString,appStoreState,appVersionState,copyright,releaseType'],
       ['limit', '2'],
     ],
   ));
@@ -2453,7 +2483,7 @@ export async function auditAppStoreConnectRelease({
       [
         ['filter[platform]', 'IOS'],
         ['fields[appStoreVersions]',
-          'platform,versionString,appStoreState,appVersionState,copyright'],
+          'platform,versionString,appStoreState,appVersionState,copyright,releaseType'],
         ['limit', '200'],
       ],
     ));
@@ -2557,6 +2587,7 @@ export async function auditAppStoreConnectRelease({
         {
           versionString: version,
           copyright: payload.release.copyright,
+          releaseType: APP_STORE_VERSION_RELEASE_TYPE,
         },
         versionResource,
       );
@@ -2607,6 +2638,7 @@ export async function auditAppStoreConnectRelease({
         platform: 'IOS',
         versionString: version,
         copyright: payload.release.copyright,
+        releaseType: APP_STORE_VERSION_RELEASE_TYPE,
       },
       prerequisites: [],
     });
@@ -2931,6 +2963,7 @@ export async function auditAppStoreConnectRelease({
       versionId: versionResource?.id ?? null,
       versionState: versionResource ? appVersionState(versionResource) : null,
       versionString: attributes(versionResource).versionString ?? null,
+      versionReleaseType: attributes(versionResource).releaseType ?? null,
       iapProductIds: Object.fromEntries(remoteProducts
         .filter((product) => IAP_PRODUCT_IDS.includes(attributes(product).productId))
         .map((product) => [attributes(product).productId, product.id])),

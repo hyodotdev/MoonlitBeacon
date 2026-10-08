@@ -1381,6 +1381,476 @@ geometry for all 24 cells, below-neck stride motion (bounds alone go blind
 once heads stop bobbing), and mirrored negative controls that fail on the
 baseline stride heads, split stances, and single-boot fronts.
 
+## End defeated journeys without a free retry: brief 200 (2026-10-07)
+
+The user asked why death offered a restart from the defeated stage instead of
+a coin continue or a return to the beginning. The loss screen now gives three
+honest roads — one coin to revive in place, a fresh expedition, or the title —
+and a sealed defeat stays sealed across title, relaunch, backup and cloud.
+
+The representation is an additive `ended: true` on the checkpoint dict, kept
+at the last alive seal's id with the final live score/shard echo. Absent
+means alive, so every checkpoint sealed before the defeat rules reads
+unchanged; a present non-bool refuses the whole save like any mistyped field.
+`read_checkpoint` returns a valid ended main as-is and never falls through to
+an older alive backup, while `has_valid_checkpoint` and `summary` treat it as
+non-resumable, which is what the title, the production host and the arena's
+resume entry all gate on. Death settles the final live score once through the
+untouched receipt ledger (redelivery reads `DUPLICATE`) and records submit
+once; a failed seal blocks every result exit until the marker lands.
+
+The paid continue is transactional: seal a new alive checkpoint of the live
+state first, spend the coin, then revive. A failed seal spends nothing; a
+failed spend rewrites the marker. Either way the run cannot become resumable
+without payment. Cloud precedence is same-journey scoped: a sealed defeat
+outranks a stale alive payload of the same journey without a dialog
+(`defeat-kept` locally, `defeat-adopted` from the server), explicit conflict
+choices that would resurrect are refused, and a strictly newer alive seal or
+a different journey still opens a real dialog with the sealed side marked.
+
+What bit: the arena's `_restart` reloads the scene, so route tests assert the
+wiring through the scene-blocking spy while the real-arena tests drive what
+`begin_fresh` arms. The `show_result` signature lost its gate flag, which
+touched the result-layout test and the UI shot harness too. The `.translation`
+files are gitignored build artifacts, so the isolated single-test runs needed
+the editor import first or the new `RESULT_START_OVER` key reads back raw.
+
+Coverage: `test_defeat_terminal.tscn` (95 cases: terminal-vs-backup, title
+hide/show, fresh reset with permanents kept, coin success, zero-coin and
+injected journey/Vault/seal failures, alive quit) registered beside the
+rewritten journey death tests (519 cases); six coordinator cases for tombstone
+round trip, offline retry, restore keep/adopt, both refused choices and the
+still-explicit different-journey dialog; a summary-marker case in the
+checkpoint suite; and a production-host case proving resume refusal and
+confirmation-free fresh planning over a sealed run.
+
+## Defeat and paid-continue crash boundaries: brief 203 (2026-10-07)
+
+Correction to brief 200. The director reproduced two crash defects in
+isolated storage: the real defeat writer rotated the previous alive main
+into the backup, so a corrupt terminal main fell back to a resumable
+checkpoint; and `continue_run` wrote the alive seal and notified its
+stable hook before the coin debit, so a death at that boundary stranded
+a free resume. Both are fixed at the persistence order, superseding the
+round-1 "seal first, spend, best-effort rollback" line above.
+
+An ended write now mirrors the seal into both files, backup first, and
+never rotates the older alive main behind it: either crash ordering stays
+terminal, and the stable hook fires only once the sealed main lands.
+Reads converge the pair toward the seal. A paid continue journals the
+debit plus the exact revive seal in the Vault first (`begin_continue_txn`),
+materializes the seal from the journal, then clears it (`ack_continue_txn`).
+Every entry point settles the journal before reading
+(`recover_paid_continue` → `recovered`/`delivered`/`stale`/`none`/`failed`),
+so a crash before the debit leaves no resume and a crash after it recovers
+exactly one paid continuation without another charge; a new journey clears
+a moot journal. A seal that cannot materialize is stuck, not resumed: the
+arena redirects to the title, the host reports `revive_stuck` instead of a
+save, and the title shows the failure and confirms before anything boots.
+Cloud keeps its generation/account guards and retires a stale ended
+download only against an acknowledged newer seal (`stale-ended-retired`);
+a legitimate newer alive seal still restores over an observed defeat by
+explicit remote choice, and the intermediate journal never uploads.
+
+What bit: fallback reads heal the main back, so a test that deletes "both"
+files must delete the main again after its last read. `begin_fresh` arms
+the fresh run but the arena boot writes it, so the abandon-half of the
+stuck test boots a real arena to assert the cleared journal and the new
+journey. Breaking the mirror (main-only seal) fails 7 crash cases; swapping
+the debit order fails 7 more, including the stranded free resume.
+
+Coverage: `test_crash_boundaries.tscn` (112 cases: the real writer's pair
+under corrupt/deleted main, title/host gate hiding, debit-before-seal with
+a mid-transaction relaunch, a reverse-ordered control documenting the leak
+the journal closes, blocked purse alone and both-failures with retry,
+stuck host/title/ask/abandon, double tap) registered in
+`run_regression_tests.mjs`; one cross-client coordinator case (acknowledged
+revive installs over the observed defeat while the journal neither poisons
+the comparison nor uploads); defeat 116, Vault 237, production host 814,
+coordinator 1218.
+
+## Paid revive recovery stays in its account: brief 206 (2026-10-07)
+
+Correction to brief 203. The director reproduced two defects with the real
+journal API: a debit journaled under A materialized into B's empty slot on
+`use_account(B)` while clearing A's receipt, and the loss-result button
+sent a last-coin player to the shop instead of retrying the journaled
+revive. Both are fixed at the ownership check, not the call sites.
+
+Every journal entry now carries its owning scope (`Journey.active_account`
+at debit time), and one receipt can pend per scope: the flat entry plus a
+persisted `continue_txn_parked` map. All reads go through
+`scoped_continue_txn()`; recovery with only a foreign receipt returns
+`deferred` — no file touch, no stable-hook notify, no consume — and
+`settle_continue_txn` rechecks the owner as defense in depth. Same-attempt
+retry requires the exact acknowledged seal bytes, not just equal numbers;
+a rival attempt in the same scope refuses without overwriting, while the
+same numbers in another scope journal a separate debit. `begin_journey`
+clears only its own scope, so B's fresh start never abandons A's receipt;
+abandoning still takes the confirmed fresh action in the owning scope.
+Slot moves carry the receipt (`rekey_continue_txn_owner`, refusing
+occupied targets): legacy migration adopts it once no legacy files remain,
+canonical adoption rekeys it with the renamed slot, and account deletion
+drops only the deleted scope's entry. Link and token refresh never change
+the public ID, so keying on the slot is stable across them. The result
+panel routes to `continue_requested` — with a localized `RESULT_CONTINUE_RETRY`
+save-retry label — whenever the scope holds a receipt, even at zero
+balance; a true zero with no receipt still goes to the shop, and the
+retry rebuilds the byte-identical seal, so it never recharges.
+
+What bit: `account_state()` settles eagerly through the gate summary, so a
+receipt journaled before `begin_guest` lands in the guest slot before the
+adoption move runs — the canonical test blocks installs to keep the
+receipt pending past the status read, proving the move itself carries it.
+Pre-fix the new suite failed 23/78, reproducing both probes; post-fix it
+passes 92/92. Breaking the settle check fails 3, the scoped read 12+, and
+the button route 5.
+
+Coverage: `test_account_recovery.tscn` (92 cases: the A→empty-B probe with
+late hooks and switch-back, B fresh/play/quit/continue beside A's pending
+receipt with byte-identical B files, exact-seal validation and no
+free-ride, the real button/signal route with a true-zero control,
+rekey/clear primitives) registered in `run_regression_tests.mjs`; host
+deletion, canonical-adoption and token-rotation extensions (production
+host 844); Vault 237, crash 112, defeat 116, journey 519, coordinator
+1218, result layout 216.
+
+## Paid journals survive canonical slot moves: brief 207 (2026-10-07)
+
+Correction to brief 206. The director ran the real
+`CloudCoordinator._move_slot_to_canonical()` with a guest seal 5, an
+acknowledged journal for alive seal 6, and `Vault.TEMP_SAVE_PATH` blocked:
+it moved both journey files into the canonical slot, ignored
+`rekey_continue_txn_owner()` returning false, adopted anyway, and reported
+no save error — the receipt stayed owned by the now-empty guest scope and
+recovery deferred forever. The same ignored-failure shape sat at all three
+`adopt_legacy_continue_txn()` call sites.
+
+Both adoptions are now rekey-first through one gate,
+`Vault.prepare_receipt_move()`, returning `ready` (nothing pending or the
+rekey landed), `kept` (the target holds its own receipt or journey — adopt
+without moving, round-3 occupied behavior), or `failed` (unsavable rekey —
+move nothing). The coordinator holds the move on `failed` or on a failed
+file move: it stays on the guest and the reserve reports error with code
+`slot-move-failed` on both snapshots instead of adopting over a stranded
+receipt. A crash between rekey and move leaves the receipt ahead of its
+bytes, and the post-restart retry completes the move with no second debit.
+Legacy adoption is one joint `Vault.adopt_legacy_slot()` (rekey, then raw
+file moves that faults cannot half-stop): a failed rekey migrates nothing,
+an occupied slot keeps files and receipt jointly legacy, and a legacy
+receipt with no legacy files left is never adopted blindly, so no settle
+can install a foreign seal into an empty slot. Host startup and account
+moves honor the hold through `_run_legacy_adoption` and carry
+`legacy-adopt-held` in `account_state()["legacy_hold"]` until the next
+startup retries. The unsafe `adopt_legacy_continue_txn()` is gone; its
+three sites call the joint op.
+
+What bit: status reads settle eagerly, and `delivered` needs no install,
+so an install block cannot hold a seal that already landed — the legacy
+fault test journals after parts are built and blocks installs throughout,
+keeping the receipt itself (not just its ack) pending so the retry proves
+receipt and bytes travel together. A pre-fix leftover journal in one test
+also masquerades as another test's `deferred`, which is why each adoption
+test now asserts its own no-orphan tail. Breaking prepare fails the vault
+contract (2) and every canonical adoption; ignoring the move result
+reproduces the probe exactly (10 host failures, orphan receipt, lost seal,
+empty save code); skipping the legacy hold fails 7.
+
+Coverage: host adoption extensions (fault-adopt hold with restart retry,
+legacy clean + fault/rotation/retry, occupied canonical, rekey-move crash
+window — production host 923); `prepare_receipt_move` contract in Vault
+249. Coordinator 1218, journey 519, crash 112, defeat 116, account 92,
+result route 76 / layout 216 / depth 55 stay green.
+
+Known edge: a receipt stranded by the old files-first order (files moved,
+rekey never landed — only round-3 builds could write this) reads as an
+occupied target and stays retained-but-deferred rather than healing; the
+choice is deliberate, since healing by journey-id match could import a
+foreign seal on an integer-id collision.
+
+## Unique adventurer names for scores: brief 201 (2026-10-07)
+
+The name service the lodge room will use in brief 202. No room yet, no
+entry gating: this is the account-owned unique-name and score contract.
+
+Preservation prerequisite first. The director's probe showed
+`prepare_receipt_move()` returning `ready` as soon as the source had no
+paid journal, before checking the canonical target: an unrelated living
+source journey imported over target C's acknowledged one-coin receipt
+for seal 6, and recovery then called C's original receipt `stale` and
+deleted it. The gate is now target-first: a target with a pending paid
+recovery or an existing journey is occupied even when the source has no
+receipt, returning `kept` with the source bytes retained and the target's
+exact acknowledged seal recovered, never a second debit. Breaking the
+reorder reproduces the probe (import over paid target, `stale` delete);
+vault 276 and host 1013 hold it.
+
+Names are an immutable pair bound to the canonical UID/public-ID before
+and after every atomic write: private `mb_adventurers_v1/{public_id}`
+(owner-only) plus the public collision index `mb_names_v1/{name_key}`
+(handle plus the already-public ID, no UID, no credentials). First-wins
+atomic commit; lone or mismatched halves are rejected at both boundaries.
+`CloudSchema.normalize_adventurer_name()` is the shared allow-list both
+sides mirror: 2-12 BMP characters (Latin, digits, underscore, precomposed
+Hangul, hiragana, katakana plus U+30FC, CJK ideographs, single interior
+spaces), trimmed, keyed by `to_lower()` so mixed-case Latin collides.
+Host/coordinator ops are generation-bound; claim also caches the verified
+handle into the bounded (8, per-public-ID) vault cache for offline use
+and backfills it onto the existing best row at the row's own saved hero,
+cycles, and score — never a zero row, never a downgrade. The intro bit
+flips only false to true; deletion removes the pair with the Hall row in
+one verified commit. A Firebase-registered guest claims; a local-only
+guest cannot certify uniqueness. `Arena._on_result_record()` routes a
+verified named player to a read-only named view with no editable field
+and no legacy `GlobalLadder` upload.
+
+What bit: committing raw Unicode document names while URI-encoding only
+HTTP URL path segments (a percent-encoded document ID would reserve the
+wrong name); cold caches must preserve the stored Hall display rather
+than blank it; and the local-guest guard has to run before the
+account-not-ready guard or guests get the wrong error. Breaking the
+commit body fails the store contract; blanking cold display or swapping
+the guard order fails host.
+
+Coverage: cloud_name 129, hall display/backfill 269, named deletion 52,
+vault cache 276, host 1013 (7 name cases plus re-registered adoption),
+coordinator 1218, ladder 121, result route 82, journey 519, crash 112,
+defeat 116, recovery 92. Rules: 62 tests / 13 suites syntax-ok with the
+combined splice verified (677 lines); the real emulator run is the
+director's operation. Player-care Hall/deletion/retention disclosure
+updated in all five locales with the site rebuilt and its 15 + 21 tests
+green. Callable lodge contract: `notes/plans/gate-account-protocol.md`.
+
+## Name boundaries and token switches: brief 208 (2026-10-07)
+
+Correction to brief 201, from four director emulator/production probes
+plus two inspection items. All preceding defeat, recovery, adoption, and
+name coverage stays green.
+
+Fresh owners could not start naming: the adventurer read rule touched
+`resource.data.uid`, so a missing row denied with 403 instead of reading
+404. The rule now proves ownership from the canonical pair alone, giving
+the proven owner an authoritative missing-row read while other owners,
+the unregistered, and lists stay denied. The client keeps returning
+`permission-denied` truthfully on every claim path; taken still arrives
+only as a commit conflict plus a missing own-row recheck.
+
+A living name could be released under a living account: both halves'
+delete rules now require the Hall row and both canonical halves gone
+with them, so only the full atomic deletion (with or without a Hall row
+yet) frees a name, missing-row no-ops still resume, and the reverse
+(pair halves while the name stays) stays denied.
+
+A name request could cross a token wait onto the next coordinator. All
+four host wrappers now capture an account/coordinator ticket before the
+token await and verify it after every async boundary: a parked switch,
+deletion-shape retirement, or shutdown cancels with `account-retired`
+or `host-closed` instead of dispatching, and a failed token fails the
+call without sending any mutation.
+
+A name restore dropped the tutorial bit and regressed the cache. Every
+successful claim now carries the real `intro_complete`, and the vault
+bit is monotone per same-name entry: a late incomplete response keeps
+its bytes in the result but never clears the durable bit, while a new
+account still starts incomplete.
+
+Also: the Hall mapper and panel now show the verified handle on each
+named headline with the MB ID on its own line (unnamed rows unchanged),
+and `_submit_best` pushes the refreshed standing to the Arena chip
+again — the insertion had orphaned that call below a return.
+
+What bit: Godot 4.7 forbids un-awaited async calls outright, so parking
+a wrapper coroutine is impossible; the mid-flight tests interleave
+through timers and a recorder-dispatched signal while awaiting the real
+wrapper. Re-injection churns account signals, so the swap is a narrow
+white-box seam. Breaking the ticket reproduces the probe exactly (B
+receives, old request ok); breaking the mapper, the HUD push, the
+monotone guard, or the restore bit fails exactly its new tests.
+
+Coverage: host 1085 (restore-bit, 4-route switch, token
+failure/timeout, shutdown, stale completion, retirement, submit-HUD,
+mapper-to-panel), cloud_name 137, vault 282. Rules: 69 tests / 13
+suites, splice verified (690 lines); the real emulator run stays the
+director's operation.
+
+## Two attendance coins per twelve hours: brief 204 (2026-10-07)
+
+The deletion ticket now pins the deletion generation as well as the
+account/coordinator lifetime, so a name/attendance request parked at
+token refresh stays cancelled even when the deletion fails on the same
+account, while a genuinely new request after the failure proceeds. All
+five wrappers (claim/load/intro/backfill/attendance) refuse to start
+while a deletion ticket is in flight.
+
+Attendance is one private row per account, `mb_attendance_v1/{public_id}`,
+with a server-enforced rolling 43200-second cooldown: the first visit
+grants two coins and days away still grant two, never a stockpile.
+Eligibility derives from server read/commit timestamps only, so device
+clock changes cannot move it. The wallet grant is idempotent under the
+stable key `attendance:{public_id}:{seconds}:{install_id}`, which binds
+each reward to its receiving install; replay state stays bounded (newest
+8 keys plus a watermark, purchased keys never evicted). Entry and
+foreground triggers are nonblocking skips that never gate play, and the
+five-language receipt shows only after the durable grant — never over an
+IME field or open NPC dialogue. Deletion removes the row with the rest
+of the account and clears the local marks; granted coins stay in the
+device ledger.
+
+What bit: the host suite shares one Vault across tests, so every
+attendance test after the first saw a duplicate grant key until the
+adopt helper cleared `attendance:*` keys; sender-call assertions need an
+adopt baseline (the adopt itself makes two calls). The new locale row
+needed an editor reimport before `tr()` resolved it. Breaking the
+receipt gate (cooldown queuing a receipt) fails exactly the cooldown
+test; breaking the deletion-generation pin fails exactly the
+pre-deletion attendance cancel.
+
+Coverage: host 1215 (first claim, cooldown, uncertain ack, wallet
+failure, skips, double tap, receipt flush/suppression, foreground,
+offline, link, deletion barrier), cloud_attendance 62, vault 324.
+Rules: 84 tests / 14 suites, splice verified (741 lines); the real
+emulator run stays the director's operation.
+
+## Earned attendance and deletion boundaries: brief 209 (2026-10-07)
+
+Correction to brief 204, from three director probes against the real
+Vault, coordinator/service/transport, and deletion route. All preceding
+defeat, recovery, adoption, name, and attendance coverage stays green.
+
+Ten owners granting one minute apart evicted the first owner's receipt
+key and watermark together, and its identical replay granted again. The
+vault now folds every evicted owner watermark into one durable global
+floor: an untracked owner at or below the floor fails closed as
+`attendance-replay-ambiguous` with the wallet untouched, while a
+just-landed conditional commit bypasses the floor (the twelve-hour rule
+makes it provably new), so genuine new accounts, new periods, and
+same-second cross-owner ties still grant. Purchases never evict.
+
+A server-acknowledged reward lost to a blocked wallet save never
+recovered once the next period went eligible: the advance overwrote the
+row and paid only the new two. Eligible advances now backfill first —
+the read row's current stamp when this install received it, plus any
+carried previous stamp from this install — and commit only after every
+owned reward lands, carrying the overwritten stamp and install byte for
+byte (the rules require exactly that pair, forbid it on create). A
+failed backfill stops before the commit; results name any backfill in
+`backfilled` plus `backfilled_receipt`, and the entry receipt counts
+fresh plus backfilled coins. The carry preserves one generation.
+
+The account-deletion commit omitted the attendance row while the rules
+require it gone with the canonical halves, so attended deletions died
+with `permission-denied`. The client plan, commit body, and
+remaining/completed steps now include attendance (seven steps named,
+five unnamed, after checkpoint); missing rows stay server no-ops, and
+native Auth deletion still runs only after the data commit acks.
+
+What bit: the rules chain compares exact timestamps, but the client
+tracks whole seconds — the carry passes the raw RFC 3339 read through
+untouched (sub-second fractions survive; a truncation test pins it).
+Breaking the floor re-grants the evicted replay; skipping the backfill
+fails exactly the five new recovery tests and nothing else.
+
+Coverage: vault 354 (multi-owner reload replay), cloud_attendance 86
+(eligible/advance split, carry parse, advance races), host 1288
+(backfill-before-advance with restart, foreign carry, cooldown backfill,
+replay idempotence, uncertain advance, ambiguous stop), account 56
+(five/seven steps). Rules: 88 tests / 14 suites authored (carry
+required/forged/absent/create-denied/overwrite), splice verified (757
+lines); the real emulator run stays the director's operation.
+
+## Enter the gate lodge with Lumi: brief 202 (2026-10-07)
+
+First-login refuge on the reviewed name service. Cloud-linked accounts
+whose durable cache holds no verified handle or no acknowledged lesson
+bit route through the lodge before the Arena; completed accounts plan
+the Arena directly and local-only guests play through unnamed as
+before. Two round-10 repairs land with it: a pruned attendance return
+now skips the ambiguous old receipt and advances a genuinely new
+eligible claim instead of freezing the account, and the RFC 3339 parser
+rejects malformed server dates before the engine call, so the full log
+stays clean.
+
+Routing lives in the host, not the buttons: `needs_lodge_lesson()` is a
+sync cache read, `plan_entry` refuses unsettled accounts with
+`needs_lodge`, `plan_lodge_entry` holds the entry lock without arming
+any journey, and `plan_lodge_exit` re-plans exactly like the title
+(Resume vs confirmed fresh; sealed runs never resume). The entry
+detours into the lodge loader with the same confirm/cancel/retry
+semantics. Ten restore tests gained a settled-handle seed: they judge
+the restore gate, and the lodge gate now precedes the plans they make.
+
+The room packs both plates reproducibly (`build_lodge_assets.py`: wide
+1881×836, tablet 1448×1086) and Lumi as four 869px-tall facings on one
+scale and one bottom-center foot anchor (visible heights 853/850/851/
+852, 0.35% spread) plus a bust crop. Layout is pure math over measured
+plate fractions (aspect ≥ 1.7 takes the wide plate); the room covers,
+actors scale with it from matching bases, walls clamp, the desk and
+Lumi push out, the gate triggers on feet. Thirty-three `gate.lodge.*`
+strings ship in all five locales. The lesson (greet, name, walk, dash,
+gate seal, departure) completes only from performance plus server acks;
+sticky vault gates and the durable onboarding mark resume after
+restart; every await re-checks the bound account and retires to the
+title on a move. Result recording still routes verified handles to
+`ask_named` with no second prompt.
+
+What bit: the engine clamps `Control.size` to the combined minimum at
+assignment time, and wrapped-label minima recompute a frame after the
+width pins — sizing in the same breath freezes the stale tall minimum
+and the panel never shrinks back, which the headless 808×808 validate
+framing caught (panels at 1079px). Seating now pins widths, waits a
+frame, then sizes from the fresh minimum. `Rect2.has_point` includes
+the top/left edge, so the desk push-out steps one pixel clear.
+Breaking the move threshold fails the lesson chain; forcing the lodge
+gate false fails 25 host cases.
+
+Coverage: lodge 542 (layout/Lumi/strings/flow/guards), host 1353
+(routing, exit guards, defeat never resumes, seeded restore), vault
+381 (sticky gates, cap, malformed drop), entry state 10315 / layout
+85722 / exported locales green, review validate 297 headless;
+room/contact/≤120-frame clip render windowed for the director.
+Contracts: 7 lodge rows in `custom_asset_contracts.json` (271 files
+pass), manifest rows, builder `--check` wired into `check:assets`.
+Hero rasters byte-identical (empty diff). Windowed capture, the full
+game sweep, and the Android touch pass stay the director's operation.
+
+## Scale Lumi in the rendered lodge: brief 210 (2026-10-07)
+
+Two director-confirmed defects in the round-10 scene. First, the guide
+drew her 869px packed source at node scale ~1.0 (871px in a 360px
+room): the source-to-world conversion never reached the sprite. The
+guide node now converts itself (`BASE_SCALE`, `set_actor_scale` for
+the room zoom), sized at 42 world px — 1.5x the tallest measured hero
+opaque body (28.05, all five heroes agree within 0.5px), not the
+assumed 64px hero. Brief 211 plants the boots: the world bob moved
+the painted feet 4px peak to peak, so the idle is now a still body
+with a breathing shadow (alpha 0.85 +/- 0.04, period 2.6 s); a new
+planted test measures the opaque foot line through the real sprite
+transform at five idle phases per facing and allows at most 0.5px.
+The shadow recomputes from world units, and packed art is untouched.
+Second, a cold cache recovering a completed row practiced
+anyway (state 1/GREET); the recovery branch now trusts the host's
+cached readiness and departs straight to Resume/confirmed fresh, while
+a failed cache write still re-seals at the gate.
+
+The harness room `state=greet` now captures the true unnamed greeting,
+the contact sheet uses the self-scaling guide, and the clip drives the
+real lesson (taps, walk, dash, neutral stop, gate steer) over 600 sim
+frames with ≤120 saved, printing observed phases and exiting nonzero
+unless movement, dash, stop, and departure all complete.
+
+What bit: per-sheet opaque measurement must fold the 4×4 cell grid on
+both axes (single-axis folding reported a 174px hero); the headless
+viewport runs 808×808, so the new 808×532 iPad-mini-ratio framing
+joins the pure layout math instead. Breaking the conversion fails 37
+lodge checks (854px opaque body); forcing practice fails the 4 cold
+checks with state 1 vs 7.
+
+Coverage: lodge 624 (world-bounds bodies at four framings incl.
+808×532, cold-completed with living save), host 1353, entry state
+10315 / layout 85722 / exported locales, validate 347 (guide
+conversion audit added), scripts 172, assets 271, heroes still
+byte-identical. Windowed rendering stays the director's operation.
+
 ## Not done
 
 - Store screenshots: the fresh five-locale Android originals (phone 40 PNGs, seven-inch 30, ten-inch 30)
@@ -1411,3 +1881,384 @@ baseline stride heads, split stances, and single-boot fronts.
   "no recapture planned" line: the user has now requested changed title
   imagery as well, so a title recapture is authorized and pending with the
   director — not done here.
+
+## Attendance reminders: brief 205 (2026-10-07)
+
+Local twelve-hour attendance notices with a Settings switch, on the
+reviewed attendance service. A host-owned `AttendanceReminders`
+controller reads the server-confirmed `next_eligible_utc` as its single
+authority and drives a separate reminder API on the MoonlitIdentity
+natives (no Firebase gating): status, permission, schedule, cancel,
+open-settings, pending diagnostics, and a QA-only short one-shot.
+Intent persists in Settings with its own fail-closed disabled mark;
+scheduling decisions query the live native permission while an
+identical-inputs skip keeps title refreshes from shifting the
+deadline. Android holds one inexact `RTC_WAKEUP` alarm re-armed after
+boot with a monochrome beacon icon and a five-language channel; iOS
+holds a one-shot first fire plus a 43200-second repeat with
+app-only `NSUserDefaults` metadata declared by an app-owned
+`PrivacyInfo.xcprivacy` (CA92.1). Foreground delivery is suppressed on
+both platforms; the notice never grants coins.
+
+What bit: the reconcile writes the OS display cache, which emits
+`Settings.changed` back into refresh — on the never-recorded refusal
+path the granted/denied flip-flop recursed until the stack blew. A
+reentrancy guard (nested passes are redundant) fixed it, and the new
+denial test pins the path. The taller settings card overflowed 808x360
+by 26px; the upper rows moved into the dead air under the title plate
+and the lower block compresses to 2px gaps (all rows verified on
+screen in five locales at both framings). The lodge name form now
+reports keyboard visibility/height plus real field/action bounds for
+entry QA and lifts above a covering keyboard, measuring from the
+unshifted seat so the correction cannot oscillate.
+
+## Real reminder bridges: brief 212 (2026-10-07)
+
+Three director-confirmed boundaries from the round-13 reminder work.
+First, the Android bridge failed with unresolved `R.drawable`: the
+standalone Gradle renderer copied templates plus Kotlin but never
+`src/main/res`, so the owned beacon icon and channel strings never
+reached the AAR. The renderer now stages the whole res tree, and two
+new contract tests render the project and prove every generated `R`
+reference resolves to a staged file. Second, the iOS reminder methods
+sat after the worker's `@end` (18 compiler errors); they now live
+inside `@implementation MoonlitIdentityWorker`, matching the file's
+properties-only interface pattern, with a placement test that slices
+the implementation span instead of grepping names. Third, the
+controller skipped any window under 60 seconds, permanently stranding
+a newly enabled install 30 seconds from eligibility; only the
+already-eligible visit (`remaining == 0`) skips now, and the 30-second
+probe is a registered case asserting one schedule at the confirmed
+deadline with no short repeat.
+
+What bit: proving the placement test required temporarily restoring
+the broken layout, and the restore script cut at the first method's
+closing brace, splitting the section across `@end`. Repaired
+deterministically (all ten selectors back inside, braces balanced,
+each defined exactly once) and re-greened.
+
+## iOS reminder horizon: brief 213 (2026-10-07)
+
+The round-13 iOS shape (one-shot at the remaining delay plus a repeat
+anchored to now) double-fired on fresh rewards and drifted on
+halfway enables (+6/+12/+24 instead of +6/+18/+30). Scheduling now
+writes a bounded horizon of 48 non-repeating slot requests at
+eligibility plus N * 43200 (24 days, under the 64-request OS budget):
+elapsed slots skip instead of bursting, identical refreshes skip
+while the horizon is live, a nearly consumed horizon refills from the
+same anchor, and a new claim resets it. Cancel removes the horizon
+plus legacy first/repeat/debug ids and delivered copies; scheduling
+replaces legacy pending copies so the migration cannot double-fire.
+Diagnostics report each held trigger plus a horizon block (anchor,
+slot count, held slots). Player-facing text now states the bound
+honestly (48 notices in EN to respect the day-count freshness
+needle; 24 days elsewhere).
+
+## Keep the player visible during lodge dialogue: brief 214 (2026-10-07)
+
+Three measured stage defects, one per layer. The wide spawn sat the
+hero's opaque feet 5.7px under the greeting card at 880x360 (0.7px at
+808x360): WIDE_HERO moved from y 0.66 to 0.634, about 10px up, still
+deep in the walk band and clear of desk, Lumi, and gate. A new live
+regression sweeps every idle frame against every greeting and
+name-recovery card at both wide viewports in all five locales through
+the real canvas transform. The name form fed raw device keyboard
+pixels straight into viewport layout (432px at 3x produced a 354px
+lift and negative displacement); the height now converts through the
+inverse screen transform (144 viewport px, 66px lift), the lift parks
+at the safe top when cramped, and the QA report names
+keyboard_height_device and keyboard_occlusion separately. The contact
+board seated its camera current-before-add (engine ERROR) and
+captured on the first tick's lagging interpolation, which drew the
+last actor huge; the harness now seats, resets, settles, then
+audits four rendered silhouettes from the captured pixels and fails
+the run when a slot is empty or outsized. What bit, twice: under
+project-wide physics interpolation a fresh tree's canvas transform
+lags reality until reset — both the new test and the board reset
+before judging pixels.
+
+## Converge reminder state after OS changes and return: brief 216 (2026-10-07)
+
+The identical-input skip ran before the live permission check, so an
+OS revocation on the same deadline never surfaced; the controller now
+re-checks permission first (denial keeps intent and record, schedules
+nothing), and iOS status answers pending with a fresh async verdict
+whose bounded outcome runs the schedule tail once — a tail that never
+re-queries status, so it cannot loop. The iOS horizon finally refills:
+the first future slot derives from the anchor, 48 future slots plan
+under stable ordinal ids whenever fewer than 8 remain, and the held
+base/end persist into the receipt and pending diagnostics; the game
+records the window and re-asks only when it runs low, never moving
+the deadline. The settings row builds lazily on first open (knight
+Lv40 node peak 1202 → 1199 against the unchanged 1200 budget) and an
+undetermined OS state shows a truthful new string instead of on.
+Android status weighs the global switch, runtime grant, and channel
+on every version; pending diagnostics separate persisted intent from
+token existence, retiring cancels the tokens, and the schedule
+receipt reports an unbounded -1 horizon. What bit: muting the suite's
+spare host-owned controller exposed the locale test's hardcoded "en"
+as a no-op that had passed on interference; it now picks a genuinely
+different locale. The divergent JS horizon simulation is gone,
+replaced by structural contracts over the production planner plus
+real controller tests.
+
+## Match the actual native plugin APIs: brief 215 (2026-10-07)
+
+The real toolchains typed what the regex tests could not. Android:
+`onMainRequestPermissionsResult` returns Unit in the pinned Godot core
+(Boolean was the back-press callback), and `Godot` is not a `Context`,
+so the five `activity ?: godot` fallbacks became activity-or-honest
+retryable `no_activity` errors; the two null-host paths already there
+took the same code. The game controller now treats a native `error`
+as a reason to retry, never to cancel: the owned delivery, its
+record, and the cached display state survive, and the next refresh
+converges. iOS: the 64-bit anchor rides an NSNumber through
+`setObject`/`longLongValue` (no longLong selectors exist),
+`nextTriggerDate` is read only from concrete interval/calendar
+triggers, and the ephemeral grant hides behind `@available(iOS 14)`.
+What bit: the reminders scene also runs the host autoload's own
+controller, and both reconcile the shared Settings record — a test
+that emits between plant and assert watches the other controller
+retire it through the real bridge. The new transient-error test sets
+the display cache directly and asserts across one direct refresh.
+
+## Keep the name action above a tall keyboard: brief 217 (2026-10-07)
+
+The clamp math was honest but the card was not: parking a 228px panel
+at the safe top still buries the confirm action under a 180px
+keyboard. The production hook now compacts when the lift runs out —
+bust, header, and hint hide, the card shrinks to its live minimum
+(138 at 808x360 ko), and field, feedback, and confirm lift clear with
+the 8px margin. Hide restores chrome, geometry, and the typed value,
+then re-seats for the current view; resize never fights a shifted
+form. An all-screen keyboard is dismissed once per height instead of
+promising impossible UI, and the keyboard's own submit still files
+the claim. The lodge scene camera and the contact-board camera ride
+the physics callback (verified `CAMERA2D_PROCESS_PHYSICS = 0` from
+the engine, not memory). What bit, twice: headless owns no window
+(`window_get_size` reads 0,0), so the tests stage the window they
+resized to through a second hook parameter; and a coroutine test
+helper called without `await` interleaved the lift asserts with the
+compact case, printing chrome states exactly inverted from the
+returned modes until the missing `await` went in.
+
+## Close the remaining real reminder refill boundaries: brief 218 (2026-10-07)
+
+Three native/game disagreements and one build break. Android:
+`OPSTR_POST_NOTIFICATION` is not in the compile SDK, so the pre-24
+app-global check now resolves `OP_POST_NOTIFICATION` by reflection
+exactly like NotificationManagerCompat, with the same safe-true
+fallback; and both schedule paths (direct and boot) move an overdue
+first trigger onto the anchor grid's next future slot instead of
+firing the backlog immediately. iOS: the planner is integer
+milliseconds in a shared header — due-now counts as future, so the
+equal-time boundary holds 48 slots and day 25 plans from slot 50 —
+and every success receipt carries its held window, duplicates
+included. The game side schedules expired known anchors (future-only,
+no coins), holds under the exact native duplicate rule from the
+recorded base/anchor, derives legacy bases once, and never replaces
+known metadata with a bare duplicate's zero. Proof is execution, not
+simulation: a node test compiles the production header with the
+system C compiler and runs the vectors, while the GDScript suite
+mirrors the same agreement fixtures. What bit: the contract suite
+pinned the old bugs (OPSTR reference, `maxOf(eligible, now)`, the
+`<= now` skip, the metadata-less duplicate), so each fix updated its
+contract to pin the corrected shape instead. The numeric proof
+compiles the production header itself, never a copy of its math.
+
+## Respect off after a late native status result: brief 219 (2026-10-07)
+
+The granted async-status tail called the schedule function directly,
+bypassing the reconcile head's enabled/source gates: pending, then
+off, then a late grant scheduled one delivery while off. The gates
+now live in the shared tail itself, so both paths honor current
+intent and ownership; the late verdict still corrects the OS display
+cache, and a later genuine re-enable schedules exactly once. What
+bit: nothing — the new tests failed first on the unpatched code with
+the director's exact signature (schedule_log 1 while off).
+
+## Reminder release and preservation contracts: brief 220 (2026-10-07)
+
+Two root integration defects, both producer-side. The reminder off
+sentinel `user://attendance_reminders.disabled` is a real preserved
+preference that was missing from every fixed inventory, so the
+Android and iOS save inventories reported it unclassified. It now
+sits in both Node producers and the Python consumer (33 entries),
+with every mirror pin updated and a registered regression proving
+its presence round-trip, mutation detection, and tampered-proof
+rejection. The Android notification vector carried
+`android:tint="?attr/colorControlNormal"`, which release AAPT cannot
+resolve in the standalone library while debug stays green; the tint
+is gone, the white silhouette and resource name stay, and the
+drawable contract now rejects any `?attr/` theme reference. What
+bit: nothing — both inventory suites failed first with the exact
+unclassified sentinel, and the new tests fail on purpose when the
+list entry or the tint is reverted.
+
+## Keep new lodge terms within repo rules: brief 221 (2026-10-07)
+
+Root hygiene flagged four whole-word hits in the new lodge files:
+the Lumi guide's idle comment and breathing-angle local, plus one
+practice assertion string in the lodge test. Renamed the local to
+`pulse_angle` and reworded both strings; every number, expression,
+and behavior is untouched. Lodge regression (2435 checks), the
+174-script compile, and hygiene (zero product hits) are green. What
+bit: the copy's `.godot` import cache predated the new lodge art,
+so the compile check failed on missing `.ctex` preloads until one
+editor `--import` refreshed the cache (sandbox-blocked editor
+settings save, as usual; no repo files from the import).
+
+## Fit the attendance label beside its button: brief 224 (2026-10-07)
+
+English `Attendance reminders` is 164px at font 15 in a 128px
+column, so the centered label grew both ways to (214,229,164,34)
+and overlapped the button at x368 by 10px; the old probe checked
+viewport containment only and missed the sibling overlap. The
+settings row now measures the label like the status button and
+shrinks 15→11 (119px, the locale-button size) in English while
+staying 15 in the other four locales, recomputed on every redraw
+so locale changes and repeated opens never stick. The regression
+checks text width, combined minimum, rect separation, and a 6px
+visible-text-to-button gap at 808x360/532/606 in all five locales
+across off/on/denied/unknown/unsupported, plus translation-update
+and reopen recompute with no second lazy row. What bit: nothing —
+the new checks fail first on the unpatched code with the
+director's exact signature (164px label, -10px gap).
+
+## Free the vault regression's temporary nodes: brief 228 (2026-10-07)
+
+`_test_continue_txn_atomicity` and `_test_prepare_receipt_move` built ten
+plus three temporary normal/failing Vault nodes (including the
+malformed-journal loop) and never freed them: 13 leaked Nodes, 16 leaked
+ObjectDB instances, 2 scripts still in use, and the strict runner's
+correct failure on an otherwise 381-green run. Every fixture now frees
+its nodes like the older tests, and each of the two functions asserts
+orphan-node baseline equality via
+`Performance.OBJECT_ORPHAN_NODE_COUNT`, so an omitted free fails the
+registered test instead of only warning at exit. Vault is 383 green
+with zero teardown diagnostics; defeat (116), crash boundaries (112),
+account recovery (92), IAP store (852), and journey (519) are green
+too. The negative control (two frees omitted) fails both guards with
+exact orphan deltas and restores clean. What bit: nothing — the probe
+confirmed the monitor is synchronous before the guard was written.
+Production bytes unchanged; only `tests/test_vault.gd` differs.
+
+## Project desk collisions onto walkable floor: brief 229 (2026-10-07)
+
+The lodge's `_push_out_of_desk` picked the nearest desk edge with
+float-equality ties and no walk check. At 880x360 the desk center
+(167.2, 74.4) exited the top to (167.2, 14.73), off the walk band
+(min y 117.42); the player's bounds clamp then settled it back to
+(167.2, 117.42), inside the desk again — a frame-order flake the
+suite caught once in full verify and never standalone. The push-out
+now delegates to pure `GateLodge.desk_exit_for`, which takes the
+nearest exit that stays inside the inclusive walk bounds and breaks
+near-ties (0.001px) in fixed left/right/top/bottom order; a clamped
+fallback covers the no-valid-exit case no real framing reaches. The
+registered lodge suite gained per-framing guards over all four judged
+sizes plus 880x360 — center, edge midpoints, corners, and overlap
+strips through the real method, both constraints after projection
+and after real physics settling, sliding sides preserved, live-loop
+checks — plus a labeled 880x360 negative control that catches the
+old rule stranding off-walk and re-entering on clamp. Lodge is 2850
+green across three clean runs; the old method restored fails the new
+guard 84 times with the director's exact 880x360 signature.
+Production host (1353), gate entry state (10315) and layout (85722),
+terrain movement (536), and gate loading (346) are green too. What
+bit: float32/float64 disagree on the center tie (Python picks top at
+808x360 where Godot picks bottom), so the tie was never a rule —
+and the copy needed one editor import for the gitignored
+`gate_entry` translations before any string-dependent check.
+
+## Default iOS releases to after approval: brief 230 (2026-10-07)
+
+Future iOS submissions select automatic release immediately after
+approval. `scripts/lib/app-store-release.mjs` gains
+`APP_STORE_VERSION_RELEASE_TYPE = 'AFTER_APPROVAL'`, generated into
+`payload.release.releaseType`, required by manifest verification, and
+planned on version create/update with no `earliestReleaseDate`;
+`fields[appStoreVersions]` GET selection and `audit.remote`
+now carry the actual remote `releaseType`.
+`scripts/lib/app-store-connect-apply.mjs` blocks review submission
+with `ASC_AUTOMATIC_RELEASE_NOT_VERIFIED` unless the GET readback is
+`AFTER_APPROVAL`, before any submission POST/PATCH. Read-only review
+and published boundaries are unchanged: non-adoptable versions keep
+`ASC_APP_STORE_VERSION_NOT_ADOPTABLE`, and editable-state checks keep
+refusing read-only mutation. Three focused tests in
+`scripts/lib/app-store-release.test.mjs` cover create, editable
+MANUAL/SCHEDULED update, already-matching idempotence, bad-readback
+submission block with zero requests, and read-only/published refusal;
+83 App Store node tests pass. Negative controls: dropping the create
+`releaseType` fails the new default test plus two existing create
+asserts; removing the submission guard fails the new readback test.
+Author default noted in `notes/release/iap-store-setup.md`. What bit:
+nothing — existing create/submit/read-only fixtures needed the new
+field added to keep their other guarantees.
+
+## 4.0.1 store update: brief 231 (2026-10-07)
+
+iOS 4.0.0 build 14 was already READY_FOR_DISTRIBUTION and Android
+4.0.0 code 19 PUBLISHED on internal and production, so the lodge and
+attendance work ships as 4.0.1 / Android 20 / iOS 15. Identity only:
+`project.godot`, both Android presets plus the iOS application keys,
+and the store-page itch rows; every other preset and project value
+is byte-identical. `buildAppStoreReviewNotes` now walks a fresh
+guest through the gate lodge (Lumi, unique name over a connection,
+walk-and-dash practice, moon-gate departure) before the Arena, then
+covers cached-name offline re-entry, living resume, sealed defeat,
+one-coin revive, rolling twelve-hour attendance, and optional local
+reminders — ten IAP IDs, restore guidance, no demo password, and the
+4,000 bound intact. Five-language What's New names the new
+room/name/attendance/defeat changes within the 500-character Play
+limit. The binary-only planner now permits a strictly newer
+`major.minor.patch` display version with the current five-language
+notes alongside same-version replacement (which keeps retained
+notes); downgrades, malformed versions, listing drift, and identity
+mismatches refuse before mutation, historical internal release and
+ordered gallery hashes still re-verify before any change, and the
+proposed identity plus notes bind into tokens and the receipt
+(schema 2). Privacy audit §9 scopes the new name/attendance rows
+and Hall alias over the untouched 4.0.0 record. App Store suites 85
+green, Play package 94 green; room-guidance removal and downgrade
+acceptance both fail their focused tests and pass after byte-exact
+restoration. What bit: the `project.godot` bump moves the capture
+fingerprint, so `check:store-screenshots` goes red by design while
+the gallery is deliberately reused, never recaptured.
+
+## 4.0.1 review-boundary corrections: brief 232 (2026-10-07)
+
+Evidence review corrected four round-1 wordings without touching game,
+counters, listings, or guards. The lodge name form offers confirmation
+and retry with no unnamed opt-out, so privacy §9 now separates required
+online naming (unique nickname before practice and departure) from the
+error/unconfigured local-only escape, and records the director's saved
+Play Name→required correction as saved in Publishing overview, not yet
+sent for review; Apple declarations are unchanged. Review guidance is
+conditional on a verified name AND a completed guide lesson for both
+the generated Apple notes and the Play paste paragraph, with
+interrupted practice returning to the lodge; the Play paragraph is 417
+characters against the measured 500-character console cap. The
+binary-only display parser now rejects leading-zero versions per
+semver specification 2 (`04.0.1` malformed, `4.0.1` and `0.0.0`
+valid), with current- and retained-identity regressions. App Store
+suites 85 green, Play package 94 green; restoring the old parser
+fails the new malformed regression. What bit: the first conditional
+wording pushed the generated Apple notes past 4,000 characters and
+failed 31 tests at once, so the Returning paragraph was tightened to
+land at 3,958 with fixture names.
+
+## 4.0.1 prose alignment: brief 233 (2026-10-07)
+
+The ten rewritten What's New blocks still said returning accounts
+skip the lodge unconditionally. All ten now require a completed
+guide lesson and send interrupted practice back to the lodge, with
+the five translations kept paired; the longest Play block (English)
+is 472 characters against the 500 limit. The public reference's
+version row now reads 4.0.1 / iOS 15 / Android 20 and its run flow
+opens with the first-entry lodge visit, while the dated 3.0.0
+history stays historical and nothing claims 4.0.1 is published or
+reviewed. The App Store CLI help's retained-gallery sequence is now
+version-neutral with no argument or implementation change. Metadata
+validation, both release suites, hygiene, and the docs build pass.
+What bit: nothing — the English block needed a length check before
+committing to the longer conditional sentence.

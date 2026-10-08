@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="moonlit_reminder_channel_name">签到奖励</string>
+    <string name="moonlit_reminder_channel_desc">可在领取签到币时提醒您</string>
+</resources>

@@ -172,6 +172,10 @@ var _journey_buttons: HBoxContainer = null
 var _journey_confirm: VBoxContainer = null
 var _journey_confirm_label: Label = null
 var _journey_force_fresh: bool = false
+## A paid revive whose seal cannot land yet. The panel names it and offers
+## only a confirmed fresh start; a tap must confirm, never resume or
+## silently abandon it.
+var _journey_stuck: bool = false
 var _ready_draw_frame: int = CAPTURE_DRAW_FRAME_UNSET
 ## Store masters must not change with whichever blink brightness the host
 ## stops on. Turn this on only after a debug capture request actually arrives;
@@ -1190,7 +1194,10 @@ func _journey_style_button(button: Button) -> void:
 
 
 ## Show Continue only for a checkpoint that really loads. A save the
-## validator refuses leaves the plain tap-to-start title, never a promise.
+## validator refuses — or a journey that already sealed its defeat — leaves
+## the plain tap-to-start title, never a promise. A stranded paid continue
+## settles first, so the paid revive greets the relaunch; one whose seal
+## cannot land shows a stuck panel with only a confirmed fresh start.
 func _refresh_journey_ui() -> void:
 	if _journey_panel == null:
 		return
@@ -1199,9 +1206,23 @@ func _refresh_journey_ui() -> void:
 		# Continue panel would promise a direct entry it cannot give.
 		_journey_panel.visible = false
 		return
+	var recovery: String = Vault.recover_paid_continue()
+	_journey_stuck = recovery == "failed"
 	var prior_error: String = Journey.last_error
 	var data: Dictionary = Journey.read_checkpoint()
-	if data.is_empty():
+	if data.is_empty() or Journey.is_ended(data):
+		if _journey_stuck:
+			var shown: Dictionary = data
+			if shown.is_empty():
+				var seal_parser: JSON = JSON.new()
+				var seal_text: String = str(
+					Vault.scoped_continue_txn().get("seal", ""))
+				if seal_parser.parse(seal_text) == OK \
+						and seal_parser.data is Dictionary:
+					shown = seal_parser.data
+			if not shown.is_empty():
+				_show_stuck_revive_panel(shown)
+				return
 		_journey_panel.visible = false
 		return
 	var info: Dictionary = Journey.summary(data)
@@ -1220,6 +1241,30 @@ func _refresh_journey_ui() -> void:
 	# Code-built buttons hold translated text, not keys: re-translate on
 	# every refresh so a settings locale switch relabels them too.
 	(_journey_buttons.get_child(0) as Button).text = tr("JOURNEY_CONTINUE")
+	(_journey_buttons.get_child(0) as Button).visible = true
+	(_journey_buttons.get_child(1) as Button).text = tr("JOURNEY_NEW")
+	var confirm_row: HBoxContainer = _journey_confirm.get_child(1) as HBoxContainer
+	(confirm_row.get_child(0) as Button).text = tr("JOURNEY_CONFIRM_ERASE")
+	(confirm_row.get_child(1) as Button).text = tr("JOURNEY_CONFIRM_KEEP")
+	_show_journey_main()
+	_journey_panel.visible = true
+
+
+## A paid revive that cannot land yet: its write keeps failing, so the
+## files still hold the defeat. Name the stuck run and offer only the
+## confirmed fresh start — an explicit abandon — never a resume that could
+## not open. No new copy: the save-failed line and the stock confirm say it.
+func _show_stuck_revive_panel(shown: Dictionary) -> void:
+	var cycle: int = maxi(int(shown.get("cycle", 1)), 1)
+	_journey_title.text = tr("JOURNEY_SAVE_FAILED")
+	var hero: Hero = load(str(shown.get("hero_path", ""))) as Hero
+	var hero_name: String = tr(hero.display_name) if hero != null else ""
+	var step: Dictionary = Expedition.TERRAINS[clampi(
+		int(shown.get("zone_index", 0)), 0, Expedition.TERRAINS.size() - 1)]
+	_journey_detail.text = "%s · %s · %s" % [
+		tr("HUD_WAVE") % cycle, tr(str(step["name"])), hero_name]
+	_journey_error.visible = false
+	(_journey_buttons.get_child(0) as Button).visible = false
 	(_journey_buttons.get_child(1) as Button).text = tr("JOURNEY_NEW")
 	var confirm_row: HBoxContainer = _journey_confirm.get_child(1) as HBoxContainer
 	(confirm_row.get_child(0) as Button).text = tr("JOURNEY_CONFIRM_ERASE")
@@ -1391,6 +1436,12 @@ func request_start(opening_event: InputEvent = null) -> void:
 			_arm_pending_pointer_open(opening_event)
 			return
 		external_start_requested.emit()
+		return
+	# A stuck paid revive confirms before anything boots: resuming could
+	# not open, and a silent fresh start would abandon the paid coin.
+	if _journey_stuck and not _journey_force_fresh:
+		_show_journey_confirm()
+		get_viewport().set_input_as_handled()
 		return
 	# A shown Continue panel means stepping back through the saved gate; a
 	# tap with no save, or the confirmed fresh start, begins a new journey.

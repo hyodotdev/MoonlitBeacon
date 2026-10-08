@@ -628,6 +628,73 @@ test('every production user:// save is covered by the fixed list or the dynamic 
   }
 });
 
+test('attendance reminder off sentinel is preserved byte-exact and never silently dropped', () => {
+  const SENTINEL = 'attendance_reminders.disabled';
+  assert.ok(
+    ANDROID_CAPTURE_PERSISTENT_FILES.includes(SENTINEL),
+    'off sentinel stays in the preserved fixed list',
+  );
+  // An opted-out install keeps its mark across a capture that mutates it.
+  const device = fixture({
+    'settings.cfg': 'reminders_enabled=false',
+    [SENTINEL]: 'disabled\n',
+  });
+  const original = captureAndroidPersistentSnapshot(device.readFile);
+  assert.equal(original[SENTINEL].toString(), 'disabled\n');
+  device.files.set(SENTINEL, Buffer.from('mutated-by-capture'));
+  device.files.set('settings.cfg', Buffer.from('reminders_enabled=true'));
+  const result = restoreAndroidPersistentSnapshot(original, device);
+  assert.equal(result.mutated, true);
+  assert.equal(device.files.get(SENTINEL).toString(), 'disabled\n');
+  const evidence = buildAndroidPersistentEvidence(original, result);
+  assert.equal(
+    evidence.persistent_data_sha256_before[SENTINEL],
+    evidence.persistent_data_sha256_restored[SENTINEL],
+  );
+  assert.notEqual(
+    evidence.persistent_data_sha256_before[SENTINEL],
+    evidence.persistent_data_sha256_observed[SENTINEL],
+  );
+  // A capture that mints the mark on an opted-in install restores absence.
+  const optedIn = fixture({ 'settings.cfg': 'reminders_enabled=true' });
+  const optedInOriginal = captureAndroidPersistentSnapshot(optedIn.readFile);
+  assert.equal(optedInOriginal[SENTINEL], null);
+  optedIn.files.set(SENTINEL, Buffer.from('disabled\n'));
+  const optedInResult = restoreAndroidPersistentSnapshot(optedInOriginal, optedIn);
+  assert.equal(optedInResult.mutated, true);
+  assert.equal(optedIn.files.has(SENTINEL), false);
+  // Dropping or tampering the sentinel in the published proof fails closed.
+  const anchored = buildAndroidPersistenceAnchor(
+    evidence,
+    original,
+    result,
+    { captureId: '6'.repeat(64), path: 'builds/evidence/persistence.json' },
+  );
+  const report = { ...evidence, persistence_anchor: anchored.anchor };
+  assert.equal(assertAndroidPersistentReportEvidence(report, {
+    anchorBytes: anchored.bytes,
+  }), true);
+  const mutations = [
+    (value) => {
+      value.persistent_data_files.splice(
+        value.persistent_data_files.indexOf(SENTINEL), 1,
+      );
+    },
+    (value) => { delete value.persistent_data_sha256_before[SENTINEL]; },
+    (value) => {
+      value.persistent_data_sha256_restored[SENTINEL] = 'c'.repeat(64);
+    },
+  ];
+  for (const mutate of mutations) {
+    const counterexample = structuredClone(report);
+    mutate(counterexample);
+    assert.throws(
+      () => assertAndroidPersistentReportEvidence(counterexample),
+      /persistent|hash|file list/u,
+    );
+  }
+});
+
 test('optional private read retries only atomic-replace races and rejects real errors', () => {
   for (const relativePath of [
     'scripts/capture-store-screenshots.mjs',

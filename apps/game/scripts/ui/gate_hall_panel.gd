@@ -67,7 +67,9 @@ func _ready() -> void:
 ## Render `rows` exactly as supplied. `meta` may hold `cached` and `offline`
 ## flags for the header badges. Row dictionaries read `rank` (int),
 ## `score` (int), `id` (String), and either `hero` (Hero) or `portrait`
-## (Texture2D) with an optional `hero_name`.
+## (Texture2D) with an optional `hero_name`. A verified `display` handle
+## joins the headline; rows without one keep the honest rank-and-score
+## headline with the full ID on its own line.
 func show_rows(rows: Array, meta: Dictionary = {}) -> void:
 	for child in _rows_box.get_children():
 		_rows_box.remove_child(child)
@@ -129,7 +131,11 @@ func _make_row(data: Dictionary, index: int) -> PanelContainer:
 	var headline := GateEntryStyle.make_label(
 		"", GateEntryStyle.FONT_BODY, GateEntryStyle.TEXT_MAIN, true)
 	headline.name = &"Headline"
-	headline.text = "#%d · %d" % [rank, score]
+	var display: String = str(data.get("display", ""))
+	if display.is_empty():
+		headline.text = "#%d · %d" % [rank, score]
+	else:
+		headline.text = "#%d · %d · %s" % [rank, score, display]
 	middle.add_child(headline)
 	var hero_name: String = str(data.get("hero_name", ""))
 	var hero: Hero = data.get("hero") as Hero

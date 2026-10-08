@@ -21,6 +21,7 @@ RESULT_GOAL_COMPLETE,제단의 모든 축복을 완성했습니다,Shrine collec
 RESULT_GOAL_READY,%s 구매 가능 · 제단에서 강화하세요,%s is ready · upgrade at the Shrine,%s 購入可能 · 祭壇で強化しよう,%s 可购买 · 前往祭坛强化,%s 可購買 · 前往祭壇強化
 RESULT_GOAL_PROGRESS,%s · 앞으로 %d조각,%s · %d shards to go,%s · あと%d個,%s · 还需%d枚碎片,%s · 還需%d枚碎片
 RESULT_RETRY,다시 출전,Retry,再挑戦,再次出战,再次出戰
+RESULT_START_OVER,처음부터 시작,Start over,はじめから始める,重新开始,重新開始
 RESULT_SHRINE,제단 강화,Upgrade,祭壇で強化,祭坛强化,祭壇強化
 RESULT_RECORD,기록 남기기,Record,記録を残す,留下记录,留下紀錄
 SCORE_BEACONS,봉화 %d,Beacons %d,烽火 %d,烽火 %d,烽火 %d
@@ -41,6 +42,16 @@ SETTINGS_ANALYTICS,익명 분석,Analytics,匿名分析,匿名分析,匿名分�
 SETTINGS_ANALYTICS_UNKNOWN,선택 안 함,Not chosen,未選択,未选择,未選擇
 SETTINGS_ANALYTICS_ON,공유 켜짐,Sharing on,共有オン,已开启共享,已開啟分享
 SETTINGS_ANALYTICS_OFF,공유 꺼짐,Sharing off,共有オフ,已关闭共享,已關閉分享
+SETTINGS_REMINDERS,출석 알림,Attendance reminders,出席リマインダー,签到提醒,簽到提醒
+SETTINGS_REMINDERS_ON,알림 켜짐,Reminders on,リマインダーオン,提醒已开启,提醒已開啟
+SETTINGS_REMINDERS_OFF,알림 꺼짐,Reminders off,リマインダーオフ,提醒已关闭,提醒已關閉
+SETTINGS_REMINDERS_DENIED,알림 권한 필요,Permission needed,許可が必要,需要通知权限,需要通知權限
+SETTINGS_REMINDERS_UNKNOWN,확인 필요,Check needed,確認が必要,需要检查,需要檢查
+SETTINGS_REMINDERS_UNSUPPORTED,이 기기 미지원,Not on this device,この端末は未対応,此设备不支持,此裝置不支援
+SETTINGS_REMINDERS_OPEN,알림 설정 열기,Open notification settings,通知設定を開く,打开通知设置,開啟通知設定
+REMINDER_TITLE,달빛 봉화,Moonlit Beacon,月明かりの烽火,月光烽火,月光烽火
+REMINDER_BODY,지금 출석하면 2코인을 받을 수 있어요,Check in now for 2 continue coins,今出席すると2コインがもらえます,现在签到可领取2枚续关币,現在簽到可領取2枚續關幣
+REMINDER_OFFER,출석 알림 받기,Get attendance reminders,出席リマインダーを受け取る,接收签到提醒,接收簽到提醒
 ANALYTICS_CONSENT_TITLE,익명 플레이 지표를 공유할까요?,Share anonymous gameplay metrics?,匿名のプレイ指標を共有しますか？,要分享匿名游玩指标吗？,要分享匿名遊玩指標嗎？
 ANALYTICS_CONSENT_BODY,익명 플레이 지표를 공유해 게임 개선을 돕습니다. 공유 지표에는 이름 · 구매 내역 · 기기 식별자가 포함되지 않습니다. 구매는 앱 스토어가 별도로 처리하며 공유 여부는 설정에서 언제든 바꿀 수 있습니다.,Share anonymous gameplay metrics to help improve the game. Shared metrics exclude your name · purchase history · and device ID. Purchases are processed separately by the app store. You can change sharing anytime in Settings.,ゲーム改善のため匿名のプレイ指標を共有します。共有される指標に名前・購入履歴・端末識別子は含まれません。購入はアプリストアが別途処理します。共有は設定でいつでも変更できます。,分享匿名游玩指标以帮助改进游戏。分享的指标不包含姓名・购买记录或设备标识符。购买由应用商店单独处理。你可以随时在设置中更改分享选择。,分享匿名遊玩指標以協助改善遊戲。分享的指標不包含姓名・購買紀錄或裝置識別碼。購買由應用程式商店另行處理。你可以隨時在設定中更改分享選擇。
 ANALYTICS_CONSENT_PRIVACY,개인정보 처리방침,Privacy policy,プライバシーポリシー,隐私政策,隱私權政策
@@ -349,7 +360,9 @@ HERO_MOTION_ORBIT,한쪽으로 감기는 궤도,Orbit that curls,片側へ巻く
 HERO_MOTION_STEP,툭툭 꺾이는 각진 계단,Sharp zigzag steps,カクカク折れる階段,棱角分明的折线,稜角分明的折線
 RESULT_CONTINUE,이어하기,Continue,コンティニュー,继续游戏,繼續遊戲
 RESULT_CONTINUE_COINS,이어하기 (코인 %d),Continue (%d coins),コンティニュー (コイン %d),继续游戏（金币 %d）,繼續遊戲（金幣 %d）
+ATTENDANCE_RECEIPT,출석 보상 · 이어하기 코인 +%d,Attendance reward · Continue coins +%d,出席報酬 · コンティニューコイン +%d,出勤奖励 · 继续游戏金币 +%d,出勤獎勵 · 繼續遊戲金幣 +%d
 RESULT_CONTINUE_BUY,판 끝내고 상점으로,End run & open Store,ランを終了してストアへ,结束本局并前往商店,結束本局並前往商店
+RESULT_CONTINUE_RETRY,저장 다시 시도,Retry Save,セーブを再試行,重试保存,重試保存
 CONTINUE_RESUMED,다시 일어섰다,Back on your feet,再び立ち上がった,重新站起来了,重新站起來了
 IAP_CONTINUE_TITLE,이어하기 코인,Continue Coin,コンティニューコイン,继续游戏金币,繼續遊戲金幣
 IAP_CONTINUE_DESC,코인 한 개 · 쓰러진 자리에서 이어간다,One coin · resume where you fell,コイン1枚 · 倒れた場所から再開,金币一枚 · 在倒下之处继续,金幣一枚 · 在倒下之處繼續
@@ -565,4 +578,3 @@ JOURNEY_CONFIRM_KEEP,여정 유지,Keep journey,旅をつづける,保留旅程,
 JOURNEY_SAVE_FAILED,여정을 저장하지 못했습니다 · 마지막 문 이후의 기록이 위험합니다,Could not save the journey · progress past the last gate is at risk,旅を保存できなかった · 最後の門からの記録が危険だ,无法保存旅程 · 上一道门之后的进度面临风险,無法儲存旅程 · 上一道門之後的進度面臨風險
 JOURNEY_RESUME_FAILED,저장된 여정을 읽지 못했습니다 · 새로 시작합니다,The saved journey could not be read · starting over,保存された旅を読めなかった · はじめから始める,无法读取已保存的旅程 · 重新开始,無法讀取已儲存的旅程 · 重新開始
 JOURNEY_RESUMED,마지막 문으로 · %d순환,Back at the last gate · Wave %d,最後の門へ · 第%d巡,回到上一道门 · 第%d轮,回到上一道門 · 第%d輪
-RESULT_GATE_RETRY,문에서 재시작,Retry from gate,門から再挑戦,从上一个门重试,從上一個門重試

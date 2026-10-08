@@ -1440,3 +1440,46 @@ Modification:   none to the bytes. SHA-256 font
 
 Author note: the variable face keeps its original bracketed filename so
 the shipped bytes map to the donor record with no renaming step.
+
+---
+
+## Gate lodge room plates (first-login refuge)
+
+```text
+Source:         painted art generated for Moonlit Beacon (gate chamber set)
+Creator:        Moonlit Beacon · built-in image generation
+License:        follows the project license
+Original path:  notes/workflow/muse/art/gate-chamber/gate-chamber-room.png
+                (1881x836 RGB, SHA-256
+                44df1b68919508caf1c6cfb57fc8596320765ec9271ee81bd28c22e2a80cb540)
+                notes/workflow/muse/art/gate-chamber/gate-chamber-room-tablet.png
+                (1448x1086 RGB, SHA-256
+                fc73cc31c4ff5c2fc521226b3c49f22f62aeda280d213c87cfe0965eaeb7a0a8)
+Project path:   res://assets/custom/world/lodge/room_wide.png, res://assets/custom/world/lodge/room_tablet.png
+Used:           gate lodge environment plate; the wide plate serves
+                808x360 and wider landscape, the tablet plate serves
+                taller 4:3 landscape such as 808x606
+Modification:   deterministic RGBA re-encode at native size via
+                apps/game/tools/build_lodge_assets.py; no paint changes
+```
+
+---
+
+## Lumi the Lantern Keeper (gate lodge guide)
+
+```text
+Source:         painted art generated for Moonlit Beacon (gate chamber set)
+Creator:        Moonlit Beacon · built-in image generation
+License:        follows the project license
+Original path:  notes/workflow/muse/art/gate-chamber/lumi-turnaround.png
+                (1774x887 RGBA, SHA-256
+                f80263c3d8da6d48f735a7088fc4ccc48e60390cce4f7593bbb66817687b4fa9)
+Project path:   res://assets/custom/actors/lumi/front.png, res://assets/custom/actors/lumi/rear.png, res://assets/custom/actors/lumi/left.png, res://assets/custom/actors/lumi/right.png, res://assets/custom/actors/lumi/bust.png
+Used:           four-facing grounded lodge guide sprite plus the small
+                name-form portrait; never a full-sheet billboard
+Modification:   per-facing crop with an 8px margin on one common
+                top/bottom line (front 335x869, rear 336x869,
+                left 262x869, right 247x869), bust head crop 260x320,
+                via apps/game/tools/build_lodge_assets.py; visible
+                figure heights 853/850/851/852 source px (0.35% spread)
+```

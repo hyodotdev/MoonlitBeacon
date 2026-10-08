@@ -7,8 +7,9 @@ extends RefCounted
 ## safe moment — crossing a moon gate, or carrying the guardian's reward into
 ## the next cycle — the arena writes a segment-entry checkpoint: cycle, zone,
 ## deterministic route and seed, hero, held relic stacks, combat growth,
-## score counters and reward-settlement bookkeeping. Dying retries that
-## segment; the title's Continue steps back through its gate.
+## score counters and reward-settlement bookkeeping. Dying seals the journey
+## with a terminal `ended` marker instead; the title's Continue only resumes
+## a run that is still alive, and a fresh expedition starts a new journey.
 ##
 ## Checkpoints are segment entries on purpose. Nothing mid-frame is
 ## serialized: no projectiles, enemies or physics state. Restore rebuilds the
@@ -26,17 +27,22 @@ extends RefCounted
 ##   grants exactly once: the redelivery reads `DUPLICATE` and pays 0.
 ## - A checkpoint records `shards_awarded` and `settled_score` as an echo of
 ##   the ledger, and gate/cycle checkpoints settle before writing. Death
-##   settles the **checkpoint** score, never the defeated segment's live
-##   score; the lost segment grants nothing.
+##   settles the final live score once and seals it into the terminal
+##   marker's echo, so repeated exits, restores or relaunches grant nothing
+##   more: the redelivery reads `DUPLICATE` and pays 0.
 ## - Settlement failure seals nothing as settled: the checkpoint keeps its
-##   old echo and the next seal's cumulative target carries the value, which
-##   keeps retries available across restart.
+##   old echo and the next seal's cumulative target carries the value.
+## - A paid continue journals its debit and exact revive seal in the Vault
+##   before the alive checkpoint is written, so a crash can only strand a
+##   paid seal — recovered without another charge — never an unpaid alive
+##   checkpoint. Entry points settle the journal before reading.
 ## - The very first checkpoint settles nothing. Banking a shard for merely
 ##   starting would pay out on every fresh start without playing.
-## - Records submit the checkpoint score on death. A repeat death submits
-##   the same total and reads `NOT_BEST`; only further progress saves anew.
-## - Gate retry is free. It never spends a paid continue coin; the coin path
-##   (`continue_run`) is untouched and resumes in place instead.
+## - Records submit the final score on death. A repeat submit of the same
+##   total reads `NOT_BEST`; only further progress saves anew.
+## - Only a paid continue coin revives a sealed defeat, in place, and only
+##   the live arena's `continue_run` may clear the marker by sealing a new
+##   alive checkpoint. No title, backup or cloud path resumes a sealed run.
 ##
 ## Safety rules:
 ##
@@ -44,7 +50,14 @@ extends RefCounted
 ##   main save is never deleted, and any failure keeps a playable prior save.
 ## - The previous valid save rotates into the backup through the same atomic
 ##   install. A corrupt main falls back to it; an invalid file must never
-##   overwrite a good backup.
+##   overwrite a good backup. A terminal marker instead mirrors into both
+##   files, backup first: no older alive backup survives the seal, so a
+##   later corrupt main still reads terminal. A main that validates ended
+##   also converges a stale alive backup forward on read, which migrates
+##   pairs sealed before the mirror; a live main with a same-journey ended
+##   backup at no older seal is a seal whose main write never finished, and
+##   reads terminal too. Alive pairs with no seal anywhere still recover
+##   from the backup exactly as before.
 ## - Reads are length-gated before a byte is kept. Loading validates every
 ##   field: non-integer or future schemas, oversized or truncated files, and
 ##   resource paths outside the hero/relic allowlists are refused as a
@@ -289,6 +302,8 @@ static func write_checkpoint(data: Dictionary) -> Error:
 	if text.is_empty() or text.to_utf8_buffer().size() > MAX_FILE_BYTES:
 		last_error = "checkpoint too large to save"
 		return ERR_INVALID_DATA
+	if is_ended(data):
+		return _install_ended_pair(text)
 	# Refresh the backup first, like the Vault: a backup that cannot install
 	# aborts the write rather than replacing the main behind a stale backup.
 	if not _refresh_backup_from_main():
@@ -297,6 +312,27 @@ static func write_checkpoint(data: Dictionary) -> Error:
 	var installed: Error = _install_verified(path, text, backup_path)
 	if installed == OK:
 		_notify_stable_checkpoint(text)
+	return installed
+
+
+## Install a terminal marker to both files, backup first, without rotation:
+## the previous alive main is superseded by the seal, and rotating it into
+## the backup would leave a stale alive copy able to revive the ended
+## journey if the main ever corrupts. Either ordering of a crash stays
+## terminal: a failed backup mirror leaves the main untouched (the seal
+## never started), while a failed main install still leaves the mirrored
+## backup the reads treat as terminal. Callers retry until the pair
+## converges; stable hooks fire only once the main lands.
+static func _install_ended_pair(text: String) -> Error:
+	var backup_error: Error = _install_verified(backup_path, text)
+	if backup_error != OK:
+		last_error = "could not save the journey"
+		return backup_error
+	var installed: Error = _install_verified(path, text)
+	if installed == OK:
+		_notify_stable_checkpoint(text)
+		return OK
+	last_error = "could not save the journey"
 	return installed
 
 
@@ -312,6 +348,8 @@ static func write_checkpoint_text(text: String) -> Error:
 	if parser.parse(text) != OK or not validate(parser.data):
 		last_error = "refused to write an invalid checkpoint"
 		return ERR_INVALID_DATA
+	if is_ended(parser.data):
+		return _install_ended_pair(text)
 	if not _refresh_backup_from_main():
 		last_error = "could not save the journey"
 		return ERR_CANT_OPEN
@@ -323,12 +361,39 @@ static func write_checkpoint_text(text: String) -> Error:
 
 ## Read the newest valid checkpoint: the main file first, then the backup.
 ## Returns `{}` when neither validates. A recovered backup is copied back to
-## the main path so the next read is direct.
+## the main path so the next read is direct. A valid terminal marker reads
+## back like any valid checkpoint — callers gate resume on `is_ended()` or
+## `has_valid_checkpoint()` — and no older alive backup of the same journey
+## may revive it: an ended main converges a stale alive backup forward on
+## read, and a live main with a same-journey ended backup at no older seal
+## (a seal whose main write never finished) reads terminal too.
 static func read_checkpoint() -> Dictionary:
 	last_error = ""
 	var main: Dictionary = _read_candidate(path)
-	if not main.is_empty():
+	if main.is_empty():
+		return _read_fallback_backup()
+	if is_ended(main):
+		_converge_ended_backup(main)
 		return main
+	var backup: Dictionary = _read_candidate(backup_path)
+	if backup.is_empty() or not is_ended(backup) \
+			or not _same_journey(main, backup) \
+			or _seal_id(main) > _seal_id(backup):
+		return main
+	# The backup proves a seal the main write never finished. Heal the
+	# marker forward so the pair converges, then read terminal.
+	var read: Dictionary = _read_bounded(backup_path)
+	if bool(read.get("ok", false)):
+		_install_verified(path, str(read.get("text", "")))
+	last_error = ""
+	return backup
+
+
+## The main file is missing or invalid: fall back to the backup, if any.
+## A recovered backup is installed forward atomically, without rotating
+## (the corrupt main must never overwrite the backup). Even if the install
+## fails, the returned data is valid and the backup stays.
+static func _read_fallback_backup() -> Dictionary:
 	var main_error: String = last_error
 	var backup: Dictionary = _read_candidate(backup_path)
 	if backup.is_empty():
@@ -337,9 +402,6 @@ static func read_checkpoint() -> Dictionary:
 		elif last_error.is_empty():
 			last_error = "no saved journey"
 		return {}
-	# The backup saved the journey. Install it forward atomically, without
-	# rotating (the corrupt main must never overwrite the backup). Even if
-	# the install fails, the returned data is valid and the backup stays.
 	var read: Dictionary = _read_bounded(backup_path)
 	if bool(read.get("ok", false)):
 		_install_verified(path, str(read.get("text", "")))
@@ -347,9 +409,105 @@ static func read_checkpoint() -> Dictionary:
 	return backup
 
 
+## Converge a stale alive backup behind an ended main: mirror the marker's
+## exact bytes forward (best effort) so pairs sealed before the mirror end
+## up redundant too. Only same-journey backups converge — a different
+## journey's alive backup is pre-install lineage, never this seal's stale
+## shadow, and a corrupt main may still legitimately recover from it.
+static func _converge_ended_backup(main: Dictionary) -> void:
+	var backup: Dictionary = _read_candidate(backup_path)
+	if backup.is_empty() or is_ended(backup) \
+			or not _same_journey(main, backup):
+		return
+	var read: Dictionary = _read_bounded(path)
+	if bool(read.get("ok", false)):
+		_install_verified(backup_path, str(read.get("text", "")))
+
+
+## Journey identity across int, float and string forms: Vault sequences
+## stay in the `i` namespace (JSON floats count whole, like the validator),
+## random fallbacks in the `s` namespace, so id `5` never aliases `"5"`.
+static func _journey_key(journey_id: Variant) -> String:
+	if journey_id is int:
+		return "i%d" % int(journey_id)
+	if journey_id is float and journey_id == floorf(journey_id):
+		return "i%d" % int(journey_id)
+	if journey_id is String and is_safe_id(str(journey_id)):
+		return "s%s" % str(journey_id)
+	return ""
+
+
+## True when both checkpoints name the same journey.
+static func _same_journey(first: Dictionary, second: Dictionary) -> bool:
+	var left: String = _journey_key(first.get("journey_id"))
+	var right: String = _journey_key(second.get("journey_id"))
+	return not left.is_empty() and left == right
+
+
+## Seal id of a validated checkpoint for ordering comparisons.
+static func _seal_id(data: Dictionary) -> int:
+	return int(data.get("checkpoint_id", -1))
+
+
 ## True when a checkpoint would load. Title calls this to offer Continue.
+## A sealed defeat is valid but not resumable, so it reads false.
 static func has_valid_checkpoint() -> bool:
-	return not read_checkpoint().is_empty()
+	var data: Dictionary = read_checkpoint()
+	return not data.is_empty() and not is_ended(data)
+
+
+## True when the checkpoint carries the defeat marker: a sealed run that no
+## title, backup or cloud path may resume. Strictly a bool `true`; anything
+## else (absent, false, or a non-bool a hostile file smuggled in) is alive.
+static func is_ended(data: Dictionary) -> bool:
+	var marker: Variant = data.get("ended", false)
+	return marker is bool and bool(marker)
+
+
+## Settle one Vault continue transaction against the journey files: the
+## journaled seal is paid, so materialize it when the files still hold the
+## defeat it revives. Returns `recovered` (the paid seal landed),
+## `delivered` (the paid seal is already on disk), `stale` (nothing to
+## deliver — the caller clears the journal), `none` (no transaction),
+## `deferred` (another scope owns the receipt — nothing is touched), or
+## `failed` (the materialize write failed — the caller keeps the journal
+## and retries later). Only ever revives the transaction's own journey
+## past its own defeat: a different journey, an alive seal at no older
+## id, or a defeat at no older id clears the journal instead of writing.
+static func settle_continue_txn(txn: Dictionary) -> String:
+	if txn.is_empty():
+		return "none"
+	if str(txn.get("owner", active_account)) != active_account:
+		return "deferred"
+	var journey: Variant = txn.get("journey_id", null)
+	var attempt: Variant = txn.get("checkpoint_id", null)
+	var seal_text: String = str(txn.get("seal", ""))
+	if _journey_key(journey).is_empty() or not attempt is int \
+			or seal_text.is_empty():
+		return "stale"
+	var parser: JSON = JSON.new()
+	if parser.parse(seal_text) != OK or not validate(parser.data):
+		return "stale"
+	var seal: Dictionary = parser.data
+	if is_ended(seal) \
+			or _journey_key(seal.get("journey_id")) != _journey_key(journey) \
+			or int(seal.get("checkpoint_id", -1)) != int(attempt):
+		return "stale"
+	var file: Dictionary = read_checkpoint()
+	if file.is_empty():
+		return "recovered" \
+			if write_checkpoint(seal) == OK else "failed"
+	if not _same_journey(file, seal):
+		return "stale"
+	if not is_ended(file):
+		if _seal_id(file) >= int(attempt):
+			return "delivered"
+		return "recovered" \
+			if write_checkpoint(seal) == OK else "failed"
+	if _seal_id(file) < int(attempt):
+		return "recovered" \
+			if write_checkpoint(seal) == OK else "failed"
+	return "stale"
 
 
 ## Forget the journey: main, backup and temp files. Best effort.
@@ -361,9 +519,10 @@ static func clear() -> void:
 	last_error = ""
 
 
-## Small display summary for the title's Continue row. Empty when invalid.
+## Small display summary for the title's Continue row. Empty when invalid
+## or when the journey sealed its defeat: there is no gate left to resume.
 static func summary(data: Dictionary) -> Dictionary:
-	if not validate(data):
+	if not validate(data) or is_ended(data):
 		return {}
 	var cycle: int = int(data["cycle"])
 	var zone: int = int(data["zone_index"])
@@ -452,6 +611,11 @@ static func validate(data: Variant) -> bool:
 	if not checkpoint.get("opening_played") is bool:
 		return false
 	if not _is_int_in(checkpoint.get("saved_at_unix"), 0, MAX_SAFE_INT):
+		return false
+	# Additive terminal marker: absent on every checkpoint sealed before the
+	# defeat rules, `true` once the journey ends. Present but non-bool
+	# refuses the whole save like any other mistyped field.
+	if checkpoint.has("ended") and not checkpoint.get("ended") is bool:
 		return false
 	return true
 

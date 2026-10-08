@@ -50,6 +50,7 @@ gate.conflict.cloud,클라우드 저장 쓰기,Keep the cloud,クラウドを残
 gate.conflict.cancel,나중에 정하기,Decide later,あとで決める,稍后再定,稍後再定
 gate.conflict.local_tag,이 기기,This device,この端末,本设备,本裝置
 gate.conflict.cloud_tag,클라우드,Cloud,クラウド,云端,雲端
+gate.conflict.ended,종료된 여정,Journey ended,終わった旅,已结束的旅程,已結束的旅程
 gate.hall.title,전당,Hall,殿堂,殿堂,殿堂
 gate.hall.empty,아직 기록이 없다 · 한 번 다녀오면 전당에 오른다,No ranks yet · finish an expedition to enter the Hall,まだ記録がありません · 出陣を終えると殿堂入りします,暂无排行 · 完成一次出征即可入选殿堂,暫無排行 · 完成一次出征即可入選殿堂
 gate.hall.cached,저장됨,Saved,保存済み,已保存,已儲存
@@ -99,3 +100,36 @@ gate.save.check_offline,오프라인이라 저장된 관문을 확인하지 못�
 gate.save.play_offline,오프라인으로 출전,Play offline,オフラインで出陣,离线出征,離線出征
 gate.save.offline_unknown,저장 확인 안 됨 · 오프라인 출전,Save unchecked · playing offline,未確認 · オフラインで出陣,未检查存档 · 离线出征,未檢查存檔 · 離線出征
 gate.save.offline_body,오프라인 출전은 이 기기의 여정을 쓰고 없으면 새로 시작한다。,Offline start uses this device's saved journey or starts fresh.,オフライン出陣はこの端末の旅を使うか新しく始める。,离线出征使用本机旅程或重新开始。,離線出征使用本機旅程或重新開始。
+gate.lodge.lumi_name,등불지기 루미,Lumi · Lantern Keeper,灯守りのルミ,守灯人露米,守燈人露米
+gate.lodge.greet_1,어서 와 여행자 · 여긴 관문 등불 방이야,Welcome in traveller · this is the gate lodge,ようこそ旅人さん · ここは門の灯の部屋だよ,欢迎旅人 · 这里是关口灯室,歡迎旅人 · 這裡是關口燈室
+gate.lodge.greet_2,나리는 봉화길을 고치러 떠났다가 아직 돌아오지 못했어,Nari went to mend the beacon road and has not come home yet,ナリは灯の道を直しに出て まだ帰らないんだ,娜莉去修灯路 还没有回来,娜莉去修燈路 還沒有回來
+gate.lodge.greet_3,주전자는 올려두었으니 식지 않게 · 네가 집으로 가는 길을 밝혀주렴,The kettle is on so keep it warm · you keep the road home lit,やかんを火にかけたから 冷まさないで · 家への道を灯してね,水壶在炉上 别让它凉了 · 点亮回家的路吧,水壺在爐上 別讓它涼了 · 點亮回家的路吧
+gate.lodge.ask_name,대장에 오를 이름을 알려주렴 · 전당도 그 이름으로 기억할 거야,Tell me the name for the register · the Hall will remember it too,台帳に載せる名を教えてね · 広間もその名で覚えるよ,告诉我登记的名字吧 · 殿堂也会记住这个名字,告訴我登記的名字吧 · 殿堂也會記住這個名字
+gate.lodge.name_title,모험가 이름,Adventurer name,冒険者の名,冒险者名字,冒險者名字
+gate.lodge.name_hint,2~12자 · 한글 영문 숫자 밑줄,2–12 letters · Hangul Latin digits _,2〜12文字 · 英数かな漢字 _,2~12字 · 韩文英文数字下划线,2~12字 · 韓文英文數字底線
+gate.lodge.name_public,전당에 공개되는 이름이야 · 본명은 쓰지 마,This name shows in the Hall · never your real name,広間に公開される名だよ · 本名は使わないで,这个名字会公开在殿堂里 · 不要用真名,這個名字會公開在殿堂裡 · 不要用真名
+gate.lodge.name_confirm,이 이름으로 등록,Register this name,この名で登録,登记这个名字,登記這個名字
+gate.lodge.name_retry,다시 시도,Try again,もう一度,重试,重試
+gate.lodge.name_checking,대장 확인 중…,Checking the register…,台帳を確認中…,正在核对登记册…,正在核對登記冊…
+gate.lodge.name_invalid,그 이름은 안 돼 · 2~12자로 다시 지어보렴,That name will not do · try 2–12 letters again,その名は使えないよ · 2〜12文字で考え直してね,这个名字不行 · 用2~12个字再想一个吧,這個名字不行 · 用2~12個字再想一個吧
+gate.lodge.name_taken,이미 대장에 있는 이름이야 · 다른 이름을 지어보렴,That name is already in the register · try another,その名はもう台帳にあるよ · 別の名を考えてね,登记册里已经有这个名字了 · 换一个吧,登記冊裡已經有這個名字了 · 換一個吧
+gate.lodge.name_offline,연결이 끊겼어 · 연결되면 다시 시도해주렴,The link is down · try again when you are back,つながりが切れたみたい · つながったらもう一度ね,连接断开了 · 恢复连接后再试吧,連接斷開了 · 恢復連接後再試吧
+gate.lodge.named_ok,%s… 좋은 이름이야 · 대장과 전당이 기억할 거야,%s… a fine name · the register and Hall will remember it,%s… いい名だね · 台帳も広間も覚えるよ,%s… 好名字 · 登记册和殿堂都会记住,%s… 好名字 · 登記冊和殿堂都會記住
+gate.lodge.move_lesson,걸어보렴 · 화면을 누른 채 끌면 그쪽으로 가,Walk for me · press and drag anywhere to go that way,歩いてみてね · どこでも押して引けばそちらへ,走走看 · 按住屏幕拖动就往那边走,走走看 · 按住螢幕拖動就往那邊走
+gate.lodge.move_done,잘했어 · 이번엔 몸을 날려보렴,Well walked · now fling yourself forward,うまく歩けたね · 今度は体を翻してみて,走得好 · 这次试试飞身向前,走得好 · 這次試試飛身向前
+gate.lodge.dash_lesson,오른쪽 아래 단추를 눌러 재빨리 몸을 날려보렴,Tap the lower-right button to dash,右下のボタンを押して 素早く駆けてみて,点右下角的按钮快速冲刺吧,點右下角的按鈕快速衝刺吧
+gate.lodge.dash_done,멋져 · 봉화길이 널 기다려,Splendid · the beacon road waits for you,見事だよ · 灯の道が待っている,太棒了 · 灯路在等你,太棒了 · 燈路在等你
+gate.lodge.gate_lesson,%s · 오른쪽 문으로 가보렴 · 봉화길이 열려 있어,%s · walk through the gate on the right · the beacon road stands open,%s · 右の門をくぐってね · 灯の道が開いているよ,%s · 从右边的门出去吧 · 灯路已经敞开,%s · 從右邊的門出去吧 · 燈路已經敞開
+gate.lodge.gate_wait,대장에 도장 찍는 중…,Sealing the register…,台帳に判を押しているよ…,正在登记册上盖印…,正在登記冊上蓋印…
+gate.lodge.gate_retry,대장이 못 들었대 · 문 앞에서 다시 기다려보렴,The ledger did not hear · wait at the gate and try again,台帳が聞き取れなかったみたい · 門の前でもう一度待ってね,登记册没听清 · 在门前稍等再试一次吧,登記冊沒聽清 · 在門前稍等再試一次吧
+gate.lodge.skip,넘기기,Skip,すすむ,跳过,跳過
+gate.lodge.tap_next,계속하려면 누르기,Tap to continue,タップでつづく,点按继续,點按繼續
+gate.lodge.depart_title,출전,Depart,出発,出征,出征
+gate.lodge.depart_saved,저장된 여정 · %s,Saved journey · %s,旅の記録 · %s,已存旅程 · %s,已存旅程 · %s
+gate.lodge.depart_where,%s주기 %s구역,cycle %s zone %s,第%s期 %s区,第%s周期 %s区域,第%s週期 %s區域
+gate.lodge.depart_resume,이어하기,Resume,つづける,继续,繼續
+gate.lodge.depart_fresh,새로 떠나기,Fresh departure,新たに出発,重新出发,重新出發
+gate.lodge.depart_fresh_confirm,정말 새로 떠나겠어 · 저장된 여정은 사라져,Truly depart fresh · the saved journey is gone,本当に新しく出発するの · 旅の記録は消えるよ,真的要重新出发吗 · 已存旅程会消失,真的要重新出發嗎 · 已存旅程會消失
+gate.lodge.depart_back,돌아가기,Return,もどる,返回,返回
+gate.lodge.account_lost,계정이 바뀌었어 · 처음으로 돌아갈게,The account changed · returning to the title,持ち主が変わったみたい · はじめに戻るね,账号变了 · 先回到开头吧,帳號變了 · 先回到開頭吧
+gate.lodge.return_title,처음으로,To title,はじめへ,回开头,回開頭

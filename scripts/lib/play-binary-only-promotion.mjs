@@ -112,11 +112,13 @@ function binaryReceiptView(plan) {
     packageName: plan.packageName,
     receiptPath: plan.binaryOnly.receiptPath,
     release: {
+      releaseNotes: plan.release.releaseNotes,
       versionCode: plan.release.versionCode,
       versionName: plan.release.versionName,
     },
     retained: {
       versionCode: plan.retained.versionCode,
+      versionName: plan.retained.versionName,
     },
   };
 }

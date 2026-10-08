@@ -6,6 +6,7 @@ import {
   APP_STORE_REUSE_COMMITTED_GALLERY_DECISION,
   APP_STORE_REUSE_COMMITTED_GALLERY_EVIDENCE,
   APP_STORE_SCREENSHOT_PROVENANCE_RELATIVE_PATH,
+  APP_STORE_VERSION_RELEASE_TYPE,
   IAP_PRODUCT_IDS,
   auditAppStoreConnectRelease,
   canonicalJson,
@@ -2166,6 +2167,14 @@ export async function submitAppStoreConnectReview({
     throw fail('ASC_REVIEW_PREFLIGHT_NOT_CONVERGED', 'cannot submit for review before GET preflight fully converges.');
   }
   const versionId = requireString(audit.remote.versionId, 'App Store version ID');
+  const remoteReleaseType = audit.remote.versionReleaseType ?? null;
+  if (remoteReleaseType !== APP_STORE_VERSION_RELEASE_TYPE) {
+    throw fail(
+      'ASC_AUTOMATIC_RELEASE_NOT_VERIFIED',
+      `App Store version ${versionId} releaseType readback is ${remoteReleaseType ?? 'UNKNOWN'}, `
+      + `expected ${APP_STORE_VERSION_RELEASE_TYPE} for automatic release after approval.`,
+    );
+  }
   const desiredProductIds = manifest.payload.inAppPurchases.products
     .map((product) => product.productId);
   if (

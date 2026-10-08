@@ -30,6 +30,13 @@ func _run() -> void:
 	await _test_equal_retry_is_idempotent()
 	await _test_higher_score_updates_monotonically()
 	await _test_write_race_reports_not_best()
+	await _test_submit_carries_verified_display()
+	await _test_submit_preserves_stored_display()
+	await _test_submit_rejects_forged_display()
+	await _test_unnamed_rows_render_honestly()
+	await _test_backfill_attaches_at_same_score()
+	await _test_backfill_invents_no_row()
+	await _test_backfill_never_downgrades()
 	await _test_top_board_query_cache_and_throttle()
 	await _test_rank_counts_strictly_greater()
 	await _test_rank_throttle_bounds_and_account()
@@ -108,6 +115,24 @@ func _rank_body(greater: int) -> String:
 			}
 		}
 	}])
+
+
+func _named_row_body(score: int, display: String, hero: String = HERO,
+		cycles: int = 3) -> String:
+	return JSON.stringify({
+		"name": "projects/%s/databases/(default)/documents/mb_hall_v1/%s"
+			% [PROJECT_ID, PUBLIC_ID],
+		"fields": {
+			"public_id": {"stringValue": PUBLIC_ID},
+			"hero": {"stringValue": hero},
+			"score": {"integerValue": str(score)},
+			"cycles": {"integerValue": str(cycles)},
+			"release": {"stringValue": "4.0.0"},
+			"schema": {"integerValue": "1"},
+			"updated_at": {"timestampValue": "2026-10-01T00:00:00Z"},
+			"display": {"stringValue": display},
+		},
+	})
 
 
 func _row_body_for(public_id: String, score: int, hero: String = HERO,
@@ -260,6 +285,117 @@ func _test_write_race_reports_not_best() -> void:
 		_new_transport(sender), PUBLIC_ID, HERO, 800, 4, "4.0.0")
 	_expect_equal(result.get("code", ""), "not-best",
 		"monotonic-rule denial reads as not-best, not a crash")
+
+
+func _test_submit_carries_verified_display() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var result: Dictionary = await hall.call("submit_best",
+		_new_transport(sender), PUBLIC_ID, HERO, 500, 3, "4.0.0",
+		"Luna")
+	_expect_equal(result.get("status", ""), "ok", "named submit ok")
+	var fields: Dictionary = (JSON.parse_string(str(
+		sender.call("last_call").get("body", ""))).get("writes", [])[0].get(
+		"update", {}) as Dictionary).get("fields", {})
+	_expect_equal(str(fields.get("display", {}).get("stringValue", "")),
+		"Luna", "submit carries the verified display")
+
+
+func _test_submit_preserves_stored_display() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_ok", _named_row_body(500, "Luna"))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var result: Dictionary = await hall.call("submit_best",
+		_new_transport(sender), PUBLIC_ID, HERO, 800, 4, "4.0.0")
+	_expect_equal(result.get("status", ""), "ok",
+		"cold-cache submit ok")
+	var fields: Dictionary = (JSON.parse_string(str(
+		sender.call("last_call").get("body", ""))).get("writes", [])[0].get(
+		"update", {}) as Dictionary).get("fields", {})
+	_expect_equal(str(fields.get("display", {}).get("stringValue", "")),
+		"Luna", "cold cache keeps the row's own display")
+
+
+func _test_submit_rejects_forged_display() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var result: Dictionary = await hall.call("submit_best",
+		_new_transport(sender), PUBLIC_ID, HERO, 500, 3, "4.0.0",
+		"a/b")
+	_expect_equal(result.get("code", ""), "invalid-name",
+		"forged display fails before any request")
+	_expect_equal(sender.calls.size(), 0, "forged display sends nothing")
+
+
+func _test_unnamed_rows_render_honestly() -> void:
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var own: Dictionary = hall.call("parse_row", _row_body(500))
+	_expect_equal(str((own.get("row", {}) as Dictionary).get(
+		"display", "MISSING")), "", "unnamed own row reads empty")
+	var named: Dictionary = hall.call(
+		"parse_row", _named_row_body(500, "Luna"))
+	_expect_equal(str((named.get("row", {}) as Dictionary).get(
+		"display", "")), "Luna", "named own row reads its handle")
+
+
+func _test_backfill_attaches_at_same_score() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_ok", _row_body(500,
+		"res://resources/heroes/keeper.tres", 7))
+	sender.call("queue_ok", _row_body(500,
+		"res://resources/heroes/keeper.tres", 7))
+	sender.call("queue_ok", "{\"writeResults\":[{}]}")
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var result: Dictionary = await hall.call("backfill_display",
+		_new_transport(sender), PUBLIC_ID, "Luna")
+	_expect_equal(result.get("status", ""), "ok", "backfill ok")
+	_expect_true(bool(result.get("backfilled", false)),
+		"backfill reports backfilled")
+	var fields: Dictionary = (JSON.parse_string(str(
+		sender.call("last_call").get("body", ""))).get("writes", [])[0].get(
+		"update", {}) as Dictionary).get("fields", {})
+	_expect_equal(str(fields.get("score", {}).get("integerValue", "")),
+		"500", "backfill keeps the row's own score")
+	_expect_equal(str(fields.get("hero", {}).get("stringValue", "")),
+		"res://resources/heroes/keeper.tres",
+		"backfill keeps the saved hero, not the selected one")
+	_expect_equal(str(fields.get("cycles", {}).get("integerValue", "")),
+		"7", "backfill keeps the saved cycles")
+	_expect_equal(str(fields.get("display", {}).get("stringValue", "")),
+		"Luna", "backfill attaches the handle")
+
+
+func _test_backfill_invents_no_row() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_reply", {"transport": "ok", "code": 404,
+		"body": "missing"})
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var result: Dictionary = await hall.call("backfill_display",
+		_new_transport(sender), PUBLIC_ID, "Luna")
+	_expect_equal(result.get("status", ""), "ok",
+		"backfill without a row still ok")
+	_expect_false(bool(result.get("backfilled", true)),
+		"backfill without a row writes nothing")
+	_expect_equal(result.get("code", ""), "no-row",
+		"backfill without a row names no-row")
+	_expect_equal(sender.calls.size(), 1, "backfill without a row reads once")
+
+
+func _test_backfill_never_downgrades() -> void:
+	var sender: RefCounted = FAKE_SENDER_SCRIPT.new()
+	sender.call("queue_ok", _row_body(500))
+	sender.call("queue_ok", _row_body(900))
+	var hall: RefCounted = HALL_SCRIPT.new()
+	var result: Dictionary = await hall.call("backfill_display",
+		_new_transport(sender), PUBLIC_ID, "Luna")
+	_expect_equal(result.get("code", ""), "not-best",
+		"backfill against a newer best reports not-best, never writes it down")
+	_expect_equal(_own_get_count(sender), 2,
+		"the retry re-reads the row instead of assuming")
 
 
 func _test_top_board_query_cache_and_throttle() -> void:

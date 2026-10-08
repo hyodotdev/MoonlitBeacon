@@ -312,10 +312,10 @@ func _open(id: String, node: Node) -> void:
 			node.call("open_cycle", 3)
 		"result_lose":
 			node.call("show_result", false, _sample_score(2), true, true,
-				-1, false, KEEPER)
+				-1, KEEPER)
 		"result_win":
 			node.call("show_result", true, _sample_score(9), true, false,
-				3, false, KEEPER)
+				3, KEEPER)
 		"ladder":
 			node.call("view")
 		"hero":

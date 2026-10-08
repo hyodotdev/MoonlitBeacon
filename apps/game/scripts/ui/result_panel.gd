@@ -88,8 +88,7 @@ func _ready() -> void:
 
 func show_result(
 	won: bool, score: Score, is_best: bool, can_record: bool = false,
-	places_restored: int = -1, gate_retry_available: bool = false,
-	hero_path: String = ""
+	places_restored: int = -1, hero_path: String = ""
 ) -> void:
 	_accepting = false
 	_reveal_finished = false
@@ -119,10 +118,10 @@ func show_result(
 	# A run they returned from and settled is already over. Showing paid
 	# continue then treats a win like a death, so it is only on a loss.
 	_continue.visible = not won
-	# After a lost run with a checkpoint, Retry returns through the saved
-	# gate instead of starting over. The button says which one it is.
-	if gate_retry_available and not won:
-		_retry.text = tr("RESULT_GATE_RETRY")
+	# A lost run is over: Retry starts over from the beginning, never from
+	# the defeated segment. A settled run keeps the plain fresh-run retry.
+	if not won:
+		_retry.text = tr("RESULT_START_OVER")
 	else:
 		_retry.text = tr("RESULT_RETRY")
 	_title.text = tr("RESULT_WIN") \
@@ -363,6 +362,11 @@ func _set_actions_enabled(value: bool) -> void:
 ## button is go-buy. **Do not put a price on the button** — the store sets
 ## display price per region, so they read it on the shop screen.
 func _refresh_continue() -> void:
+	# A receipt this scope already paid for retries its own revive — even
+	# broke — instead of sending the player to buy another coin.
+	if not Vault.scoped_continue_txn().is_empty():
+		_continue.text = tr("RESULT_CONTINUE_RETRY")
+		return
 	var coins: int = Vault.continue_coins
 	if coins > 0:
 		_continue.text = tr("RESULT_CONTINUE_COINS") % coins
@@ -374,7 +378,8 @@ func _request_continue() -> void:
 	if not _accepting or _overlay_blocked or _continue.disabled:
 		return
 	_accepting = false
-	if Vault.continue_coins > 0:
+	if Vault.continue_coins > 0 \
+			or not Vault.scoped_continue_txn().is_empty():
 		continue_requested.emit()
 		return
 	continue_purchase_requested.emit()

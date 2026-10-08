@@ -1,17 +1,18 @@
 extends Node
 
-## Journey persistence: checkpoints, resume, death retry, and the episode catalog.
+## Journey persistence: checkpoints, resume, sealed defeat, and the episode catalog.
 ##
 ## The endless game keeps its run across launches: segment-entry checkpoints
-## seal the gate behind the player, death retries the saved segment without
-## farming it, and the title offers Continue back through the last gate. The
-## opening plays over live combat instead of pausing it, and learned tips
-## stay learned. These pin the parts a regression could quietly break: the
-## round trip after a fork and a guardian reward, a late cycle past every
-## authored episode, hostile saves, backup recovery, failed writes, repeated
-## death/retry/launches that must not mint shards, the fresh-journey
-## confirmation, the unpaused opening contract, and the story catalog that
-## Acts, the chronicle and the arena all read from.
+## seal the gate behind the player, death seals the journey terminal without
+## farming it, and the title offers Continue back through the last gate of a
+## run that is still alive. The opening plays over live combat instead of
+## pausing it, and learned tips stay learned. These pin the parts a
+## regression could quietly break: the round trip after a fork and a
+## guardian reward, a late cycle past every authored episode, hostile saves,
+## backup recovery, failed writes, repeated defeat/exits/launches that must
+## not mint shards, the fresh-journey confirmation, the unpaused opening
+## contract, and the story catalog that Acts, the chronicle and the arena
+## all read from.
 ##
 ## Uses temp journey/onboarding/chronicle paths under the isolated test HOME,
 ## so no human save is touched. The Vault and Records autoloads are real but
@@ -57,9 +58,9 @@ func _run() -> void:
 	_fresh_paths()
 	_test_failed_write_keeps_previous()
 	_fresh_paths()
-	await _test_death_retry_no_farming()
+	await _test_defeat_seals_once_never_retries_free()
 	_fresh_paths()
-	await _test_result_retry_copy()
+	await _test_defeat_and_cashout_result_copy()
 	_fresh_paths()
 	await _test_fresh_confirm_required()
 	_fresh_paths()
@@ -333,6 +334,17 @@ func _write_text(candidate: String, text: String) -> void:
 	handle.close()
 
 
+## Raw JSON of one file, bypassing the Journey validator. Empty when the
+## file is missing or malformed.
+func _read_json_file(candidate: String) -> Dictionary:
+	if not FileAccess.file_exists(candidate):
+		return {}
+	var parser: JSON = JSON.new()
+	if parser.parse(FileAccess.get_file_as_string(candidate)) != OK:
+		return {}
+	return parser.data as Dictionary if parser.data is Dictionary else {}
+
+
 func _valid_checkpoint() -> Dictionary:
 	return {
 		"schema_version": 1,
@@ -455,10 +467,11 @@ func _test_failed_write_keeps_previous() -> void:
 		"the previous playable save survives the failed write")
 
 
-# --- death and retry ------------------------------------------------------------------
-## Repeated death, restore and process-launch retries cannot increase banked
-## shards or duplicate record and reward settlement.
-func _test_death_retry_no_farming() -> void:
+# --- death and defeat ---------------------------------------------------------------
+## Death seals the journey terminal exactly once: the file carries the ended
+## marker at the last seal's id, no free segment retry exists anywhere, and
+## repeated finishes, settlements or relaunches grant nothing more.
+func _test_defeat_seals_once_never_retries_free() -> void:
 	_begin_human_fresh()
 	var arena: Node2D = ARENA_SCENE.instantiate() as Node2D
 	add_child(arena)
@@ -470,45 +483,66 @@ func _test_death_retry_no_farming() -> void:
 	arena.set("_survived", 240.0)
 	_expect_true(bool(arena.call("_journey_checkpoint", true)), "the gate seals")
 	var banked: int = Vault.shards
-	var awarded: int = int(arena.get("_run_shards_awarded"))
-	var checkpoint_score: int = int((arena.get("_journey_snapshot") as Dictionary)["settled_score"])
-	var checkpoint_stacks: Dictionary = (
-		arena.get("_journey_snapshot") as Dictionary)["relic_stacks"]
+	var sealed_id: int = int(
+		(arena.get("_journey_snapshot") as Dictionary)["checkpoint_id"])
+	var old_journey: String = str(arena.get("_journey_id"))
 	var coins: int = Vault.continue_coins
-	var retry_action: int = int(arena.ResultAction.RESTART)
 
-	for attempt in 3:
-		# The defeated segment earns score, loot and time — all of it is lost.
-		arena.set("_kill_score", int(arena.get("_kill_score")) + 5000)
-		arena.set("_survived", float(arena.get("_survived")) + 60.0)
-		var relic_panel: Control = arena.get_node("Ui/Relic") as Control
-		arena.call("_on_relic_picked",
-			relic_panel.call("take_named", TOUGH_LIFE), false)
-		arena.call("_finish", false)
-		await get_tree().process_frame
-		_expect_equal(Vault.shards, banked,
-			"death %d banks no new shards" % (attempt + 1))
-		_expect_equal(int(arena.get("_run_shards_awarded")), awarded,
-			"death %d grants no new reward" % (attempt + 1))
-		_expect_true(Records.best_score >= checkpoint_score,
-			"death %d keeps one record submission" % (attempt + 1))
-		var retry: Button = arena.get_node("Ui/Result/Actions/Retry") as Button
-		_expect_equal(retry.text, tr("RESULT_GATE_RETRY"),
-			"death %d offers the gate retry" % (attempt + 1))
-		arena.call("_on_result_dismissed", retry_action)
-		await get_tree().process_frame
-		_expect_false(bool(arena.get("_over")),
-			"retry %d resumes the run" % (attempt + 1))
-		_expect_equal(_stack_counts(arena).size(), (checkpoint_stacks as Dictionary).size(),
-			"retry %d drops the defeated loot" % (attempt + 1))
-		_expect_equal(int(arena.get("_kill_score")),
-			int((arena.get("_journey_snapshot") as Dictionary)["kill_score"]),
-			"retry %d restores the checkpoint score" % (attempt + 1))
-		_expect_equal(Vault.shards, banked,
-			"retry %d mints no shards" % (attempt + 1))
-	_expect_equal(Vault.continue_coins, coins, "gate retries spend no paid coins")
+	# The defeated segment earns score, loot and time; the final failure
+	# settles the live totals once and seals them into the marker.
+	arena.set("_kill_score", int(arena.get("_kill_score")) + 5000)
+	arena.set("_survived", float(arena.get("_survived")) + 60.0)
+	var relic_panel: Control = arena.get_node("Ui/Relic") as Control
+	arena.call("_on_relic_picked",
+		relic_panel.call("take_named", TOUGH_LIFE), false)
+	var final_total: int = int(arena.call("_journey_score_total"))
+	var best_before: int = Records.best_score
+	arena.call("_finish", false)
+	await get_tree().process_frame
+	_expect_true(bool(arena.get("_over")), "death ends the run")
+	_expect_false(arena.has_method("_retry_from_gate"),
+		"no free gate retry route exists")
+	_expect_false(arena.has_method("_journey_retry_available"),
+		"no gate retry availability check exists")
+	var tombstone: Dictionary = _read_json_file(TEST_PATH)
+	_expect_true(bool(tombstone.get("ended", false)),
+		"death seals the terminal marker")
+	_expect_equal(int(tombstone.get("checkpoint_id", -1)), sealed_id,
+		"the marker keeps the last seal's id")
+	_expect_equal(int(tombstone.get("settled_score", -1)), final_total,
+		"the marker echoes the final live score")
+	_expect_equal(int(tombstone.get("shards_awarded", -1)),
+		int(arena.get("_run_shards_awarded")),
+		"the marker echoes the granted shards")
+	_expect_false(Journey.has_valid_checkpoint(),
+		"a sealed defeat offers no Continue")
+	_expect_true(Journey.summary(Journey.read_checkpoint()).is_empty(),
+		"a sealed defeat summarizes to nothing")
+	var retry: Button = arena.get_node("Ui/Result/Actions/Retry") as Button
+	_expect_equal(retry.text, tr("RESULT_START_OVER"),
+		"death offers a fresh start, never the defeated segment")
+	_expect_equal(Vault.continue_coins, coins, "death spends no paid coins")
+	var banked_final: int = Vault.shards
+	_expect_true(banked_final >= banked, "the final failure settles once")
+	_expect_equal(int(arena.get("_board_score")), final_total,
+		"the result counts the final live score")
+	_expect_equal(Records.best_score, maxi(best_before, final_total),
+		"the final score submits to the records")
 
-	# A new process launching into the same gate cannot grant again either.
+	# A second finish and a repeated settlement change nothing.
+	arena.call("_finish", false)
+	await get_tree().process_frame
+	_expect_equal(Vault.shards, banked_final,
+		"a repeated finish banks nothing")
+	_expect_false(bool(arena.call(
+		"_persist_finished_result", final_total,
+		str(arena.get("_board_rank")))),
+		"a repeated settlement saves no new best")
+	_expect_equal(Vault.shards, banked_final,
+		"a repeated settlement banks nothing")
+
+	# A relaunch meets the sealed defeat and starts visibly over: cycle 1,
+	# a new journey, and no grant for the sealed run.
 	arena.queue_free()
 	await get_tree().process_frame
 	_begin_human_resume()
@@ -516,18 +550,24 @@ func _test_death_retry_no_farming() -> void:
 	add_child(relaunched)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_expect_equal(int(relaunched.get("_run_shards_awarded")), awarded,
-		"a relaunch restores the settlement bookkeeping")
-	relaunched.set("_kill_score", int(relaunched.get("_kill_score")) + 9000)
-	relaunched.call("_finish", false)
-	await get_tree().process_frame
-	_expect_equal(Vault.shards, banked, "a relaunched death banks no new shards")
+	_expect_true(bool(relaunched.get("_journey_resume_failed")),
+		"a sealed defeat visibly falls back to fresh")
+	_expect_equal(int(relaunched.get("_cycle")), 1,
+		"the fallback starts at cycle 1")
+	_expect_equal(int(relaunched.get("_zone_index")), 0,
+		"the fallback starts at zone 0")
+	_expect_not_equal(str(relaunched.get("_journey_id")), old_journey,
+		"the fallback begins a new journey")
+	_expect_equal(Vault.shards, banked_final,
+		"the fallback grants nothing for the sealed run")
+	_expect_equal(Vault.continue_coins, coins,
+		"the fallback spends no paid coins")
 	relaunched.queue_free()
 	await get_tree().process_frame
 
 
-## Retry says which road it takes: the gate on a loss, a fresh run on a win.
-func _test_result_retry_copy() -> void:
+## Retry says which road it takes: start over on a loss, a fresh run on a win.
+func _test_defeat_and_cashout_result_copy() -> void:
 	_begin_human_fresh()
 	var arena: Node2D = ARENA_SCENE.instantiate() as Node2D
 	add_child(arena)
@@ -540,17 +580,33 @@ func _test_result_retry_copy() -> void:
 	arena.call("_finish", false)
 	await get_tree().process_frame
 	var retry: Button = arena.get_node("Ui/Result/Actions/Retry") as Button
-	_expect_equal(retry.text, tr("RESULT_GATE_RETRY"),
-		"a lost checkpoint run names the gate retry")
-	# Leaving the death behind, a cashout keeps the plain fresh-run retry.
-	arena.call("_retry_from_gate")
-	await get_tree().process_frame
-	arena.call("_journey_checkpoint", true)
-	arena.call("_finish", true)
-	await get_tree().process_frame
-	_expect_equal(retry.text, tr("RESULT_RETRY"),
-		"a settled run keeps the fresh-run retry")
+	_expect_equal(retry.text, tr("RESULT_START_OVER"),
+		"a lost run names the fresh start")
+	var lost_continue: Button = arena.get_node(
+		"Ui/Result/Actions/Continue") as Button
+	_expect_true(lost_continue.visible, "a lost run offers the paid continue")
+	_expect_true(bool(_read_json_file(TEST_PATH).get("ended", false)),
+		"a lost run seals its defeat")
 	arena.queue_free()
+	await get_tree().process_frame
+	# A cashout keeps the plain fresh-run retry and its alive checkpoint.
+	_begin_human_fresh()
+	var settled: Node2D = ARENA_SCENE.instantiate() as Node2D
+	add_child(settled)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	settled.call("_finish", true)
+	await get_tree().process_frame
+	var retry_after_win: Button = settled.get_node(
+		"Ui/Result/Actions/Retry") as Button
+	_expect_equal(retry_after_win.text, tr("RESULT_RETRY"),
+		"a settled run keeps the fresh-run retry")
+	_expect_false((settled.get_node(
+		"Ui/Result/Actions/Continue") as Button).visible,
+		"a settled run offers no paid continue")
+	_expect_true(Journey.has_valid_checkpoint(),
+		"a settled run keeps its alive checkpoint")
+	settled.queue_free()
 	await get_tree().process_frame
 
 
@@ -1370,7 +1426,7 @@ func _test_mixed_eviction_and_garbage_ids() -> void:
 
 
 # --- layout -------------------------------------------------------------------
-## The Continue panel and the gate-retry button fit their copy in all five
+## The Continue panel and the start-over button fit their copy in all five
 ## locales: no clipped text on the title or the result screen.
 func _test_journey_ui_fits_five_locales() -> void:
 	_expect_equal(Journey.write_checkpoint(_valid_checkpoint()), OK,
@@ -1402,13 +1458,15 @@ func _test_journey_ui_fits_five_locales() -> void:
 		score.survived = 320.0
 		score.level = 6
 		score.kills = 860
-		result.show_result(false, score, false, false, 2, true)
+		result.show_result(false, score, false, false, 2)
 		await get_tree().process_frame
 		var retry: Button = result.get_node("Actions/Retry") as Button
+		_expect_equal(retry.text, tr("RESULT_START_OVER"),
+			"%s loss names the fresh start" % locale)
 		var minimum: Vector2 = retry.get_combined_minimum_size()
 		_expect_true(minimum.x <= retry.size.x + 0.5
 			and minimum.y <= retry.size.y + 0.5,
-			"%s gate-retry button fits (%s / %s)" % [locale, minimum, retry.size])
+			"%s start-over button fits (%s / %s)" % [locale, minimum, retry.size])
 		result.queue_free()
 		await get_tree().process_frame
 
@@ -1447,7 +1505,8 @@ func _test_every_journey_key_exists_in_every_locale() -> void:
 	var keys: Array[String] = ["JOURNEY_CONTINUE", "JOURNEY_NEW",
 		"JOURNEY_CONFIRM_TITLE", "JOURNEY_CONFIRM_DESC", "JOURNEY_CONFIRM_ERASE",
 		"JOURNEY_CONFIRM_KEEP", "JOURNEY_SAVE_FAILED", "JOURNEY_RESUME_FAILED",
-		"JOURNEY_RESUMED", "RESULT_GATE_RETRY"]
+		"JOURNEY_RESUMED", "RESULT_START_OVER", "RESULT_RETRY",
+		"RESULT_CONTINUE_COINS", "RESULT_CONTINUE_BUY"]
 	var original: String = TranslationServer.get_locale()
 	for locale in LOCALES:
 		TranslationServer.set_locale(locale)

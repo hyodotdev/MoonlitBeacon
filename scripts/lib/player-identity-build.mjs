@@ -592,6 +592,16 @@ export function renderAndroidPluginProject({ root, outDir }) {
   mkdirSync(dirname(kotlinDest), { recursive: true });
   cpSync(kotlinSrc, kotlinDest, { recursive: true });
   files.push(kotlinDest);
+  // Owned Android resources (notification icon, channel strings) ride
+  // the same standalone project: without this copy the Kotlin sources
+  // compile against an R class that lacks them.
+  const resSrc = join(src, 'src/main/res');
+  const resDest = join(outDir, 'MoonlitIdentity/src/main/res');
+  if (existsSync(resSrc)) {
+    mkdirSync(dirname(resDest), { recursive: true });
+    cpSync(resSrc, resDest, { recursive: true });
+    files.push(resDest);
+  }
   const gdapDest = join(outDir, 'MoonlitIdentity.gdap');
   writeFileSync(gdapDest, readFileSync(join(src, 'MoonlitIdentity.gdap'), 'utf8'));
   files.push(gdapDest);

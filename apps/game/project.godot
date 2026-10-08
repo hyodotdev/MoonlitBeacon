@@ -19,7 +19,7 @@ config/name_localized={
 "zh_TW": "月光烽火"
 }
 config/description="봉화를 밝히고 정령의 불씨와 유물로 무기를 키워 끝없는 순환에 도전하는 2D 탑다운 서바이버 액션 게임."
-config/version="4.0.0"
+config/version="4.0.1"
 run/main_scene="res://scenes/menus/production_entry.tscn"
 config/quit_on_go_back=false
 config/features=PackedStringArray("4.7", "GL Compatibility")

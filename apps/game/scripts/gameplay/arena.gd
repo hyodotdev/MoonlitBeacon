@@ -735,14 +735,21 @@ var _journey_id: Variant = ""
 var _journey_checkpoint_id: int = 0
 var _journey_settled_score: int = 0
 ## A receipt whose Vault save failed stays pending (sealed unsettled); any
-## later successful receipt supersedes it, which keeps retries available.
+## later successful receipt supersedes it.
+## A defeat whose terminal seal failed to write stays pending too: the run
+## cannot be left until the marker lands, or the older alive file behind it
+## would offer a free continuation.
+var _journey_defeat_pending: bool = false
 var _journey_receipt_pending: bool = false
 var _journey_receipt_pending_cid: int = 0
 var _journey_receipt_pending_score: int = 0
 var _journey_resuming: bool = false
 var _journey_resume_failed: bool = false
+## A stranded paid continue whose seal cannot land. The run never opens:
+## booting fresh would abandon the journaled revive, so `_ready` leaves
+## for the title and the next entry retries the materialize.
+var _journey_recovery_failed: bool = false
 var _journey_opening_played: bool = false
-var _journey_last_finish_won: bool = false
 var _journey_opening_strip: Array[String] = []
 ## If result save fails briefly, retry before leaving the run. The side that saved drops out of
 ## pending, so a stuck other side cannot duplicate shards or a new record.
@@ -789,16 +796,31 @@ var _combat_hud_queued: bool = false
 
 
 func _ready() -> void:
+	# A crash may have stranded a paid continue: debit journaled, seal not
+	# yet written. Settle it before reading, so the paid revive — not a
+	# fresh fallback — greets the relaunch.
+	var recovery: String = Vault.recover_paid_continue()
 	# The title's journey action is consumed first so the restored hero, seed,
 	# cycle and route are in place before the room, art and boons build below.
 	_journey_action = Journey.consume_pending()
 	if _journey_action == Journey.Pending.RESUME:
 		_journey_snapshot = Journey.read_checkpoint()
-		if _journey_snapshot.is_empty():
-			# Resume asked for a journey that is gone or refused. Fall back
-			# to a fresh run, visibly: the banner says so below.
-			_journey_action = Journey.Pending.FRESH
-			_journey_resume_failed = true
+		if _journey_snapshot.is_empty() \
+				or Journey.is_ended(_journey_snapshot):
+			if recovery == "failed":
+				# The paid seal cannot land (its write keeps failing) and
+				# the files still hold the defeat. Booting a fresh run
+				# here would abandon — and clear — the paid revive, so
+				# leave for the title instead; the journal stays and the
+				# next entry retries it.
+				_journey_recovery_failed = true
+			else:
+				# Resume asked for a journey that is gone, refused, or already
+				# sealed its defeat. Fall back to a fresh run, visibly: the
+				# banner says so below.
+				_journey_snapshot = {}
+				_journey_action = Journey.Pending.FRESH
+				_journey_resume_failed = true
 		else:
 			_journey_resuming = true
 	_camera.zoom = Vector2.ONE * WORLD_CAMERA_ZOOM
@@ -928,6 +950,13 @@ func _ready() -> void:
 	_apply_boons()
 	_apply_test_boost()
 	_refresh_evolution_hud()
+	if _journey_recovery_failed:
+		Journey.disarm()
+		# Only the scene root swaps scenes: an embedded arena (tests, the
+		# review harness) idles unopened instead of redirecting its host.
+		if get_tree().current_scene == self:
+			get_tree().call_deferred("change_scene_to_file", TITLE_SCENE)
+		return
 	_journey_open_run()
 	_tutorial_origin = _player.position
 	_begin_tutorial.call_deferred()
@@ -979,7 +1008,7 @@ func _hero_path_for_run() -> String:
 ## settles nothing so starting alone never pays.
 func _journey_open_run() -> void:
 	if _journey_resuming:
-		_journey_restore_segment(true)
+		_journey_restore_segment()
 		_hud.announce(
 			tr("JOURNEY_RESUMED") % _cycle, Color(0.72, 0.94, 1.0, 1),
 			ONBOARD_HOLD)
@@ -1002,8 +1031,8 @@ func _journey_open_run() -> void:
 
 
 ## Restore the checkpoint's plain values before the room, art and analytics
-## build from them. Called in `_ready` right after the Vault pick, and again
-## by an in-place gate retry.
+## build from them. Called in `_ready` right after the Vault pick for a run
+## that is still alive; a sealed defeat never reaches here.
 func _journey_apply_early(snapshot: Dictionary) -> void:
 	_run_seed = int(snapshot["run_seed"])
 	_cycle = int(snapshot["cycle"])
@@ -1064,29 +1093,11 @@ func _journey_apply_early(snapshot: Dictionary) -> void:
 ## Rebuild the saved segment through production methods: reset growth to base,
 ## feed saved relic stacks through the real pick path, rebuild the
 ## deterministic world, quietly relight completed beacons, and reset transient
-## combat state. `world_ready` is true when `_ready` already built the room
-## from restored values.
-func _journey_restore_segment(world_ready: bool) -> void:
-	if not world_ready:
-		_journey_apply_early(_journey_snapshot)
-		_raid_queue.clear()
-		_clear_hostile_projectiles()
-		_clear_friendly_projectiles()
-		for spirit in _spirits:
-			if is_instance_valid(spirit):
-				spirit.retreat()
-		_spirits.clear()
-		_guardian = null
-		_guardian_title = ""
-		_guardian_detail = ""
-		for group in [&"moon_embers", &"power_orbs", &"missile_cores", &"moon_dews"]:
-			for pickup in get_tree().get_nodes_in_group(group):
-				if is_instance_valid(pickup):
-					pickup.queue_free()
-		if _skills != null:
-			_skills.queue_free()
-			_skills = null
-	# The defeated segment grants nothing: banking its embers here would pay twice.
+## combat state. Runs once at resume, after `_ready` already built the room
+## from the restored values.
+func _journey_restore_segment() -> void:
+	# A resumed segment starts clean: banking carried-over embers here would
+	# pay for progress the checkpoint never sealed.
 	_ember_positions.clear()
 	_ember_elites.clear()
 	_pending_embers = 0
@@ -1101,13 +1112,11 @@ func _journey_restore_segment(world_ready: bool) -> void:
 				_on_relic_picked(item, false, "opening")
 	_settle_rates()
 	_refresh_aux_weapons()
-	# The gate restores you. Health is not stored: retrying a gate saved at
-	# one heart with one heart would be a death loop.
+	# The gate restores you. Health is not stored: resuming a gate saved
+	# at one heart with one heart would be a death loop.
 	_set_health(_max_health)
 	_moonfire_charge = 0.0
 	_end_moonfire()
-	if not world_ready:
-		_change_world(false)
 	# Reset quietly: `reset()` emits `lit_changed(false)` for a lit beacon,
 	# which would uncount the restored beacons below.
 	for beacon in _beacons:
@@ -1232,12 +1241,16 @@ func _vault_settle_journey_receipt(
 	return Vault.settle_journey_receipt(journey, checkpoint_id, target)
 
 
-func _journey_snapshot_now(total: int) -> Dictionary:
+## Seal the current live state as a checkpoint dict. Gate and cycle seals
+## tick the checkpoint id; the defeat seal passes `false` so the terminal
+## marker keeps the last alive seal's id and the coin revive seals the next.
+func _journey_snapshot_now(total: int, bump_checkpoint: bool = true) -> Dictionary:
 	# Fresh starts and resumes always set the id first; this is last resort.
 	if str(_journey_id).is_empty():
 		_journey_id = "r%x" % abs(randi())
 		_journey_checkpoint_id = 0
-	_journey_checkpoint_id += 1
+	if bump_checkpoint:
+		_journey_checkpoint_id += 1
 	_journey_settled_score = total
 	var stacks: Dictionary = {}
 	for item in _taken:
@@ -1296,51 +1309,18 @@ func _journey_score_total() -> int:
 	return score.total()
 
 
-## A gate retry is possible: a human run holding a checkpoint.
-func _journey_retry_available() -> bool:
-	return Journey.armed and not _journey_snapshot.is_empty()
-
-
-## Count the result from the checkpoint, not the defeated segment. The lost
-## segment's kills, score and rewards grant nothing, so no number of retries,
-## restarts or relaunches can multiply them.
-func _journey_fill_score_from_checkpoint(score: Score) -> void:
-	score.cycles = maxi(int(_journey_snapshot["cycle"]) - 1, 0)
-	score.beacons = int(_journey_snapshot["lit_count"])
-	score.survived = float(_journey_snapshot["survived"])
-	score.level = int(_journey_snapshot["level"])
-	score.kills = int(_journey_snapshot["kill_score"])
-
-
-## Retry the saved segment after death: restore the checkpoint in place and
-## resume the run. Free — no continue coin is spent — and the checkpoint is
-## preserved, so dying again retries the same gate.
-func _retry_from_gate() -> void:
-	if not _over or not _journey_retry_available():
-		return
-	if not _retry_pending_result_persistence():
-		_result.reopen_after_failed_continue()
-		return
-	_over = false
-	_journey_last_finish_won = false
-	_analytics_run_end_reason = ""
-	_analytics_track("gate_retry", {
-		"cycle": int(_journey_snapshot.get("cycle", 1)),
-		"elapsed_ms": _analytics_elapsed_ms(),
-	})
-	_pending_result_action = ResultAction.NONE
-	_result.visible = false
-	_journey_restore_segment(false)
-	_player.resume_after_continue(CONTINUE_CLEAR_RADIUS)
-	_player.set_move_input(Vector2.ZERO)
-	set_process(true)
-	_stick.set_active(true)
-	_pause.set_available(true)
-	_spawn_timer = maxf(_spawn_timer, CONTINUE_CALM)
-	_raid_left = maxf(_raid_left, CONTINUE_CALM)
-	_hud.announce(
-		tr("JOURNEY_RESUMED") % _cycle, Color(0.72, 0.94, 1.0, 1),
-		ONBOARD_HOLD)
+## Seal the defeat durably: the journey file carries the final counters with
+## the terminal marker, so the title, a relaunch, a backup or a cloud restore
+## can never resume this run for free. The previous alive seal rotates into
+## the backup behind it. When the write fails the marker stays pending and
+## the run cannot be left until the seal lands (see
+## `_retry_pending_result_persistence`); wallets and records are untouched.
+func _seal_defeat() -> void:
+	var tombstone: Dictionary = _journey_snapshot_now(
+		_journey_score_total(), false)
+	tombstone["ended"] = true
+	_journey_snapshot = tombstone
+	_journey_defeat_pending = Journey.write_checkpoint(tombstone) != OK
 
 
 ## Fresh human journey, first seconds: the opening plays as a nonmodal voice
@@ -1724,6 +1704,8 @@ func _on_result_dismissed(action: ResultAction) -> void:
 
 
 ## Result screen's record button. Opens the ladder panel; closing it returns to results.
+## A verified named player records under the account's handle with no
+## re-ask; everyone else gets the classic typed name.
 func _on_result_record() -> void:
 	if not _retry_pending_result_persistence():
 		_result.reopen_after_failed_continue()
@@ -1731,7 +1713,19 @@ func _on_result_record() -> void:
 	# **Always hide the result screen.** The ladder panel's dim is 0.82, so the score breakdown and
 	# name field stack on one screen behind it. That is how it actually captured.
 	_result.visible = false
-	_ladder.ask(
+	var handle: String = str(Vault.verified_name_for_account(
+		Journey.active_account).get("display", ""))
+	if handle.is_empty():
+		_ladder.ask(
+			_board_score,
+			_board_rank,
+			_board_cycles,
+			_hero_path_for_run(),
+			_board_run_id(),
+		)
+		return
+	_ladder.ask_named(
+		handle,
 		_board_score,
 		_board_rank,
 		_board_cycles,
@@ -1773,11 +1767,9 @@ func _finish_result_action() -> void:
 		ResultAction.SHRINE:
 			_return_to_title(true)
 		_:
-			# After a lost run with a checkpoint, Retry means the saved gate,
-			# not a fresh run. The button says so on screen.
-			if _over and not _journey_last_finish_won and _journey_retry_available():
-				_retry_from_gate()
-				return
+			# Win or lose, Retry starts over: the sealed defeat stays sealed
+			# and the reloaded scene begins a new journey. The button says
+			# so on screen.
 			_restart()
 
 
@@ -1844,6 +1836,9 @@ func _submit_run_record(total_score: int, rank: String) -> int:
 
 ## Shared retry door for result buttons, recording, continue, and shop travel.
 ## Attempt both saves so one failure cannot block the other side's recovery.
+## A defeat whose terminal seal failed lands last, after a recovered
+## settlement refreshes its echo: leaving with the older alive file still in
+## place would offer a free continuation.
 func _retry_pending_result_persistence() -> bool:
 	var awarded_before: int = _run_shards_awarded
 	var settlement_ok: bool = true
@@ -1862,11 +1857,24 @@ func _retry_pending_result_persistence() -> bool:
 		record_ok = record_result != Records.SubmitResult.SAVE_FAILED
 		record_saved = record_result == Records.SubmitResult.SAVED
 
+	var defeat_ok: bool = true
+	if _journey_defeat_pending:
+		if Journey.armed and not _journey_snapshot.is_empty():
+			_journey_snapshot["shards_awarded"] = _run_shards_awarded
+			_journey_snapshot["settled_score"] = maxi(
+				int(_journey_snapshot.get("settled_score", 0)),
+				_journey_score_total())
+			if Journey.write_checkpoint(_journey_snapshot) == OK:
+				_journey_defeat_pending = false
+		else:
+			_journey_defeat_pending = false
+		defeat_ok = not _journey_defeat_pending
+
 	if _result != null and _result.visible \
 			and (record_saved or awarded_before != _run_shards_awarded):
 		# Do not replay an already-revealed result; only correct the stored values.
 		_result.refresh_persistence(record_saved, _run_shards_awarded)
-	return settlement_ok and record_ok
+	return settlement_ok and record_ok and defeat_ok
 
 
 ## Small boundary where result-persistence regression tests inject save failure and recovery.
@@ -3307,33 +3315,23 @@ func _finish(won: bool) -> void:
 		_ripple.queue_free()
 	_ripple = null
 
-	_journey_last_finish_won = won
+	# The result always counts the final live state. Death is terminal now,
+	# so there is no checkpoint to fall back to and no retry to farm: the
+	# once-only receipt ledger keeps the single settlement exact.
 	var score: Score = Score.new()
-	if _journey_retry_available():
-		# Count the checkpoint, never the defeated segment: the lost segment
-		# grants nothing, so retries cannot farm it. A cashout wrote its own
-		# checkpoint just above, so this matches the live state there.
-		_journey_fill_score_from_checkpoint(score)
-	else:
-		score.cycles = maxi(_cycle - 1, 0)
-		score.beacons = _lit_count
-		score.survived = _survived
-		score.level = _level
-		score.kills = _kill_score
+	score.cycles = maxi(_cycle - 1, 0)
+	score.beacons = _lit_count
+	score.survived = _survived
+	score.level = _level
+	score.kills = _kill_score
 	# Both new records and shards confirm a real save. A briefly failed side retries when a result
 	# button is pressed, and until then the run cannot be left.
 	var is_best: bool = _persist_finished_result(score.total(), score.rank())
-	if _journey_retry_available():
-		# The death may have banked the checkpoint's remainder (the run-start
-		# checkpoint settles nothing until now). Rewrite the bookkeeping so a
-		# relaunch cannot grant it again. The gate itself is preserved.
-		_journey_snapshot["shards_awarded"] = _run_shards_awarded
-		_journey_snapshot["settled_score"] = maxi(
-			int(_journey_snapshot.get("settled_score", 0)), score.total())
-		_journey_snapshot["opening_played"] = _journey_opening_played
-		# Best effort: the in-memory checkpoint stays valid for the retry even
-		# if this rewrite fails, and `Journey.last_error` carries the reason.
-		Journey.write_checkpoint(_journey_snapshot)
+	if not won and Journey.armed:
+		# The death may have banked the run-start remainder (the first
+		# checkpoint settles nothing until now). Seal the defeat with the
+		# final bookkeeping so no exit, restore or relaunch grants it again.
+		_seal_defeat()
 	# The result line's "this run" is the cumulative shards actually received in this run, not the
 	# last settlement delta. Pre-continue grants still show as this run's reward.
 	score.shards = _run_shards_awarded
@@ -3351,15 +3349,15 @@ func _finish(won: bool) -> void:
 	_board_cycles = score.cycles
 	_result.show_result(
 		won, score, is_best, Ladder.makes_board(_board_score),
-		_places_seen_run.size(), not won and _journey_retry_available(),
-		_run_hero_path)
+		_places_seen_run.size(), _run_hero_path)
 
 
 func _on_continue_requested() -> void:
 	if continue_run():
 		return
 	# Balance gone or save failed. Restore the result screen as-is so the player can choose again.
-	# Coins were not deducted.
+	# A debit that already journaled stays journaled: the panel offers a
+	# save retry for it instead of the shop, and the retry never recharges.
 	_result.reopen_after_failed_continue()
 
 
@@ -3405,16 +3403,37 @@ const CONTINUE_CLEAR_RADIUS: float = 132.0
 ## continue buys a life, not progress, and that is what separates its value from
 ## "from scratch."
 ##
-## With no balance, change nothing and return false. Coin is spent before revive, so keep that
-## order and a mid-revive failure cannot burn a coin alone (a failed save undoes the
-## debit itself).
+## One recoverable protocol, never best-effort rollback across two saves.
+## On a sealed journey run the coin debit journals the exact revive seal
+## first (`begin_continue_txn`); only then is the alive checkpoint written
+## (no receipt settles here; the next gate seal carries new value), and the
+## journal clears once the seal lands. A failed debit writes nothing; a
+## failed seal keeps the terminal marker with the debit journaled, so a
+## retry reuses it without charging again and a relaunch recovers the paid
+## revive — instead of stranding an unpaid alive checkpoint — through the
+## entry points. Runs without a sealed journey keep the plain spend.
 func continue_run() -> bool:
 	if not _over:
 		return false
 	if not _retry_pending_result_persistence():
 		return false
-	if not Vault.spend_continue_coin():
-		return false
+	if Journey.armed and Journey.is_ended(_journey_snapshot):
+		var revived: Dictionary = _journey_snapshot_now(
+			_journey_score_total())
+		if not Vault.begin_continue_txn(_journey_id,
+				int(revived["checkpoint_id"]), JSON.stringify(revived)):
+			_journey_checkpoint_id -= 1
+			return false
+		if Journey.write_checkpoint(revived) != OK:
+			_journey_checkpoint_id -= 1
+			return false
+		_journey_snapshot = revived
+		Vault.ack_continue_txn()
+	else:
+		if Vault.continue_coins <= 0:
+			return false
+		if not Vault.spend_continue_coin():
+			return false
 
 	_over = false
 	_analytics_run_end_reason = ""
@@ -3519,8 +3538,7 @@ func _open_credits() -> void:
 
 func _restart() -> void:
 	# A restart is an explicit fresh start: the reloaded scene begins a new
-	# journey as a human run. Gate retry (which preserves the checkpoint)
-	# routes around this through `_retry_from_gate`.
+	# journey as a human run, clearing whatever the old one sealed.
 	Journey.begin_fresh()
 	RunEntry.mark_from_title()
 	_analytics_track_run_end(

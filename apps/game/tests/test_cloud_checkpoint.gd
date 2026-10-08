@@ -36,6 +36,7 @@ func _run() -> void:
 	await _test_switch_account_retires_inflight()
 	await _test_choose_local_returns_fresh_remote()
 	await _test_load_needs_validator()
+	_test_summary_marks_ended_payload()
 	if _failed > 0:
 		printerr("cloud checkpoint tests failed — ", _failed, "/", _checked,
 			" cases")
@@ -346,6 +347,25 @@ func _test_load_needs_validator() -> void:
 		"downloaded payload flagged for the Journey validator")
 	_expect_equal(loaded.get("update_time", ""),
 		"2026-10-01T04:00:00Z", "compare-and-swap guard decoded")
+
+
+## Conflict summaries name a sealed run without leaking the payload: the
+## defeat marker rides along only when a present bool says so.
+func _test_summary_marks_ended_payload() -> void:
+	var sealed: Dictionary = SCHEMA_SCRIPT.summarize_payload(
+		"{\"cycle\":3,\"ended\":true}", 4)
+	_expect_equal(sealed.get("ended", false), true,
+		"a sealed payload marks its summary")
+	_expect_equal(sealed.get("cycle", 0), 3,
+		"the sealed summary keeps its cycle")
+	var living: Dictionary = SCHEMA_SCRIPT.summarize_payload(
+		"{\"cycle\":3}", 4)
+	_expect_false(living.has("ended"),
+		"a payload sealed before the defeat rules carries no key")
+	var smuggled: Dictionary = SCHEMA_SCRIPT.summarize_payload(
+		"{\"cycle\":3,\"ended\":1}", 4)
+	_expect_false(smuggled.has("ended"),
+		"a non-bool marker never rides the summary")
 
 
 func _expect_true(value: bool, label: String) -> void:

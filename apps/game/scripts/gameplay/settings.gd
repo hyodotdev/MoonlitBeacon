@@ -11,6 +11,10 @@ signal changed
 const SAVE_PATH: String = "user://settings.cfg"
 const TEMP_SAVE_PATH: String = "user://settings.cfg.tmp"
 const ANALYTICS_REVOKED_PATH: String = "user://analytics_consent.revoked"
+## Separate fail-closed mark for attendance reminders. Same shape as the
+## analytics revocation, but the two preferences never read each other's
+## mark: revoking metrics must not silence reminders and vice versa.
+const REMINDER_DISABLED_PATH: String = "user://attendance_reminders.disabled"
 const SECTION: String = "settings"
 
 ## Languages that can be picked. Must match column names in `localization/moonlit.csv`.
@@ -43,6 +47,34 @@ var analytics_cohort_unix: int = 0
 var analytics_cohort_version: String = ""
 var analytics_retention_mask: int = 0
 var _analytics_consent_persist_pending: bool = false
+## Whether the player wants a local reminder when the next attendance
+## reward is ready. Default off: enabling requests OS permission, and a
+## denial never flips this to an active state. The disabled mark above
+## outranks a stale enabled file after a crash, same as analytics.
+var reminders_enabled: bool = false
+var _reminders_persist_pending: bool = false
+## The first receipt's reminder offer was shown once; never nag again.
+var reminder_receipt_offered: bool = false
+## Last known OS notification state for display only: one of `unknown`,
+## `granted`, `denied`, `unsupported`. Scheduling decisions always query
+## the live native status; this cache only labels the settings row.
+var reminder_os_state: String = "unknown"
+## What this install last asked the OS to deliver: the owning account,
+## the server-confirmed eligible UTC the first fire targets, and the
+## locale of the scheduled text. Rescheduling with identical inputs is
+## skipped so a title refresh never shifts the deadline or stacks
+## duplicate requests. One active account per install.
+var reminder_sched_account: String = ""
+var reminder_sched_eligible_utc: String = ""
+var reminder_sched_locale: String = ""
+## Unix seconds of the last delivery the native side holds for this
+## record: -1 when a repeating native holds an unbounded horizon, 0
+## when a legacy schedule never reported one.
+var reminder_sched_horizon_end: float = 0.0
+## First ordinal slot of that held window on the anchor's twelve-hour
+## grid, -1 when the native side never reported one (legacy rows
+## derive it from the end, or replan once when they cannot).
+var reminder_sched_base_slot: int = -1
 
 
 func _ready() -> void:
@@ -99,6 +131,25 @@ func load_settings() -> void:
 			SECTION, "analytics_cohort_version", "")).strip_edges()
 		analytics_retention_mask = int(cfg.get_value(
 			SECTION, "analytics_retention_mask", 0)) & ANALYTICS_RETENTION_ALLOWED_MASK
+		reminders_enabled = bool(cfg.get_value(
+			SECTION, "reminders_enabled", false))
+		reminder_receipt_offered = bool(cfg.get_value(
+			SECTION, "reminder_receipt_offered", false))
+		var saved_os_state: String = str(cfg.get_value(
+			SECTION, "reminder_os_state", "unknown"))
+		reminder_os_state = saved_os_state if saved_os_state in [
+			"unknown", "granted", "denied", "unsupported",
+		] else "unknown"
+		reminder_sched_account = str(cfg.get_value(
+			SECTION, "reminder_sched_account", ""))
+		reminder_sched_eligible_utc = str(cfg.get_value(
+			SECTION, "reminder_sched_eligible_utc", ""))
+		reminder_sched_locale = str(cfg.get_value(
+			SECTION, "reminder_sched_locale", ""))
+		reminder_sched_horizon_end = float(cfg.get_value(
+			SECTION, "reminder_sched_horizon_end", 0.0))
+	reminder_sched_base_slot = int(cfg.get_value(
+			SECTION, "reminder_sched_base_slot", -1))
 	# A revocation mark outranks a prior GRANTED setting. Boundary so that if
 	# the app dies the instant an atomic settings replace fails, the next
 	# launch cannot turn collection back on.
@@ -107,6 +158,13 @@ func load_settings() -> void:
 	if FileAccess.file_exists(ANALYTICS_REVOKED_PATH) \
 			or DirAccess.dir_exists_absolute(revocation_absolute):
 		analytics_consent = AnalyticsConsent.DENIED
+	# Same fail-closed shape for reminders, with its own mark: an old
+	# enabled file can never re-enable delivery after a crash.
+	var reminder_absolute: String = ProjectSettings.globalize_path(
+		REMINDER_DISABLED_PATH)
+	if FileAccess.file_exists(REMINDER_DISABLED_PATH) \
+			or DirAccess.dir_exists_absolute(reminder_absolute):
+		reminders_enabled = false
 	if analytics_consent != AnalyticsConsent.GRANTED \
 			or analytics_cohort_unix <= 0 \
 			or not _is_safe_cohort_version(analytics_cohort_version):
@@ -119,6 +177,19 @@ func save_settings() -> Error:
 	cfg.set_value(SECTION, "music", music)
 	cfg.set_value(SECTION, "sfx", sfx)
 	cfg.set_value(SECTION, "reduced_motion", reduced_motion)
+	cfg.set_value(SECTION, "reminders_enabled", reminders_enabled)
+	cfg.set_value(SECTION, "reminder_receipt_offered",
+		reminder_receipt_offered)
+	cfg.set_value(SECTION, "reminder_os_state", reminder_os_state)
+	cfg.set_value(SECTION, "reminder_sched_account",
+		reminder_sched_account)
+	cfg.set_value(SECTION, "reminder_sched_eligible_utc",
+		reminder_sched_eligible_utc)
+	cfg.set_value(SECTION, "reminder_sched_locale", reminder_sched_locale)
+	cfg.set_value(SECTION, "reminder_sched_horizon_end",
+		reminder_sched_horizon_end)
+	cfg.set_value(SECTION, "reminder_sched_base_slot",
+		reminder_sched_base_slot)
 	# Do not write UNKNOWN to the file. Keep old-version settings and store
 	# capture's first-run file as-is, while still remembering a real GRANTED
 	# or DENIED choice.
@@ -260,6 +331,114 @@ func set_analytics_consent(value: int) -> bool:
 	if value == AnalyticsConsent.GRANTED and previous_consent != value:
 		changed.emit()
 	return true
+
+
+## Save the attendance-reminder intent. Same fail-closed shape as
+## analytics consent: disabling writes its own mark first so a crash can
+## never resurrect delivery, and enabling only sticks once the file and
+## the cleared mark both land. Returns whether the choice is durable.
+## This persists intent only; the reminder controller requests OS
+## permission and schedules separately.
+func set_reminders_enabled(value: bool) -> bool:
+	if value == reminders_enabled and not _reminders_persist_pending:
+		return true
+	var previous: bool = reminders_enabled
+	reminders_enabled = value
+	var mark_persisted: bool = true
+	if not value:
+		mark_persisted = _persist_reminder_disabled()
+		if previous != value:
+			changed.emit()
+	var error: Error = save_settings()
+	if not value:
+		_reminders_persist_pending = error != OK and not mark_persisted
+		return not _reminders_persist_pending
+	_reminders_persist_pending = error != OK
+	if error != OK:
+		reminders_enabled = previous
+		return false
+	if not _clear_reminder_disabled():
+		# A leftover mark would force next launch off: roll back to the
+		# same fail-closed state and require a retry.
+		reminders_enabled = false
+		_reminders_persist_pending = true
+		return false
+	if previous != value:
+		changed.emit()
+	return true
+
+
+## The first receipt's offer was shown; never offer again. Best effort:
+## losing this bit only re-offers once, never grants or schedules.
+func mark_reminder_receipt_offered() -> void:
+	if reminder_receipt_offered:
+		return
+	reminder_receipt_offered = true
+	save_settings()
+
+
+## Cache the last known OS notification state for the settings row.
+## Display only; scheduling always queries the live native status.
+func set_reminder_os_state(state: String) -> void:
+	if state not in ["unknown", "granted", "denied", "unsupported"]:
+		return
+	if state == reminder_os_state:
+		return
+	reminder_os_state = state
+	save_settings()
+	changed.emit()
+
+
+## Record what this install last asked the OS to deliver. Returns false
+## when the record did not land, in which case the caller must treat
+## the schedule as unknown and converge on the next refresh.
+func record_reminder_schedule(account: String, eligible_utc: String,
+		locale_code: String, horizon_end_unix: float = 0.0,
+		base_slot: int = -1) -> bool:
+	reminder_sched_account = account
+	reminder_sched_eligible_utc = eligible_utc
+	reminder_sched_locale = locale_code
+	reminder_sched_horizon_end = horizon_end_unix
+	reminder_sched_base_slot = base_slot
+	return save_settings() == OK
+
+
+## Forget the scheduled delivery after a cancel or an account change.
+func clear_reminder_schedule() -> void:
+	if reminder_sched_account.is_empty() \
+			and reminder_sched_eligible_utc.is_empty() \
+			and reminder_sched_locale.is_empty() \
+			and reminder_sched_horizon_end == 0.0 \
+			and reminder_sched_base_slot == -1:
+		return
+	reminder_sched_account = ""
+	reminder_sched_eligible_utc = ""
+	reminder_sched_locale = ""
+	reminder_sched_horizon_end = 0.0
+	reminder_sched_base_slot = -1
+	save_settings()
+
+
+func _persist_reminder_disabled() -> bool:
+	var file: FileAccess = FileAccess.open(
+		REMINDER_DISABLED_PATH, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_string("disabled\n")
+	file.flush()
+	return FileAccess.file_exists(REMINDER_DISABLED_PATH) \
+		and FileAccess.get_file_as_string(
+			REMINDER_DISABLED_PATH).strip_edges() == "disabled"
+
+
+func _clear_reminder_disabled() -> bool:
+	var absolute: String = ProjectSettings.globalize_path(
+		REMINDER_DISABLED_PATH)
+	if DirAccess.dir_exists_absolute(absolute):
+		return false
+	if not FileAccess.file_exists(REMINDER_DISABLED_PATH):
+		return true
+	return DirAccess.remove_absolute(absolute) == OK
 
 
 ## Remember only first-consent time and app version. No permanent user ID or device value.

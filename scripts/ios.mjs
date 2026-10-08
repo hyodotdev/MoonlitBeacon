@@ -52,6 +52,7 @@ import {
   cleanupIdentityExport,
   generatedEntitlementsPromiseAppleSignIn,
   identityNativeArtifactStatus,
+  mergeIdentityPrivacyManifestIntoGeneratedExport,
   prepareIdentityExport,
   recoverStaleAppleEntitlementGrant,
   restoreTemporaryAppleEntitlement,
@@ -188,6 +189,10 @@ const IOS_APP_ICON_SET = join(
   PROJ_DIR,
   SCHEME,
   'Images.xcassets/AppIcon.appiconset',
+);
+const IDENTITY_APP_PRIVACY_SOURCE = join(
+  ROOT,
+  'apps/game/addons/moonlit-identity/ios/PrivacyInfo.xcprivacy',
 );
 const CHILD_ENV = credentialFreeChildEnvironment(process.env);
 // Do not pass the publishable key into child processes outside the export
@@ -680,6 +685,20 @@ function doExport(release = false) {
       '../../builds/ios/MoonlitBeacon.ipa',
     ]);
     stripUnusedPrivacyKeys();
+    // Godot emits its own app-root PrivacyInfo.xcprivacy, so the export
+    // plugin registers no loose manifest (a second same-basename output
+    // fails Xcode): the app-owned UserDefaults declaration merges into
+    // Godot's generated file here instead. SDK bundles stay untouched.
+    const privacyMerge = mergeIdentityPrivacyManifestIntoGeneratedExport({
+      projectDir: PROJ_DIR,
+      scheme: SCHEME,
+      appManifestPath: IDENTITY_APP_PRIVACY_SOURCE,
+    });
+    console.log(
+      privacyMerge.merged
+        ? 'Merged the app-owned UserDefaults declaration into the generated root PrivacyInfo.xcprivacy.'
+        : 'Generated root PrivacyInfo.xcprivacy already carries the app-owned UserDefaults declaration.',
+    );
     const localizedNameCount = configureGeneratedIosInfoPlistLocalizations(
       PROJ_DIR,
       SCHEME,

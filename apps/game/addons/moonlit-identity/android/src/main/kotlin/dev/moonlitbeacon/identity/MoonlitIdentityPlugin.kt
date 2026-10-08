@@ -1,7 +1,13 @@
 package dev.moonlitbeacon.identity
 
+import android.Manifest
 import android.app.Activity
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -114,6 +120,15 @@ class MoonlitIdentityPlugin(godot: Godot) : GodotPlugin(godot) {
         private const val CODE_NO_GOOGLE_ACCOUNT = "no_google_account"
         private const val CODE_ALREADY_PENDING = "request_already_pending"
         private const val CODE_MUTATION_IN_PROGRESS = "mutation_in_progress"
+        private const val CODE_PERMISSION_DENIED = "permission_denied"
+        private const val CODE_NO_ACTIVITY = "no_activity"
+        private const val CODE_INVALID_ARGS = "invalid_args"
+        private const val CODE_REQUEST_BUSY = "request_busy"
+
+        private const val STATUS_DENIED = "denied"
+        private const val REMINDER_PERMISSION_CODE = 4102
+        private const val DEBUG_DELAY_MIN_SECONDS = 5.0
+        private const val DEBUG_DELAY_MAX_SECONDS = 600.0
 
         private const val PLAY_APP_ID_KEY = "com.google.android.gms.games.APP_ID"
 
@@ -161,6 +176,14 @@ class MoonlitIdentityPlugin(godot: Godot) : GodotPlugin(godot) {
     private val credentialJobs = mutableMapOf<String, Job>()
 
     private val lock = Any()
+
+    /**
+     * Owner of the single in-flight notification-permission request.
+     * Separate from the identity mutation slot: permission is not a
+     * Firebase mutation and must never block (or be blocked by)
+     * sign-in work. Guarded by [lock].
+     */
+    private var reminderPermissionOwner: String? = null
 
     override fun getPluginName(): String = "MoonlitIdentity"
 
@@ -986,6 +1009,9 @@ class MoonlitIdentityPlugin(godot: Godot) : GodotPlugin(godot) {
             pickerJob = credentialJobs.remove(requestId)
             pending.remove(requestId)
             if (mutationOwner == requestId) mutationOwner = null
+            if (reminderPermissionOwner == requestId) {
+                reminderPermissionOwner = null
+            }
             rememberSettledLocked(requestId)
         }
         // Outside the lock: cancelling never calls back synchronously.
@@ -1189,6 +1215,341 @@ class MoonlitIdentityPlugin(godot: Godot) : GodotPlugin(godot) {
         while (settledOrder.size > SETTLED_CAP) {
             settled.remove(settledOrder.removeFirst())
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Attendance reminders (local notifications; no Firebase, no provider).
+    //
+    // One inexact twelve-hour alarm whose first fire targets the
+    // server-confirmed eligibility the game passes in. Delivery guards
+    // live in MoonlitReminderAlarm/MoonlitReminderReceiver; this class
+    // only answers status, asks permission, and writes the schedule the
+    // game requested. Nothing here grants or spends coins.
+    // ------------------------------------------------------------------
+
+    override fun onMainResume() {
+        val host = activity ?: return
+        val store = MoonlitReminderStore.prefs(host)
+        store.edit()
+            .putBoolean(MoonlitReminderStore.KEY_RESUMED, true)
+            .putLong(MoonlitReminderStore.KEY_RESUMED_AT_MILLIS,
+                System.currentTimeMillis())
+            .apply()
+        val launch = host.intent
+        if (launch != null && launch.getBooleanExtra(
+                MoonlitReminderAlarm.EXTRA_LAUNCHED, false
+            )
+        ) {
+            launch.removeExtra(MoonlitReminderAlarm.EXTRA_LAUNCHED)
+            store.edit()
+                .putBoolean(MoonlitReminderStore.KEY_LAUNCHED, true)
+                .apply()
+        }
+    }
+
+    override fun onMainPause() {
+        val host = activity ?: return
+        MoonlitReminderStore.prefs(host).edit()
+            .putBoolean(MoonlitReminderStore.KEY_RESUMED, false)
+            .apply()
+    }
+
+    override fun onMainRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        if (requestCode != REMINDER_PERMISSION_CODE) return
+        val owner = synchronized(lock) {
+            val current = reminderPermissionOwner
+            reminderPermissionOwner = null
+            current
+        }
+        if (owner == null) return
+        var granted = false
+        for (index in permissions.indices) {
+            if (permissions[index] ==
+                Manifest.permission.POST_NOTIFICATIONS &&
+                index < grantResults.size &&
+                grantResults[index] == PackageManager.PERMISSION_GRANTED
+            ) {
+                granted = true
+            }
+        }
+        if (granted) {
+            finish(owner, reminderPermissionOutcome(owner, "granted"))
+        } else {
+            finish(owner, reminderPermissionOutcome(owner, "denied"))
+        }
+    }
+
+    @UsedByGodot
+    fun moonlitReminderStatus(requestId: String, argsJson: String): String {
+        val context = activity ?: return error(requestId,
+            CODE_NO_ACTIVITY, retryable = true).toString()
+        return reminderStatusReceipt(requestId, context).toString()
+    }
+
+    @UsedByGodot
+    fun moonlitReminderRequestPermission(
+        requestId: String,
+        argsJson: String
+    ): String {
+        val host = activity
+        if (host == null) {
+            return error(requestId, CODE_NO_ACTIVITY, retryable = true)
+                .toString()
+        }
+        if (!MoonlitReminderAlarm.runtimePermissionMissing(host)) {
+            // No sheet to show (below 33, or already granted):
+            // answer the effective verdict instead. A global or
+            // channel block reports denied so the row offers OS
+            // settings rather than a sheet that cannot fire.
+            val permission =
+                if (MoonlitReminderAlarm.notificationsAllowed(host)) {
+                    "granted"
+                } else {
+                    "denied"
+                }
+            return reminderPermissionOutcome(requestId, permission)
+                .toString()
+        }
+        synchronized(lock) {
+            if (pending.contains(requestId) ||
+                settled.contains(requestId)
+            ) {
+                return alreadyPending(requestId)
+            }
+            if (reminderPermissionOwner != null) {
+                return error(requestId, CODE_REQUEST_BUSY,
+                    retryable = true).toString()
+            }
+            pending.add(requestId)
+            reminderPermissionOwner = requestId
+        }
+        MoonlitReminderStore.prefs(host).edit()
+            .putBoolean(
+                MoonlitReminderStore.KEY_PERMISSION_ASKED, true
+            )
+            .apply()
+        host.runOnUiThread {
+            host.requestPermissions(
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                REMINDER_PERMISSION_CODE
+            )
+        }
+        return pendingReceipt(requestId)
+    }
+
+    @UsedByGodot
+    fun moonlitReminderSchedule(
+        requestId: String,
+        argsJson: String
+    ): String {
+        val context = activity ?: return error(requestId,
+            CODE_NO_ACTIVITY, retryable = true).toString()
+        val args = JSONObject(argsJson)
+        val eligible = args.optLong("eligible_utc_millis", 0L)
+        val title = args.optString("title", "").trim()
+        val body = args.optString("body", "").trim()
+        val account = args.optString("account", "").trim()
+        val locale = args.optString("locale", "").trim()
+        if (eligible <= 0L || title.isEmpty() || body.isEmpty() ||
+            account.isEmpty()
+        ) {
+            return error(requestId, CODE_INVALID_ARGS,
+                retryable = false).toString()
+        }
+        if (!MoonlitReminderAlarm.notificationsAllowed(context)) {
+            return JSONObject()
+                .put("status", STATUS_DENIED)
+                .put("permission", "denied")
+                .put("code", CODE_PERMISSION_DENIED)
+                .put("request_id", requestId)
+                .toString()
+        }
+        MoonlitReminderAlarm.ensureChannel(context)
+        MoonlitReminderStore.prefs(context).edit()
+            .putBoolean(MoonlitReminderStore.KEY_ENABLED, true)
+            .putString(MoonlitReminderStore.KEY_ACCOUNT, account)
+            .putLong(
+                MoonlitReminderStore.KEY_ELIGIBLE_MILLIS, eligible
+            )
+            .putString(MoonlitReminderStore.KEY_TITLE, title)
+            .putString(MoonlitReminderStore.KEY_BODY, body)
+            .putString(MoonlitReminderStore.KEY_LOCALE, locale)
+            .apply()
+        MoonlitReminderAlarm.schedule(context, eligible)
+        return JSONObject()
+            .put("status", STATUS_OK)
+            .put("eligible_millis", eligible)
+            .put("horizon_end_unix", -1)
+            .put("request_id", requestId)
+            .toString()
+    }
+
+    @UsedByGodot
+    fun moonlitReminderCancel(
+        requestId: String,
+        argsJson: String
+    ): String {
+        val context = activity ?: return error(requestId,
+            CODE_NO_ACTIVITY, retryable = true).toString()
+        MoonlitReminderAlarm.cancel(context)
+        MoonlitReminderStore.prefs(context).edit()
+            .putBoolean(MoonlitReminderStore.KEY_ENABLED, false)
+            .apply()
+        return JSONObject()
+            .put("status", STATUS_OK)
+            .put("request_id", requestId)
+            .toString()
+    }
+
+    @UsedByGodot
+    fun moonlitReminderOpenSettings(
+        requestId: String,
+        argsJson: String
+    ): String {
+        val host = activity
+        if (host == null) {
+            return error(requestId, CODE_NO_ACTIVITY, retryable = true)
+                .toString()
+        }
+        val target = if (Build.VERSION.SDK_INT >= 26) {
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE,
+                    host.packageName)
+        } else {
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .setData(Uri.parse("package:${host.packageName}"))
+        }
+        return try {
+            host.runOnUiThread { host.startActivity(target) }
+            JSONObject()
+                .put("status", STATUS_OK)
+                .put("request_id", requestId)
+                .toString()
+        } catch (error: Exception) {
+            Log.d(TAG, "reminder-settings $requestId failed: " +
+                error.javaClass.simpleName)
+            error(requestId, CODE_NETWORK, retryable = true)
+                .toString()
+        }
+    }
+
+    @UsedByGodot
+    fun moonlitReminderPending(
+        requestId: String,
+        argsJson: String
+    ): String {
+        val context = activity ?: return error(requestId,
+            CODE_NO_ACTIVITY, retryable = true).toString()
+        val store = MoonlitReminderStore.prefs(context)
+        return JSONObject()
+            .put("status", STATUS_OK)
+            .put("schedule_intent_persisted",
+                MoonlitReminderAlarm.scheduleIntentPersisted(
+                    context))
+            .put("alarm_token_present",
+                MoonlitReminderAlarm.alarmTokenPresent(context))
+            .put("stored", JSONObject()
+                .put("enabled", store.getBoolean(
+                    MoonlitReminderStore.KEY_ENABLED, false))
+                .put("account", store.getString(
+                    MoonlitReminderStore.KEY_ACCOUNT, "").orEmpty())
+                .put("eligible_millis", store.getLong(
+                    MoonlitReminderStore.KEY_ELIGIBLE_MILLIS, 0L))
+                .put("locale", store.getString(
+                    MoonlitReminderStore.KEY_LOCALE, "").orEmpty()))
+            .put("request_id", requestId)
+            .toString()
+    }
+
+    @UsedByGodot
+    fun moonlitReminderDebugSchedule(
+        requestId: String,
+        argsJson: String
+    ): String {
+        val context = activity ?: return error(requestId,
+            CODE_NO_ACTIVITY, retryable = true).toString()
+        if (!MoonlitReminderAlarm.notificationsAllowed(context)) {
+            return JSONObject()
+                .put("status", STATUS_DENIED)
+                .put("permission", "denied")
+                .put("code", CODE_PERMISSION_DENIED)
+                .put("request_id", requestId)
+                .toString()
+        }
+        val args = JSONObject(argsJson)
+        val delay = args.optDouble("delay_seconds", 0.0)
+            .coerceIn(DEBUG_DELAY_MIN_SECONDS,
+                DEBUG_DELAY_MAX_SECONDS)
+        val store = MoonlitReminderStore.prefs(context)
+        val title = store.getString(
+            MoonlitReminderStore.KEY_TITLE, ""
+        ).orEmpty().ifEmpty {
+            context.getString(R.string.moonlit_reminder_channel_name)
+        }
+        val body = store.getString(
+            MoonlitReminderStore.KEY_BODY, ""
+        ).orEmpty().ifEmpty { "QA reminder" }
+        MoonlitReminderAlarm.ensureChannel(context)
+        MoonlitReminderAlarm.scheduleDebug(
+            context,
+            System.currentTimeMillis() + (delay * 1000L).toLong(),
+            title,
+            body
+        )
+        return JSONObject()
+            .put("status", STATUS_OK)
+            .put("fire_in_seconds", delay)
+            .put("request_id", requestId)
+            .toString()
+    }
+
+    private fun reminderPermissionOutcome(
+        requestId: String,
+        permission: String
+    ): JSONObject {
+        return JSONObject()
+            .put("status", STATUS_OK)
+            .put("permission", permission)
+            .put("request_id", requestId)
+    }
+
+    private fun reminderStatusReceipt(
+        requestId: String,
+        context: Context
+    ): JSONObject {
+        val allowed =
+            MoonlitReminderAlarm.notificationsAllowed(context)
+        val asked = MoonlitReminderStore.prefs(context).getBoolean(
+            MoonlitReminderStore.KEY_PERMISSION_ASKED, false
+        )
+        val permission = if (allowed) {
+            "granted"
+        } else if (Build.VERSION.SDK_INT >= 33 && !asked) {
+            "unknown"
+        } else {
+            "denied"
+        }
+        val store = MoonlitReminderStore.prefs(context)
+        val launched = store.getBoolean(
+            MoonlitReminderStore.KEY_LAUNCHED, false
+        )
+        if (launched) {
+            store.edit()
+                .putBoolean(MoonlitReminderStore.KEY_LAUNCHED, false)
+                .apply()
+        }
+        return JSONObject()
+            .put("status", STATUS_OK)
+            .put("permission", permission)
+            .put("scheduled",
+                MoonlitReminderAlarm.scheduleIntentPersisted(
+                    context))
+            .put("launched_from_reminder", launched)
+            .put("request_id", requestId)
     }
 
     /**

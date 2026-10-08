@@ -26,12 +26,24 @@ const UNPICKED: Color = Color(0.5, 0.52, 0.62, 1)
 const ANALYTICS_FONT_MAX: int = 13
 const ANALYTICS_FONT_MIN: int = 9
 const ANALYTICS_AVAILABLE_WIDTH: float = 196.0
+## Reminder label fit: the column is 128px (-172 to -44) with an 8px
+## allocated gap to the button at -36. English is 164px at 15 and
+## 119px at 11, so the fit lands on 11 there and stays 15 in the
+## other four locales; 11 matches the locale buttons, never tiny.
+const REMINDER_LABEL_FONT_MAX: int = 15
+const REMINDER_LABEL_FONT_MIN: int = 11
+const REMINDER_LABEL_AVAILABLE_WIDTH: float = 128.0
 
 @onready var _title: Label = $Title
 @onready var _music_bar: HBoxContainer = $MusicBar
 @onready var _sfx_bar: HBoxContainer = $SfxBar
 @onready var _analytics_label: Label = $AnalyticsLabel
 @onready var _analytics: Button = $Analytics
+## Reminder row, built lazily on first open: two fewer dormant nodes
+## in the combat tree (late-game node budget), exactly like the beads
+## below. Null until open(); every touch guards or ensures first.
+var _reminder_label: Label = null
+var _reminder: Button = null
 @onready var _analytics_consent: AnalyticsConsentPanel = $Dim/AnalyticsConsent
 @onready var _external_links: HBoxContainer = $ExternalLinks
 @onready var _privacy: Button = $ExternalLinks/Privacy
@@ -109,6 +121,7 @@ func _redraw() -> void:
 		button.modulate = PICKED if Settings.locale == locale_code else UNPICKED
 	_fill(_music_cells, Settings.music)
 	_fill(_sfx_cells, Settings.sfx)
+	_redraw_reminder()
 	var analytics_available: bool = Analytics.configured()
 	_analytics_label.visible = analytics_available
 	_analytics.visible = analytics_available
@@ -126,9 +139,113 @@ func _redraw() -> void:
 		analytics_key = "SETTINGS_ANALYTICS_OFF"
 	_analytics.text = tr(analytics_key)
 	_analytics.tooltip_text = "%s — %s" % [tr("SETTINGS_ANALYTICS"), _analytics.text]
-	_fit_analytics_button()
+	_fit_status_button(_analytics)
 	if _link_failed:
 		_link_status.text = tr("SETTINGS_LINK_FAILED")
+
+
+## Reminder row, always rendered once opened: it never depends on
+## analytics availability or consent. Statuses: on, off, OS-denied
+## (tap disables; tap again from off opens OS settings), unknown
+## (tap mirrors denied; an undetermined OS state never shows as on),
+## or unsupported on builds without a native side (tapping does
+## nothing). No-op before first open, when the row does not exist.
+func _redraw_reminder() -> void:
+	if _reminder == null or _reminder_label == null:
+		return
+	_reminder_label.text = tr("SETTINGS_REMINDERS")
+	_fit_reminder_label()
+	var key: String = "SETTINGS_REMINDERS_OFF"
+	_reminder.disabled = false
+	if Settings.reminder_os_state == "unsupported":
+		key = "SETTINGS_REMINDERS_UNSUPPORTED"
+		_reminder.disabled = true
+	elif Settings.reminders_enabled \
+			and Settings.reminder_os_state == "denied":
+		key = "SETTINGS_REMINDERS_DENIED"
+	elif Settings.reminders_enabled \
+			and Settings.reminder_os_state == "unknown":
+		key = "SETTINGS_REMINDERS_UNKNOWN"
+	elif Settings.reminders_enabled:
+		key = "SETTINGS_REMINDERS_ON"
+	_reminder.text = tr(key)
+	_reminder.tooltip_text = "%s — %s" % [
+		tr("SETTINGS_REMINDERS"), _reminder.text]
+	_fit_status_button(_reminder)
+
+
+## Build the reminder row on first open, replicating the scene's old
+## layout, fonts, and colors exactly (same anchors, offsets, theme,
+## and steel button kind). Appended after the scene children, which is
+## invisible: the rows never overlap.
+func _ensure_reminder_row() -> void:
+	if _reminder != null and _reminder_label != null:
+		return
+	var font: Font = _analytics_label.get_theme_font("font")
+	_reminder_label = Label.new()
+	_reminder_label.name = &"ReminderLabel"
+	_reminder_label.set_anchors_preset(Control.PRESET_CENTER)
+	_reminder_label.anchor_left = 0.5
+	_reminder_label.anchor_top = 0.5
+	_reminder_label.anchor_right = 0.5
+	_reminder_label.anchor_bottom = 0.5
+	_reminder_label.offset_left = -172.0
+	_reminder_label.offset_top = 49.0
+	_reminder_label.offset_right = -44.0
+	_reminder_label.offset_bottom = 83.0
+	_reminder_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_reminder_label.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_reminder_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_reminder_label.add_theme_color_override("font_color",
+		Color(0.85, 0.88, 0.96, 1))
+	_reminder_label.add_theme_font_override("font", font)
+	_reminder_label.add_theme_font_size_override("font_size", 15)
+	_reminder_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_reminder_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	add_child(_reminder_label)
+	_reminder = WorldButton.new()
+	_reminder.name = &"Reminder"
+	_reminder.kind = "steel"
+	_reminder.set_anchors_preset(Control.PRESET_CENTER)
+	_reminder.anchor_left = 0.5
+	_reminder.anchor_top = 0.5
+	_reminder.anchor_right = 0.5
+	_reminder.anchor_bottom = 0.5
+	_reminder.offset_left = -36.0
+	_reminder.offset_top = 49.0
+	_reminder.offset_right = 172.0
+	_reminder.offset_bottom = 83.0
+	_reminder.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_reminder.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_reminder.add_theme_color_override("font_color",
+		Color(0.92, 0.9, 0.98, 1))
+	_reminder.add_theme_font_override("font", font)
+	_reminder.add_theme_font_size_override("font_size", 13)
+	_reminder.pressed.connect(_on_reminder_pressed)
+	add_child(_reminder)
+
+
+func _on_reminder_pressed() -> void:
+	if _reminder == null or _reminder.disabled:
+		return
+	var controller: Node = _reminder_controller()
+	if controller == null:
+		# No host in this tree (bare panel exercise): persist the
+		# intent flip directly; the next launch converges it.
+		Settings.set_reminders_enabled(
+			not Settings.reminders_enabled)
+		return
+	controller.call("user_toggle")
+
+
+func _reminder_controller() -> Node:
+	var host: Node = get_node_or_null("/root/ProductionHost")
+	if host == null or not host.has_method("reminder_controller"):
+		return null
+	var controller: Variant = host.call("reminder_controller")
+	if controller is Node and is_instance_valid(controller):
+		return controller
+	return null
 
 
 func _open_analytics_consent() -> void:
@@ -184,14 +301,27 @@ func _restore_analytics_focus() -> void:
 		_analytics.grab_focus()
 
 
-func _fit_analytics_button() -> void:
-	var font: Font = _analytics.get_theme_font("font")
+func _fit_status_button(target: Button) -> void:
+	var font: Font = target.get_theme_font("font")
 	var font_size: int = ANALYTICS_FONT_MAX
 	while font_size > ANALYTICS_FONT_MIN and font.get_string_size(
-			_analytics.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x \
+			target.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x \
 			> ANALYTICS_AVAILABLE_WIDTH:
 		font_size -= 1
-	_analytics.add_theme_font_size_override("font_size", font_size)
+	target.add_theme_font_size_override("font_size", font_size)
+
+
+## Shrink the reminder label until its text fits the 128px column.
+## Runs on every redraw, so locale changes and repeated opens
+## recompute from the max instead of sticking at a stale size.
+func _fit_reminder_label() -> void:
+	var font: Font = _reminder_label.get_theme_font("font")
+	var font_size: int = REMINDER_LABEL_FONT_MAX
+	while font_size > REMINDER_LABEL_FONT_MIN and font.get_string_size(
+			_reminder_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
+			float(font_size)).x > REMINDER_LABEL_AVAILABLE_WIDTH:
+		font_size -= 1
+	_reminder_label.add_theme_font_size_override("font_size", font_size)
 
 
 func _fill(cells: Array[ColorRect], step: int) -> void:
@@ -207,8 +337,13 @@ func open() -> void:
 		_beads_hung = true
 		_flank_bead(0.0, -20.0, -8.0)
 		_flank_bead(1.0, 8.0, 20.0)
+	_ensure_reminder_row()
 	visible = true
 	_configure_external_links()
+	var controller: Node = _reminder_controller()
+	if controller != null \
+			and controller.has_method("refresh_permission"):
+		controller.call("refresh_permission")
 	_redraw()
 	$Close.grab_focus()
 

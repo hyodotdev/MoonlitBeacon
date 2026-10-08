@@ -44,11 +44,14 @@ import {
 } from './play-release-package.mjs';
 import {
   applyPlayBinaryOnlyUpdatePlan,
+  compareBinaryOnlyDisplayVersions,
   createPlayBinaryOnlyUpdatePlan,
+  parseBinaryOnlyDisplayVersion,
   parsePlayBinaryOnlyArguments,
   PLAY_BINARY_ONLY_GALLERY_EVIDENCE,
   PLAY_BINARY_ONLY_IMAGE_TYPES,
   PLAY_BINARY_ONLY_MODE,
+  PLAY_BINARY_ONLY_RECEIPT_SCHEMA_VERSION,
   readPlayBinaryOnlyReceipt,
 } from './play-binary-only-update.mjs';
 import {
@@ -2055,6 +2058,7 @@ test('binary-only plan rejects wrong identity, version, or signer', () => {
   for (const [label, mutate, pattern] of [
     ['package', { packageName: 'com.example.other' }, /differ from the Android Play preset/],
     ['preset-code', { code: 3 }, /differ from the Android Play preset/],
+    ['preset-version', { version: '9.9.9' }, /differ from the Android Play preset/],
     ['signer-unverified', { signing: { verified: false } }, /signature verification evidence/],
     ['signer-unpinned', { signing: { pinnedToConfiguredReleaseKey: false } }, /not pinned/],
   ]) {
@@ -2066,14 +2070,38 @@ test('binary-only plan rejects wrong identity, version, or signer', () => {
     }
   }
 
-  const sameVersionRoot = binaryOnlyRoot({ version: '1.0.1' });
+  const downgradeRoot = binaryOnlyRoot({ version: '0.9.9' });
   try {
     assert.throws(
-      () => binaryOnlyPlan(sameVersionRoot, { inspection: { version: '1.0.1' } }),
-      /keeps version 1\.0\.0/,
+      () => binaryOnlyPlan(downgradeRoot, { inspection: { version: '0.9.9' } }),
+      /versionName 0\.9\.9 is older than retained 1\.0\.0/,
     );
   } finally {
-    rmSync(sameVersionRoot, { force: true, recursive: true });
+    rmSync(downgradeRoot, { force: true, recursive: true });
+  }
+
+  // A two-part version passes the Android preset contract but is not a
+  // major.minor.patch display version, so the binary-only gate refuses it.
+  const malformedRoot = binaryOnlyRoot({ version: '1.0' });
+  try {
+    assert.throws(
+      () => binaryOnlyPlan(malformedRoot, { inspection: { version: '1.0' } }),
+      /display version is malformed: 1\.0/,
+    );
+  } finally {
+    rmSync(malformedRoot, { force: true, recursive: true });
+  }
+
+  // Leading zeroes pass the preset contract too, but semantic versions
+  // forbid them, so the proposed identity refuses as malformed.
+  const leadingZeroRoot = binaryOnlyRoot({ version: '04.0.1' });
+  try {
+    assert.throws(
+      () => binaryOnlyPlan(leadingZeroRoot, { inspection: { version: '04.0.1' } }),
+      /display version is malformed: 04\.0\.1/,
+    );
+  } finally {
+    rmSync(leadingZeroRoot, { force: true, recursive: true });
   }
 
   const duplicateRoot = binaryOnlyRoot();
@@ -2090,6 +2118,183 @@ test('binary-only plan rejects wrong identity, version, or signer', () => {
     );
   } finally {
     rmSync(duplicateRoot, { force: true, recursive: true });
+  }
+});
+
+test('binary-only display versions compare numerically and refuse malformed input', () => {
+  assert.deepEqual(parseBinaryOnlyDisplayVersion('4.0.1'), [4, 0, 1]);
+  assert.deepEqual(parseBinaryOnlyDisplayVersion('10.20.30'), [10, 20, 30]);
+  assert.deepEqual(parseBinaryOnlyDisplayVersion('0.0.0'), [0, 0, 0]);
+  for (const malformed of [
+    '', '1.0', 'v1.0.1', '1.0.1.2', '1.0.x', ' 1.0.1',
+    '04.0.1', '4.0.01', '4.00.1', '00.0.0',
+    null, undefined,
+  ]) {
+    assert.equal(parseBinaryOnlyDisplayVersion(malformed), null, String(malformed));
+  }
+  assert.equal(compareBinaryOnlyDisplayVersions('1.0.0', '1.0.0'), 0);
+  assert.equal(compareBinaryOnlyDisplayVersions('1.0.1', '1.0.0'), 1);
+  assert.equal(compareBinaryOnlyDisplayVersions('1.10.0', '1.9.9'), 1);
+  assert.equal(compareBinaryOnlyDisplayVersions('0.9.9', '1.0.0'), -1);
+  assert.throws(
+    () => compareBinaryOnlyDisplayVersions('1.0', '1.0.0'),
+    /display version is malformed: 1\.0/,
+  );
+  assert.throws(
+    () => compareBinaryOnlyDisplayVersions('1.0.1', '1.0'),
+    /retained display version is malformed: 1\.0/,
+  );
+  assert.throws(
+    () => compareBinaryOnlyDisplayVersions('04.0.1', '4.0.0'),
+    /display version is malformed: 04\.0\.1/,
+  );
+  assert.throws(
+    () => compareBinaryOnlyDisplayVersions('4.0.1', '4.0.01'),
+    /retained display version is malformed: 4\.0\.01/,
+  );
+});
+
+test('binary-only plan accepts a strictly newer display version with current release notes', () => {
+  const root = binaryOnlyRoot({ version: '1.0.1' });
+  try {
+    const plan = binaryOnlyPlan(root, { inspection: { version: '1.0.1' } });
+    assert.equal(plan.release.versionName, '1.0.1');
+    assert.equal(plan.release.versionCode, '2');
+    assert.equal(plan.retained.versionName, '1.0.0');
+    assert.equal(plan.retained.versionCode, '1');
+    assert.equal(plan.releaseNotesSource, 'current-store-page');
+    assert.equal(plan.release.name, 'Moonlit Beacon 1.0.1');
+    assert.deepEqual(
+      plan.release.releaseNotes.map(({ language }) => language),
+      PLAY_LOCALES,
+    );
+    assert.match(
+      plan.confirmationToken,
+      new RegExp(`^google-play-binary-only:${PLAY_PACKAGE_NAME}:2:internal:[0-9a-f]{16}$`, 'u'),
+    );
+
+    const before = plan.confirmationToken;
+    const storePagePath = join(root, 'notes/release/store-page.md');
+    writeFileSync(
+      storePagePath,
+      readFileSync(storePagePath, 'utf8').replace(
+        'English release notes.',
+        'English release notes, updated for 1.0.1.',
+      ),
+    );
+    const rebound = binaryOnlyPlan(root, { inspection: { version: '1.0.1' } });
+    assert.equal(
+      rebound.release.releaseNotes[0].text,
+      'English release notes, updated for 1.0.1.',
+    );
+    assert.notEqual(rebound.confirmationToken, before);
+    assert.notEqual(rebound.releaseNotesDigest, plan.releaseNotesDigest);
+
+    const edited = readFileSync(storePagePath, 'utf8').replace(
+      'English release notes, updated for 1.0.1.',
+      'English release notes.',
+    );
+    writeFileSync(storePagePath, edited);
+    const restored = binaryOnlyPlan(root, { inspection: { version: '1.0.1' } });
+    assert.equal(restored.confirmationToken, before);
+    assert.equal(restored.releaseNotesDigest, plan.releaseNotesDigest);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only newer-version apply binds the proposed identity and current notes', async () => {
+  const root = binaryOnlyRoot({ version: '1.0.1' });
+  try {
+    const storePagePath = join(root, 'notes/release/store-page.md');
+    writeFileSync(
+      storePagePath,
+      readFileSync(storePagePath, 'utf8').replace(
+        'English release notes.',
+        'English release notes, updated for 1.0.1.',
+      ),
+    );
+    const plan = binaryOnlyPlan(root, { inspection: { version: '1.0.1' } });
+    const fake = binaryOnlyFake(plan);
+    promoteFakeToNewRelease(plan, fake);
+    const result = await applyPlayBinaryOnlyUpdatePlan(plan, {
+      client: fake.client,
+      confirmation: plan.confirmationToken,
+      now: () => new Date('2026-10-02T00:00:00.000Z'),
+    });
+    assert.equal(result.applied, true);
+    assert.deepEqual(fake.state.trackBodies, [{
+      releases: [{
+        name: 'Moonlit Beacon 1.0.1',
+        releaseNotes: plan.release.releaseNotes,
+        status: 'completed',
+        versionCodes: ['2'],
+      }],
+      track: 'internal',
+    }]);
+    assert.equal(fake.state.trackBodies[0].releases[0].releaseNotes[0].text,
+      'English release notes, updated for 1.0.1.');
+    assert.throws(
+      () => fake.client.updateListing,
+      /forbidden Publisher call: updateListing/,
+    );
+
+    const receipt = readPlayBinaryOnlyReceipt(plan);
+    assert.equal(receipt.schemaVersion, PLAY_BINARY_ONLY_RECEIPT_SCHEMA_VERSION);
+    assert.equal(receipt.versionName, '1.0.1');
+    assert.equal(receipt.versionCode, '2');
+    assert.equal(receipt.retainedVersionName, '1.0.0');
+    assert.equal(receipt.retainedVersionCode, '1');
+    assert.equal(receipt.releaseNotesDigest, plan.releaseNotesDigest);
+    assert.equal(receipt.update.state, 'APPLIED');
+
+    const receiptPath = plan.receiptPath;
+    const stored = JSON.parse(readFileSync(receiptPath, 'utf8'));
+    writeFileSync(receiptPath, JSON.stringify({
+      ...stored,
+      releaseNotesDigest: `${'0'.repeat(64)}`,
+    }));
+    assert.throws(() => readPlayBinaryOnlyReceipt(plan), /differs from the current binary/);
+    writeFileSync(receiptPath, JSON.stringify({ ...stored, retainedVersionName: '9.9.9' }));
+    assert.throws(() => readPlayBinaryOnlyReceipt(plan), /differs from the current binary/);
+    writeFileSync(receiptPath, JSON.stringify(stored));
+    assert.equal(readPlayBinaryOnlyReceipt(plan).update.state, 'APPLIED');
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test('binary-only same-version replacement keeps retained notes and refuses listing drift', () => {
+  const root = binaryOnlyRoot();
+  try {
+    const plan = binaryOnlyPlan(root);
+    assert.equal(plan.release.versionName, '1.0.0');
+    assert.equal(plan.releaseNotesSource, 'retained-package');
+
+    const storePagePath = join(root, 'notes/release/store-page.md');
+    const source = readFileSync(storePagePath, 'utf8');
+    writeFileSync(
+      storePagePath,
+      source.replace('English release notes.', 'English release notes, silently updated.'),
+    );
+    assert.throws(
+      () => binaryOnlyPlan(root),
+      /same-version replacement keeps the retained release notes/,
+    );
+
+    writeFileSync(
+      storePagePath,
+      source.replace('English full description.', 'English full description, edited.'),
+    );
+    assert.throws(
+      () => binaryOnlyPlan(root),
+      /en-US current listing copy differs from the retained gallery/,
+    );
+
+    writeFileSync(storePagePath, source);
+    assert.equal(binaryOnlyPlan(root).confirmationToken, plan.confirmationToken);
+  } finally {
+    rmSync(root, { force: true, recursive: true });
   }
 });
 

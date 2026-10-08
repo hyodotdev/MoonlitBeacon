@@ -377,3 +377,128 @@ Reviewer access (facts):
 - Deployed Firestore rules against `firestore.cloud.addition.rules`.
 - iPad Apple delete/re-confirm and a real purchase on the final build
   before any claim about them.
+
+## 9. 4.0.1 update: adventurer names, lesson bit, attendance, Hall alias (version-scoped)
+
+Everything in §0–§8 stays as the 4.0.0 historical record; nothing above
+was edited for this update. This section scopes what 4.0.1 adds. It is
+audit only, like the rest of the file: the director verifies the remote
+form.
+
+New documents (facts, all under the same `moonlitbeacon-778ee` project
+and the same two game-called endpoints from §0 — no new host, no new
+SDK, no analytics change):
+
+- `mb_adventurers_v1/{publicId}`: one row per named account —
+  `public_id, uid, name_key, display, intro_complete, schema,
+  created_at, updated_at` (`cloud_schema.gd:18,52-55`). `display` is
+  the 2–12 character handle the player typed
+  (`cloud_schema.gd:144-173`); `intro_complete` records the finished
+  lodge lesson.
+- `mb_names_v1/{nameKey}`: one row per claimed handle —
+  `name_key, display, public_id, schema, created_at`
+  (`cloud_schema.gd:19,56-58`). Creation is first-writer-wins
+  (`firestore.cloud.addition.rules:357-370`, `!exists` guard); handles
+  cannot be renamed or moved (`game.md` account section).
+- `mb_attendance_v1/{publicId}`: one row per account —
+  `public_id, uid, install_id, last_claim_at, schema, prev_claim_at,
+  prev_install_id` (`cloud_schema.gd:20,59-66`). The only timestamp is
+  server-set (`last_claim_at == request.time` in the rules); one grant
+  of two coins per rolling twelve hours, enforced by server time
+  (`cloud_schema.gd:73-78`, `cloud_attendance.gd:1-30`).
+  `install_id` is 16 device-minted random bytes kept in the Vault
+  (`vault.gd:1348-1362`), an app-generated receipt binding, not a
+  device or advertising identifier.
+- Hall alias: Hall rows may now carry `display`, the owner's verified
+  adventurer name bound server-side to the claimed name pair
+  (`cloud_schema.gd:48-51`; rules bind at
+  `firestore.cloud.addition.rules:228-229`). Legacy and unnamed rows
+  render without one. The Hall stays one row per public ID; no other
+  Hall field changed.
+
+Required online naming vs the local-only failure escape (facts):
+
+- Required path: a cloud-linked account whose Vault cache holds no
+  verified handle (or no acknowledged lesson bit) must visit the gate
+  lodge before the Arena (`production_host.gd:812-830`,
+  `needs_lodge_lesson`, which requires BOTH). There Lumi greets the
+  hero, the account claims one handle through the atomic service, the
+  player walks and dashes on the open floor, and the account-owned
+  lesson seals before departure (`gate_lodge.gd:1-20`). The name form
+  offers confirmation and retry only — a Confirm button
+  (`gate_lodge.gd:353-357`) plus the register/taken/offline/retry
+  strings (`gate_entry.csv:111-116`) — with no unnamed opt-out
+  control. A successful online first entry therefore requires a
+  unique nickname BEFORE movement practice and departure. Claiming
+  needs a connection (`gate_entry.csv:116`,
+  `gate.lodge.name_offline`); the verified handle is cached per
+  account only from server-acknowledged states (`vault.gd:1244-1295`),
+  and the lesson touches no saved run and spends no coins (`game.md`
+  lodge bullet). A returning named account that stopped midway
+  through practice still visits the lodge, because the lesson bit is
+  unset (`production_host.gd:812-830`).
+- Failure escape (not ordinary optional collection):
+  `begin_guest(true)` skips registration only when leaving a held
+  error screen (`production_host.gd:408-422`, sole `true` caller at
+  `production_entry.gd:335-341`, same as §3). A local-only guest has
+  no claim to settle, never enters the lodge (`gate_lodge.gd:11-12`),
+  and plays unnamed. That escape exists for error/unconfigured
+  builds; in a configured build every online account passes the
+  required naming above, so the escape does not make name collection
+  optional for all users. Per the official Play guidance, optional
+  requires all users to be able to opt in/out or provide the data
+  optionally, while primary functionality requiring a type must
+  declare it required (director-read at
+  https://support.google.com/googleplay/android-developer/answer/10787469).
+
+Deletion (facts): the account-deletion commit is now seven steps —
+Hall, name claim, adventurer, checkpoint, attendance, reservation,
+and profile together, atomically, before the native Auth user
+deletes (`cloud_account.gd:1-30,33-75`); unnamed accounts commit the
+five legacy steps unchanged. §4's four-step list is the 4.0.0 record
+and stays untouched above.
+
+Reminders (facts): attendance reminders are local-only. One
+per-install controller schedules from the server-confirmed deadline;
+a notification never grants coins by itself, and the schedule retires
+on disable, sign-out, account switch, or deletion
+(`attendance_reminders.gd:1-25`). No reminder payload leaves the
+device; no new data type.
+
+Director-saved Play correction (remote fact, not this copy's proposal):
+
+- The director read the actual Play form: User IDs already required;
+  Name previously optional; email optional; Name/User IDs purposes
+  App functionality and Account management, collected, non-ephemeral,
+  not shared. The adventurer `display` handle is a nickname, and
+  nicknames are Play Name under the official definitions (same
+  director-read guidance URL as above).
+- Because online naming is required (see the required path above),
+  the director saved Name as required for the coming review. The
+  preview shows Name/User IDs without Optional and email with
+  Optional; the console says the change is saved and ready in
+  Publishing overview. It has NOT yet been sent for review, and
+  nothing here claims review is complete or published.
+- The public Hall alias is in-app public content under the same
+  sharing note as §6, not a new sharing recipient; no new Play
+  data-type row beyond the Name correction is proposed.
+
+Apple (no declaration edit made): Apple currently declares Name,
+Email Address, User ID, Gameplay Content, and Product Interaction,
+linked to identity for App Functionality. The nickname/handle fits
+the existing identifier declaration (director-read at
+https://developer.apple.com/app-store/app-privacy-details/).
+Tracking stays No for the new rows for the same §2 reasons (no ad
+identifier, no cross-app combination).
+
+Attendance rows add no new personal-data type beyond the
+already-declared IDs: timestamps plus the app-generated install
+binding above. Naming is required; attendance is part of the
+signed-in account; the local-only failure escape and disabled
+reminders collect nothing.
+
+Open (added by this update, besides §7): the director sends the
+saved Name-required Play change for review and confirms the
+Required treatment on the 4.0.1 (Android 20 / iOS 15) binaries; no
+twelve-hour delivery, no permission tap, and no purchase is claimed
+from this copy.

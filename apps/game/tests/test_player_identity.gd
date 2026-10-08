@@ -2042,10 +2042,11 @@ func _test_ios_export_manifest_links_everything() -> void:
 	_expect_equal(IOS_MANIFEST_SCRIPT.REQUIRED_BUNDLES.size(), 9,
 		"nine privacy bundles required")
 	var systems: PackedStringArray = IOS_MANIFEST_SCRIPT.system_frameworks()
-	_expect_equal(systems.size(), 7,
-		"seven system frameworks declared")
+	_expect_equal(systems.size(), 8,
+		"eight system frameworks declared")
 	for name in ["AuthenticationServices", "CoreTelephony", "GameKit",
-			"SafariServices", "Security", "SystemConfiguration", "WebKit"]:
+			"SafariServices", "Security", "SystemConfiguration",
+			"UserNotifications", "WebKit"]:
 		_expect_true(systems.has(name + ".framework"),
 			"system framework linked " + name)
 	_expect_equal(IOS_MANIFEST_SCRIPT.linker_flags(), "-ObjC -lz",
