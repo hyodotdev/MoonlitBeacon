@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/spirit_kind.gd" id="1_kind"]
+[ext_resource type="Texture2D" path="res://assets/third_party/ninja_adventure/actor/spirit_ember.png" id="2_sheet"]
+
+[resource]
+script = ExtResource("1_kind")
+display_name = "Ember spirit"
+sheet = ExtResource("2_sheet")
+cell = 16
+rows = 4
+columns = 4
+speed = 84.0
+turn_rate = 8.5
+body_scale = 1.0
+tint = Color(1, 0.5, 0.45, 1)
+anim_fps = 7.0

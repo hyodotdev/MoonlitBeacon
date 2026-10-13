@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/virtual_stick.gd" id="0_stick"]
+[ext_resource type="Texture2D" path="res://assets/derived/ui/stick_base.png" id="1_base"]
+[ext_resource type="Texture2D" path="res://assets/derived/ui/stick_knob.png" id="2_knob"]
+
+[node name="VirtualStick" type="Control"]
+anchors_preset = 9
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_right = 0.0
+grow_vertical = 2
+script = ExtResource("0_stick")
+
+[node name="Base" type="Sprite2D" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0.55)
+texture = ExtResource("1_base")
+
+[node name="Knob" type="Sprite2D" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0.75)
+texture = ExtResource("2_knob")

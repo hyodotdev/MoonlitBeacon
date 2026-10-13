@@ -1,13 +1,12 @@
 # Asset download guide
 
-:::tip Download and unzip are already done
-If you are working in this repository you do not need to repeat the steps
-below.
-**The six asset packs are already downloaded into `_downloads/` and unzipped
-into `_asset_sources/`.** Both folders are gitignored, so they are not on
-a clone. Only people following from scratch need the steps below.
+:::info A fresh clone starts with empty asset folders
+`_downloads/` and `_asset_sources/` are gitignored, so **a public clone never
+includes them** — you download and unzip everything yourself with the steps
+below. (On the author's own machine those folders are already filled; that is
+the only place the "already done" case applies.)
 
-Files currently in `_downloads/`:
+When you finish, your `_downloads/` should hold these six files:
 
 ```text
 _downloads/
@@ -21,8 +20,11 @@ _downloads/
 :::
 
 This project **does not include full original asset packs in the repo.**
-Download them yourself with the steps below, then copy only the files each
-lesson actually uses into `apps/game/assets/third_party/`.
+The selected playable files are tracked, so a clone of the complete game
+runs with no downloads at all. This guide exists for the blank-project
+exercise: download the originals yourself with the steps below, then copy
+only the files each lesson actually uses into your project's
+`assets/third_party/`.
 
 ## Rules
 

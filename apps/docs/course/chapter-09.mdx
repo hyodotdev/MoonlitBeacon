@@ -5,6 +5,8 @@ title: Lesson 9 · Start and end of a run
 
 # Lesson 9 · Start and end of a run
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 9` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 Until now **there was no ending.** Lighting every beacon did nothing, and
 you could keep walking after a hundred hits from the spirit.
 
@@ -137,8 +139,12 @@ func set_bounds(rect: Rect2) -> void:
 		_player.set_bounds(_player.bounds.merge(Rect2(_gate.position - Vector2(24, 0), Vector2(48, 18))))
 ```
 
-`merge()` returns a rectangle that contains both rectangles.
-Only the path to the gate opens; the rest of the edge stays the same.
+`merge()` returns the bounding rectangle of both rectangles: the new
+bounds span the whole union of the old box and the gate box. This is not
+a narrow opened path — everything between the old edge and the gate box
+becomes walkable too. With the gate sitting just past the south edge, that
+union is exactly the strip we want; a gate tucked elsewhere would open a
+much wider area, so place it deliberately.
 
 > **This is the healthy case**
 > If Lesson 6 had tried to make "perfect" bounds by putting a collider on
@@ -242,8 +248,16 @@ Attempt to call function 'set_target' in base 'previously freed' on a null insta
 ## 6. Check that this much is working
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
+
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 - Lighting every beacon makes the gate appear (it is hidden before that)
 - Walking into the gate shows the win panel
@@ -278,7 +292,7 @@ panel stacks on itself.
 - [ ] Standing still actually loses the run
 - [ ] The game does not run behind the panel
 - [ ] A tap restarts from the beginning
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Homework
 

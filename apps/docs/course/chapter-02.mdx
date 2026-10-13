@@ -5,6 +5,8 @@ title: Lesson 2 · Nodes and scenes
 
 # Lesson 2 · Nodes and scenes
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 2` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 The title screen from Lesson 1 **all lives in one file.** The forest, the
 beacon, and the title text are bunched inside `title_menu.tscn`. Looking at
 the screen, it is fine.
@@ -579,13 +581,19 @@ Being off by a few dozen lines does not matter. **The order of magnitude
 should match.**
 If `title_menu.tscn` is still in the ten-thousands, you skipped 5-11.
 
-Check that it opens with no errors from the command line.
+Check that it imports with no errors from the command line.
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
 
-The exit code must be `0`, with no errors or warnings.
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 ## 7. Break it on purpose
 
@@ -626,7 +634,7 @@ Zoom in and you can see the red wick and the smoke are gone.
 - [ ] `title_menu.tscn` shrank to around 201 lines
 - [ ] The **arena's** beacon also flickers (proof the flicker lives inside the beacon scene)
 - [ ] Tapping the title screen makes the beacon flare, then return to its own flicker
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Exercises
 

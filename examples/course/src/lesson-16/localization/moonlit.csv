@@ -1,0 +1,25 @@
+keys,en,ko
+TAP_START,Tap to start,탭하여 시작
+SETTINGS,Settings,설정
+CREDITS,Credits,제작진
+MUSIC_LABEL,Music,음악
+SFX_LABEL,Sound,효과음
+LANGUAGE_LABEL,Language,언어
+CLOSE,Close,닫기
+PAUSED,Paused,일시정지
+RESUME,Resume,계속하기
+RESULT_WIN,All beacons are burning,모든 봉화가 타오른다
+RESULT_LOSE,The night takes you,밤이 당신을 삼킨다
+RESTART,Tap to try again,탭하여 다시 도전
+SKIP,Skip,건너뛰기
+SCORE_BEACONS,Beacons,봉화
+SCORE_TIME,Time,시간
+SCORE_ESCAPE,Escape,탈출
+HP_FORMAT,HP %d,체력 %d
+BEACONS_FORMAT,Beacons %d/%d,봉화 %d/%d
+DASH_READY,Dash ready,대시 준비
+DASH_BUSY,Dash ...,대시 ...
+CREDITS_BODY,Art and music CC0. MapleStory font OFL. Made while learning Godot 2D.,아트와 음악 CC0. 폰트 MapleStory OFL. Godot 2D를 배우며 만듦.
+QUIT_ASK,Quit to the home screen?,홈 화면으로 나갈까요?
+QUIT_YES,Quit,나가기
+QUIT_NO,Stay,머무르기

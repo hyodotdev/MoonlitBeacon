@@ -5,6 +5,8 @@ title: Lesson 3 · Instances
 
 # Lesson 3 · Instances
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 3` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 In Lesson 2 you made the beacon as one file. This lesson **places it three
 times**.
 
@@ -337,11 +339,13 @@ scratch.
 
 :::danger The transition frame freezes
 Leave it like this and the screen **stops for 181ms** at the moment of the
-transition. That is 11 frames at 60fps.
+transition. That is 11 frames at 60fps, measured on the original build.
 
-When an `AudioStreamPlayer` leaves the tree, the audio thread needs time to
-clean up, so it waits 150ms. That wait lands on the same frame that swaps the
-scene.
+When a sounding scene leaves the tree with voices playing, the project's
+cleanup helper waits out one audio mix — 150ms in `AudioFlush` — so nothing
+leaks. That wait lands on the same frame that swaps the scene. The wait
+belongs to the helper, not to the built-in player: a bare
+`AudioStreamPlayer` has no `release()` and no mix-wait of its own.
 
 **Turn the sound off first.** Fade the music to zero over 0.55 seconds from
 the moment of the tap, and by the time the beacon effect (0.85 seconds) ends
@@ -349,6 +353,10 @@ the sound is already gone, so there is nothing to wait for.
 
 ```gdscript
 const BGM_FADE_OUT_SECONDS: float = 0.55
+const BGM_SILENCE_DB: float = -80.0
+
+@onready var _bgm: AudioStreamPlayer = $Bgm
+@onready var _sfx: AudioStreamPlayer = $Confirm
 
 func _fade_out_music() -> void:
 	var fade: Tween = create_tween()
@@ -356,12 +364,19 @@ func _fade_out_music() -> void:
 	await fade.finished
 	if not is_inside_tree():
 		return
-	_bgm.release()
-	_sfx.release()
+	AudioFlush.stop_player(_bgm)
+	AudioFlush.stop_player(_sfx)
 ```
 
-Fix it and measure again and the slowest frame is **27ms**.
-The music dies away naturally as you go, so it also looks better.
+`AudioFlush` is this lesson's small shutdown helper
+(`scripts/util/audio_flush.gd` in the checkpoint): stopping a player only
+marks its voice for removal, and the real free happens on the audio thread's
+next mix. The shipped game instead attaches `music_player`/`sfx_player_2d`
+wrapper scripts that add their own `release()`; this lesson uses the smaller
+shared helper above, which the reference checkpoint carries in full.
+
+Fix it and measure again and the slowest frame is **27ms** on the original
+build. The music dies away naturally as you go, so it also looks better.
 :::
 
 :::warning A flash of gray on the one transition frame
@@ -392,10 +407,16 @@ see it.
 ## 6. Check your work so far
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
 
-Exit code `0`, zero errors and warnings.
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 - `arena.tscn` has **three** instances of `beacon.tscn`
 - The three instances each have a different `position`, `scale`, and
@@ -432,7 +453,7 @@ you check, put it back to `0.62`.
 - [ ] The screen does not freeze or flash gray at the moment of the transition
 - [ ] Changing window width keeps the arena centered
 - [ ] Edit `beacon.tscn` once and all three change
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 - [ ] Install it on a phone, tap, and it runs in the same order
 
 ## 9. Exercises

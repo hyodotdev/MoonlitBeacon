@@ -5,6 +5,8 @@ title: Lesson 8 · Creating enemies
 
 # Lesson 8 · Creating enemies
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 8` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 Nothing got in the way of lighting a beacon. You just walked up and stood
 there.
 
@@ -66,14 +68,17 @@ The official sample has mobs cross the screen. Ours **chase you**.
 
 This is the most important part.
 
-In Lesson 7 we made the beacon's detect area **see only layer 2**.
-Put the spirit on **layer 4** and the spirit cannot light a beacon.
+In Lesson 7 we made the beacon's detect area **see only layer value 2**.
+Put the spirit on **layer value 4** and the spirit cannot light a beacon.
 
 ```ini
 [node name="Spirit" type="CharacterBody2D"]
 collision_layer = 4
 collision_mask = 0
 ```
+
+Value `4` is inspector checkbox 3 — values double (1, 2, 4, 8), so ticking
+the fourth box would mean value 8, a layer nothing in this game uses.
 
 <Video
   src="video/chapter-08-layer.mp4"
@@ -204,8 +209,16 @@ is 48px.
 ## 6. Check your work so far
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
+
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 - A spirit chases the ninja
 - It is slower than the ninja (you can shake it off)
@@ -246,7 +259,7 @@ the stick.
 - [ ] Overlapping hits only once per 1.1 seconds
 - [ ] A spirit cannot light a beacon (**with a layer, not with code**)
 - [ ] With a spirit present, the stick and beacon ignition still work
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Exercises
 

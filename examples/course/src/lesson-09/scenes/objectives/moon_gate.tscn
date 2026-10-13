@@ -1,0 +1,23 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/objectives/moon_gate.gd" id="1_gate"]
+[ext_resource type="Texture2D" path="res://assets/derived/objectives/moon_gate.png" id="2_arch"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_enter"]
+radius = 16.0
+
+[node name="MoonGate" type="Node2D"]
+visible = false
+script = ExtResource("1_gate")
+
+[node name="Arch" type="Sprite2D" parent="."]
+position = Vector2(0, -26)
+texture = ExtResource("2_arch")
+
+[node name="Enter" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitoring = false
+
+[node name="EnterShape" type="CollisionShape2D" parent="Enter"]
+shape = SubResource("CircleShape2D_enter")

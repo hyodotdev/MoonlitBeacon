@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="SpiritKind" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/spirit_kind.gd" id="1_kind"]
+[ext_resource type="Texture2D" path="res://assets/third_party/ninja_adventure/actor/guardian.png" id="2_sheet"]
+
+[resource]
+script = ExtResource("1_kind")
+display_name = "Forest guardian"
+sheet = ExtResource("2_sheet")
+cell = 50
+rows = 1
+columns = 5
+speed = 52.0
+turn_rate = 3.2
+body_scale = 1.0
+tint = Color(0.7, 0.5, 1, 1)
+anim_fps = 4.0

@@ -1,0 +1,14 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+
+[deps]
+
+source_file="res://localization/moonlit.csv"
+dest_files=["res://localization/moonlit.en.translation", "res://localization/moonlit.ko.translation"]
+
+[params]
+
+compress=true
+delimiter=0

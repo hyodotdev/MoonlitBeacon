@@ -1,0 +1,97 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/arena.gd" id="1_arena"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/night_forest.tscn" id="2_forest"]
+[ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="3_beacon"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg" id="4_music"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="5_player"]
+[ext_resource type="PackedScene" path="res://scenes/ui/virtual_stick.tscn" id="6_stick"]
+[ext_resource type="PackedScene" path="res://scenes/spirit.tscn" id="7_spirit"]
+[ext_resource type="PackedScene" path="res://scenes/objectives/moon_gate.tscn" id="8_gate"]
+[ext_resource type="PackedScene" path="res://scenes/ui/result_panel.tscn" id="9_result"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="10_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/pause_panel.tscn" id="11_pause"]
+[ext_resource type="FontFile" path="res://assets/third_party/fonts/MaplestoryLight.ttf" id="12_font"]
+[ext_resource type="Resource" path="res://resources/kinds/drifter.tres" id="13_drifter"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="14_settings"]
+
+[node name="Arena" type="Node2D"]
+script = ExtResource("1_arena")
+
+[node name="NightForest" parent="." instance=ExtResource("2_forest")]
+
+[node name="BeaconWest" parent="." instance=ExtResource("3_beacon")]
+position = Vector2(258, 286)
+scale = Vector2(0.78, 0.78)
+lit = false
+flicker_speed = 0.87
+
+[node name="BeaconNorth" parent="." instance=ExtResource("3_beacon")]
+position = Vector2(414, 196)
+scale = Vector2(0.62, 0.62)
+lit = false
+flicker_speed = 1.24
+
+[node name="BeaconEast" parent="." instance=ExtResource("3_beacon")]
+position = Vector2(566, 272)
+scale = Vector2(0.86, 0.86)
+lit = false
+flicker_speed = 1.03
+
+[node name="Player" parent="." instance=ExtResource("5_player")]
+position = Vector2(330, 300)
+
+[node name="Spirit" parent="." instance=ExtResource("7_spirit")]
+position = Vector2(120, 170)
+kind = ExtResource("13_drifter")
+
+[node name="Gate" parent="." instance=ExtResource("8_gate")]
+position = Vector2(404, 336)
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_music")
+autoplay = true
+volume_db = -11.0
+bus = "Music"
+
+[node name="Ui" type="CanvasLayer" parent="."]
+
+[node name="MoveStick" parent="Ui" instance=ExtResource("6_stick")]
+
+[node name="DashStick" parent="Ui" instance=ExtResource("6_stick")]
+anchor_left = 0.5
+anchor_right = 1.0
+offset_left = 0.0
+offset_right = 0.0
+
+[node name="HitFlash" type="ColorRect" parent="Ui"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.2, 0.2, 1)
+
+[node name="ResultPanel" parent="Ui" instance=ExtResource("9_result")]
+
+[node name="Hud" parent="Ui" instance=ExtResource("10_hud")]
+
+[node name="PauseButton" type="Button" parent="Ui"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -44.0
+offset_top = 36.0
+offset_right = -12.0
+offset_bottom = 68.0
+grow_horizontal = 0
+theme_override_fonts/font = ExtResource("12_font")
+theme_override_font_sizes/font_size = 22
+text = "II"
+
+[node name="PausePanel" parent="Ui" instance=ExtResource("11_pause")]
+
+[node name="SettingsPanel" parent="Ui" instance=ExtResource("14_settings")]

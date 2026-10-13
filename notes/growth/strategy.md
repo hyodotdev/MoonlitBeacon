@@ -38,12 +38,14 @@ Observed acquisitions are Browse/India; no Korean value exists anywhere. Stay
 geo-agnostic — English-first creative, no KR-only spend — until data says
 otherwise.
 
-## One active observation
+## No active observation (E03 closed Oct 13)
 
-E03 observes the already-published Play listing video (`2JeLS582sRA`, last
-publish Sep 18). Follow [video-measurement.md](video-measurement.md). No
-second live experiment until its Oct 2 decision. Preparation below is not a
-launch.
+E03 observed the already-published Play listing video (`2JeLS582sRA`, last
+publish Sep 18) per [video-measurement.md](video-measurement.md). No verified
+verdict exists by the original Oct 2 decision deadline (deadline missed). A
+matched after-week was read on Oct 13; the late verdict is **inconclusive**:
+sparse observational data cannot establish a listing-video effect. Nothing
+is running now. Preparation below is not a launch.
 
 The old E01 recruitment has no launch evidence: **not_run**, not a failed
 product hypothesis. Its replacement is P3, not a rerun.
@@ -88,32 +90,47 @@ H3; a fresh switch restarts its clock.
 - The Sep 18 revert signals real hesitation. This package asks the decision
   plainly instead of assuming it.
 
-### P3 — First-play observations without community posts (E01b)
+### P3 — First-play observations without community posts (user picked course readers)
 
 Reddit/X posts stay out per the user's Sep 18 call, so G06 remains blocked on
-a destination. Options for the user to pick exactly one: (a) itch.io devlog
-plus comments ask after P1, (b) testers from the user's own network (user
-recruits; agent drafts the ask and the consent script), (c) course readers
-after P4. Target: five observations.
+a destination. The user picked option (c), course readers: the prepared
+package is the `/first-play` invitation page, the homepage Play section with
+the UTM-tagged Play link, the moderator protocol with its empty P01–P05
+template, and the E04 measurement contract. Target: five observations, all
+prepared, none scheduled.
 
-- Per observation: device, OS, consent note, first-open to beacon-1 reached
-  (yes/no plus time), deaths under 60s, quit point, one verbatim quote.
+- Per observation: device, OS, consent note, app version at first open,
+  open-to-run-start plus run-start-to-beacon-1 (yes/no plus time), deaths in
+  the run's first 60s, quit screen/step, one verbatim quote with permission.
 - No PII, no recording without consent, manual notes until G10 lands.
-- Exact copy is drafted after the destination pick, never before.
+- One coordinated program (E04 below), not two concurrent exposures.
 
 ### P4 — Course site deploy (shipped Sep 26, was a dependency)
 
 Sixteen lessons live at `hyodotdev.github.io/MoonlitBeacon/` with all clips
 re-shot in English: PR #3 merged (`da0e0db`), deploy workflow success,
 16/16 lesson pages plus nav targets HTTP 200 and 70/70 media assets 200,
-verified by direct fetch Sep 26. Remaining growth value: add tracked store
-links for the course-to-game funnel (E02 attribution input).
+verified by direct fetch Sep 26. Tracked store links for the course-to-game
+funnel are added (homepage Play section, first-play page); the funnel input
+is ready and unlaunched.
 
-## E02 design (queued, starts after the E03 verdict)
+## E04 — course channel program (queued, the single coordinated experiment)
+
+Question: does the course move readers to the store, and where do fresh
+volunteers get stuck. One identity covers both the attributed Play read
+(source + campaign match, seven complete days, >=100 listing visitors for a
+quantitative read) and the five manual sessions from the protocol. Follow
+[first-play-measurement.md](first-play-measurement.md) and
+[first-play-protocol.md](first-play-protocol.md). Launch timestamp and proof
+are null; no clock has started; decision due Nov 13.
+
+## E02 design (not_run; original Oct 9 deadline retained)
 
 Question: which owned channel converts to installs. Candidates are whichever
-of P1/P2 went live. If neither is live on Oct 2, E02 stays queued — say so
-explicitly instead of running a phantom experiment.
+of P1/P2 went live. Neither was live on Oct 2, and the Oct 9 decision passed
+with no verified launch, so E02 is **not_run** — said explicitly instead of
+running a phantom experiment. It is not an exposure to revive silently. The
+course channel is not E02; it is the separate E04 program above.
 
 - Attribution: per-channel UTM links, console source rows where available,
   itch referrers. Keep store clicks, acquisitions, and first opens separate
@@ -150,12 +167,14 @@ unverified at 1fps).
 
 ## Review cadence and boundaries
 
-Monday/Thursday 10:00 Asia/Seoul. Next Sep 24; E03 decision Oct 2, E02
-decision Oct 9 if it launches. Fetch origin/main before each run, preserve
-other work, and report divergence. Read state/log/tracker, collect with
-permitted connectors/browser, judge overdue hypotheses, finish one grounded
-action, verify and record. Failed attempts never refresh an old observation
-date. Keep original missed deadlines visible.
+Monday/Thursday 10:00 Asia/Seoul. Next planned review Oct 15 — a plan,
+not a saved automation. E03 decision Oct 2 missed, late Oct 13 verdict
+inconclusive; E02 decision Oct 9 passed with no verified launch (not_run).
+Fetch origin/main before
+each run, preserve other work, and report divergence. Read state/log/tracker,
+collect with permitted connectors/browser, judge overdue hypotheses, finish
+one grounded action, verify and record. Failed attempts never refresh an old
+observation date. Keep original missed deadlines visible.
 
 Use complete, non-overlapping Monday–Sunday windows and matched units/filters.
 Retention needs mature numerator and denominator; Play, ASC opt-in and
