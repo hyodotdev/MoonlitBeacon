@@ -158,3 +158,69 @@ are not authoritative over the current user instructions or newer observations.
   G03/G09/G10 ready-overdue, G06 blocked on recruitment approval, E01
   not_run. E03 running, decision Oct 2. Budget stays 0 KRW.
 - Tracker #1 body updated with this round; "API reports private" corrected.
+
+## 2026-10-13 round — Course first-play preparation (no launch)
+
+- Prepared the P3(c) course-reader recruitment package: `/first-play`
+  invitation page (store links, optional email draft, consent terms, no
+  forms/trackers/storage), homepage `Play the current game` section with
+  `utm_source=moonlit_course / utm_medium=referral /
+  utm_campaign=course_first_play_20261013` on the Play link and a plain
+  App Store link, moderator protocol with an empty P01–P05 template, and
+  the E02-course measurement contract (seven complete days, exact identity,
+  >=100 listing visitors for a quantitative read, iOS unmeasured).
+- State: **G15 done** (preparation with file evidence); **E01b** and
+  **E02-course** queued with null launch timestamp/proof and no clock.
+  E01/E02/H3/E03 entries untouched. Participants completed: 0.
+- No publication, no messages to testers, no console reads, no spend.
+  Budget stays 0 KRW. Missed Sep 24 / Sep 28 reviews and overdue
+  G03/G09/G10, blocked G06 stay on the record unchanged.
+- `growth:check`, `test:growth` (7), and `test:hosting` (26, incl. 5 new
+  canonical-route and entry-identity regressions) pass. Docs/hosting builds
+  could not run here (no node_modules, installs banned); the director runs
+  them before any hosting-only deploy.
+
+## 2026-10-13 round 3 — Practice foundation checks (no launch)
+
+- Round 3 found root `node_modules` present, so the round-2 "could not run"
+  line above is superseded: `docs:build`, `check:docs`, `hosting:build`,
+  and `hosting:check` all pass here (one Docusaurus broken-anchor warning
+  for `/course` -> `/#play-the-current-game`, verified working in built
+  HTML: the target `id` is a TSX section the static checker cannot see).
+- `course:create`/`course:verify` added for Lessons 1–8 reference
+  checkpoints; `test:course` (7) and `course-verify` (8/8 import/boot)
+  pass. No participants, no publication, no spend. Budget stays 0 KRW.
+
+## 2026-10-13 rounds 6-7 — Publication-readiness reconciliation (no launch)
+
+- **E03 verdict (late): inconclusive.** No verified verdict exists by the
+  original Oct 2 decision deadline (deadline missed). A matched after-week
+  was read on Oct 13; sparse observational data cannot establish a
+  listing-video effect. Original deadline and Sep 21 enrollment stay on the
+  record. Nothing is running now. (Counts stay out of this ledger.)
+- **E02: not_run, original Oct 9 deadline retained.** Neither P1 nor P2 was
+  live, and Oct 9 passed with no verified launch. It is not an exposure to
+  revive silently. The course channel is the separate E04 program, not E02.
+- **E04 queued** (single coordinated experiment, supersedes the E01b/E02-course
+  scaffolding): attributed Play read plus five manual sessions under one
+  identity, null launch timestamp/proof, no clock, decision due Nov 13.
+  P3 destination is the user-picked course readers; invitation page, homepage
+  Play section, protocol template, and measurement contract are prepared,
+  none scheduled, participants completed: 0. Bookings confirmed separately.
+- Measurement: Play exposes source + campaign, not medium — matching uses
+  `source=moonlit_course` / `campaign=course_first_play_20261013`;
+  `utm_medium=referral` stays URL annotation only. Attributed listing
+  visitors/install clicks are primary; global Grow acquisitions/first opens
+  are context. First-open outage warning scoped to the Sep 21 observation,
+  not re-verified Oct 13. No causal verdict or activation division.
+- Public listing scope (listing facts only, not session evidence): Apple
+  lookup returned 4.0.1 for KR and US, released 2026-10-08T18:35:39Z; Play
+  package page showed 4.0.1 with an Oct 8 update date. Installed version is
+  recorded during each agreed session. No new private counts or console
+  URLs; historical snapshots/attempts byte-identical.
+- Practice scope citable after independent runs: full `course:verify` 16/16
+  on official 4.7.1 and 16/16 on 4.7.2 (desktop/headless reference checks,
+  Oct 13) — not phone, export, sign-in, volunteer, or future-version proof.
+- Next planned review Oct 15 is a plan, not a saved automation. Tracker
+  stays #1. Budget stays 0 KRW. `growth:check`, `test:growth` (7) pass;
+  docs/hosting/skills/hygiene/diff checks in the implementer report.

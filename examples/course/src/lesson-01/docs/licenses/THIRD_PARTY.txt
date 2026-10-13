@@ -1,0 +1,18 @@
+Third-party and derived assets in this practice project.
+
+Font
+  Maplestory Light · ⓒ NEXON Korea
+  Free use: commercial and embedding allowed; sale and modification forbidden.
+  Source: https://maplestory.nexon.com/Media/Font
+  Used byte-identical; not modified.
+
+Art, music, and sound
+  Ninja Adventure Asset Pack · Pixel-Boy and AAA · CC0 (see CC0-1.0.txt)
+  Kenney UI Audio · Kenney · CC0 (see CC0-1.0.txt)
+
+Derived originals (MIT, see MIT-LICENSE.txt; reused from the shipping game)
+  assets/derived/ui/stick_base.png, stick_knob.png, charge_ring.png
+  assets/derived/objectives/moon_gate.png
+
+Practice originals (MIT, see MIT-LICENSE.txt)
+  assets/course/spark.png — 16x16 beacon-flame particle dot.

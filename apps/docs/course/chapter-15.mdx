@@ -5,6 +5,8 @@ title: Lesson 15 · Settings · Korean and English · Credits
 
 # Lesson 15 · Settings · Korean and English · Credits
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 15` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 Until now every on-screen string was **hard-coded in one language.**
 
 This lesson builds a settings window, switches language in place, and
@@ -327,7 +329,7 @@ It still leaves room to treat `English` as a key. Turning it off is clearer.
 - [ ] Settings survive quitting and relaunching
 - [ ] Title and pause use **the same settings scene**
 - [ ] Credits list MIT and OFL
-- [ ] `pnpm verify` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output (run it twice: the first import logs the missing-translation notice once)
 
 ## 9. Homework
 

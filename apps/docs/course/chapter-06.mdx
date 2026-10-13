@@ -5,6 +5,8 @@ title: Lesson 6 · Handling input
 
 # Lesson 6 · Handling input
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 6` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 The ninja has only been standing. This lesson we **make them walk**.
 
 It is a phone game, so there is no keyboard. Press the lower left of the
@@ -91,13 +93,54 @@ inside it stands the stick.
 ```ini
 [node name="VirtualStick" type="Control"]
 anchors_preset = 9        # pin left, fill vertical
+anchor_right = 0.5        # right edge follows half the width
 anchor_bottom = 1.0
-offset_right = 404.0      # half of 808
+offset_right = 0.0
 ```
 
-`anchors_preset = 9` is a layout pinned to the left and filling vertically.
-We picked `expand` in Lesson 1, so **width differs per device**.
-Pin it with anchors and even a wide phone keeps the left half.
+Start from preset 9 (left, full height), then set `anchor_right` to `0.5`.
+We picked `expand` in Lesson 1, so **width differs per device**: a fixed
+`offset_right = 404` would stay 404 pixels on every phone and stop being
+half the screen. Pin the right edge to the middle with an anchor and even a
+wide phone keeps the left half.
+
+:::info Required members — the declarations these excerpts assume
+The handler excerpts in 5-2 through 5-7 use members no lesson has declared
+yet. Select the `VirtualStick` Control, **Attach Script**, save it as
+`res://scripts/ui/virtual_stick.gd`, and declare:
+
+```gdscript
+var _touch_index: int = -1            # section 4: your finger, or -1
+var _origin: Vector2 = Vector2.ZERO     # stick center (5-2)
+var _value: Vector2 = Vector2.ZERO      # push after the dead zone (5-4)
+
+@export var dead_zone: float = 0.16
+
+
+func get_value() -> Vector2:
+	return _value
+```
+
+And in `player.gd` (Lesson 5), add what 5-5 and 5-7 call:
+
+```gdscript
+@export var speed: float = 96.0
+
+const ACCELERATION: float = 900.0
+const FRICTION: float = 1200.0
+
+var _wish: Vector2 = Vector2.ZERO
+
+
+func set_move_input(value: Vector2) -> void:
+	_wish = value
+```
+
+Still not shown in this lesson: the stick's base/knob visuals and the
+`_show_at()` / `_move_to()` / `_release()` bodies that move them, the
+`radius` value 5-4 divides by, and the `WALK_THRESHOLD` value 5-7 compares
+against. Those need full construction steps, not a box.
+:::
 
 ### 5-2. Stand it where you pressed
 
@@ -231,8 +274,16 @@ are sliding.
 ## 6. Check your work so far
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
+
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 Check these on the phone:
 
@@ -274,7 +325,7 @@ Lesson 5 said "does not show yet."
 - [ ] Just resting a thumb does not move them
 - [ ] If the finger leaves the pad it keeps following
 - [ ] They do not go outside the forest edge
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 - [ ] On the phone, it actually controls with a thumb
 
 ## 9. Exercises

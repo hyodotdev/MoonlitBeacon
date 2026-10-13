@@ -1,0 +1,763 @@
+---
+title: "Practice checkpoints · Lessons 1–16"
+description: "Create runnable end states for Lessons 1–16 from a fresh clone and compare them against your own project."
+sidebar_position: 17
+---
+
+# Practice checkpoints · Lessons 1–16
+
+Each lesson below has a **reference checkpoint**: a complete, runnable Godot
+project showing one honest end state. Create it from a fresh clone, open it
+beside your own blank project, and compare when you are stuck. The checkpoint
+is a mirror and a parts shelf — study it, and take whole files from it only
+as the rule below allows. The creation command refuses non-empty folders so
+you cannot overwrite yourself by accident.
+
+```bash
+node scripts/course-create.mjs --lesson 5
+node scripts/course-create.mjs --lesson 8 --out builds/course/lesson-08
+node scripts/course-create.mjs --list
+```
+
+Outputs default to `builds/course/lesson-NN/`. Open the output in the editor
+once before any command-line run so it imports (Godot 4.7.1 minimum, 4.7.2
+recommended — see [Godot version](/course#godot-version)). Checkpoints use
+the reference identity `Moonlit Course Reference` /
+`com.example.moonlitcourse.ref`: three namespaces stay separate — your own
+blank `Moonlit Course` project, the generated reference, and the installed
+shipping Moonlit Beacon — so a reference save or install can never
+overwrite your work or the game.
+
+Every checkpoint below lists its goal, the exact files it adds or changes
+against the previous lesson (each name opens its complete published
+source), the editor steps in short form (the lesson itself tells the full
+story), one independent modification, and the observable change that proves
+you understood it.
+
+All file paths below are relative to the checkpoint root (for example
+`builds/course/lesson-05/`). Each linked source also sits in your clone
+under `examples/course/src/` (lesson layers) and
+`examples/course/src/assets/` (art, audio, font) — the links open the same
+published files, and the same checkpoint-relative path under your generated
+`builds/course/lesson-NN/` is the offline equivalent. Work each lesson in
+this order: create the checkpoint; build every listed file from the lesson
+first — and where the lesson leaves construction details out (the Lesson 2
+forest scenes are the known case), create the NEW file from the linked
+complete source instead of guessing. When you replace a file you already
+built, commit or back it up first and apply only the named changes; never
+bulk-overwrite your whole project from a checkpoint. Then open the scene or
+script in Godot, read its nodes or key behavior against the lesson's
+explanation, and finish with the lesson's Modify exercise. Generating the
+checkpoint is the mirror, not the learning: build, explain, modify, verify.
+
+## First actions — engine, clone, reference, learner project
+
+Do these four once, in order, before Lesson 1. Steps 1–3 run on your
+machine outside Godot; step 4 is in the Godot editor.
+
+1. **Install the engine.** Godot 4.7.2 Standard recommended, 4.7.1 minimum
+   (see [Godot version](/course#godot-version) for the exact archives).
+   Installing Godot does not put a `godot` command on your PATH — remember
+   the executable's full path; quoting it handles the spaces.
+2. **Clone the repository fresh** into its own folder, and install Node.js
+   20+ for the helper scripts (no `pnpm install` needed — they use the
+   Node standard library only):
+
+   ```bash
+   git clone https://github.com/hyodotdev/MoonlitBeacon.git
+   cd MoonlitBeacon
+   ```
+
+   The clone already contains every selected playable asset and all
+   sixteen lesson layers under `examples/course/src/`.
+3. **Create a reference** from the clone root. This command exists only in
+   the clone — never type it in your blank project:
+
+   ```bash
+   node scripts/course-create.mjs --lesson 1
+   ```
+
+   It writes a complete standalone Lesson 1 project to
+   `builds/course/lesson-01/`. Substitute `--lesson N` (1–16) per lesson,
+   or `--out` with a NEW or empty folder of your own; the creator refuses
+   to touch existing work, source folders, or symlinked paths.
+4. **Make your separate learner project** in the Godot Project Manager:
+   `+ New` → name `Moonlit Course` → empty folder *outside* the clone
+   (Lesson 1 uses `~/moonlit-course/my-game/`) → Renderer: Compatibility.
+   This blank project is where you follow every lesson. Its identity stays
+   separate from the reference (`Moonlit Course Reference`, package
+   `com.example.moonlitcourse.ref`) and from the shipping game, so saves
+   and installs can never collide.
+
+## Lesson 1 — Project setup and the title screen
+
+Goal: a runnable title with night sky, moonlight, one hearth, a blinking
+prompt, and a tap sound. No game code.
+
+Create: `node scripts/course-create.mjs --lesson 1`
+
+Start from: nothing but your blank `Moonlit Course` project from First
+actions.
+Settings: new `project.godot` — Compatibility renderer, 808 × 360,
+`canvas_items` + `expand`, landscape, touch-from-mouse, Nearest filter;
+main scene `scenes/menus/title_menu.tscn`.
+Open and check: open `scenes/menus/title_menu.tscn` and press Play — the
+prompt blinks and a tap plays the confirm sound.
+
+Files added: [`project.godot`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-01/project.godot),
+[`scenes/menus/title_menu.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-01/scenes/menus/title_menu.tscn),
+[`docs/licenses/MIT-LICENSE.txt`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-01/docs/licenses/MIT-LICENSE.txt),
+[`docs/licenses/CC0-1.0.txt`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-01/docs/licenses/CC0-1.0.txt),
+[`docs/licenses/THIRD_PARTY.txt`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-01/docs/licenses/THIRD_PARTY.txt),
+plus the section-4 assets — copy each from the clone's
+`examples/course/src/assets/` into your project at the named destination:
+[art/tileset_camp.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/tileset_camp.png)
+→ `assets/third_party/ninja_adventure/tilesets/tileset_camp.png`,
+[art/raylight.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/raylight.png)
+→ `assets/third_party/ninja_adventure/fx/raylight.png`,
+[audio/ui_confirm.ogg](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/audio/ui_confirm.ogg)
+→ `assets/third_party/kenney/ui_audio/ui_confirm.ogg`,
+[fonts/MaplestoryLight.ttf](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/fonts/MaplestoryLight.ttf)
+→ `assets/third_party/fonts/MaplestoryLight.ttf`.
+
+Editor steps: new project `Moonlit Course` with the Compatibility renderer;
+display, stretch, orientation, touch, and filter settings per 3-2–3-5;
+verify `project.godot` against 3-7; copy the four section-4 files; build the
+nine-node scene in 5-1; set the main scene; run.
+
+Modify: change the `blink` animation length from 1.4 to 0.7 seconds.
+Verify: the prompt blinks twice as fast and the project still runs clean.
+
+## Lesson 2 — Nodes and scenes
+
+Goal: the forest and the beacon as separate scenes, reused by one arena.
+
+Create: `node scripts/course-create.mjs --lesson 2`
+
+Start from: your Lesson 1 title, running.
+Settings: none — inherits the Lesson 1 project file.
+Open and check: open `scenes/gameplay/arena.tscn` and run the scene
+directly — one beacon burns in the forest. Then run the title again.
+Compare: [`scenes/menus/title_menu.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-01/scenes/menus/title_menu.tscn)
+is inherited unchanged from the lesson-01 layer.
+
+Files added: [`scenes/objectives/beacon.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-02/scenes/objectives/beacon.tscn)
+(pit, light, glow, flame, flicker),
+[`scenes/gameplay/night_forest.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-02/scenes/gameplay/night_forest.tscn)
+(ground, clearing, scorch, trees, beams),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-02/scenes/gameplay/arena.tscn)
+(forest + one beacon), plus [art/tileset_nature.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/tileset_nature.png)
+→ `assets/third_party/ninja_adventure/tilesets/tileset_nature.png` and
+[art/spark.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/spark.png)
+→ `assets/course/spark.png`. Nothing from Lesson 1 changes. Where the
+lesson's construction paragraphs leave gaps, create these three scenes NEW
+from the linked complete sources (see the rule above), then read each node
+against the lesson's tree description before the Modify step.
+
+Editor steps: draw the entry tree on paper first; move the night tint to the
+forest root and multiply it into the moved art; gather the beacon's fire
+nodes; extract `beacon.tscn` with Save Branch as Scene; build
+`night_forest.tscn` and `arena.tscn`; confirm the title still runs.
+
+Modify: move one edge tree to the opposite side of the forest.
+Verify: only that tree moves, and the forest still tints as one unit.
+
+## Lesson 3 — Instances
+
+Goal: three beacons with their own place, size, and flicker beat, arena
+music, and a title-to-arena transition with no gray flash.
+
+Create: `node scripts/course-create.mjs --lesson 3`
+
+Start from: your Lesson 2 arena (forest + one beacon) beside the title.
+Settings: clear color to night blue
+(`environment/defaults/default_clear_color`).
+Open and check: run the title and tap through — arena music starts and
+the beacons ignite in sequence with no gray flash.
+
+Files added: [`scripts/util/screen.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scripts/util/screen.gd),
+[`scripts/util/audio_flush.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scripts/util/audio_flush.gd)
+(music loop plus the shutdown mix-wait every sounding scene needs),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scripts/gameplay/arena.gd)
+(centering, loop, teardown),
+[`scripts/menus/title_menu.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scripts/menus/title_menu.gd)
+(loop, teardown),
+[audio/arena_theme.ogg](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/audio/arena_theme.ogg)
+→ `assets/third_party/ninja_adventure/audio/music/arena_theme.ogg`, and
+[audio/title_theme.ogg](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/audio/title_theme.ogg)
+→ `assets/third_party/ninja_adventure/audio/music/title_theme.ogg`.
+Files changed: [`project.godot`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/project.godot)
+(clear color),
+[`scenes/menus/title_menu.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scenes/menus/title_menu.tscn)
+(script, title music),
+[`scenes/objectives/beacon.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scenes/objectives/beacon.tscn)
+(clearing and scorch move in),
+[`scenes/gameplay/night_forest.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scenes/gameplay/night_forest.tscn)
+(clearing and scorch move out, ground pinned to z −1),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scenes/gameplay/arena.tscn)
+(three named instances with flicker-speed overrides, arena music, script).
+
+Editor steps: cut clearing and scorch into the beacon with explicit
+multiplied tints; pin the floor to z −1; place and name the three instances
+with the lesson's positions and scales; give each `Flicker` its speed
+through Editable Children; hook both music tracks (check Loop on reimport);
+wire `start_requested` to the arena change with the music fade; arm the
+graceful close in both scenes (`set_auto_accept_quit(false)`, connect the
+root window's `close_requested` to a release-plus-mix-wait quit) so a
+player closing the window never quits mid-music.
+
+Modify: change `BeaconEast`'s scale from 0.86 to 1.0.
+Verify: only the east beacon grows; the other two and the forest are
+untouched.
+
+## Lesson 4 — Your first script
+
+Goal: beacons with real state — exported `lit` and flicker speed, a
+notification signal, and an arena that lights them in sequence and brightens
+the forest per lit beacon.
+
+Create: `node scripts/course-create.mjs --lesson 4`
+
+Start from: your Lesson 3 project — three instances, music, transition.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena — beacons light 2.6 seconds apart and the
+forest brightens one step per lit beacon.
+Compare: the title transition
+([`scripts/menus/title_menu.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scripts/menus/title_menu.gd))
+is inherited unchanged from the lesson-03 layer.
+
+Files added: [`scripts/objectives/beacon.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-04/scripts/objectives/beacon.gd).
+Files changed:
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-04/scripts/gameplay/arena.gd)
+(ignition sequence, brightness),
+[`scenes/objectives/beacon.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-04/scenes/objectives/beacon.tscn)
+(script attached),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-04/scenes/gameplay/arena.tscn)
+(editable overrides replaced by `lit` and `flicker_speed` exports).
+
+Editor steps: attach the beacon script; add the two exports and the
+`lit_changed` signal; re-apply exports in `_ready`; wire the arena to listen
+and brighten; call the ignition sequence from the arena's `_ready`; delete
+the Lesson 3 editable overrides.
+
+Modify: change `IGNITE_INTERVAL` from 2.6 to 1.0.
+Verify: beacons light one second apart and the forest still brightens in
+three equal steps.
+
+## Lesson 5 — The player scene and animation
+
+Goal: a four-direction idle player standing in the arena, facing the
+inspector's direction on run.
+
+Create: `node scripts/course-create.mjs --lesson 5`
+
+Start from: your Lesson 4 arena with sequenced ignition.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena — the player idles near the west beacon,
+facing the inspector's `facing` value.
+
+Files added: [`scenes/player.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-05/scenes/player.tscn),
+[`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-05/scripts/player.gd),
+[art/ninja_walk.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/ninja_walk.png)
+→ `assets/third_party/ninja_adventure/actor/ninja_walk.png`, and
+[art/ninja_idle.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/ninja_idle.png)
+→ `assets/third_party/ninja_adventure/actor/ninja_idle.png`.
+Files changed:
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-05/scenes/gameplay/arena.tscn)
+(player instance).
+
+Editor steps: build the five-node tree with the player on layer value 2;
+cut the two sheets into eight `SpriteFrames` animations (columns are
+direction); add the breathe animation, the shadow, and the night tint; place
+the instance near the west beacon; assemble the full script file from the
+lesson's box, including `_ready()`.
+
+Modify: set `facing` to Left in the inspector.
+Verify: the run starts with the player idling left, no code touched.
+
+## Lesson 6 — Handling input
+
+Goal: a floating stick on the left half that moves the player with accel and
+friction inside the arena bounds, with stable facing on release.
+
+Create: `node scripts/course-create.mjs --lesson 6`
+
+Start from: your Lesson 5 arena with the idle player.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena on desktop (the mouse emulates touch) —
+drag on the left half and the player accelerates; release and the last
+facing holds with the idle animation.
+
+Files added: [`scenes/ui/virtual_stick.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-06/scenes/ui/virtual_stick.tscn),
+[`scripts/ui/virtual_stick.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-06/scripts/ui/virtual_stick.gd),
+[art/stick_base.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/stick_base.png)
+→ `assets/derived/ui/stick_base.png`, and
+[art/stick_knob.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/stick_knob.png)
+→ `assets/derived/ui/stick_knob.png`. Files changed:
+[`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-06/scripts/player.gd)
+(movement, bounds),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-06/scripts/gameplay/arena.gd)
+(stick readout each frame),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-06/scenes/gameplay/arena.tscn)
+(interface layer and stick).
+
+Editor steps: build the half-width anchored stick (`anchor_right = 0.5`,
+offsets zero — a fixed 404-pixel offset is not half the screen); stand it
+where pressed; drag with clamping; apply the dead zone; pass the readout to
+the player every frame; clamp to `BOUNDS` (`Rect2(24, 120, 760, 202)`);
+hook the walk animation. (Lesson 9 renames this constant to
+`DEFAULT_BOUNDS` and makes the working rect movable.)
+
+Modify: shrink `BOUNDS` to half its width.
+Verify: the player stops at the new edge on both sides, and releasing the
+stick keeps the last facing with the idle animation.
+
+## Lesson 7 — Signals
+
+Goal: beacons that charge while the player stands near, ignite at full
+charge with the player's ring mirroring the strongest beacon, and no more
+automatic ignition.
+
+Create: `node scripts/course-create.mjs --lesson 7`
+
+Start from: your Lesson 6 project with stick movement.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena and stand inside a beacon sensor — the
+foot ring fills and the beacon ignites at full; nothing lights on its own.
+
+Files added: [art/charge_ring.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/charge_ring.png)
+→ `assets/derived/ui/charge_ring.png`.
+([`scripts/util/audio_flush.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-03/scripts/util/audio_flush.gd)
+is inherited from the lesson-03 layer — Lesson 7 only starts using it.)
+Files changed:
+[`scripts/objectives/beacon.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-07/scripts/objectives/beacon.gd)
+(charge, visitors, normalized reach),
+[`scenes/objectives/beacon.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-07/scenes/objectives/beacon.tscn)
+(sensor, ignite sound),
+[`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-07/scripts/player.gd)
+and
+[`scenes/player.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-07/scenes/player.tscn)
+(charge ring),
+[`scripts/menus/title_menu.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-07/scripts/menus/title_menu.gd)
+(shared audio shutdown),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-07/scripts/gameplay/arena.gd)
+(charge relay; the ignition sequence is deleted).
+
+Editor steps: add the sensor area watching layer value 2; normalize its
+radius against instance scale; charge on visitors with decay; emit the
+charge signal; relay the maximum to the player's ring; delete the Lesson 4
+sequence; confirm a beacon only lights from standing near it.
+
+Modify: change `CHARGE_SECONDS` from 2.0 to 0.5.
+Verify: the ring fills in half a second and the beacon ignites at full —
+still only from proximity.
+
+## Lesson 8 — Creating enemies
+
+Goal: a spirit that chases the player on its own layer, hits once per
+cooldown with knockback, and answers with screen and sprite feedback.
+
+Create: `node scripts/course-create.mjs --lesson 8`
+
+Start from: your Lesson 7 project with proximity ignition.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena — the spirit chases on its own, hits knock
+you back once per cooldown, and the screen and sprite flash on a hit.
+
+Files added: [`scenes/spirit.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-08/scenes/spirit.tscn),
+[`scripts/spirit.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-08/scripts/spirit.gd),
+[art/spirit.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/spirit.png)
+→ `assets/third_party/ninja_adventure/actor/spirit.png`.
+Files changed:
+[`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-08/scripts/player.gd)
+(knockback),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-08/scripts/gameplay/arena.gd)
+(spirit target, hit flash),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-08/scenes/gameplay/arena.tscn)
+(spirit instance, flash layer).
+
+Editor steps: build the six-node spirit on layer value 4 with a hitbox
+watching layer value 2; cut four directional move animations; chase with
+turn-rate smoothing; set the target from the arena; gate contact with a
+cooldown; knock the player back; flash the screen and the sprite on a hit.
+
+Modify: raise the spirit's `speed` from 52 to 90.
+Verify: the chase is visibly faster while the walk speed still outruns it —
+then set it back.
+
+## How the checkpoints differ from the historical clips
+
+The clips show the original build; the checkpoints are a simplified,
+runnable reconstruction of the same lessons. Honest differences:
+
+- The title is the minimal nine-node scene, and the Lesson 2 forest is
+  about twenty nodes — not the historical 1,296-node screen. There is no
+  mist, vignette, canopy, motes, smoke, or embers; one flame system plus
+  glow and light carries the fire.
+- Values the lessons never state are practice choices, written plainly in
+  the source: `BGM_SILENCE_DB` −80, `WALK_THRESHOLD` 8.0, `CHARGE_SECONDS`
+  2.0, spirit `speed` 52.
+- The lesson text calls `AudioStreamPlayer.release()`, which does not exist
+  in Godot 4.7 (verified by probe: `has_method("release")` is false on both
+  player types). The checkpoints stop players through the shared
+  `AudioFlush` helper instead.
+- The font is the tracked, attributed MapleStory Light — not Galmuri, whose
+  font file is no longer tracked. Collision values keep the lessons'
+  numbers: mask value 2 is inspector checkbox 2, value 4 is checkbox 3.
+- Every translated string calls `tr()` explicitly and redraws on
+  `Settings.changed`. A scene's stored text keeps its key in the property;
+  the checkpoints never rely on draw-time lookup a headless test cannot
+  read.
+- The `Music`/`Sfx` buses are created in `Settings._ready`, not in a bus
+  layout file. Panels, players, and volumes are the same; only the
+  creation site differs.
+- The reference export preset sets `package/signed` with empty keystore
+  fields and the `.ref` package: signed by the local debug key at export
+  time, never by a committed credential. The release keystore, store
+  steps, and any actual APK/device run stay the learner's own procedure
+  in their own project — nothing here publishes.
+- Phone multitouch, Android exports, signing, and future engine versions
+  are not verified by the desktop checks. The checkpoints prove the
+  desktop path; the lesson's device steps remain yours to run.
+- A forced engine quit (`--quit-after`) still tears down with music
+  playing and leaks voices: the engine never delivers `close_requested`,
+  so no production handler can run. That is a harness limitation, not the
+  player's path — a real window close or the Lesson 16 Yes button goes
+  through the graceful quit above, and the checks prove it clean.
+
+## Lesson 9 — Start and end of a run
+
+Goal: three hits lose, the opened gate wins, one guarded restart.
+
+Create: `node scripts/course-create.mjs --lesson 9`
+
+Start from: your Lesson 8 arena with chase and knockback.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena — lose every heart for the lose card and
+its guarded restart; light all three beacons, walk through the gate, win.
+
+Files added: [`scenes/objectives/moon_gate.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scenes/objectives/moon_gate.tscn),
+[`scripts/objectives/moon_gate.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/objectives/moon_gate.gd),
+[`scenes/ui/result_panel.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scenes/ui/result_panel.tscn),
+[`scripts/ui/result_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/ui/result_panel.gd),
+[art/moon_gate.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/moon_gate.png)
+→ `assets/derived/objectives/moon_gate.png`. Files changed:
+[`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/player.gd)
+(`BOUNDS` renamed to `DEFAULT_BOUNDS`, movable `bounds`, `freeze`),
+[`scripts/objectives/beacon.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/objectives/beacon.gd)
+(`freeze`),
+[`scripts/spirit.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/spirit.gd)
+(overlap polling beside the enter signal),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/gameplay/arena.gd)
+(health, run state, gate, result, restart, finish freeze),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scenes/gameplay/arena.tscn)
+(gate and result instances).
+
+Editor steps: build the gate (sprite, sensor off until opened) at
+(404, 336); build the result card with its 0.6-second input gate; merge
+the bounds with the gate box when the third beacon lights — `merge()` is
+a bounding rectangle, not a narrow path; poll overlaps every physics
+frame; freeze the player, every beacon, the lit count, the spirits, and
+the sensor the moment the run ends either way, while the result card
+stays usable; restart through `reload_current_scene` after releasing the
+audio.
+
+Modify: raise `MAX_HEALTH` from 3 to 5.
+Verify: the run survives four hits and the fifth still loses it.
+
+## Lesson 10 — On-screen information
+
+Goal: hearts, beacon count, and a 90-second clock that decides nothing
+except the timeout loss.
+
+Create: `node scripts/course-create.mjs --lesson 10`
+
+Start from: your Lesson 9 run with win, lose, and restart.
+Settings: none — inherits the Lesson 3 project file.
+Open and check: run the arena — hearts, beacon count, and the 90-second
+clock draw at start and update on hits, ignitions, and timeout.
+Compare: the result card
+([`scenes/ui/result_panel.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scenes/ui/result_panel.tscn),
+[`scripts/ui/result_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/ui/result_panel.gd))
+is inherited unchanged from the lesson-09 layer.
+
+Files added: [`scenes/ui/hud.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-10/scenes/ui/hud.tscn),
+[`scripts/ui/hud.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-10/scripts/ui/hud.gd).
+Files changed:
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-10/scripts/gameplay/arena.gd)
+(countdown, timeout, HUD updates, initial draw),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-10/scenes/gameplay/arena.tscn)
+(HUD instance).
+
+Editor steps: build the three labels with `mouse_filter` ignore so touches
+fall through to the sticks; count down in `_process` and stop at the
+finish; draw once at start and on every change; `ceilf` the clock,
+`maxf` it at zero, turn it red under 15 seconds.
+
+Modify: lower `URGENT_SECONDS` from 15 to 5.
+Verify: the clock stays white until 0:05, then turns red.
+
+## Lesson 11 — Install and play on a phone
+
+Goal: pause that survives interruption, on your own device.
+
+Create: `node scripts/course-create.mjs --lesson 11`
+
+Start from: your Lesson 10 HUD run.
+Settings: version `0.1.0`.
+Open and check: run the arena and press the pause button — the card opens
+and the clock stops; resume continues; backgrounding auto-pauses; a
+finished run refuses to pause.
+
+Files added: [`scenes/ui/pause_panel.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/scenes/ui/pause_panel.tscn),
+[`scripts/ui/pause_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/scripts/ui/pause_panel.gd).
+Files changed:
+[`project.godot`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/project.godot)
+(0.1.0),
+[`scripts/ui/virtual_stick.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/scripts/ui/virtual_stick.gd)
+(`reset`),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/scripts/gameplay/arena.gd)
+(pause, resume, background auto-pause),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/scenes/gameplay/arena.tscn)
+(pause button and panel).
+
+Editor steps: follow the lesson's install procedure on your own phone
+with your own `com.example.moonlitcourse` package — the checkpoint only
+carries the desktop half; add the pause button and the preset-8 centered
+card with `process_mode` always; reset the stick on pause so a mid-drag
+finger cannot strand a push; auto-pause on the background notification;
+refuse to pause a finished run.
+
+Modify: move the pause button from the top-right to the top-left corner.
+Verify: it still opens the card and the clock label stays readable.
+
+## Lesson 12 — Dash
+
+Goal: flick the right stick to dash, with cooldown, afterimages, and a
+readiness readout.
+
+Create: `node scripts/course-create.mjs --lesson 12`
+
+Start from: your Lesson 11 pausable run.
+Settings: none — inherits the Lesson 11 project file.
+Open and check: run the arena and flick the right stick hard — five
+ghosts trail the dash and the HUD flips ready/waiting on the 1.15-second
+beat.
+Compare: every file below is inherited and edited in place — stick
+([`scripts/ui/virtual_stick.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-11/scripts/ui/virtual_stick.gd))
+from lesson-11, HUD
+([`scripts/ui/hud.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-10/scripts/ui/hud.gd),
+[`scenes/ui/hud.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-10/scenes/ui/hud.tscn))
+from lesson-10, player
+([`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-09/scripts/player.gd))
+from lesson-09.
+
+Files added: none. Files changed:
+[`scripts/ui/virtual_stick.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-12/scripts/ui/virtual_stick.gd)
+(`flicked` on a strong release),
+[`scripts/player.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-12/scripts/player.gd)
+(dash, cooldown, afterimages),
+[`scripts/ui/hud.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-12/scripts/ui/hud.gd)
+and
+[`scenes/ui/hud.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-12/scenes/ui/hud.tscn)
+(readiness label),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-12/scripts/gameplay/arena.gd)
+(flick wiring, readiness poll),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-12/scenes/gameplay/arena.tscn)
+(right-half stick instance).
+
+Editor steps: instance the stick a second time on the right half
+(anchors 0.5–1.0, zero offsets); emit `flicked` past 0.6 strength;
+dash at 420 for 0.14 seconds with a 1.15-second cooldown; leave five
+fading ghosts across the dash, each copying the sprite's offset and global
+transform at creation (after parenting, so the centered arena resolves);
+poll readiness into the HUD every frame.
+
+Modify: raise `DASH_COOLDOWN` from 1.15 to 2.0.
+Verify: the HUD still flips between ready and waiting, on the new beat.
+
+## Lesson 13 — Three enemy types and the final guardian
+
+Goal: four data-driven kinds — three spirits plus a single-facing
+guardian that arrives with its own theme when the gate opens.
+
+Create: `node scripts/course-create.mjs --lesson 13`
+
+Start from: your Lesson 12 dash run.
+Settings: none — inherits the Lesson 11 project file.
+Open and check: run the arena — up to four spirits spawn farthest-first on
+the 4-second timer with kinds by progress; opening the gate retreats the
+pack and swaps the music.
+
+Files added: [`scripts/enemies/spirit_kind.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/scripts/enemies/spirit_kind.gd),
+[`resources/kinds/drifter.tres`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/resources/kinds/drifter.tres),
+[`resources/kinds/night_bat.tres`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/resources/kinds/night_bat.tres),
+[`resources/kinds/ember.tres`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/resources/kinds/ember.tres),
+[`resources/kinds/guardian.tres`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/resources/kinds/guardian.tres),
+[art/spirit_bat.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/spirit_bat.png)
+→ `assets/third_party/ninja_adventure/actor/spirit_bat.png`,
+[art/spirit_ember.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/spirit_ember.png)
+→ `assets/third_party/ninja_adventure/actor/spirit_ember.png`,
+[art/guardian.png](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/art/guardian.png)
+→ `assets/third_party/ninja_adventure/actor/guardian.png`, and
+[audio/guardian_theme.ogg](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/assets/audio/guardian_theme.ogg)
+→ `assets/third_party/ninja_adventure/audio/music/guardian_theme.ogg`.
+Files changed:
+[`scripts/spirit.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/scripts/spirit.gd)
+(kind slicing, materialize, retreat),
+[`scenes/spirit.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/scenes/spirit.tscn)
+(frames built in code),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/scripts/gameplay/arena.gd)
+(farthest spawn, kind by progress, guardian, music swap, prune),
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-13/scenes/gameplay/arena.tscn)
+(drifter kind on the first spirit).
+
+Editor steps: write the `SpiritKind` resource; create the four `.tres`
+files with the lesson's table (guardian: cell 50, one row, five
+columns); branch on `rows == 1` so the guardian builds one facing with
+five horizontal frames; spawn farthest-first on a 4-second timer up to
+four spirits; materialize untouchable, then arm; retreat the pack and
+swap the music when the gate opens; prune on the win.
+
+Modify: raise the ember's `turn_rate` from 8.5 to 12 in its `.tres`.
+Verify: only embers corner harder; drifters and bats fly as before.
+
+## Lesson 14 — Score and saving records
+
+Goal: a ticked-up score with a rank stamp, and a best score that
+survives a restart.
+
+Create: `node scripts/course-create.mjs --lesson 14`
+
+Start from: your Lesson 13 data-driven run.
+Settings: `Records` autoload.
+Open and check: finish a run — rows tick up, the sum lands, the rank
+stamps, Skip fast-forwards; quit Godot entirely and rerun — the best
+persists from a fresh process.
+
+Files added: [`scripts/score.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-14/scripts/score.gd),
+[`scripts/records.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-14/scripts/records.gd).
+Files changed:
+[`project.godot`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-14/project.godot)
+(`Records` autoload),
+[`scripts/ui/result_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-14/scripts/ui/result_panel.gd)
+and
+[`scenes/ui/result_panel.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-14/scenes/ui/result_panel.tscn)
+(rows, sum, stamp, skip),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-14/scripts/gameplay/arena.gd)
+(score build, save).
+
+Editor steps: register the `Records` autoload; score 500 a beacon,
+10 a remaining second, 1000 the escape, D without it; reveal row by
+row (0.5 seconds plus 0.15 gaps), sum in 0.8, then stamp the rank; let
+Skip finish the reveal without touching the run; beacons already freeze
+at the finish since Lesson 9; save the best to `user://records.cfg`.
+
+Modify: raise `PER_BEACON` from 500 to 700.
+Verify: the beacon row and the sum grow, and a saved best still loads.
+
+## Lesson 15 — Settings, Korean and English, credits
+
+Goal: locale and volume settings that persist, buses that obey them,
+and credits that name their sources.
+
+Create: `node scripts/course-create.mjs --lesson 15`
+
+Start from: your Lesson 14 scoring run.
+Settings: `Settings` autoload plus `locale/translations` (en, ko).
+Open and check: run the title — the settings card switches language live
+and persists; volume rows move the `Music`/`Sfx` buses; credits name
+their sources.
+
+Files added: [`localization/moonlit.csv`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/localization/moonlit.csv),
+[`localization/moonlit.csv.import`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/localization/moonlit.csv.import),
+[`scripts/settings.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/settings.gd),
+[`scenes/ui/settings_panel.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scenes/ui/settings_panel.tscn),
+[`scripts/ui/settings_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/ui/settings_panel.gd).
+Files changed:
+[`project.godot`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/project.godot)
+(`Settings` autoload, translations),
+[`scripts/ui/hud.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/ui/hud.gd),
+[`scripts/ui/result_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/ui/result_panel.gd),
+[`scripts/ui/pause_panel.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/ui/pause_panel.gd),
+[`scripts/menus/title_menu.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/menus/title_menu.gd)
+(translated strings, redraw on change),
+[`scenes/ui/pause_panel.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scenes/ui/pause_panel.tscn)
+(settings button),
+[`scenes/menus/title_menu.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scenes/menus/title_menu.tscn)
+and
+[`scenes/gameplay/arena.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scenes/gameplay/arena.tscn)
+(settings entries, `Music`/`Sfx` buses),
+[`scenes/objectives/beacon.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scenes/objectives/beacon.tscn)
+(ignite bus),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-15/scripts/gameplay/arena.gd)
+(settings wiring).
+
+Editor steps: write the 21-key CSV (`keys,en,ko`, no commas in cells)
+and its csv-translation import file, and list the two `.translation`
+outputs; register the `Settings` autoload; create the `Music`/`Sfx`
+buses in code and route every player; translate every string with an
+explicit `tr()` plus a redraw on `Settings.changed`; share one
+settings-and-credits card between title and pause. The very first
+import logs missing-`.translation` errors once — they vanish on the
+second pass after the CSV importer has run.
+
+Modify: add a third volume step row for a bus of your own, or one new
+key with both locales.
+Verify: the new control persists across a restart, or the new string
+reads correctly in both languages.
+
+## Lesson 16 — Wrap-up and release
+
+Goal: the finished beginner game — versioned, back-buttoned, and
+exportable as your own debug build. Nothing is published here.
+
+Create: `node scripts/course-create.mjs --lesson 16`
+
+Start from: your Lesson 15 localized run.
+Settings: version `1.0.0`, `quit_on_go_back=false`.
+Open and check: press Back on the title — the prompt asks, Yes quits
+clean and No stays; in the arena, Back pauses, closes, or leaves per row;
+the preset shows `package/signed=true` with empty key fields and
+`docs/licenses/*.txt` retained.
+
+Files added: [`export_presets.cfg`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/export_presets.cfg)
+(reference preset, signed with the local debug key, license texts
+retained),
+[`scenes/ui/quit_prompt.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/scenes/ui/quit_prompt.tscn),
+[`scripts/ui/quit_prompt.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/scripts/ui/quit_prompt.gd),
+three quit keys in
+[`localization/moonlit.csv`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/localization/moonlit.csv).
+Files changed:
+[`project.godot`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/project.godot)
+(1.0.0, no auto-quit on back),
+[`scenes/menus/title_menu.tscn`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/scenes/menus/title_menu.tscn)
+(prompt instance, v1.0.0 label),
+[`scripts/menus/title_menu.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/scripts/menus/title_menu.gd)
+(prompt, back, graceful quit),
+[`scripts/gameplay/arena.gd`](https://github.com/hyodotdev/MoonlitBeacon/blob/main/examples/course/src/lesson-16/scripts/gameplay/arena.gd)
+(settings, pause, title, result back rows).
+
+Editor steps for your own app (do these in your blank project, not in
+a checkpoint): install the export templates matching your editor, plus
+the Android SDK and a JDK the editor accepts; Project → Export → Add
+→ Android; set your own `com.example.moonlitcourse` package and a
+readable app name; leave the keystore fields empty so the editor uses
+your local debug key (never commit a release keystore or its
+passwords); create the output folder yourself — the exporter will not
+make it (`mkdir -p` it outside the repo); export with **Export With
+Debug** checked. Signing and debug are separate switches:
+`package/signed` decides whether the APK is signed at all, Export With
+Debug decides whether it is a debug build; an installable debug APK
+still needs its signature. The reference preset sets signed with empty
+key fields and the `.ref` package, so a reference install stays
+installable yet can never claim your slot. No APK was built here and
+no device test was run; confirm your own export installs and plays the
+title on your own device.
+
+Back rows to wire: title settings → close, title → ask (Yes quits,
+No stays); arena settings → close, playing → pause, paused → title,
+result → nothing.
+
+Modify: change the quit question's wording in both locales.
+Verify: Back on the title shows your words, and No still stays.

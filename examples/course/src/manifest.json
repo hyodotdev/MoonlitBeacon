@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "appName": "Moonlit Course Reference",
+  "package": "com.example.moonlitcourse.ref",
+  "lessons": {
+    "1": {
+      "title": "Project setup and the title screen",
+      "assets": [
+        "art/tileset_camp.png",
+        "art/raylight.png",
+        "audio/ui_confirm.ogg",
+        "fonts/MaplestoryLight.ttf"
+      ]
+    },
+    "2": {
+      "title": "Nodes and scenes",
+      "assets": ["art/tileset_nature.png", "art/spark.png"]
+    },
+    "3": {
+      "title": "Instances",
+      "assets": ["audio/arena_theme.ogg", "audio/title_theme.ogg"]
+    },
+    "4": {"title": "Your first script", "assets": []},
+    "5": {
+      "title": "The player scene and animation",
+      "assets": ["art/ninja_walk.png", "art/ninja_idle.png"]
+    },
+    "6": {
+      "title": "Handling input",
+      "assets": ["art/stick_base.png", "art/stick_knob.png"]
+    },
+    "7": {"title": "Signals", "assets": ["art/charge_ring.png"]},
+    "8": {"title": "Creating enemies", "assets": ["art/spirit.png"]},
+    "9": {"title": "Start and end of a run", "assets": ["art/moon_gate.png"]},
+    "10": {"title": "On-screen information", "assets": []},
+    "11": {"title": "Install and play on a phone", "assets": []},
+    "12": {"title": "Dash", "assets": []},
+    "13": {
+      "title": "Three enemy types and the final guardian",
+      "assets": ["art/spirit_bat.png", "art/spirit_ember.png", "art/guardian.png", "audio/guardian_theme.ogg"]
+    },
+    "14": {"title": "Score and saving records", "assets": []},
+    "15": {"title": "Settings, Korean and English, credits", "assets": []},
+    "16": {"title": "Wrap-up and release", "assets": []}
+  },
+  "assetDestinations": {
+    "art/tileset_camp.png": "assets/third_party/ninja_adventure/tilesets/tileset_camp.png",
+    "art/tileset_nature.png": "assets/third_party/ninja_adventure/tilesets/tileset_nature.png",
+    "art/raylight.png": "assets/third_party/ninja_adventure/fx/raylight.png",
+    "art/ninja_walk.png": "assets/third_party/ninja_adventure/actor/ninja_walk.png",
+    "art/ninja_idle.png": "assets/third_party/ninja_adventure/actor/ninja_idle.png",
+    "art/spirit.png": "assets/third_party/ninja_adventure/actor/spirit.png",
+    "art/spirit_bat.png": "assets/third_party/ninja_adventure/actor/spirit_bat.png",
+    "art/spirit_ember.png": "assets/third_party/ninja_adventure/actor/spirit_ember.png",
+    "art/guardian.png": "assets/third_party/ninja_adventure/actor/guardian.png",
+    "art/moon_gate.png": "assets/derived/objectives/moon_gate.png",
+    "art/stick_base.png": "assets/derived/ui/stick_base.png",
+    "art/stick_knob.png": "assets/derived/ui/stick_knob.png",
+    "art/charge_ring.png": "assets/derived/ui/charge_ring.png",
+    "art/spark.png": "assets/course/spark.png",
+    "audio/arena_theme.ogg": "assets/third_party/ninja_adventure/audio/music/arena_theme.ogg",
+    "audio/guardian_theme.ogg": "assets/third_party/ninja_adventure/audio/music/guardian_theme.ogg",
+    "audio/title_theme.ogg": "assets/third_party/ninja_adventure/audio/music/title_theme.ogg",
+    "audio/ui_confirm.ogg": "assets/third_party/kenney/ui_audio/ui_confirm.ogg",
+    "fonts/MaplestoryLight.ttf": "assets/third_party/fonts/MaplestoryLight.ttf"
+  }
+}

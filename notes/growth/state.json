@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "updatedAt": "2026-09-26",
+  "updatedAt": "2026-10-13",
   "tracker": {
     "url": "https://github.com/hyodotdev/MoonlitBeacon/issues/1",
     "previousUrl": "https://github.com/hyodotdev/MoonlitBeacon/issues/44",
@@ -577,6 +577,20 @@
         "notes/growth/strategy.md E02 section: live-channel candidacy rule, attribution, 7-day window, Oct 9 decision, winner criteria",
         "E02 stays queued until the E03 verdict; design only, no launch"
       ]
+    },
+    {
+      "owner": "Muse",
+      "id": "G15",
+      "title": "Prepare course first-play recruitment and attribution package",
+      "status": "done",
+      "due": "2026-10-13",
+      "nextReview": "2026-10-15",
+      "evidence": [
+        "apps/docs/src/pages/first-play.tsx invitation page with store links and optional email contact; no forms, trackers, or storage",
+        "notes/growth/first-play-protocol.md moderator protocol with empty P01-P05 template; zero participants counted",
+        "notes/growth/first-play-measurement.md E04 contract; launch timestamp and proof null, no clock started",
+        "Package prepared only; no publication, no messages, no spend, no execution"
+      ]
     }
   ],
   "experiments": [
@@ -593,12 +607,12 @@
     {
       "id": "E02",
       "title": "Attributed channel acquisition learning",
-      "status": "queued",
+      "status": "not_run",
       "startedAt": null,
       "launchEvidence": null,
       "decisionDue": "2026-10-09",
       "nextReview": "2026-09-24",
-      "result": null,
+      "result": "Original Oct 9 decision passed with no verified launch: neither P1 nor P2 went live. Not an exposure to revive silently — the course channel runs as the separate E04 program.",
       "plan": "notes/growth/strategy.md"
     },
     {
@@ -614,13 +628,24 @@
     {
       "id": "E03",
       "title": "Observe existing Play listing video",
-      "status": "running",
+      "status": "inconclusive",
       "startedAt": "2026-09-21",
       "launchEvidence": "https://play.google.com/console/u/1/developers/8586579003908337832/app/4976137865588677574/store-listings/default/edit: currently published listing, video 2JeLS582sRA; https://play.google.com/console/u/1/developers/8586579003908337832/app/4976137865588677574/publishing: latest publish Sep 18. Sep 21 is observation enrollment, not a claimed new publication.",
       "decisionDue": "2026-10-02",
       "nextReview": "2026-09-24",
-      "result": null,
+      "result": "No verified verdict by the original Oct 2 decision deadline (deadline missed). A matched after-week was read on Oct 13; late verdict: inconclusive — sparse observational data cannot establish a listing-video effect.",
       "plan": "notes/growth/video-measurement.md"
+    },
+    {
+      "id": "E04",
+      "title": "Course channel first-play program: attributed Play read plus five manual sessions",
+      "status": "queued",
+      "startedAt": null,
+      "launchEvidence": null,
+      "decisionDue": "2026-11-13",
+      "nextReview": "2026-10-15",
+      "result": null,
+      "plan": "notes/growth/first-play-measurement.md"
     }
   ],
   "marketing": {
@@ -631,7 +656,7 @@
   },
   "monitoring": {
     "cadence": "Monday/Thursday 10:00 Asia/Seoul",
-    "nextReview": "2026-09-28",
+    "nextReview": "2026-10-15",
     "monthlyDecision": "2026-10-02",
     "automationId": "automation",
     "lastScheduledReview": "2026-09-21",

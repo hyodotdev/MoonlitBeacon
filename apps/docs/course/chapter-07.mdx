@@ -5,6 +5,8 @@ title: Lesson 7 · Signals
 
 # Lesson 7 · Signals
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 7` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 In Lesson 4 the arena lit the beacons in sequence. **Nobody asked, and they
 lit themselves.**
 
@@ -73,8 +75,13 @@ Beacon
     ReachShape (CollisionShape2D) radius 34
 ```
 
-`collision_mask = 2` means **it only sees what is on layer 2**.
-In Lesson 5 we put the player on layer 2.
+`collision_mask = 2` means **it only sees what is on layer value 2**.
+In Lesson 5 we put the player on layer value 2.
+
+> **Values are bitmasks, not list numbers**
+> `2` means inspector checkbox 2 (the second box), and `4` in Lesson 8 means
+> checkbox 3 (the third box) — values double: 1, 2, 4, 8. When this course
+> says "layer 2" or "layer 4", it means those values.
 
 When enemies appear in Lesson 8 we put them on a different layer. Then
 **enemies lighting a beacon** is blocked automatically. You do not have to
@@ -256,8 +263,16 @@ Even though the one doing the lighting changed from the arena to the player.
 ## 6. Check your work so far
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
+
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 Check these on the phone:
 
@@ -297,7 +312,7 @@ appears.
 - [ ] A sound plays at the moment it lights, and the direction is correct
 - [ ] No leak warning when you quit the game
 - [ ] We did not edit the brightness code in `arena.gd`
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Exercises
 

@@ -1,0 +1,132 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/menus/title_menu.gd" id="0_title"]
+[ext_resource type="Texture2D" path="res://assets/third_party/ninja_adventure/tilesets/tileset_camp.png" id="1_camp"]
+[ext_resource type="Texture2D" path="res://assets/third_party/ninja_adventure/fx/raylight.png" id="2_shafts"]
+[ext_resource type="FontFile" path="res://assets/third_party/fonts/MaplestoryLight.ttf" id="3_font"]
+[ext_resource type="AudioStream" path="res://assets/third_party/kenney/ui_audio/ui_confirm.ogg" id="4_confirm"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/title_theme.ogg" id="5_bgm"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hearth"]
+atlas = ExtResource("1_camp")
+region = Rect2(192, 80, 32, 30)
+
+[sub_resource type="Animation" id="Animation_blink"]
+resource_name = "blink"
+length = 1.4
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Prompt:modulate:a")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.7, 1.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"values": [1.0, 0.2, 1.0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_blink"]
+_data = {
+&"blink": SubResource("Animation_blink")
+}
+
+[node name="TitleMenu" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("0_title")
+
+[node name="Sky" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.043, 0.055, 0.11, 1)
+
+[node name="Shafts" type="Sprite2D" parent="."]
+modulate = Color(0.55, 0.7, 1, 0.35)
+position = Vector2(404, 100)
+texture = ExtResource("2_shafts")
+
+[node name="Hearth" type="Sprite2D" parent="."]
+position = Vector2(404, 240)
+scale = Vector2(3, 3)
+texture = SubResource("AtlasTexture_hearth")
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 20.0
+offset_bottom = 100.0
+grow_horizontal = 2
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 55
+text = "MOONLIT BEACON"
+horizontal_alignment = 1
+
+[node name="Prompt" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -74.0
+offset_right = 200.0
+offset_bottom = -42.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 22
+text = "Tap to start"
+horizontal_alignment = 1
+
+[node name="Version" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -96.0
+offset_top = -30.0
+offset_right = -12.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_fonts/font = ExtResource("3_font")
+theme_override_font_sizes/font_size = 11
+text = "v0.0.0"
+horizontal_alignment = 2
+
+[node name="TapCatcher" type="Button" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+flat = true
+
+[node name="Confirm" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_confirm")
+
+[node name="Bgm" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_bgm")
+autoplay = true
+volume_db = -10.0
+
+[node name="Blinker" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_blink")
+}
+autoplay = "blink"
+
+[connection signal="pressed" from="TapCatcher" to="Confirm" method="play"]

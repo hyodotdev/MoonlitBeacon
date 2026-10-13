@@ -5,6 +5,8 @@ title: Lesson 11 · Install and play on a phone
 
 # Lesson 11 · Install and play on a phone
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 11` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 We have checked on a phone every lesson. But we were never in a state
 **where you could play a run to the end.** There was no way to pause.
 
@@ -155,18 +157,26 @@ Lesson 1 already reads it from `ProjectSettings`.
 
 ### 5-5. Put it on a phone
 
+Export a debug build from your blank project (Lesson 1, section 6),
+install it, and launch it:
+
 ```bash
-pnpm android:build
-pnpm android:run
+godot --headless --path . --export-debug "Android"
+adb install -r ../builds/lesson-11-debug.apk
+adb shell monkey -p com.example.moonlitcourse -c android.intent.category.LAUNCHER 1
 ```
 
-The first command cleans the build template and Gradle output. The second
-installs and launches with a safe launcher intent.
+(Inside a clone of the finished-game repository, the shortcuts
+`pnpm android:build` and `pnpm android:run` do the equivalent — cleaning
+the build template and Gradle output, then installing and launching with a
+safe launcher intent.)
 
 :::danger Do not bypass the wrapper for Android export
-`pnpm android:build` handles relative paths, Gradle cleanup, and isolating
-Play Billing from the direct-distribution APK in one step. Calling
-`godot --export-debug` yourself skips those safeguards.
+Inside a clone of the finished-game repository, `pnpm android:build`
+handles relative paths, Gradle cleanup, and isolating Play Billing from
+the direct-distribution APK in one step — use it there instead of calling
+`godot --export-debug` yourself. In your blank learner project there is no
+wrapper, so the three commands above are the procedure.
 :::
 
 ## 6. Check that this much is working
@@ -203,7 +213,7 @@ to kill the app.
 - [ ] Time does not count down while paused
 - [ ] Coming back from the background leaves it paused
 - [ ] Title shows `v0.1.0`
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Homework
 

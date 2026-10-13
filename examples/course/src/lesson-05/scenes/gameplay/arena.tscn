@@ -1,0 +1,38 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/gameplay/arena.gd" id="1_arena"]
+[ext_resource type="PackedScene" path="res://scenes/gameplay/night_forest.tscn" id="2_forest"]
+[ext_resource type="PackedScene" path="res://scenes/objectives/beacon.tscn" id="3_beacon"]
+[ext_resource type="AudioStream" path="res://assets/third_party/ninja_adventure/audio/music/arena_theme.ogg" id="4_music"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="5_player"]
+
+[node name="Arena" type="Node2D"]
+script = ExtResource("1_arena")
+
+[node name="NightForest" parent="." instance=ExtResource("2_forest")]
+
+[node name="BeaconWest" parent="." instance=ExtResource("3_beacon")]
+position = Vector2(258, 286)
+scale = Vector2(0.78, 0.78)
+lit = false
+flicker_speed = 0.87
+
+[node name="BeaconNorth" parent="." instance=ExtResource("3_beacon")]
+position = Vector2(414, 196)
+scale = Vector2(0.62, 0.62)
+lit = false
+flicker_speed = 1.24
+
+[node name="BeaconEast" parent="." instance=ExtResource("3_beacon")]
+position = Vector2(566, 272)
+scale = Vector2(0.86, 0.86)
+lit = false
+flicker_speed = 1.03
+
+[node name="Player" parent="." instance=ExtResource("5_player")]
+position = Vector2(330, 300)
+
+[node name="Music" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_music")
+autoplay = true
+volume_db = -11.0

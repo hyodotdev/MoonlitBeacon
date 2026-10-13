@@ -1,0 +1,45 @@
+config_version=5
+
+[application]
+
+config/name="Moonlit Course Reference"
+config/description="Practice project for the Moonlit Beacon course, Lessons 1-16."
+config/quit_on_go_back=false
+run/main_scene="res://scenes/menus/title_menu.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/version="1.0.0"
+
+[boot_splash]
+
+bg_color=Color(0.043, 0.055, 0.11, 1)
+
+[display]
+
+window/size/viewport_width=808
+window/size/viewport_height=360
+window/size/window_width_override=1616
+window/size/window_height_override=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0.043, 0.055, 0.11, 1)
+textures/canvas_textures/default_texture_filter=0
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+
+[autoload]
+
+Records="*res://scripts/records.gd"
+Settings="*res://scripts/settings.gd"
+
+[internationalization]
+
+locale/translations=PackedStringArray("res://localization/moonlit.en.translation", "res://localization/moonlit.ko.translation")

@@ -1,0 +1,116 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/third_party/ninja_adventure/tilesets/tileset_nature.png" id="1_nature"]
+[ext_resource type="Texture2D" path="res://assets/third_party/ninja_adventure/fx/raylight.png" id="2_beams"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tree_a"]
+atlas = ExtResource("1_nature")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tree_b"]
+atlas = ExtResource("1_nature")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_tree_c"]
+atlas = ExtResource("1_nature")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="Gradient" id="Gradient_clearing"]
+offsets = PackedFloat32Array(0, 0.7, 1)
+colors = PackedColorArray(1.2, 1, 0.7, 1, 1.2, 1, 0.7, 1, 1.2, 1, 0.7, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_clearing"]
+gradient = SubResource("Gradient_clearing")
+width = 170
+height = 100
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_scorch"]
+offsets = PackedFloat32Array(0, 0.7, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_scorch"]
+gradient = SubResource("Gradient_scorch")
+width = 70
+height = 45
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[node name="NightForest" type="Node2D"]
+modulate = Color(0.315, 0.35, 0.57, 1)
+
+[node name="Ground" type="ColorRect" parent="."]
+offset_right = 808.0
+offset_bottom = 360.0
+color = Color(0.09, 0.12, 0.16, 1)
+
+[node name="Clearing" type="Sprite2D" parent="."]
+position = Vector2(404, 250)
+texture = SubResource("GradientTexture2D_clearing")
+
+[node name="Scorch" type="Sprite2D" parent="."]
+position = Vector2(404, 253)
+texture = SubResource("GradientTexture2D_scorch")
+
+[node name="Details" type="Node2D" parent="."]
+
+[node name="TuftA" type="Sprite2D" parent="Details"]
+position = Vector2(300, 120)
+scale = Vector2(0.75, 0.75)
+texture = SubResource("AtlasTexture_tree_a")
+
+[node name="TuftB" type="Sprite2D" parent="Details"]
+position = Vector2(520, 140)
+scale = Vector2(0.75, 0.75)
+texture = SubResource("AtlasTexture_tree_b")
+
+[node name="TuftC" type="Sprite2D" parent="Details"]
+position = Vector2(150, 220)
+scale = Vector2(0.75, 0.75)
+texture = SubResource("AtlasTexture_tree_c")
+
+[node name="TuftD" type="Sprite2D" parent="Details"]
+position = Vector2(660, 220)
+scale = Vector2(0.75, 0.75)
+texture = SubResource("AtlasTexture_tree_a")
+
+[node name="Trees" type="Node2D" parent="."]
+
+[node name="TreeA" type="Sprite2D" parent="Trees"]
+position = Vector2(70, 70)
+scale = Vector2(1.5, 1.5)
+texture = SubResource("AtlasTexture_tree_a")
+
+[node name="TreeB" type="Sprite2D" parent="Trees"]
+position = Vector2(200, 50)
+scale = Vector2(2, 2)
+texture = SubResource("AtlasTexture_tree_b")
+
+[node name="TreeC" type="Sprite2D" parent="Trees"]
+position = Vector2(620, 60)
+scale = Vector2(1.75, 1.75)
+texture = SubResource("AtlasTexture_tree_c")
+
+[node name="TreeD" type="Sprite2D" parent="Trees"]
+position = Vector2(745, 80)
+scale = Vector2(1.5, 1.5)
+texture = SubResource("AtlasTexture_tree_a")
+
+[node name="TreeE" type="Sprite2D" parent="Trees"]
+position = Vector2(90, 300)
+scale = Vector2(1.75, 1.75)
+texture = SubResource("AtlasTexture_tree_b")
+
+[node name="TreeF" type="Sprite2D" parent="Trees"]
+position = Vector2(720, 310)
+scale = Vector2(2, 2)
+texture = SubResource("AtlasTexture_tree_c")
+
+[node name="Beams" type="Sprite2D" parent="."]
+light_mask = 0
+modulate = Color(0.5, 0.65, 1, 0.3)
+position = Vector2(404, 110)
+texture = ExtResource("2_beams")

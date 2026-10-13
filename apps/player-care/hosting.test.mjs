@@ -4,11 +4,12 @@
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { build as buildCare } from './build.mjs';
 import { composeHosting } from './hosting-build.mjs';
-import { checkHosting, resolveCombinedLink, ROOT_CONFIG_PATH } from './hosting-check.mjs';
+import { canonicalRouteBase, checkHosting, resolveCanonicalLink, resolveCombinedLink, ROOT_CONFIG_PATH } from './hosting-check.mjs';
 
 function docsPage(title, body) {
   return `<!doctype html>
@@ -32,8 +33,8 @@ function writeFixtureDocs(docsDir) {
   mkdirSync(join(docsDir, 'docs'), { recursive: true });
   mkdirSync(join(docsDir, 'assets'), { recursive: true });
   writeFileSync(join(docsDir, 'index.html'), docsPage('Docs home',
-    '<a href="course">Course guide</a><a href="/MoonlitBeacon/docs/intro">Intro</a>'
-    + '<a href="/en/privacy">Privacy</a><script src="assets/app.js"></script>'
+    '<a href="/MoonlitBeacon/course">Course guide</a><a href="/MoonlitBeacon/docs/intro">Intro</a>'
+    + '<a href="/en/privacy">Privacy</a><script src="/MoonlitBeacon/assets/app.js"></script>'
     + '<a href="https://github.com/hyodotdev/MoonlitBeacon">GitHub</a>'));
   writeFileSync(join(docsDir, 'course.html'), docsPage('Course guide',
     '<a href="course/chapter-01">Lesson 1</a>'));
@@ -91,6 +92,27 @@ test('composes care files at root and docs files under the mount', async () => {
     assert.equal(summary.docsFiles, 6);
     assert.equal(summary.docsPages, 5);
     assert.ok(summary.linksChecked > 100, `links resolved: ${summary.linksChecked}`);
+  } finally {
+    cleanup(fixture.root);
+  }
+});
+
+test('checker resolves cross-page fragments against rendered ids', async () => {
+  // Shape of the course guide -> homepage play-section link: the target id
+  // is server-rendered by a TSX page, so only built-HTML ids can prove it.
+  const fixture = await freshFixture();
+  try {
+    writeFileSync(join(fixture.docsDir, 'course.html'), docsPage('Course guide',
+      '<a href="/MoonlitBeacon/#play">Play</a>'));
+    writeFileSync(join(fixture.docsDir, 'index.html'), docsPage('Docs home',
+      '<section id="play"><a href="/MoonlitBeacon/course">Course guide</a></section>'));
+    composeHosting(fixture);
+    await checkHosting(fixture.options);
+    const noId = docsPage('Docs home',
+      '<section><a href="/MoonlitBeacon/course">Course guide</a></section>');
+    writeFileSync(join(fixture.docsDir, 'index.html'), noId);
+    writeFileSync(join(fixture.outDir, 'MoonlitBeacon', 'index.html'), noId);
+    await assert.rejects(() => checkHosting(fixture.options), /fragment missing/);
   } finally {
     cleanup(fixture.root);
   }
@@ -343,6 +365,114 @@ test('checker rejects a root config carrying a hosting key', async () => {
   } finally {
     cleanup(fixture.root);
   }
+});
+
+test('checker fails on a relative asset under a nested index route', async () => {
+  // Live incident shape: the file exists next to the page, so file-directory
+  // resolution passes, but the browser asks one level higher from /MoonlitBeacon.
+  const fixture = await freshFixture();
+  try {
+    composeHosting(fixture);
+    const target = join(fixture.outDir, 'MoonlitBeacon', 'index.html');
+    writeFileSync(
+      target,
+      readFileSync(target, 'utf8').replace(
+        '<script src="/MoonlitBeacon/assets/app.js"></script>',
+        '<script src="assets/app.js"></script>',
+      ),
+    );
+    await assert.rejects(
+      () => checkHosting(fixture.options),
+      /relative link breaks from the canonical route: assets\/app\.js/,
+    );
+  } finally {
+    cleanup(fixture.root);
+  }
+});
+
+test('checker passes a relative link that holds from its canonical route', async () => {
+  // course.html serves at /MoonlitBeacon/course, whose base is the same
+  // directory the file lives in — relative links there are genuinely fine.
+  const fixture = await freshFixture();
+  try {
+    composeHosting(fixture);
+    const summary = await checkHosting(fixture.options);
+    assert.equal(summary.canonicalChecked, 0, 'no relative refs left on nested index routes');
+  } finally {
+    cleanup(fixture.root);
+  }
+});
+
+test('canonical route bases resolve like the browser', () => {
+  assert.equal(canonicalRouteBase('MoonlitBeacon/index.html'), '');
+  assert.equal(canonicalRouteBase('MoonlitBeacon/course/index.html'), 'MoonlitBeacon');
+  assert.equal(canonicalRouteBase('index.html'), null);
+  assert.equal(canonicalRouteBase('MoonlitBeacon/course.html'), null);
+  assert.equal(canonicalRouteBase('ko/privacy.html'), null);
+  assert.deepEqual(resolveCanonicalLink('MoonlitBeacon/index.html', 'img/home-hero.jpg'), {
+    candidates: ['img/home-hero.jpg'],
+  });
+  assert.deepEqual(resolveCanonicalLink('MoonlitBeacon/course/index.html', 'chapter-01'), {
+    candidates: [
+      'MoonlitBeacon/chapter-01',
+      'MoonlitBeacon/chapter-01.html',
+      'MoonlitBeacon/chapter-01/index.html',
+    ],
+  });
+  assert.equal(resolveCanonicalLink('MoonlitBeacon/index.html', '/MoonlitBeacon/img/home-hero.jpg'), null);
+  assert.equal(resolveCanonicalLink('MoonlitBeacon/index.html', '#toc'), null);
+  assert.equal(resolveCanonicalLink('MoonlitBeacon/course.html', 'course/chapter-01'), null);
+});
+
+// Public entry/action identities: exact store parameters, optional contact,
+// and privacy-sensitive regressions on the docs entry pages. Asserts on the
+// page sources (built HTML inherits them byte for byte through composition),
+// never on layout.
+const DOCS_SRC = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'src');
+
+test('public entry pages carry the exact store, contact, and privacy identities', () => {
+  const docsSrc = DOCS_SRC;
+  const links = readFileSync(join(docsSrc, 'storeLinks.ts'), 'utf8');
+  assert.ok(
+    links.includes('https://play.google.com/store/apps/details?id=com.crossplatformkorea.moonlitbeacon'),
+    'play product identity',
+  );
+  assert.ok(links.includes('utm_source=moonlit_course'), 'play utm_source');
+  assert.ok(links.includes('utm_medium=referral'), 'play utm_medium');
+  assert.ok(links.includes('utm_campaign=course_first_play_20261013'), 'play utm_campaign');
+  assert.ok(
+    links.includes('https://apps.apple.com/app/id6796293839'),
+    'app store identity without attribution',
+  );
+  assert.ok(!links.includes('id6796293839?'), 'no fabricated apple campaign attribution');
+  assert.ok(links.includes("SUPPORT_EMAIL = 'hyo@hyo.dev'"), 'existing public support email');
+  assert.ok(
+    links.includes('https://moonlitbeacon.hyo.dev/en/privacy#support-requests'),
+    'support privacy section link',
+  );
+  for (const page of ['pages/index.tsx', 'pages/first-play.tsx']) {
+    const source = readFileSync(join(docsSrc, page), 'utf8');
+    assert.ok(source.includes('../storeLinks'), `${page} uses the shared link module`);
+  }
+});
+
+test('public entry pages add no trackers, storage, or data collection', () => {
+  const docsSrc = DOCS_SRC;
+  const sources = ['storeLinks.ts', 'pages/index.tsx', 'pages/first-play.tsx']
+    .map((name) => [name, readFileSync(join(docsSrc, name), 'utf8')]);
+  const forbidden = [
+    'googletag', 'gtag', 'fbevent', 'facebook.net/tr', 'hotjar', 'amplitude',
+    'mixpanel', 'sendBeacon', 'localStorage', 'sessionStorage', 'document.cookie',
+    '<form', '<input', '<textarea',
+  ];
+  for (const [name, source] of sources) {
+    for (const token of forbidden) {
+      assert.ok(!source.includes(token), `${name} must not contain ${token}`);
+    }
+  }
+  const [home] = sources.filter(([name]) => name === 'pages/index.tsx').map(([, source]) => source);
+  assert.ok(!home.includes('src="img/'), 'hero uses the base-url helper, not a raw relative path');
+  assert.ok(home.includes('useBaseUrl('), 'hero resolves against the site base');
 });
 
 test('extensionless docs links resolve like cleanUrls', () => {

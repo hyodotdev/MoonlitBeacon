@@ -5,6 +5,8 @@ title: Lesson 13 · Three enemy types and the final guardian
 
 # Lesson 13 · Three enemy types and the final guardian
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 13` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 There was only one spirit. For the whole 90 seconds, the same thing chased
 you at the same speed.
 
@@ -76,21 +78,44 @@ Four kinds would mean four of those too.
 func _apply_kind() -> void:
 	scale = Vector2.ONE * kind.body_scale
 	modulate = kind.tint
+	speed = kind.speed
+	_turn_rate = kind.turn_rate
 
 	var frames: SpriteFrames = SpriteFrames.new()
 	frames.remove_animation(&"default")
-	for col in kind.columns:
-		var anim: StringName = &"float_" + FACING_NAMES[mini(col, FACING_NAMES.size() - 1)]
-		frames.add_animation(anim)
-		frames.set_animation_loop(anim, true)
-		frames.set_animation_speed(anim, kind.anim_fps)
-		for row in kind.rows:
-			var atlas: AtlasTexture = AtlasTexture.new()
-			atlas.atlas = kind.sheet
-			atlas.region = Rect2(col * kind.cell, row * kind.cell, kind.cell, kind.cell)
-			frames.add_frame(anim, atlas)
+	if kind.rows == 1:
+		## One row means one facing: every column is a frame of the same
+		## look, laid out left to right along row zero.
+		_add_float_animation(frames, &"float_down")
+		for col in kind.columns:
+			frames.add_frame(&"float_down", _slice(col, 0))
+	else:
+		for col in kind.columns:
+			var anim: StringName = &"float_" + FACING_NAMES[col]
+			_add_float_animation(frames, anim)
+			for row in kind.rows:
+				frames.add_frame(anim, _slice(col, row))
 	_sprite.sprite_frames = frames
+
+
+func _add_float_animation(frames: SpriteFrames, anim: StringName) -> void:
+	if frames.has_animation(anim):
+		return
+	frames.add_animation(anim)
+	frames.set_animation_loop(anim, true)
+	frames.set_animation_speed(anim, kind.anim_fps)
+
+
+func _slice(col: int, row: int) -> AtlasTexture:
+	var atlas: AtlasTexture = AtlasTexture.new()
+	atlas.atlas = kind.sheet
+	atlas.region = Rect2(col * kind.cell, row * kind.cell, kind.cell, kind.cell)
+	return atlas
 ```
+
+The kind also drives the gait: without the `speed` and `turn_rate`
+lines, every enemy would move like the default and the table above would
+be decoration.
 
 :::warning Do not forget `remove_animation(&"default")`
 A new `SpriteFrames` already contains one empty animation named `default`.
@@ -98,22 +123,20 @@ Leave it and an empty entry stays in the list.
 :::
 
 :::danger Only the guardian's layout is different
-| | Cell | Rows | Columns |
-| --- | --- | --- | --- |
-| Spirits | 16 | 4 (frames) | 4 (facings) |
-| **Guardian** | **50** | **1** | **5 (frames)** |
+| | Cell | Rows | Columns | Animations built |
+| --- | --- | --- | --- | --- |
+| Spirits | 16 | 4 (frames) | 4 (facings) | 4 facings × 4 frames |
+| **Guardian** | **50** | **1** | **5 (frames)** | 1 facing × 5 frames |
 
-The guardian sheet is a single row, so **it has no facing.** The picture
-is the same from every side.
+The guardian sheet is a single row, so **it has one facing.** The picture
+is the same from every side, and its five columns are five frames of
+`float_down` along row zero — not five facings. Reading columns as
+facings here would build `float_right` twice and starve every animation
+to a single frame.
 
-That is why `cell`, `rows`, and `columns` are all settings.
+That is why `cell`, `rows`, and `columns` are all settings, and why the
+branch above tests `rows == 1` before it slices.
 Hard-code any of them and you cannot add the guardian.
-
-```gdscript
-	var wanted: StringName = &"float_" + FACING_NAMES[mini(index, kind.columns - 1)]
-```
-
-Clamp with `mini()`. One column always yields `float_down`.
 :::
 
 ## 5. Implement it yourself
@@ -260,7 +283,7 @@ way first, then fixed it.
 - [ ] One more `.tres` makes a new enemy
 - [ ] The guardian works even with a sheet that has no facing
 - [ ] When the guardian appears, lesser spirits withdraw and the music changes
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Homework
 

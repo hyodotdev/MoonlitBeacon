@@ -90,6 +90,50 @@ function isFile(root, candidate) {
   return existsSync(full) && statSync(full).isFile();
 }
 
+// Canonical route base for browser-side resolution. cleanUrls serves
+// `dir/index.html` at `/dir` (no trailing slash under trailingSlash:false),
+// where the browser resolves relative URLs against the *parent* of dir —
+// while the file itself lives one level deeper. `page.html` served at
+// `/page` resolves exactly like its file directory, so only nested
+// index.html files diverge. Returns null when the file has no canonical
+// route to re-check (root index, 404, non-HTML).
+export function canonicalRouteBase(file) {
+  if (!file.endsWith('.html') && !file.endsWith('.htm')) return null;
+  if (!file.includes('/')) return null;
+  if (file.endsWith('/index.html') || file.endsWith('/index.htm')) {
+    const route = file.slice(0, file.lastIndexOf('/index.'));
+    return route.includes('/') ? route.slice(0, route.lastIndexOf('/')) : '';
+  }
+  return null;
+}
+
+// Re-resolves a relative href/src the way the browser does from the
+// canonical route. Returns null when the check does not apply (absolute,
+// protocol, or fragment-only references; files without a divergent route).
+export function resolveCanonicalLink(fromFile, href) {
+  if (href === '' || href.startsWith('#')) return null;
+  const path = href.split('#')[0].split('?')[0];
+  if (path === '' || path.startsWith('/') || /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) return null;
+  const base = canonicalRouteBase(fromFile);
+  if (base === null) return null;
+  const target = base === '' ? path : `${base}/${path}`;
+  const parts = [];
+  for (const segment of target.split('/')) {
+    if (segment === '' || segment === '.') continue;
+    if (segment === '..') {
+      if (parts.length === 0) return { escapes: true };
+      parts.pop();
+    } else {
+      parts.push(segment);
+    }
+  }
+  const normalized = parts.join('/');
+  if (normalized === '') return { candidates: ['index.html'] };
+  if (path.endsWith('/')) return { candidates: [`${normalized}/index.html`] };
+  if (parts[parts.length - 1].includes('.')) return { candidates: [normalized] };
+  return { candidates: [normalized, `${normalized}.html`, `${normalized}/index.html`] };
+}
+
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
@@ -294,6 +338,36 @@ export async function checkHosting(options = {}) {
 
   // 7. Every local href/src in every page resolves. Same-origin absolute
   // links resolve locally; outbound https is counted, not fetched.
+  // Cross-page fragments resolve against the target page's rendered ids,
+  // which covers TSX-rendered anchors (the homepage play section) that the
+  // markdown anchor map cannot see. Same-page fragments stay with the
+  // docs anchor check.
+  const idCache = new Map();
+  const targetIds = (candidate) => {
+    if (!idCache.has(candidate)) {
+      const html = readFileSync(join(outDir, candidate), 'utf8');
+      idCache.set(candidate, new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1])));
+    }
+    return idCache.get(candidate);
+  };
+  const checkFragment = (file, href, candidates) => {
+    const hash = href.indexOf('#');
+    if (hash < 0) return;
+    const fragment = href.slice(hash + 1);
+    if (fragment === '') return;
+    const hit = candidates.find((candidate) => candidate.endsWith('.html') && isFile(outDir, candidate));
+    if (!hit) return;
+    let decoded = fragment;
+    try {
+      decoded = decodeURIComponent(fragment);
+    } catch {
+      // Bad encoding: compare against the original string.
+    }
+    const ids = targetIds(hit);
+    if (!ids.has(fragment) && !ids.has(decoded)) {
+      problems.push(`${file}: link fragment missing in ${hit}: ${href}`);
+    }
+  };
   let linksChecked = 0;
   let outboundCount = 0;
   for (const file of htmlFiles) {
@@ -316,6 +390,8 @@ export async function checkHosting(options = {}) {
         linksChecked += 1;
         if (!('candidates' in resolved) || !resolved.candidates.some((candidate) => isFile(outDir, candidate))) {
           problems.push(`${file}: same-origin link target missing: ${href}`);
+        } else {
+          checkFragment(file, href, resolved.candidates);
         }
         continue;
       }
@@ -329,6 +405,30 @@ export async function checkHosting(options = {}) {
         problems.push(`${file}: link escapes output: ${href}`);
       } else if (!resolved.candidates.some((candidate) => isFile(outDir, candidate))) {
         problems.push(`${file}: local link target missing: ${href} -> tried ${resolved.candidates.join(', ')}`);
+      } else {
+        checkFragment(file, href, resolved.candidates);
+      }
+    }
+  }
+
+  // 8. Relative links must also resolve from the canonical route. Step 7
+  // resolves against the file directory, but cleanUrls serves nested
+  // index.html at the slashless route, where the browser resolves one level
+  // higher. Live incident: `img/home-hero.jpg` on the docs homepage passed
+  // step 7 (`MoonlitBeacon/img/home-hero.jpg` exists) yet the browser asked
+  // for `/img/home-hero.jpg` from `/MoonlitBeacon` and got a 404.
+  let canonicalChecked = 0;
+  for (const file of htmlFiles) {
+    if (canonicalRouteBase(file) === null) continue;
+    const text = readFileSync(join(outDir, file), 'utf8');
+    for (const match of text.matchAll(/(?:href|src)="([^"]+)"/gu)) {
+      const resolved = resolveCanonicalLink(file, match[1]);
+      if (resolved === null) continue;
+      canonicalChecked += 1;
+      if ('escapes' in resolved) {
+        problems.push(`${file}: relative link escapes output from the canonical route: ${match[1]}`);
+      } else if (!resolved.candidates.some((candidate) => isFile(outDir, candidate))) {
+        problems.push(`${file}: relative link breaks from the canonical route: ${match[1]} -> tried ${resolved.candidates.join(', ')}`);
       }
     }
   }
@@ -338,7 +438,8 @@ export async function checkHosting(options = {}) {
   }
   const docsPages = mountedFiles.filter((file) => file.endsWith('.html')).length;
   return {
-    outDir, careFiles: rootFiles.length, docsFiles: mountedFiles.length, docsPages, htmlFiles: htmlFiles.length, linksChecked, outboundCount,
+    outDir, careFiles: rootFiles.length, docsFiles: mountedFiles.length, docsPages,
+    htmlFiles: htmlFiles.length, linksChecked, outboundCount, canonicalChecked,
   };
 }
 

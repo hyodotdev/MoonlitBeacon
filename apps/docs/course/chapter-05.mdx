@@ -5,6 +5,8 @@ title: Lesson 5 · The player scene and animation
 
 # Lesson 5 · The player scene and animation
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 5` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 Three beacons stand in the night forest. Now we make **the person who will
 stand in that forest**.
 
@@ -209,9 +211,64 @@ func _play_current() -> void:
 	_sprite.play(prefix + FACING_NAMES[facing])
 ```
 
+:::info The assembled file — replace, do not append
+Section 5-4 showed `face_toward()` and `_play_current()` in pieces to explain
+them. The file below assembles everything once: select the `Player` root,
+**Attach Script**, save it as `res://scripts/player.gd`, and make the whole
+file match this — do not type any part twice.
+
+```gdscript
+extends CharacterBody2D
+
+enum Facing { DOWN, UP, LEFT, RIGHT }
+
+const FACING_NAMES: Array[StringName] = [&"down", &"up", &"left", &"right"]
+
+@export var facing: Facing = Facing.DOWN
+
+@onready var _sprite: AnimatedSprite2D = $Sprite
+
+var _walking: bool = false
+
+
+func _ready() -> void:
+	_play_current()
+
+
+func face_toward(direction: Vector2) -> void:
+	if direction.length() < 0.01:
+		return
+	if absf(direction.x) > absf(direction.y):
+		facing = Facing.RIGHT if direction.x > 0.0 else Facing.LEFT
+	else:
+		facing = Facing.DOWN if direction.y > 0.0 else Facing.UP
+
+
+func set_walking(value: bool) -> void:
+	_walking = value
+	_play_current()
+
+
+func _play_current() -> void:
+	var prefix: String = "walk_" if _walking else "idle_"
+	_sprite.play(prefix + FACING_NAMES[facing])
+```
+
+Two things the pieces above did not show: `extends CharacterBody2D` (the
+script runs on the player body from section 2), and `_ready()` calling
+`_play_current()` so the exported `facing` actually shows when the scene
+runs. Nothing else changed — the two functions match section 5-4 exactly.
+:::
+
 ### 5-5. Place it in the arena
 
-Attach `player.tscn` as an instance on `arena.tscn` and put it at
+Open `player.tscn` and select the `Player` root first: set
+`collision_layer = 2` and `collision_mask = 0`. Value 2 (inspector checkbox
+2) means "this is the player" — Lesson 7's beacon sensor and Lesson 8's
+spirit hitbox both look for exactly this value, so set it now and never
+touch it again.
+
+Then attach `player.tscn` as an instance on `arena.tscn` and put it at
 `(330, 300)`.
 Near the west beacon. You can see firelight catch the moment the beacon
 lights.
@@ -219,8 +276,16 @@ lights.
 ## 6. Check your work so far
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
+
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 - `player.tscn` exists and has 8 animations
 - A ninja stands in the arena with a shadow at their feet
@@ -255,7 +320,7 @@ That is why we put it in now.
 - [ ] There is a shadow at their feet, and it does not brighten when a beacon lights
 - [ ] The ninja receives the night tint, and also receives beacon light
 - [ ] They rise and fall like a breath
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 - [ ] The same screen appears on the phone
 
 ## 9. Exercises

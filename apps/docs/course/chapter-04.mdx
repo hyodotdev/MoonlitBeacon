@@ -5,6 +5,8 @@ title: Lesson 4 · Your first script
 
 # Lesson 4 · Your first script
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 4` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 You did write scripts through Lesson 3. They were **back-office work**:
 centering the screen, cleaning up sound, swapping scenes.
 
@@ -376,10 +378,16 @@ guard for the same reason.
 ## 6. Check your work so far
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
 
-Exit code `0`, zero errors and warnings.
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 Measure it and you get this (mean of the red channel at the beacon spots).
 
@@ -434,7 +442,7 @@ see it when you run.
 - [ ] `arena.tscn` has **no** `[editable`
 - [ ] Toggling `lit` in the editor shows immediately
 - [ ] The title screen matches Lesson 3
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 - [ ] Installed on a phone, it runs in the same order
 
 ## 9. Exercises

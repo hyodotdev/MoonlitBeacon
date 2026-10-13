@@ -5,6 +5,8 @@ title: Lesson 1 · Project setup and the title screen
 
 # Lesson 1 · Project setup and the title screen
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 1` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 This lesson locks in the **project foundation** you will not touch again, then
 stands a **title screen** on top of it. When you are done you can tap the app
 icon on a phone and run it, and that screen is good enough to use as a store
@@ -13,10 +15,73 @@ screenshot.
 You will not write a single line of game code. Even so, there is a game on
 screen.
 
+## 0. Before you touch the editor
+
+Install and check these first. Every command below runs on Windows, macOS,
+and Linux.
+
+1. Install **Godot 4.7.2 Standard** (recommended — see
+   [Godot version](/course#godot-version)) from the
+   [exact 4.7.2 archive](https://godotengine.org/download/archive/4.7.2-stable/)
+   for your OS, or at minimum 4.7.1 from the
+   [exact 4.7.1 archive](https://godotengine.org/download/archive/4.7.1-stable/).
+   Installing Godot does **not** put a plain `godot` command on
+   your PATH, so find the executable you just unpacked and remember its full
+   path — it usually contains spaces and a version number, which is fine.
+2. Point `GODOT_BIN` at that executable, using your shell's own syntax.
+   Quote the path so spaces work:
+
+   PowerShell (Windows):
+
+   ```powershell
+   $env:GODOT_BIN = "C:\Tools\Godot_v4.7.2-stable_win64_console.exe"
+   & $env:GODOT_BIN --version
+   ```
+
+   bash / zsh (macOS, Linux):
+
+   ```bash
+   export GODOT_BIN="/Applications/Godot.app/Contents/MacOS/Godot"
+   "$GODOT_BIN" --version
+   ```
+
+   It must print a version starting with `4.7.1` or `4.7.2`. From here on,
+   every `godot …` command in this course means your `GODOT_BIN` invocation
+   above (`& $env:GODOT_BIN …` in PowerShell, `"$GODOT_BIN" …` in bash/zsh).
+3. Install **Git** and the **Android Platform Tools** (`adb`). On the phone,
+   turn on developer options and enable USB debugging — section 8 installs
+   over USB.
+4. Make a course folder with an **empty** project folder inside it. This blank
+   project is where you follow every lesson. Keep it outside any git clone:
+
+   ```text
+   ~/moonlit-course/
+     my-game/           # your blank Godot project (this lesson fills it)
+     _downloads/        # original ZIPs (section 4)
+     _asset_sources/    # unpacked originals (section 4)
+     builds/            # build output (section 8)
+   ```
+
+:::warning Your blank project is not this repository
+This course's repository holds the finished game and uses shortcut commands
+(`pnpm game:check`, `pnpm android:build`, …). Those shortcuts do not exist in
+your blank project. In this lesson every command is given in plain `godot` /
+`adb` form that works in `my-game/`; the clone-only shortcut is named next to
+it where one exists. Never run `git init` inside a folder you cloned, and
+never create `my-game/` inside one either.
+:::
+
+You do not need Node.js or `pnpm` for the lessons. You need them only if you
+also clone the repository to run the finished game — the
+[reference intro](/docs/intro) covers that route.
+
 ## 1. The finished screen
 
 When the app launches, a beacon burns over a landscape-locked night forest,
 mist drifts, and the music fades in. Tap the screen and the beacon flares once.
+(That is the full scene from the clip below. The minimal scene you build in
+section 5-1 keeps the night, the moonlight, one hearth, and the tap sound —
+the forest, mist, music, and flare come with the full build.)
 
 <Video
   src="video/chapter-01-title.mp4"
@@ -79,8 +144,20 @@ project that already exists.
 
 ### 3-1. Creating the project and picking a renderer
 
-Project Manager → `+ New` → project name `Moonlit Beacon`,
-path is `apps/game` inside the repository → **Renderer: Compatibility**.
+Project Manager → `+ New` → project name `Moonlit Course`,
+path is the empty folder from section 0 (`~/moonlit-course/my-game/`)
+→ **Renderer: Compatibility**.
+
+That folder is your project's `res://` root. There is no `apps/game`
+nesting in a blank project — that path exists only inside a clone of the
+finished-game repository.
+
+> **Why a different name from the game**
+> The shipping game is also called "Moonlit Beacon", and Godot stores
+> desktop saves under the project name. Your course project keeps the
+> beginner name `Moonlit Course` so a future local save can never collide
+> with the installed game. Section 8 gives it a separate Android package
+> for the same reason.
 
 > **Why Compatibility?**
 > Forward+ has strong 3D features but weaker mobile compatibility, and Mobile
@@ -129,16 +206,20 @@ Same screen, `Stretch` further down:
 - `keep` preserves the aspect ratio and fills leftover space with black bars.
   That is the right call for a desktop game.
 - **Android devices have different aspect ratios**, so `keep` makes the bar
-  thickness different on every phone. `expand` locks height at 360 and widens
-  only the width to the device ratio, so there are no bars.
+  thickness different on every phone. `expand` keeps the base 808 × 360 and
+  grows whichever dimension the device needs — virtual width on wider
+  screens, virtual height on taller/narrower ones — so there are no bars.
+  (See [Multiple resolutions in Godot](https://docs.godotengine.org/en/stable/tutorials/rendering/multiple_resolutions.html).)
 
 > **Two rules that come with `expand`**
-> 1. Always pin UI to **screen-edge anchors**. Width is not fixed.
+> 1. Always pin UI to **screen-edge anchors**. Neither width nor height is fixed.
 > 2. Put anything the game truly needs (beacons, the exit) only inside the
->    **16:9 safe area** in the center of the screen.
+>    area every supported aspect shows — the center, away from all four
+>    edges.
 >
-> Push the background art by the leftover width to keep it centered. When you
-> push, **floor to integer pixels**. A leftover half pixel misaligns the dots
+> Cover the background past the base size on every side so grown dimensions
+> never expose empty space, and center it on the leftover. When you center,
+> **floor to integer pixels**. A leftover half pixel misaligns the dots
 > under nearest-neighbor upscaling.
 
 ### 3-4. Pixel filter
@@ -178,17 +259,19 @@ res://
   docs/licenses/
 ```
 
-The whole repository looks like this.
+Your course folder now looks like this.
 
 ```text
-MoonlitBeacon/
-  apps/
-    game/            # Godot project (res://)
-    docs/            # this course site
-  _downloads/        # original ZIPs you downloaded     (not in git)
-  _asset_sources/    # unpacked originals               (not in git)
-  builds/            # build output                     (not in git)
+~/moonlit-course/
+  my-game/             # Godot project (res:// root)
+  _downloads/          # original ZIPs you downloaded     (not in git)
+  _asset_sources/      # unpacked originals               (not in git)
+  builds/              # build output                     (not in git)
 ```
+
+(Inside a clone of the finished-game repository the same four parts are
+named `apps/game/`, `_downloads/`, `_asset_sources/`, and `builds/`, plus
+the course site under `apps/docs/`. Same shape, different root.)
 
 > **Why split them?**
 > The Ninja Adventure pack is about 89MB. Drop it into `res://` as-is and
@@ -201,7 +284,7 @@ MoonlitBeacon/
 ### 3-7. Check your work so far
 
 Everything you clicked in the editor is written to one file,
-`apps/game/project.godot`.
+`project.godot` at the root of your blank project.
 Open it in a text editor and check that it **matches the following exactly**.
 If even one line is different, set that item again.
 
@@ -245,20 +328,23 @@ this document, and `project.godot` is a file that **holds values only**.
 | `default_texture_filter=0` | Nearest. 1 is Linear, and the pixels blur |
 | `import_etc2_astc=true` | Android texture compression. Leave it off and export warns |
 
-To check it all at once from the command line:
+To check it all at once from the command line, run this inside your blank
+project folder (`godot` below means your section 0 `GODOT_BIN` invocation):
 
 ```bash
-godot --headless --path apps/game --quit
+godot --headless --path . --import
 ```
 
-The exit code must be `0`, with no errors or warnings.
+The exit code must be `0` with no `ERROR` lines in the output. This
+validates that the editor can open and import the project; it does not
+compile scripts or run gameplay. Press Play in the editor to run the
+game, then close the window to quit. (The reference verifier
+additionally compiles every script and drives each gameplay check
+headless.)
 
-If it says `godot` is not found, use the shortcut command prepared in the
-repository. It finds the Godot executable for you.
-
-```bash
-pnpm game:check
-```
+(Inside a clone of the finished-game repository the shortcut `pnpm
+game:check` opens and quits the finished game instead. It does not
+exist in your blank project.)
 
 ## 4. Downloading assets and licenses
 
@@ -294,15 +380,16 @@ Keep [Get the assets](/docs/assets/download-guide) open while you work.
    The clip above is that confirmation. The table in this document is the
    result of that same check.
 2. Save all three license-text copies (`OFL-1.1.txt`, `CC0-1.0.txt`,
-   `GODOT-MIT.txt`) into `apps/game/docs/licenses/` **in Lesson 1**. Do not
+   `GODOT-MIT.txt`) into `res://docs/licenses/` **in Lesson 1**. Do not
    postpone it.
 3. Do **not** start from the **Godot demo project** that ships with Ninja
    Adventure.
    If you edit that, this stops being a "make it yourself" course and becomes
    a "dissect someone else's project" course.
    Use it only as a reference for sprite-frame layout.
-4. Every time you copy a file, record it in the
-   [asset manifest](/docs/assets/manifest).
+4. Every time you copy a file, record it in your own copy-list (a text file
+   in your course folder: source path, project path, license). It mirrors the
+   repository's [asset manifest](/docs/assets/manifest).
 
 ### After you download, it should look like this
 
@@ -334,6 +421,20 @@ Of those, **only 66 files (9.0MB) actually go into the game**.
 Which files you pick out of more than 2,000 is the most important part of this
 section.
 
+Copy exactly these four files now — they are all section 5 needs. Find each
+one with your file manager's search inside the unpacked tree (the packs use
+different capitalization; rename to the lowercase project name as you copy):
+
+| Find in the unpacked downloads | Copy to (in your blank project) |
+| --- | --- |
+| Ninja Adventure `Backgrounds/Tilesets/` camp tileset | `res://assets/third_party/ninja_adventure/tilesets/tileset_camp.png` |
+| Ninja Adventure `raylight` shafts | `res://assets/third_party/ninja_adventure/fx/raylight.png` |
+| Kenney UI Audio `Audio/click1.ogg` (rename) | `res://assets/third_party/kenney/ui_audio/ui_confirm.ogg` |
+| Galmuri `Galmuri11.ttf` | `res://assets/third_party/fonts/Galmuri11.ttf` |
+
+Record all four in your copy-list. Later lessons add more files the same way,
+one table at a time.
+
 :::tip itch.io puts a form in front of the download
 `Download Now` → on the amount screen, press **"No thanks, just take me to the
 downloads"** and you can take it for $0. No account needed.
@@ -348,7 +449,8 @@ downloads"** and you can take it for $0. No account needed.
   silent
 />
 
-`res://scenes/menus/title_menu.tscn` — this lesson's result.
+The clip above shows the **full** title scene this course grows toward, layer
+by layer:
 
 | Layer | Contents |
 | --- | --- |
@@ -359,21 +461,123 @@ downloads"** and you can take it for $0. No account needed.
 | Mist | Procedurally baked `night_mist.png`, drifting on a 48-second cycle |
 | UI | Title 55 · prompt 22 · version 11 (Galmuri11) |
 
+You are not building all of that today. Below is the **minimal title scene**
+you build now and run on your phone in section 8 — night sky, moonlight,
+one hearth, title text, a blinking prompt, and a tap sound. It uses only the
+four files from section 4, and every value is on this page.
+
+:::info Minimal scene now, full scene later
+Keep the two apart. The minimal scene is yours: you build it in 5-1, and it
+is the checkpoint the completion list checks. The full forest scene from the
+clip is the reference Lesson 2 works from — its complete construction steps
+are not in this lesson. Do not mistake one for the other.
+:::
+
 > **Type sizes only in multiples of 11**
 > Galmuri11 is drawn on an 11px grid. Sizes like 12 or 20 that fall between
 > the grid smash the dots. We use title 55 (5×), prompt 22 (2×), version 11
 > (1×).
 
-The version string is read from `ProjectSettings`. It is managed in one place:
-`project.godot`.
+### 5-1. Build the minimal title scene
+
+`Scene ▸ New Scene` → root `Control`, rename it `TitleMenu`. Select the root
+first and set `Layout ▸ Anchors ▸ Full Rect` — every child below anchors
+against it, so the root must fill the screen before you place anything.
+Build this tree in order — each row is one child node with the values to
+enter:
+
+```text
+TitleMenu (Control)
+  Sky        (ColorRect)
+  Shafts     (Sprite2D)
+  Hearth     (Sprite2D)
+  Title      (Label)
+  Prompt     (Label)
+  Version    (Label)
+  TapCatcher (Button)
+  Confirm    (AudioStreamPlayer)
+  Blinker    (AnimationPlayer)
+```
+
+**Sky — the night.** Select `Sky`, set `Color` to `#0b0e1c`, then
+`Layout ▸ Anchors ▸ Full Rect` (all four anchors 0/0/1/1, all offsets 0).
+It fills every screen.
+
+**Shafts — the moonlight.** Set `Texture` to
+`res://assets/third_party/ninja_adventure/fx/raylight.png`, `Position` to
+`(404, 100)`, `Modulate` to `(0.55, 0.7, 1.0, 0.35)`. The texture holds three
+shafts; one sprite shows all three at once.
+
+**Hearth — the fire.** `Texture` needs a sub-region of the camp tileset, so
+click it and pick `New AtlasTexture`: set `Atlas` to
+`res://assets/third_party/ninja_adventure/tilesets/tileset_camp.png` and
+`Region` to `(192, 80, 32, 30)` — the stone-ring hearth. (Height 30, not 32:
+one more pixel pulls in the neighboring tile below.) Set `Position` to
+`(404, 240)` and `Scale` to `(3, 3)`.
+
+**Title — the name.** Set `Text` to `MOONLIT BEACON`. Under `Theme
+Overrides ▸ Fonts`, load `res://assets/third_party/fonts/Galmuri11.ttf` as
+`Font`, and set `Font Sizes ▸ Font Size` to `55`. Set `Horizontal Alignment`
+to `Center`, then `Layout ▸ Anchors ▸ Top Wide`, `Offset Top` to `20`,
+`Offset Bottom` to `100`.
+
+**Prompt — the invitation.** `Text` is `Tap to start`, same font at size
+`22`, `Horizontal Alignment` `Center`. Anchors: `Anchor Left`/`Anchor Right`
+to `0.5`, `Anchor Top`/`Anchor Bottom` to `1.0`; offsets `Left -200`,
+`Right 200`, `Top -74`, `Bottom -42`. It sits centered near the bottom on
+every width.
+
+**Version — the stamp.** `Text` is `v0.0.0`, same font at size `11`,
+`Horizontal Alignment` `Right`. All four anchors to `1.0`; offsets
+`Left -96`, `Top -30`, `Right -12`, `Bottom -10`. (Hardcoded for now —
+Lesson 11 reads it from `ProjectSettings` instead.)
+
+**TapCatcher + Confirm — the tap sound.** Select `TapCatcher`, clear `Text`,
+turn `Flat` on, and set `Layout ▸ Anchors ▸ Full Rect`. Set `Confirm`'s
+`Stream` to `res://assets/third_party/kenney/ui_audio/ui_confirm.ogg`.
+Still no code: select `TapCatcher`, open the `Node` dock, double-click
+`pressed()` to open the connection dialog, switch it to **Advanced** mode,
+pick the `Confirm` node, and choose the built-in `play` method (no script is
+generated — the dialog connects straight to the player's own method).
+Tapping anywhere now plays the confirm sound.
+
+**Blinker — the breathing prompt.** Select `Blinker`. In the `Animation`
+dock, create a new animation named `blink`: set `Length` to `1.4` and turn
+`Loop` on. Add a property track on the `Prompt` node for `modulate`'s alpha
+channel, with three keys — `0.0 s → 1.0`, `0.7 s → 0.2`, `1.4 s → 1.0`.
+Back on the `Blinker` node, set `Autoplay on Load` to `blink`. The prompt
+now fades in and out without any code.
+
+Save as `res://scenes/menus/title_menu.tscn`, then make it the scene that
+opens at launch: `Project ▸ Project Settings ▸ Application ▸ Run ▸ Main
+Scene` → pick `title_menu.tscn`. Press `F6` (run current scene): night sky,
+moonlight, a burning hearth, the title, a blinking prompt, and a confirm
+sound on tap.
+
+Minimal-scene checkpoint: all nine nodes exist, the prompt blinks without
+running any script, tap plays the sound, and resizing the window keeps the
+sky full, the title centered, and the version pinned to the bottom-right.
 
 ## 6. Git
+
+Run this at your **course folder** (`~/moonlit-course/`), not inside a clone
+— if the folder already contains a `.git` entry, stop: you are inside a
+clone, and your blank project belongs somewhere else.
 
 ```bash
 git init -b main
 git status          # first confirm _downloads/ and builds/ are not picked up
 git add .
-git commit -m "chore: Lesson 1 — project setup and the title screen"
+git commit -m "feat(course): add the title screen"
+```
+
+Your `.gitignore` needs these four lines (create the file before `git add`):
+
+```text
+.godot/
+_downloads/
+_asset_sources/
+builds/
 ```
 
 The most important line in `.gitignore`:
@@ -392,6 +596,10 @@ it on a public repository.
 > Exclude `credentials`, commit `presets`.
 
 ## 7. First run of the docs site
+
+This section is **clone-only**: it runs the course website from a clone of
+the finished-game repository, not from your blank project. Skip it if you
+only built `my-game/`.
 
 ```bash
 pnpm install
@@ -421,21 +629,32 @@ and 16 cover that.
 Today we only check that the title screen **actually looks right on a real
 phone**.
 
+First, one-time setup in the editor: `Project ▸ Export` → `Add…` →
+`Android`, download the export templates when asked. Under `Options`, set
+`Export Path` to `../builds/title-debug.apk` — Godot resolves it from the
+project folder and will not create missing folders, and `builds/` already
+exists from section 0. Under the preset's `Signing` section, confirm the
+debug keystore field (Godot generates one on first export if it is empty).
+Then export from your blank project folder:
+
 ```bash
-pnpm android:build
-pnpm android:run
+godot --headless --path . --export-debug "Android"
+adb install -r ../builds/title-debug.apk
+adb shell monkey -p com.example.moonlitcourse -c android.intent.category.LAUNCHER 1
 ```
 
-The first command handles installing the build template and cleaning Gradle
-output. The second installs the APK and launches it with a safe launcher
-intent.
+Use the beginner package `com.example.moonlitcourse` exactly
+(`Project Settings ▸ Application ▸ Config ▸ Android Package Name`) — the
+third command launches it. It is deliberately not the shipping game's
+package, so this lesson's install can never overwrite or share saves with
+the real game. Release identity is Lesson 16's subject.
 
-:::danger Only export Android with `pnpm android:build`
-The wrapper prepares the `builds/android` folder and the `../../` relative
-path correctly, and it cleans Gradle output. On a direct-distribution APK it
-also isolates the Play Billing plugin.
-Calling `godot --export-debug` yourself skips that channel split, so do not
-use it.
+:::info The clone uses a wrapper instead
+Inside a clone of the finished-game repository, `pnpm android:build` and
+`pnpm android:run` do the three steps above plus Gradle cleanup and Play
+Billing isolation, and the no-direct-export rule applies there. Your blank
+project has no wrapper and no billing plugin, so the plain commands above
+are the correct route here.
 :::
 
 :::danger `am start` will not launch it
@@ -470,15 +689,22 @@ it back to `expand`.
 
 ## 10. Completion checklist
 
+Minimal scene (section 5-1) — tick these now:
+
 - [ ] The project runs with no errors
 - [ ] The title screen fills the phone's landscape screen as-is
-- [ ] Changing window width keeps the background centered and the text pinned to the edges
+- [ ] Changing window width keeps the sky full and the text pinned to the edges
 - [ ] Pixel images do not blur
-- [ ] Tapping the screen makes the beacon flare and plays a confirm sound
+- [ ] Tapping the screen plays a confirm sound
+- [ ] The prompt blinks without any script
 - [ ] Assets are downloaded into `_downloads/` and unpacked into `_asset_sources/`
 - [ ] Every license is confirmed and recorded
 - [ ] Asset ZIPs are not inside `res://`
-- [ ] `godot --headless --path apps/game --quit` (or `pnpm game:check`) exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
+
+Full scene (section 1 clip) — not this lesson's build:
+
+- [ ] Tapping the screen makes the beacon flare (full forest scene only)
 
 ## 11. Exercises
 

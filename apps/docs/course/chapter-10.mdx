@@ -5,6 +5,8 @@ title: Lesson 10 · On-screen information
 
 # Lesson 10 · On-screen information
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 10` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 Lesson 9 gave us a run. But **nothing is visible.**
 How much health is left, how many beacons are lit, how much time has passed.
 
@@ -171,8 +173,16 @@ in `_ready()`.
 ## 6. Check that this much is working
 
 ```bash
-pnpm game:check
+godot --headless --path . --import
 ```
+
+(`godot` is your Lesson 1 `GODOT_BIN` invocation, quoted when the
+path has spaces. The import validates that the editor can open the
+project and that every resource imports: exit code `0` with no
+`ERROR` lines in the output. It does not compile your scripts or
+run gameplay — press Play in the editor for that, then close the
+window to quit. The reference verifier additionally compiles every
+script and drives each gameplay check headless.)
 
 - Three hearts top-left, beacon count and time top-right
 - Hits fade the hearts one by one
@@ -207,7 +217,7 @@ the first beacon is lit.
 - [ ] Time counts down and turns red under 15 seconds
 - [ ] Time running out shows the lose panel
 - [ ] Stick and beacon lighting still work with the HUD present
-- [ ] `pnpm game:check` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Homework
 

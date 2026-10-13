@@ -5,6 +5,8 @@ title: Lesson 16 · Wrap-up and release
 
 # Lesson 16 · Wrap-up and release
 
+*Reference checkpoint: `node scripts/course-create.mjs --lesson 16` builds this lesson's runnable end state beside your project — compare, never overwrite. See [Practice checkpoints](/course/practice-foundation).*
+
 The game is built. **Nobody can play it yet.**
 
 This lesson fixes the Back button, bumps the version to 1.0.0, makes a
@@ -180,20 +182,30 @@ This course repo commits `export_presets.cfg` and does not commit
 
 ### 5-3. Release build
 
+Export from your blank project with the release keystore from 5-2 selected
+in the preset (Project → Export, or headless):
+
 ```bash
-pnpm android:release
+godot --headless --path . --export-release "Android"
 ```
 
-When build and signature checks both finish, the script writes
-`builds/android/MoonlitBeacon-1.0.0.apk`. A mid-way failure also deletes
-the previous canonical APK and version file so an old file is not
-mistaken for a new release.
+Name the output for your own app (for example
+`../builds/moonlit-course-1.0.0.apk`), outside the repo. If a build fails
+halfway, delete the partial output so an old file is never mistaken for a
+new release.
+
+(Inside a clone of the finished-game repository, the shortcut
+`pnpm android:release` does the equivalent for the shipping game — it
+writes `builds/android/MoonlitBeacon-1.0.0.apk` and cleans previous output
+on failure.)
 
 :::danger Do not call Godot export yourself
-This project builds the Play AAB and the itch.io APK from the same Gradle
-template. `android:release` has to clean previous output and temporarily
-isolate the IAP plugin so the Play Billing SDK does not mix into the
-direct-distribution APK.
+This warning applies inside the finished-game clone: that project builds
+the Play AAB and the itch.io APK from the same Gradle template, so
+`android:release` has to clean previous output and temporarily isolate the
+IAP plugin so the Play Billing SDK does not mix into the
+direct-distribution APK. In your blank learner project there is no IAP
+plugin and no wrapper — the export above is the procedure.
 :::
 
 Confirm the signature is right.
@@ -322,7 +334,7 @@ existing users cannot update.
 - [ ] No internet permission
 - [ ] Uninstall and reinstall still works
 - [ ] Store page copy and screenshots are ready
-- [ ] `pnpm verify` exits with code 0
+- [ ] `godot --headless --path . --import` finishes with exit code 0 and no errors in its output
 
 ## 9. Last homework
 
