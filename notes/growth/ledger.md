@@ -224,3 +224,35 @@ are not authoritative over the current user instructions or newer observations.
 - Next planned review Oct 15 is a plan, not a saved automation. Tracker
   stays #1. Budget stays 0 KRW. `growth:check`, `test:growth` (7) pass;
   docs/hosting/skills/hygiene/diff checks in the implementer report.
+
+## 2026-10-13 — Verified course publication, E04 running
+
+- PR #14 merged into main as `0b88971` at 2026-10-13T09:03:07Z (reviewed
+  head `c885995`, all four CI checks successful; two independent clean
+  self-review rounds). Director-built combined Hosting release: 49 care +
+  146 docs files, 28 docs pages, 2179 local / 447 outbound links;
+  hosting-only deploy, 195 files, release complete, exit 0. No other
+  Firebase service was deployed.
+- Verified public publication observed 2026-10-13T09:10:47.475Z
+  (Asia/Seoul 18:10:47.475) — the first verified publication
+  observation, not a claimed upload timestamp or first visit. All 195
+  deployed files HTTP 200 matching reviewed local bytes; six clean
+  routes 200/no NUL, missing route 404; all 131 complete source links
+  resolve on main (122 unique files 200, bytes match). Full proof:
+  [course-publication-20261013.md](course-publication-20261013.md).
+- **E04 running** (single running program, started 2026-10-13, decision
+  due Nov 13): attributed Play read over seven COMPLETE reporting days
+  plus five manual sessions. Reporting dates/timezone stay unpinned
+  until the Console read; no zero-row inference, no iOS attribution.
+- E01/E02/H3/E03 entries, original deadlines, and all historical
+  snapshot `observedAt` values untouched. E02 stays `not_run`; not
+  revived. G15 gains the publication completion note.
+- Human sessions still zero: no enquiries/participants/bookings
+  observed, no direct recruitment message sent, no fresh store metric
+  or attribution read, no spend. Telemetry remains off. G06 stays
+  blocked on scoped
+  send approval — the live owned course invitation is passive and
+  grants no message permission.
+- Next planned review Oct 15 (plan only; no schedule verified). Budget
+  stays 0 KRW. `growth:check`, `test:growth` pass; diff check in the
+  implementer report.

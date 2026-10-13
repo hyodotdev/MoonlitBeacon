@@ -38,14 +38,15 @@ Observed acquisitions are Browse/India; no Korean value exists anywhere. Stay
 geo-agnostic — English-first creative, no KR-only spend — until data says
 otherwise.
 
-## No active observation (E03 closed Oct 13)
+## Active program: E04 running (E03 closed Oct 13)
 
 E03 observed the already-published Play listing video (`2JeLS582sRA`, last
 publish Sep 18) per [video-measurement.md](video-measurement.md). No verified
 verdict exists by the original Oct 2 decision deadline (deadline missed). A
 matched after-week was read on Oct 13; the late verdict is **inconclusive**:
-sparse observational data cannot establish a listing-video effect. Nothing
-is running now. Preparation below is not a launch.
+sparse observational data cannot establish a listing-video effect. E04 is
+now the single running program (launched Oct 13, verified publication);
+preparation elsewhere below is not a launch.
 
 The old E01 recruitment has no launch evidence: **not_run**, not a failed
 product hypothesis. Its replacement is P3, not a rerun.
@@ -112,17 +113,21 @@ re-shot in English: PR #3 merged (`da0e0db`), deploy workflow success,
 16/16 lesson pages plus nav targets HTTP 200 and 70/70 media assets 200,
 verified by direct fetch Sep 26. Tracked store links for the course-to-game
 funnel are added (homepage Play section, first-play page); the funnel input
-is ready and unlaunched.
+went live with the Oct 13 verified publication below.
 
-## E04 — course channel program (queued, the single coordinated experiment)
+## E04 — course channel program (running, the single coordinated experiment)
 
 Question: does the course move readers to the store, and where do fresh
 volunteers get stuck. One identity covers both the attributed Play read
 (source + campaign match, seven complete days, >=100 listing visitors for a
 quantitative read) and the five manual sessions from the protocol. Follow
 [first-play-measurement.md](first-play-measurement.md) and
-[first-play-protocol.md](first-play-protocol.md). Launch timestamp and proof
-are null; no clock has started; decision due Nov 13.
+[first-play-protocol.md](first-play-protocol.md). Launched 2026-10-13:
+verified publication observed 2026-10-13T09:10:47.475Z at
+`https://moonlitbeacon.hyo.dev/MoonlitBeacon` from merged main `0b88971`
+(PR #14); proof in
+[course-publication-20261013.md](course-publication-20261013.md). Decision
+due Nov 13.
 
 ## E02 design (not_run; original Oct 9 deadline retained)
 
@@ -169,7 +174,8 @@ unverified at 1fps).
 
 Monday/Thursday 10:00 Asia/Seoul. Next planned review Oct 15 — a plan,
 not a saved automation. E03 decision Oct 2 missed, late Oct 13 verdict
-inconclusive; E02 decision Oct 9 passed with no verified launch (not_run).
+inconclusive; E02 decision Oct 9 passed with no verified launch (not_run);
+E04 launched Oct 13 and running.
 Fetch origin/main before
 each run, preserve other work, and report divergence. Read state/log/tracker,
 collect with permitted connectors/browser, judge overdue hypotheses, finish

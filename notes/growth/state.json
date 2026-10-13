@@ -487,7 +487,8 @@
       "nextReview": "2026-09-24",
       "blocker": "No authorized recipient/destination for external recruitment in this thread",
       "evidence": [
-        "E01 not_run at Sep 21 decision; no invented start date"
+        "E01 not_run at Sep 21 decision; no invented start date",
+        "Oct 13: the live owned course invitation (/first-play page) is a passive owned channel, not a direct message; it grants no send permission and this task stays blocked on scoped send approval. Zero sessions/enquiries observed."
       ]
     },
     {
@@ -589,7 +590,8 @@
         "apps/docs/src/pages/first-play.tsx invitation page with store links and optional email contact; no forms, trackers, or storage",
         "notes/growth/first-play-protocol.md moderator protocol with empty P01-P05 template; zero participants counted",
         "notes/growth/first-play-measurement.md E04 contract; launch timestamp and proof null, no clock started",
-        "Package prepared only; no publication, no messages, no spend, no execution"
+        "Package prepared only; no publication, no messages, no spend, no execution",
+        "Oct 13 publication completed and verified: merged main 0b88971 (PR #14), hosting-only deploy of 195 files, live publication observed 2026-10-13T09:10:47.475Z; proof record notes/growth/course-publication-20261013.md. No sessions, messages, or spend."
       ]
     }
   ],
@@ -639,9 +641,9 @@
     {
       "id": "E04",
       "title": "Course channel first-play program: attributed Play read plus five manual sessions",
-      "status": "queued",
-      "startedAt": null,
-      "launchEvidence": null,
+      "status": "running",
+      "startedAt": "2026-10-13",
+      "launchEvidence": "Verified public publication observed 2026-10-13T09:10:47.475Z (Asia/Seoul 2026-10-13 18:10:47.475) at https://moonlitbeacon.hyo.dev/MoonlitBeacon from merged main 0b88971599b26c34f3bdb94272076b5a2d2d1568 (PR #14 merged 2026-10-13T09:03:07Z); proof record notes/growth/course-publication-20261013.md",
       "decisionDue": "2026-11-13",
       "nextReview": "2026-10-15",
       "result": null,
@@ -660,6 +662,6 @@
     "monthlyDecision": "2026-10-02",
     "automationId": "automation",
     "lastScheduledReview": "2026-09-21",
-    "verification": "Sep 21 direct Play/ASC collection completed. Heartbeat saved target, ACTIVE status, unchanged cadence and thread verified. Sep 19 completion remains unverified."
+    "verification": "Sep 21 direct Play/ASC collection completed. Heartbeat saved target, ACTIVE status, unchanged cadence and thread verified. Sep 19 completion remains unverified. Oct 13 verified course publication observed at 2026-10-13T09:10:47.475Z; no console read and no schedule verification in this round."
   }
 }

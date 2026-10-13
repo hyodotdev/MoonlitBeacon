@@ -62,7 +62,7 @@ pnpm test:hosting    # node --test composition/checker regressions (temp dirs on
 app-local `.gitignore` (alongside `.firebase/`); composition copies bytes
 only, with no rewriting and no timestamps. `hosting:build` refuses a stale
 care `dist/` and a missing docs build. `hosting:check` verifies all 49 care
-files and all 26 docs pages plus assets, resolves every local href/src
+files and all 28 docs pages plus assets, resolves every local href/src
 (extensionless docs routes included), requires the real care `404.html`
 with no catch-all rewrite, and pins the hosting config to site
 `moonlitbeacon-778ee` and the generated directory while the root
